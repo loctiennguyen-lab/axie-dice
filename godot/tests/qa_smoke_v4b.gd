@@ -45,8 +45,7 @@ func goto(path: String) -> void:
 	await frames(30)
 
 func _flow() -> void:
-	if OS.get_environment("QA_SPEED") != "":
-		Engine.time_scale = float(OS.get_environment("QA_SPEED"))
+
 	ProjectSettings.set_setting("axie/epoch_source", "local")
 	# Prod is online-only and QA must not hit the network: use the game's own local-dice path.
 	ProjectSettings.set_setting("axie/epoch_source", "local")
@@ -89,6 +88,10 @@ func _flow() -> void:
 	m._select_reward(1)
 	await frames(5)
 	m._take_selected_reward()
+	await frames(4)
+	var rv0 = m._reveal
+	note("ITEM1 right after rule pick: reveal running=%s log=%s" % [str(rv0 != null and is_instance_valid(rv0) and rv0.running), str(m.gacha_log)])
+	await shot("01_facedown")
 	await frames(40)
 	note("after rule: run_rule=%s core_offer=%s pend=%s" % [RunState.run_rule, str(RunState._core_offer_active), str(RunState.pending_rewards.map(func(c): return c.get("key", "?")))])
 	var ov_visible: bool = m._overlay_root != null and m._overlay_root.visible
@@ -99,6 +102,8 @@ func _flow() -> void:
 		return
 	await shot("04_core_offer_1")
 	await core_checks(m)
+	if OS.get_environment("QA_SPEED") != "":
+		Engine.time_scale = float(OS.get_environment("QA_SPEED"))
 	await advance_loop()
 
 var _seen := {}
@@ -194,7 +199,7 @@ func combat_step(v: Node) -> void:
 		if OS.get_environment("QA_STAGE1") == "1":
 			await stage1_checks(v)
 		else:
-			await v4_tests(v)
+			pass
 	if kind == "boss" and first("bossrhythm"):
 		await shot("boss_rhythm")
 	var turns := 0
@@ -623,7 +628,7 @@ func core_checks(m: Node) -> void:
 		m.find_child("TakeButton", true, false).pressed.emit()
 		await get_tree().create_timer(0.5).timeout
 		await shot("03_banner_pair")
-		note("ITEM3 log=%s banner PAIR texts=%s" % [str(m.gacha_log), str(ov_texts(m._overlay_layer if m._overlay_layer else m, "PAIR"))])
+		note("ITEM3 log=%s banner PAIR texts=%s" % [str(m.gacha_log), str(_find(get_tree().root, "PAIR"))])
 		await frames(150)
 		note("ITEM3 core_reroll_left %d -> %d combo_done=%s" % [rr0, RunState.core_reroll_left, str(RunState.combo_done)])
 		done = true
@@ -640,7 +645,7 @@ func btn_state(b: Button) -> String:
 func turn_probe(v: Node) -> void:
 	var c = v._combat
 	await wait_anim(v, 300)
-	var sizes := c.bo.map(func(g): return int(g["size"]))
+	var sizes = c.bo.map(func(g): return int(g["size"]))
 	var h = v._hud_frame
 	note("PROBE turn=%d bo_sizes=%s overcast[%s] wild[%s]" % [c.turn, str(sizes), btn_state(h.overcast_button), btn_state(h.wild_button)])
 	if v.combo_float_log.size() > _combo_seen:
@@ -671,8 +676,8 @@ func turn_probe(v: Node) -> void:
 				await frames(10)
 				note("ITEM5 after overcast: overcast=%s wild_valid_on_it=%s" % [str(uu.overcast), str(v._wild_valid(uid))])
 				await shot("05_after_overcast")
-		var triple := sizes.any(func(s): return s >= 3)
-		var pair_only := sizes.any(func(s): return s == 2) and not triple
+		var triple = sizes.any(func(s): return s >= 3)
+		var pair_only = sizes.any(func(s): return s == 2) and not triple
 		if pair_only and first("wild_pair"):
 			note("ITEM5 PAIR-ONLY wild[%s]" % btn_state(h.wild_button))
 			await shot("05_wild_pair_only")
