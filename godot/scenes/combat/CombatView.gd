@@ -4322,7 +4322,7 @@ func _wild_any_valid() -> bool:
 
 
 func _wild_state(executing: bool) -> Dictionary:
-	var used: bool = _combat.wild_used >= _combat.wild_per_turn()
+	var used: bool = _combat.wild_used >= _combat.wild_per_battle()
 	var d := V4Ui.wild_button(_combat.depth_stage >= 2, used, _combat.mana, _combat.wild_cost(), _wild_any_valid())
 	if not executing:
 		d["enabled"] = false

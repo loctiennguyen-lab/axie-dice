@@ -15,11 +15,11 @@ func run() -> void:
 	for v in [0, 1, 2]:
 		force(e, [1, 1, 1, 2, 3], face("dmg", v))
 		eq(e._face_value(e.party[0], 1), (v * 130 + 99) / 100, "v=%d x1.3" % v)
-	# five (2.6) + overcast (0.5) = 3.1: under nominal cap 3.5, v=6 -> 19; shipped cap 3.0 clamps to 18
+	# five (2.6) + overcast (0.4) = 3.0: v=6 -> 18 (cap 3.0 or 3.5 alike)
 	force(e, [1, 1, 1, 1, 1], face("dmg", 6))
 	eq(e._face_value(e.party[0], 1), 16, "five x2.6 of 6 = 15.6 -> 16")
 	e.party[0].overcast = true
-	eq(e._face_value(e.party[0], 1), 19, "five + overcast = 3.1 of 6 = 18.6 -> 19")
+	eq(e._face_value(e.party[0], 1), 18, "five + overcast = 3.0 of 6 = 18")
 	ContentDB.combat_tune["bo"]["m_cap"] = 3.0
 	eq(e._face_value(e.party[0], 1), 18, "m_cap 3.0 clamps")
 	set_knobs("nominal")
@@ -45,14 +45,14 @@ func run() -> void:
 	eq(e._face_value(e.party[3], 2), 0, "cracked 0 stays 0")
 	e.party[3].die[2] = face("mana", 3)
 	eq(e._face_value(e.party[3], 2), 2, "Crack also halves a mana face")
-	# default knobs: 3 -> 1.30, 4 -> 2.20, 5 -> 2.60, 4 + overcast = 2.70
+	# default knobs: 3 -> 1.30, 4 -> 2.20, 5 -> 2.60, 4 + overcast = 2.60
 	set_knobs("default")
 	force(e, [1, 1, 1, 2, 3], face("dmg", 5))
 	eq(e._face_value(e.party[0], 1), (5 * 130 + 99) / 100, "default three")
 	force(e, [1, 1, 1, 1, 3], face("dmg", 5))
 	eq(e.m100_for(e.party[0]), 220, "default four 2.20")
 	e.party[0].overcast = true
-	eq(e.m100_for(e.party[0]), 270, "default four + overcast 2.70")
+	eq(e.m100_for(e.party[0]), 260, "default four + overcast 2.60")
 	force(e, [1, 1, 1, 1, 1], face("dmg", 5))
 	eq(e.m100_for(e.party[0]), 260, "default five 2.60")
 	# flat Core add stays outside M: face_final flat on a Set die adds exactly +N on top

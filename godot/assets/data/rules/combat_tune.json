@@ -32,12 +32,12 @@
   "mult_cap": 8
  },
  "wild": {
-  "cost": 3,
-  "per_turn": 1
+  "cost": 2,
+  "per_battle": 1
  },
  "overcast": {
   "mana_cost": 3,
-  "add": 0.5,
+  "add": 0.4,
   "per_turn": 1
  },
  "bo": {

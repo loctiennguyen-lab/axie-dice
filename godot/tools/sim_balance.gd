@@ -1246,7 +1246,7 @@ func _expert2_actions(eng: CombatEngine) -> void:
 						var cost := 0.0 if rm == 0 else _e2_mana_cost_val(eng.mana, eng.reroll_mana_cost(false, 1))
 						opts.append({"gain": tot / float(_e2_samples) - base_roll - cost, "kind": "reroll", "a": sset, "b": rm})
 		# ---- Mat Tam
-		if not _abl.has("no_wild") and eng.depth_stage >= 2 and eng.wild_used < eng.wild_per_turn() and eng.mana >= eng.wild_cost():
+		if not _abl.has("no_wild") and eng.depth_stage >= 2 and eng.wild_used < eng.wild_per_battle() and eng.mana >= eng.wild_cost():
 			var wcost := _e2_mana_cost_val(eng.mana, eng.wild_cost())
 			for i in ents.size():
 				if not ents[i]["ready"] or int(ents[i]["wild"]) >= 0:
