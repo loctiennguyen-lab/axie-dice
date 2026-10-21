@@ -129,11 +129,18 @@ func run_batch(args: Dictionary) -> Array:
 	return recs
 
 
+const MX_KEYS := ['in_face', 'in_cantrip', 'in_use_other', 'in_turnstart', 'in_other', 'out_safe1', 'out_safe2', 'out_wild', 'out_oc', 'out_lieu', 'out_other', 'end_sum', 'end_n', 'buy_safe1', 'buy_safe2', 'buy_safe_free', 'buy_wild', 'buy_oc', 'buy_lieu', 'wild_n2', 'wild_n3', 'wild_n4', 'bo_turns', 'bo_m3_pre', 'bo_m3_post']
+var _mx_prev_end := 0   # mana left at the end of the previous turn of this fight (0 at fight start)
+var _mx_paid_k := 0     # paid Safe rerolls so far this turn
+
+
 func _play_run(seed_value: int, team_name: String, asc: int, policy: String, core_policy: String) -> Dictionary:
 	_policy = policy
 	_core_policy = core_policy
 	_abl = {}
 	_met = {"turns": 0, "dmg": 0.0, "v0": 0.0, "v1": 0.0, "dsq": 0.0, "boss_n": 0, "boss_turns": 0, "boss_won": 0, "boss_hp": 0.0}
+	for k in MX_KEYS:
+		_met["mx_" + k] = 0.0
 	if policy.begins_with("expert_"):
 		for k in policy.trim_prefix("expert_").split("+"):
 			_abl[k] = true
@@ -365,6 +372,7 @@ func _play_combat(eng: CombatEngine) -> int:
 	var turns := 0
 	_turn_seen = -1
 	_plan = []
+	_mx_prev_end = 0
 	while not (eng.won or eng.lost) and turns < MAX_TURNS:
 		_play_turn(eng)
 		turns += 1
@@ -378,27 +386,153 @@ func _play_turn(eng: CombatEngine) -> void:
 	var dmg0 := float(eng.stat.get("dmg_dealt_clamped", 0))
 	var v0 := _v_sum(eng)
 	var v1 := -1.0
+	var mx_start := eng.mana
+	_mx_paid_k = 0
+	_mx_acc_before = _mx_tracked_net()
+	if mx_start >= _mx_prev_end:
+		_ma("in_turnstart", mx_start - _mx_prev_end)
+	else:
+		_ma("out_other", _mx_prev_end - mx_start)
 	while guard < 24 and not (eng.won or eng.lost):
 		guard += 1
 		var mv := _choose_move(eng)
 		if v1 < 0.0:
+			_mx_decision_point(eng, mx_start)
 			v1 = _v_sum(eng)   # after the bot's roll decisions (rerolls / Mat Tam / Overcast happen inside the first _choose_move)
 		if mv.is_empty():
 			break
 		var mu: Unit = eng.by_uid(int(mv[0]))
 		var mt := String(mu.current_face().get("type", "")) if mu != null else ""
+		var mx_m0 := eng.mana
+		var mx_cant := int(eng._kw_val(mu.current_face(), "mana")) if mu != null and mu.side == "p" else 0
 		if not eng.use_die(int(mv[0]), int(mv[1])):
 			break
+		_mx_use_gain(eng.mana - mx_m0, mt, mx_cant)
 		if mt == "shield":
 			_shield_used += 1
 	if not (eng.won or eng.lost):
+		_mx_close_turn(eng, mx_start)
 		eng.end_turn()
+		_mx_prev_end = eng.mana
+	else:
+		_mx_prev_end = 0
 	var dd := float(eng.stat.get("dmg_dealt_clamped", 0)) - dmg0
 	_met["turns"] = int(_met["turns"]) + 1
 	_met["dmg"] = float(_met["dmg"]) + dd
 	_met["dsq"] = float(_met["dsq"]) + dd * dd
 	_met["v0"] = float(_met["v0"]) + v0
 	_met["v1"] = float(_met["v1"]) + (v1 if v1 >= 0.0 else v0)
+
+
+# ---------------------------------------------------------------- mana accounting (step 0, v4 mana decisions)
+# All real (non-trial) mana-moving calls of the bots go through these wrappers; trial moves (use_die + undo_last) are not counted.
+var _mx_acc_before := 0.0
+
+func _ma(key: String, v: float) -> void:
+	_met["mx_" + key] = float(_met["mx_" + key]) + v
+
+
+func _mx_tracked_net() -> float:
+	var t := 0.0
+	for k in MX_KEYS:
+		if k.begins_with("in_") and k != "in_turnstart":
+			t += float(_met["mx_" + k])
+		elif k.begins_with("out_") and k != "out_other":
+			t -= float(_met["mx_" + k])
+	return t
+
+
+## Mana change caused by a die being used: mana face, cantrip keyword, anything else (Cores / relics) is "use_other".
+func _mx_use_gain(d: int, face_type: String, cantrip: int) -> void:
+	if d == 0:
+		return
+	if d < 0:
+		return   # counted by the end-of-turn residual
+	var rest := d
+	var c := mini(cantrip, rest)
+	_ma("in_cantrip", c)
+	rest -= c
+	if face_type == "mana":
+		_ma("in_face", rest)
+		rest = 0
+	_ma("in_use_other", rest)
+
+
+## Called once per turn after the bot's roll decisions: is there a BỘ, how much mana is there to Overcast it with.
+func _mx_decision_point(eng: CombatEngine, mana_start: int) -> void:
+	for u in _ready_units(eng):
+		if String((u as Unit).current_face().get("type", "")) == "mana":
+			_ma("face_rolled", 1)
+	if eng.bo.is_empty():
+		return
+	_ma("bo_turns", 1)
+	if mana_start >= eng.overcast_cost():
+		_ma("bo_m3_pre", 1)
+	if eng.mana >= eng.overcast_cost():
+		_ma("bo_m3_post", 1)
+
+
+## Before end_turn: unspent mana, plus whatever changed this turn that no wrapper saw (Core hooks on reroll / turn start...).
+func _mx_close_turn(eng: CombatEngine, mana_start: int) -> void:
+	_ma("end_sum", eng.mana)
+	_ma("end_n", 1)
+	var expect := float(mana_start) + (_mx_tracked_net() - _mx_acc_before)
+	var resid := float(eng.mana) - expect
+	if resid > 0.0:
+		_ma("in_other", resid)
+	elif resid < 0.0:
+		_ma("out_other", -resid)
+
+
+func _mx_reroll(eng: CombatEngine, uids: Array, rm: int) -> bool:
+	var m0 := eng.mana
+	var free := eng.rerolls > 0
+	var ok := eng.reroll_dice(uids, -1, false, rm)
+	if not ok:
+		return false
+	var d := m0 - eng.mana
+	if rm == 0:
+		_ma("buy_lieu", 1)
+		if d > 0:
+			_ma("out_lieu", d)
+	elif d > 0:
+		_mx_paid_k += 1
+		_ma("buy_safe1" if _mx_paid_k == 1 else "buy_safe2", 1)
+		_ma("out_safe1" if _mx_paid_k == 1 else "out_safe2", d)
+	else:
+		_ma("buy_safe_free", 1)
+	if d < 0:
+		_ma("in_other", -d)
+	return ok
+
+
+func _mx_wild(eng: CombatEngine, uid: int, slot: int) -> bool:
+	var m0 := eng.mana
+	var u := eng.by_uid(uid)
+	var after := 0
+	if u != null:
+		var save := u.wild_slot
+		u.wild_slot = slot
+		for dd in eng._bo_dice():
+			if (dd.wild_slot if dd.wild_slot >= 0 else dd.roll_face_index()) == slot:
+				after += 1
+		u.wild_slot = save
+	if not eng.wild_face(uid, slot):
+		return false
+	_ma("buy_wild", 1)
+	_ma("out_wild", m0 - eng.mana)
+	var before := after - 1   # group size before the click (n=2 -> a Set of 3; n=3 -> a Set of 4)
+	_ma("wild_n%d" % clampi(before, 2, 4), 1)
+	return true
+
+
+func _mx_overcast(eng: CombatEngine, uid: int) -> bool:
+	var m0 := eng.mana
+	if not eng.overcast(uid):
+		return false
+	_ma("buy_oc", 1)
+	_ma("out_oc", m0 - eng.mana)
+	return true
 
 
 ## V = sum of face values (after the M bag, Cores muted) of the dmg/shield/heal/poison faces on the dice that can still be played.
@@ -489,7 +623,7 @@ func _random_extras(eng: CombatEngine) -> void:
 		if not eng.can_reroll(uids, false, rm):
 			rm = 1 - rm
 		if eng.can_reroll(uids, false, rm):
-			eng.reroll_dice(uids, -1, false, rm)
+			_mx_reroll(eng, uids, rm)
 	if _rng.next_int(100) < 30:
 		var opts: Array = []
 		for u in _ready_units(eng):
@@ -498,14 +632,14 @@ func _random_extras(eng: CombatEngine) -> void:
 					opts.append([u.uid, sl])
 		if not opts.is_empty():
 			var o: Array = opts[_rng.next_int(opts.size())]
-			eng.wild_face(int(o[0]), int(o[1]))
+			_mx_wild(eng, int(o[0]), int(o[1]))
 	if _rng.next_int(100) < 30:
 		var oc: Array = []
 		for u in _ready_units(eng):
 			if eng.can_overcast(u.uid):
 				oc.append(u.uid)
 		if not oc.is_empty():
-			eng.overcast(int(oc[_rng.next_int(oc.size())]))
+			_mx_overcast(eng, int(oc[_rng.next_int(oc.size())]))
 
 
 func _move_random(eng: CombatEngine, ready: Array, foes: Array) -> Array:
@@ -799,7 +933,7 @@ func _free_hold_rerolls(eng: CombatEngine) -> void:
 			cands.append((u as Unit).uid)
 		if cands.is_empty() or not eng.can_reroll(cands, false, 1) or eng.reroll_mana_cost(false, 1) > 0:
 			break
-		if not eng.reroll_dice(cands, -1, false, 1):
+		if not _mx_reroll(eng, cands, 1):
 			break
 	CoreHooks.mute -= 1
 
@@ -945,10 +1079,10 @@ func _try_hunt(eng: CombatEngine, crack_p: float) -> bool:
 	if _trace_path != "":
 		var h0 := _hand(eng)
 		var t0 := _turn_value(eng)
-		var okr := eng.reroll_dice(cands, -1, false, rm)
+		var okr := _mx_reroll(eng, cands, rm)
 		_trace("HUNT_" + ("LIEU" if rm == 0 else "SAFE"), eng, h0, t0, "free=%s k=%d n=%d evL=%.1f evS=%.1f" % [str(free), k, best_n, ev_lieu, ev_safe])
 		return okr
-	return eng.reroll_dice(cands, -1, false, rm)
+	return _mx_reroll(eng, cands, rm)
 
 
 func _try_weak_reroll(eng: CombatEngine) -> bool:
@@ -983,10 +1117,10 @@ func _try_weak_reroll(eng: CombatEngine) -> bool:
 	if _trace_path != "":
 		var h1 := _hand(eng)
 		var t1 := _turn_value(eng)
-		var okw := eng.reroll_dice(weak, -1, false, rm)
+		var okw := _mx_reroll(eng, weak, rm)
 		_trace("WEAK_" + ("LIEU" if rm == 0 else "SAFE"), eng, h1, t1, "free=%s n=%d" % [str(eng.rerolls > 0), weak.size()])
 		return okw
-	return eng.reroll_dice(weak, -1, false, rm)
+	return _mx_reroll(eng, weak, rm)
 
 
 ## Mat Tam: attach when it completes a BỘ (ba+) and the turn value rises by more than the mana it costs.
@@ -1011,7 +1145,7 @@ func _expert_wild(eng: CombatEngine) -> void:
 					best = [u.uid, sl]
 	if not best.is_empty():
 		var h2 := _hand(eng)
-		eng.wild_face(int(best[0]), int(best[1]))
+		_mx_wild(eng, int(best[0]), int(best[1]))
 		_trace("WILD", eng, h2, base, "gainSeen=%.1f" % best_g)
 
 
@@ -1036,7 +1170,7 @@ func _expert_overcast(eng: CombatEngine) -> void:
 				best = u.uid
 	if best >= 0:
 		var h3 := _hand(eng)
-		eng.overcast(best)
+		_mx_overcast(eng, best)
 		_trace("OVERCAST", eng, h3, base, "gainSeen=%.1f" % best_g)
 
 
@@ -1284,13 +1418,13 @@ func _expert2_actions(eng: CombatEngine) -> void:
 				for i in (o["a"] as Array):
 					uids.append(int(ents[i]["uid"]))
 				if eng.can_reroll(uids, false, int(o["b"])):
-					ok = eng.reroll_dice(uids, -1, false, int(o["b"]))
+					ok = _mx_reroll(eng, uids, int(o["b"]))
 			elif kind == "wild":
 				var uid := int(ents[int(o["a"])]["uid"])
 				if eng.wild_block_reason(uid, int(o["b"])) == "":
-					ok = eng.wild_face(uid, int(o["b"]))
+					ok = _mx_wild(eng, uid, int(o["b"]))
 			else:
-				ok = eng.overcast(int(ents[int(o["a"])]["uid"]))
+				ok = _mx_overcast(eng, int(ents[int(o["a"])]["uid"]))
 			if ok:
 				if _trace_path != "":
 					_trace("E2_" + kind + (("_" + ("LIEU" if int(o["b"]) == 0 else "SAFE")) if kind == "reroll" else ""), eng, h0, t0, "pred=%.1f" % float(o["gain"]))
