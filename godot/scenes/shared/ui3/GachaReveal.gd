@@ -15,6 +15,7 @@ var _plan: Dictionary = {}
 var _tween: Tween
 var _shake_host: Control
 var _pulses: Array[Tween] = []
+var _sparkles: Array[Control] = []
 
 
 ## cards: Controls (PanelContainer cards whose first child is the content column). shake_host: node to jiggle on jackpot.
@@ -127,14 +128,77 @@ func _reveal(i: int) -> void:
 func _jackpot() -> void:
 	events.append("jackpot")
 	UI3Gacha.play_sfx(self, "jackpot")
+	# Gold ring + sparkles on the card(s) that complete a combo, plus a shake of the whole card row.
+	for c in _cards:
+		if is_instance_valid(c) and bool((c as Control).get_meta("jackpot_card", false)):
+			_sparkle(c as Control)
 	if _shake_host == null or not is_instance_valid(_shake_host):
 		return
-	var px := float(UI3Gacha.timing().get("shake_px", 6))
+	var px := float(UI3Gacha.timing().get("shake_px", 10))
 	var base := _shake_host.position
 	var tw := create_tween()
-	for k in 6:
-		tw.tween_property(_shake_host, "position", base + Vector2(px if k % 2 == 0 else -px, 0), 0.08)
+	for k in 8:
+		tw.tween_property(_shake_host, "position", base + Vector2(px if k % 2 == 0 else -px, 0), 0.06)
 	tw.tween_property(_shake_host, "position", base, 0.05)
+
+
+## Flat gold diamonds popping around the card edge + a gold ring that pulses twice. No shader, no gradient.
+func _sparkle(card: Control) -> void:
+	var holder := Control.new()
+	holder.name = "Sparkles"
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.z_index = 5
+	card.add_child(holder)
+	_sparkles.append(holder)
+	var gold := UI3Theme.color("accent")
+	# The card (a PanelContainer) squeezes its children into the padded content rect: put everything in a free
+	# "Inner" Control that is moved back to the card's own top-left corner and sized to the whole card.
+	var off := card.get_theme_stylebox("panel").get_offset() if card.get_theme_stylebox("panel") != null else Vector2.ZERO
+	var inner := Control.new()
+	inner.name = "Inner"
+	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	inner.position = -off
+	inner.size = card.size
+	holder.add_child(inner)
+	var ring := Panel.new()
+	ring.name = "JackpotRing"
+	ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ring.position = Vector2(-14, -14)
+	ring.size = card.size + Vector2(28, 28)
+	ring.add_theme_stylebox_override("panel", UI3Theme.flat(Color(0, 0, 0, 0), UI3Theme.radius("l") + 14, 8, gold))
+	inner.add_child(ring)
+	var rt := create_tween().set_loops(3)
+	rt.tween_property(ring, "modulate:a", 0.25, 0.2)
+	rt.tween_property(ring, "modulate:a", 1.0, 0.2)
+	var sz := card.size
+	var rng := RandomNumberGenerator.new()   # cosmetic only, never the run rng
+	rng.seed = 7
+	for i in 18:
+		var d := ColorRect.new()
+		d.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		d.color = gold if i % 3 != 0 else UI3Theme.color("text")
+		var s := float(rng.randi_range(14, 28))
+		d.size = Vector2(s, s)
+		d.pivot_offset = d.size / 2.0
+		d.rotation = PI / 4.0
+		# around the edge band of the card, half outside
+		var edge := i % 4
+		var fx := rng.randf()
+		var fy := rng.randf()
+		var pos := Vector2(fx * sz.x, fy * sz.y)
+		match edge:
+			0: pos.y = -s * 0.5 - rng.randf() * 18.0
+			1: pos.y = sz.y - s * 0.5 + rng.randf() * 18.0
+			2: pos.x = -s * 0.5 - rng.randf() * 18.0
+			3: pos.x = sz.x - s * 0.5 + rng.randf() * 18.0
+		d.position = pos
+		d.scale = Vector2.ZERO
+		inner.add_child(d)
+		var tw := create_tween()
+		tw.tween_interval(rng.randf() * 0.5)
+		tw.tween_property(d, "scale", Vector2.ONE, 0.18)
+		tw.tween_property(d, "rotation", PI / 4.0 + PI / 2.0, 0.5)
+		tw.tween_property(d, "scale", Vector2.ZERO, 0.22)
 
 
 ## Jump to the final state.
@@ -158,6 +222,10 @@ func _done() -> void:
 		if is_instance_valid(cv):
 			(cv as Node).queue_free()
 	_covers.clear()
+	for sp in _sparkles:
+		if is_instance_valid(sp):
+			sp.queue_free()
+	_sparkles.clear()
 	for c in _cards:
 		if is_instance_valid(c):
 			(c as Control).scale = Vector2.ONE

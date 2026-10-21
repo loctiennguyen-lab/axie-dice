@@ -1425,6 +1425,7 @@ func _start_core_reveal(shake_host: Control) -> void:
 		_reveal.name = "GachaReveal"
 		_overlay_root.add_child(_reveal)
 		var jp := rt >= 2 and not UI3Gacha.combo_completes(UI3Gacha.owned_ids(), String(rw.get("key", ""))).is_empty()
+		_reward_cards[slot].set_meta("jackpot_card", jp)
 		_reveal.start([_reward_cards[slot]], rt, UI3Gacha.first_seen(str(RunState.get("_core_base_seed")), rt), jp, shake_host,
 			float(UI3Gacha.timing().get("reroll_in_sec", 0.5)))
 		_reroll_note(_reward_cards[slot])
@@ -1443,8 +1444,11 @@ func _start_core_reveal(shake_host: Control) -> void:
 	_overlay_root.add_child(_reveal)
 	var jackpot := false
 	if tier >= 2:
-		for rw in RunState.pending_rewards:
-			jackpot = jackpot or not UI3Gacha.combo_completes(UI3Gacha.owned_ids(), String(rw.get("key", ""))).is_empty()
+		for k in RunState.pending_rewards.size():
+			var rw: Dictionary = RunState.pending_rewards[k]
+			var hit := int(rw.get("tier", 0)) >= 2 and not UI3Gacha.combo_completes(UI3Gacha.owned_ids(), String(rw.get("key", ""))).is_empty()
+			_reward_cards[k].set_meta("jackpot_card", hit)
+			jackpot = jackpot or hit
 	_reveal.start(_reward_cards, tier, first, jackpot, shake_host, -1.0, from_t)
 
 

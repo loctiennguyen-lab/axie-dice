@@ -25,7 +25,7 @@ func _ready() -> void:
 	_check(is_equal_approx(pr["aura"], 0.4), "repeat tier aura 0.4")
 	_check(is_equal_approx(p2["flips"][1] - p2["flips"][0], 0.18) and is_equal_approx(p2["flip"], 0.35), "stagger 180 ms, flip 0.35")
 	var pj := UI3Gacha.plan(3, 2, true, true, false)
-	_check(is_equal_approx(pj["total"] - p2["total"], 0.6), "jackpot adds 0.6 s")
+	_check(is_equal_approx(pj["total"] - p2["total"], float(UI3Gacha.timing()["jackpot_extra_sec"])), "jackpot adds the extra hold")
 	_check(is_equal_approx(UI3Gacha.plan(3, 2, true, true, true)["total"], p2["total"]), "reduce flashing drops jackpot extra")
 	_check(UI3Gacha.first_seen("a", 2) and not UI3Gacha.first_seen("a", 2) and UI3Gacha.first_seen("b", 2), "first-seen is per run")
 	# Overlay: bonus Crystal offer.
