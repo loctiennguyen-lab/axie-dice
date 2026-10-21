@@ -1,5 +1,13 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (23/10) — GÓI GACHA L + MANA ĐÃ VÀO GODOT-PORT, BUILD b1377
+godot-port = axiedice/main = **04a83bc** (merge int/v4b): mana v4 (Overcast cả BỘ +0.4 3 mana; Mặt Tạm chỉ 3→4, 2 mana, 1 lần/trận) +
+gói gacha L (14 combo 2 tầng `core_combos.json`, +1 reroll Lõi khi ráp Cặp cap 2, 3 Lõi meme, màn chọn Lõi lật/jackpot/cược quay/near-miss/
+PAIR-FULL, banner combo, Result Combos, Sổ Lõi, daily combo) + RULES_VERSION **-q**. Suite **205/205 không skip**, Worker 212/212. Review: logic
+APPROVED, UX 2 vòng (đã sửa). Smoke luồng thật `production/qa/smoke-v4b-2026-10-23.md` (không lỗi game; Mặt Tạm chưa kiểm được trong luồng thật).
+Build `build/AxieDice-0.1.0-L1-b1377-04a83bc-*`. Đang: vòng 2 Overcast (`../my-game-wt/OC2`: 2 mana, +0.5, enemy_dmg 1.55; quy tắc cắt lỗ).
+Sim mana vòng 1: Mặt Tạm +2.49 ĐẠT, Overcast +0.41 chưa đạt; expert 24, spam 9, random 16. Deploy vẫn CHƯA (0008+0009 + Worker -q + web cùng lúc).
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (22/10 tối) — GÓI GACHA LỚN (2 NGÀY) + MANA
 Liam chốt gacha: B không lộ bậc, 2 tầng, chỉ hiện thưởng, được chậm (agent chọn nhịp), có Lõi meme, **gói Lớn ≤2 ngày**. Hợp đồng
 `production/gacha-contract.md`. Làn: **GD** (`../my-game-wt/GD` data 14 combo + CoreCombos API + thưởng +1 reroll + sim rút thẻ + 3 Lõi meme),
