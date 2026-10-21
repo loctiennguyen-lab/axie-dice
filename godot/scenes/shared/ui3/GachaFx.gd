@@ -233,15 +233,9 @@ static func banner(parent: Node, tier: String, combo_name: String, core_ids: Arr
 	var tagrow := HBoxContainer.new()
 	tagrow.alignment = BoxContainer.ALIGNMENT_CENTER
 	tagrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var tag := PanelContainer.new()
+	var tag := UI3.combo_tier_tag(full, false)
 	tag.name = "BannerTag"
-	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tag.add_theme_stylebox_override("panel", UI3Theme.flat(gold, UI3Theme.radius("s"), 0, Color.TRANSPARENT, Vector4(24, 4, 24, 4)))
-	var tl := UI3.label(TranslationServer.translate("FULL" if full else "PAIR"), "LabelTitle")
-	tl.name = "TagText"
-	tl.add_theme_color_override("font_color", ink)
-	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tag.add_child(tl)
+	(tag.find_child("ComboWord", true, false) as Label).name = "TagText"
 	tagrow.add_child(tag)
 	v.add_child(tagrow)
 	var l := UI3.label(combo_name, "LabelScreenTitle")   # 32

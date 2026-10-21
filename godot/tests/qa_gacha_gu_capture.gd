@@ -171,7 +171,7 @@ func _combat() -> void:
 		await get_tree().process_frame
 	scene._combo_named.clear()
 	scene._spawn_combo_name("Golden Turtle Fortress")
-	scene._spawn_combo_name("Lunacia Rain")
+	scene._spawn_combo_name("Lunacia Rain", true)
 	scene._on_core_fired("c_kindle", scene._party_dice_units()[0].uid, 4, "dmg")
 	await _wait(0.5)
 	_snap("combat_combo")

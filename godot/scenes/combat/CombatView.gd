@@ -3250,11 +3250,12 @@ func _on_combo_fired(combo_id: String) -> void:
 		_hud_frame.core_panel.flash_combo(ComboAdapter.pair_cores(combo_id), first)
 	if not first:
 		return
+	var is_full := String(ComboAdapter.done().get(combo_id, "pair")) == "full"
 	var nm := UI3.title_case(ComboAdapter.display_name(combo_id))
 	combo_float_log.append(nm)
 	if _dm_audio != null:
 		_dm_audio.play("dm_combo")
-	_spawn_combo_name(nm)
+	_spawn_combo_name(nm, is_full)
 
 
 ## Fixed spot, top-centre (clear of the Axies below and the enemy column on the right), so it never sits on a unit or on a
@@ -3262,7 +3263,7 @@ func _on_combo_fired(combo_id: String) -> void:
 var _combo_banners_live := 0
 
 
-func _spawn_combo_name(nm: String) -> void:
+func _spawn_combo_name(nm: String, full := false) -> void:
 	if disable_juice_for_tests or not is_inside_tree() or _unit_visuals_root == null:
 		return
 	var chip := PanelContainer.new()
@@ -3283,9 +3284,8 @@ func _spawn_combo_name(nm: String) -> void:
 	g.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	g.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(g)
-	var tag := UI3.label(tr("COMBO"), "LabelTitle")
-	tag.add_theme_color_override("font_color", UI3Theme.color("accent"))
-	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var tag := UI3.combo_tier_tag(full)   # PAIR / FULL tag (own colour, frame and glyph count), then the combo name
+	tag.name = "ComboTierTag"
 	row.add_child(tag)
 	var l := UI3.label(nm, "LabelScreenTitle")   # 32
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE

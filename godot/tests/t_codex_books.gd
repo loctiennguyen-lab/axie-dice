@@ -9,6 +9,16 @@ func _check(ok: bool, msg: String) -> void:
 	if not ok:
 		_fails.append(msg)
 
+## GU 2: a met tile never says "Not met yet"; padding inside; the border is the plain token and the same for both.
+func _tile_rules(met: Node, unmet: Node, what: String) -> void:
+	_check(met.find_child("TileSub", true, false).text != "Not met yet", "%s: met tile does not say Not met yet" % what)
+	_check(unmet.find_child("TileSub", true, false).text == "Not met yet", "%s: unmet tile says Not met yet" % what)
+	for t in [met, unmet]:
+		var sb := (t as Control).get_theme_stylebox("panel") as StyleBoxFlat
+		_check(sb != null and sb.content_margin_left >= 12 and sb.content_margin_top >= 8, "%s: tile has inner padding" % what)
+		_check(sb != null and sb.border_color == UI3Theme.color("disabled_border") and sb.border_width_left == 2, "%s: tile border = plain token" % what)
+
+
 func _ready() -> void:
 	_guard.capture()
 	ComboAdapter.test_combos = [
@@ -27,8 +37,10 @@ func _ready() -> void:
 	var unmet: Node = cx.find_child("CoreTile_c_fissure", true, false)
 	_check(met != null and met.find_child("TileName", true, false).text == "Bastion" and met.find_child("TileSub", true, false).text.contains("Picked"), "met Core tile shows name + Picked")
 	_check(unmet != null and unmet.find_child("TileName", true, false).text == "?" and not bool(unmet.get_meta("seen", true)), "unmet Core tile is a ? (muted, not dimmed)")
+	_tile_rules(met, unmet, "core")
 	cx.call("_select_tab", "combos")
 	await get_tree().process_frame
+	_tile_rules(cx.find_child("ComboTile_t_a", true, false), cx.find_child("ComboTile_t_b", true, false), "combo")
 	_check(cx.find_child("ComboTile_t_a", true, false).find_child("TileSub", true, false).text == "Pair", "Pair tile")
 	_check(cx.find_child("ComboTile_t_b", true, false).find_child("TileName", true, false).text == "?", "unmet combo is ?")
 	cx.queue_free()
