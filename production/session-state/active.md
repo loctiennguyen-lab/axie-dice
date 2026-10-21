@@ -1,5 +1,14 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (22/10/2026) — V4 + A+ ĐÃ VÀO GODOT-PORT, BUILD b1304
+godot-port = axiedice/main = **0aef367** (merge depth/V4 c22162f + RULES_VERSION **-p** + sửa trần uid Worker 9999999 vì token uid từ
+100000; review security OK). Suite **192/192 KHÔNG cờ skip**, Worker **212/212**. Build `build/AxieDice-0.1.0-L1-b1304-0aef367-*` (b1196 → old).
+A+ (Liam duyệt): bộ ba ×1.3 / bốn ×2.2 / năm ×2.6, An toàn lần đầu 1 mana, Mặt Tạm 3 mana không tạo Bộ năm, enemy_dmg 1.50, Lõi giảm giá
+reroll sàn 1. Sim A+ (`production/qa/sim/sim-v4-metric-aplus.md`, 200 run cặp seed): expert 22.0 (mục tiêu 20±3 ĐẠT), spam 11.5,
+random 12.5, free_hold 16.5; nhưng Liều/Mặt Tạm/Overcast đóng góp ~0 → đề xuất `design/proposals/v4-mana-decisions.md` (P1 Overcast cả
+BỘ, P2 Mặt Tạm 2 mana 1 lần/trận) CHỜ LIAM 3 câu; bước 0 đo mana đang chạy (`../my-game-wt/SV4`). Deploy (CHƯA, hỏi Liam): D1 0008 + 0009
+→ wrangler deploy → export-web + deploy-r2 CÙNG LÚC (client cũ bị stage_mismatch).
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (đêm 22/10/2026) — V4 ĐỦ, ĐANG ĐO TAY NGHỀ
 `../my-game-wt/V4` `depth/V4` = **7a3f76f**: engine v4 (review OK) + UI v4 (UX review 2 vòng, 5.1b, glyph, nhãn SET giữa nhóm) + knob TD r2
 + smoke luồng thật v4 6/7 ĐẠT (`production/qa/smoke-v4-2026-10-22.md`; A1 mana Tundra = cantrip, không lỗi; A2 sửa: một SlotSwapSheet)
