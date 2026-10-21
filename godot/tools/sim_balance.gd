@@ -499,7 +499,10 @@ func _mx_decision_point(eng: CombatEngine, mana_start: int) -> void:
 func _mx_close_turn(eng: CombatEngine, mana_start: int) -> void:
 	_ma("end_sum", eng.mana)
 	_ma("end_n", 1)
-	_ma("in_face", _mx_ft)   # mana faces that came in with rerolls this turn
+	# Mana faces that came in with rerolls this turn. The expert also rolls in TRIALS (undone), which emit the same float, so the
+	# listener total is only an upper bound: cap it by the real unexplained mana gain of the turn.
+	var expect0 := float(mana_start) + (_mx_tracked_net() - _mx_acc_before)
+	_ma("in_face", clampf(_mx_ft, 0.0, maxf(0.0, float(eng.mana) - expect0)))
 	_mx_ft = 0.0
 	var expect := float(mana_start) + (_mx_tracked_net() - _mx_acc_before)
 	var resid := float(eng.mana) - expect
