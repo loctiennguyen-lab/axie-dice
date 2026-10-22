@@ -99,7 +99,9 @@ func _case(c: Dictionary) -> void:
 		for i in 3:
 			e.use_die(e.party[i].uid, tgt.uid)
 		await _frames(4)
-		_check(bool(e.anchor_turn["vol2"]) and other.hp == 86, "a_volley: Thorn Storm blasts a second time (hp %d)" % other.hp)
+		# SET of three 5s: base 15; the second blast pierces Shield and deals floor(15 * volley_pct_3 / 100) (knob, not hard-coded)
+		var want_hp := 90 - int(floor(15.0 * CombatEngine.tune_knob("anchor", "volley_pct_3", 40.0) / 100.0))
+		_check(bool(e.anchor_turn["vol2"]) and other.hp == want_hp, "a_volley: Thorn Storm blasts a second time (hp %d, want %d)" % [other.hp, want_hp])
 	elif aid == "a_mana_mine":
 		# Roll turns until the first roll is a natural SET with an Overcast-able die (rng is the run's; bounded loop).
 		var tried := 0
