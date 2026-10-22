@@ -43,6 +43,9 @@ func _ready() -> void:
 		"core_impact": RunState.core_impact.duplicate(true),
 		"combo_done": ComboAdapter.done().duplicate(),            # lane GM: before end_run() clears the run
 		"skipped_t": ComboAdapter.skipped_t().duplicate(),
+		"anchor_id": AnchorAdapter.current_id(),                  # Anchor lane: read before end_run() clears the run
+		"anchor_awakened": AnchorAdapter.awakened(),
+		"house_tiers": RunState.house_tiers_now() if RunState.has_method("house_tiers_now") else {},
 		"roster": RunState.roster.duplicate(true),
 		"stats": RunStatsAccumulator.snapshot(RunState.mode),
 		"ranked": RunState.ranked,
@@ -355,7 +358,8 @@ func _build_card_rows(s: Dictionary) -> VBoxContainer:
 func _build_combos_card(s: Dictionary) -> Control:
 	var done: Dictionary = s.get("combo_done", {})
 	var skipped := RunCard.skipped_names(s.get("skipped_t", []) as Array)
-	if done.is_empty() and skipped.is_empty() and ComboAdapter.all().is_empty():
+	var anchor_id := String(s.get("anchor_id", ""))
+	if done.is_empty() and skipped.is_empty() and ComboAdapter.all().is_empty() and anchor_id == "":
 		return null
 	var card := UI3.plate(&"row")
 	card.name = "CombosCard"
@@ -363,6 +367,11 @@ func _build_combos_card(s: Dictionary) -> Control:
 	col.add_theme_constant_override("separation", 8)
 	card.add_child(col)
 	col.add_child(_card_caption(tr("Combos") + " · %d" % done.size()))
+	if anchor_id != "":
+		col.add_child(_anchor_row(anchor_id, bool(s.get("anchor_awakened", false))))
+		var mut := _mutation_line(s.get("house_tiers", {}) as Dictionary)
+		if mut != null:
+			col.add_child(mut)
 	if done.is_empty():
 		var none := UI3.label(tr("No combos this run."), "LabelMuted")
 		none.name = "NoCombos"
@@ -394,6 +403,46 @@ func _build_combos_card(s: Dictionary) -> Control:
 		sk.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		col.add_child(sk)
 	return card
+
+
+func _anchor_row(id: String, awake: bool) -> Control:
+	var row := HBoxContainer.new()
+	row.name = "AnchorRow"
+	var house := AnchorAdapter.house_id(id)
+	var ic := TextureRect.new()
+	ic.texture = UI3.icon(AnchorAdapter.house_icon(house))
+	ic.custom_minimum_size = Vector2.ONE * UI3Theme.size_of("icon_m")
+	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ic.modulate = AnchorAdapter.house_color(house)
+	row.add_child(ic)
+	var nm := UI3.label("%s · %s" % [tr("Anchor"), AnchorAdapter.name_of(id)], "LabelDisplay")
+	nm.name = "AnchorName"
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(nm)
+	var st := UI3.label(tr("Awakened") if awake else tr("Not awakened"), "LabelDisplay" if awake else "LabelMuted")
+	st.name = "AnchorState"
+	if awake:
+		st.add_theme_color_override("font_color", UI3Theme.color("anchor_awake"))
+	row.add_child(st)
+	return row
+
+
+## "Mutations: Name (T1), Name (T2)" from the house tiers the run reached; null when none.
+func _mutation_line(tiers: Dictionary) -> Control:
+	var parts: Array[String] = []
+	for h in tiers:
+		var t := int(tiers[h])
+		if t <= 0:
+			continue
+		var nm := String(AnchorAdapter.mutation_of(String(h))["name"])
+		if nm != "":
+			parts.append("%s (T%d)" % [nm, t])
+	if parts.is_empty():
+		return null
+	var l := UI3.label(tr("Mutations") + ": " + ", ".join(parts), "LabelMuted")
+	l.name = "MutationsLine"
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	return l
 
 
 func _card_caption(text: String) -> Label:

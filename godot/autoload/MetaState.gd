@@ -79,6 +79,8 @@ var daily_date: String = ""
 ## SaveStore (save_to_disk) and reset in reload_from_store(). An old save without them reads as empty.
 var core_codex: Dictionary = {}
 var combo_codex: Dictionary = {}
+## Anchor book {id: {seen, picked, awakened}}. Old saves without it read as {}.
+var anchor_codex: Dictionary = {}
 var combo_daily: Dictionary = {"day": "", "done": false, "count": 0}
 
 ## Onboarding tutorial (design/gdd/onboarding-tutorial.md), ported trigger. The JS gate is
@@ -165,6 +167,8 @@ func _ready() -> void:
 	load_from_disk()
 	EventBus.phase_changed.connect(_on_phase_for_codex)   # lane GM: Core / combo codex follows the run
 	EventBus.combo_formed.connect(func(_id: String, _tier: String) -> void: codex_sync_run(false))   # a Core pick formed a combo
+	EventBus.anchor_chosen.connect(func(_id: String) -> void: codex_sync_run(false))
+	EventBus.anchor_awakened.connect(func(_id: String) -> void: codex_sync_run(false))
 	EventBus.run_ended.connect(func(_won: bool) -> void: codex_sync_run())   # the run's book entries reach the disk here
 	KeyBindings.apply_overrides(key_bindings)
 	# DEFERRED on purpose. Autoloads are constructed in the order project.godot lists them, and
@@ -587,6 +591,7 @@ func reload_from_store() -> void:
 	daily_date = ""
 	core_codex = {}
 	combo_codex = {}
+	anchor_codex = {}
 	combo_daily = {"day": "", "done": false, "count": 0}
 	tutorial_seen = false
 	_reset_economy_fields()
@@ -622,6 +627,15 @@ func codex_sync_run(persist := true) -> bool:
 		if RelicSlots.is_core(RelicRegistry.get_def(String(id))):
 			changed = _codex_flag(core_codex, String(id), "seen") or changed
 			changed = _codex_flag(core_codex, String(id), "picked") or changed
+	var offered = RunState.get("anchor_offer")
+	for id in (offered if offered is Array else []):
+		changed = _anchor_flag(String(id), "seen") or changed
+	var aid := String(RunState.get("anchor_id") if RunState.get("anchor_id") != null else "")
+	if aid != "":
+		changed = _anchor_flag(aid, "seen") or changed
+		changed = _anchor_flag(aid, "picked") or changed
+		if bool(RunState.get("anchor_awakened")):
+			changed = _anchor_flag(aid, "awakened") or changed
 	var done := ComboAdapter.done()
 	for cid in done:
 		changed = _codex_flag(combo_codex, String(cid), "pair") or changed
@@ -631,6 +645,17 @@ func codex_sync_run(persist := true) -> bool:
 	if changed and persist:
 		save_to_disk()
 	return changed
+
+
+func _anchor_flag(id: String, flag: String) -> bool:
+	if id == "" or id == "-" or Anchors.get_def(id).is_empty():
+		return false
+	var e: Dictionary = anchor_codex.get(id, {"seen": false, "picked": false, "awakened": false})
+	if bool(e.get(flag, false)):
+		return false
+	e[flag] = true
+	anchor_codex[id] = e
+	return true
 
 
 func _codex_flag(book: Dictionary, id: String, flag: String) -> bool:
@@ -764,6 +789,7 @@ func load_from_disk() -> void:
 	daily_date = str(parsed.get("daily_date", ""))
 	core_codex = _flags_from_json(parsed.get("core_codex", {}), ["seen", "picked"])
 	combo_codex = _flags_from_json(parsed.get("combo_codex", {}), ["pair", "full"])
+	anchor_codex = _flags_from_json(parsed.get("anchor_codex", {}), ["seen", "picked", "awakened"])
 	var cd = parsed.get("combo_daily", {})
 	combo_daily = {"day": String(cd.get("day", "")), "done": bool(cd.get("done", false)), "count": maxi(0, int(cd.get("count", 0)))} \
 		if cd is Dictionary else {"day": "", "done": false, "count": 0}
@@ -1029,6 +1055,7 @@ func save_to_disk() -> void:
 		"daily_date": daily_date,
 		"core_codex": core_codex,
 		"combo_codex": combo_codex,
+		"anchor_codex": anchor_codex,
 		"combo_daily": combo_daily,
 		"tutorial_seen": tutorial_seen,
 		"save_version": SAVE_VERSION,
