@@ -34,3 +34,27 @@ Việc 4 DANG DỞ (code đã viết, CHƯA có test, CHƯA nối vào luồng):
 - CÒN: (a) nối: RunMapController `_apply_and_finish` — nếu `AnchorAdapter.awakened()` vừa chuyển false->true khi nhận thẻ thì bỏ banner Cặp, gọi `AnchorFx.play` với extra_line "PAIR: <combo> . MUTATION: <tên>"; nguồn khác: `AnchorAdapter.listen("anchor_awakened", ...)` -> `AnchorFx.arm`, phát ở nhịp bản đồ kế (CombatView cũng listen + `dm_awaken` khi `core_fired` kind "awaken"); (b) test t_anchor_awaken (skip bằng Esc/click, reduce flashing 1.6s, một lần/run, instant_override); (c) `AnchorFx.run_key` đang dùng RunState.get("_core_base_seed"), kiểm lại với RunState của engine; (d) hit-stop 0.1s chưa làm; banner "AWAKENED" lần đầu trong trận (4.4) chưa làm; glyph nhà trong float đột biến chưa có; material_credit.ogg chưa chép (dm_mutation tạm dùng star_activate).
 Việc 5 (Result: hàng Anchor + Mutations trong thẻ Combos, Codex tab Anchors, MetaState.anchor_codex qua SaveStore + reload_from_store + test lưu/đọc) và việc 6 (t_ui_laws, t_ui3_theme, t_gacha_*, cả suite một lần, ảnh 1280/1920) CHƯA làm.
 Ghi chú lệch spec: glyph nhà trên Lõi ruột đặt góc dưới-TRÁI (góc dưới-phải đã là xN); chip ngoài trận khi thức tỉnh đổi thành "Awakened" (không bỏ hẳn); luật tier1 dùng cho cả Pair và Full ở dải đột biến.
+## Hợp đồng sự kiện cho UI (điều phối chốt 23/10)
+- Luật nền Anchor tác động: `EventBus.core_fired(core_id = anchor_id, unit_uid, amount, kind = "anchor")`.
+- Đột biến Cặp tác động: `core_fired(core_id = house_id, unit_uid, amount, kind = "mutation")`; khi nấc đột biến của một nhà thay đổi: `EventBus.mutation_on(house_id: String, tier: int)`.
+- Thức tỉnh: lần đầu đạt ≥2 Lõi ruột → `EventBus.anchor_awakened(anchor_id)` (một lần/run); luật thức tỉnh tác động: `core_fired(core_id = anchor_id, ..., kind = "awaken")`.
+- Codex: UI được thêm `MetaState.anchor_codex` (qua SaveStore + `reload_from_store()`); lần merge này bump RULES_VERSION nên fingerprint cập nhật luôn.
+
+## AE bước 2a - xong (API thật cho UI)
+Chưa có hiệu ứng đột biến/thức tỉnh (bước 2b): `mutation_on` và `core_fired kind=anchor|mutation|awaken` chưa phát.
+
+**RunState** (`autoload/RunState.gd`)
+- Field: `anchor_id: String` ("" = không có), `anchor_awakened: bool` (cờ khoá, không bao giờ tắt), `anchor_offer: Array` (3 id, giữ sau khi chọn), `anchor_wanted: bool`. Tất cả lưu trong `to_data()["anchor"]`, `reset()` xoá, `from_data()` đọc.
+- Opt-in: UI truyền `params["anchor"] = true` vào `begin_run` / `start_run_with_epoch`. Không truyền = luồng cũ, không đổi gì. Không ghi header, không ghi action log.
+- `anchor_gate_reason() -> String`: "" = mở; "off" (không opt-in) | "online" (không phải LocalEpochSource) | "ranked" | "kind" (daily/mission) | "stage" (`depth_stage` < 3) | "core_off".
+- `anchor_offer_open() -> bool`: true khi đang chờ chọn (cổng mở, chưa có Anchor, còn ít nhất 1 Anchor chọn được). Lần đầu gọi thì tạo `anchor_offer` từ `Rng(base_seed ^ CoreOffer.ANCHOR_SALT)`.
+- `anchor_disabled_reason(id) -> String` (G6): "" = chọn được; "rule_too_few_house_cores" = Luật run hiện tại để lại < 2 Lõi ruột hợp lệ; "unknown". UI vẽ thẻ xám + lý do. (Hiện chưa Luật nào làm vậy với 3 Anchor bật, test đã liệt kê.)
+- `pick_anchor(id) -> bool`: khoá, `save_run()` ngay, phát `anchor_chosen`, rồi mới mở offer Lõi 1. `decline_anchor() -> bool`: bỏ qua, mở offer Lõi 1.
+- Luồng: sau Luật run (nếu có), thay vì offer Lõi 1, run vào `phase == REWARD` với `pending_rewards` RỖNG và `_anchor_waiting == true` (cũng được lưu). UI thấy `anchor_offer_open()` thì hiện màn chọn Anchor.
+- Thức tỉnh: trong `_grant_relic` sau `_note_combo_grant()`, đạt >= 2 Lõi ruột (Lõi quest đã xong tính) thì bật `anchor_awakened` và phát `anchor_awakened` đúng 1 lần/run.
+
+**EventBus**: `anchor_chosen(anchor_id)`, `anchor_awakened(anchor_id)`.
+
+**Verifier**: header hoặc `header.loadout` có `anchor_id != ""` -> `bad_header`.
+
+**R1 + bias** (`core_offer.gd`, knob trong `relic_tuning.gd`): `axis_weight_cap` 4, `anchor_house_bias` 1.5. Bias chỉ áp trong ô khi `build_offer` (ctx `anchor_house`); `reroll_card` không áp. Test: `t_anchor_runstate`, `t_core_offer_weights`.
