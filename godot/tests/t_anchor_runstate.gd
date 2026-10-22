@@ -121,7 +121,21 @@ func _ready() -> void:
 	var tape := TapeEpochSource.new([])
 	_start(108, {}, null)
 	RunState.epoch = tape
-	_assert(RunState.anchor_gate_reason() == "online", "non-local epoch source: gate shut")
+	_assert(RunState.anchor_gate_reason() == "", "non-local (tape / remote-like) epoch source: gate open for a normal run since 22/10")
+	RunState.ranked = true
+	_assert(RunState.anchor_gate_reason() == "ranked", "ranked on a non-local source: gate shut")
+	RunState.ranked = false
+	RunState.run_kind = "ranked"
+	_assert(RunState.anchor_gate_reason() == "ranked", "kind ranked: gate shut")
+	RunState.run_kind = "normal"
+	var logged := RunState.action_log.entries.size()
+	RunState.anchor_offer = []
+	RunState._anchor_waiting = false
+	_assert(RunState.anchor_offer_open(), "offer builds on the non-local source")
+	RunState._anchor_waiting = true
+	_assert(RunState.pick_anchor(String(RunState.anchor_offer[2])) and RunState.action_log.entries.size() == logged + 1
+		and String(RunState.action_log.entries[logged]["fn"]) == "pick_anchor" and int((RunState.action_log.entries[logged]["args"] as Array)[0]) == 2,
+		"pick_anchor logs the offer index")
 
 	# --- G6: Run Rule leaving < 2 valid house Cores disables that Anchor ---
 	_start(109)
@@ -158,12 +172,12 @@ func _ready() -> void:
 	Anchors.reload()
 	RunState.clear_saved_run()
 
-	# --- verifier: online header with anchor_id -> bad_header ---
+	# --- verifier: a ranked header with an Anchor -> anchor_ranked ---
 	var log := ActionLog.new()
 	log.header = {"rules_version": ActionLog.RULES_VERSION, "ranked": true, "anchor_id": "a_volley",
 		"content_version": String(ContentDB.part_faces.get("engineVersion", "")), "team_keys": TEAM}
 	var res := RunVerifier.verify(log, [{"seq": 0}])
-	_assert(not bool(res["ok"]) and String(res["error"]) == RunVerifier.ERR_BAD_HEADER and String(res["message"]).contains("Anchors"), "verifier: anchor_id on an online run -> bad_header: " + String(res.get("error", "")))
+	_assert(not bool(res["ok"]) and String(res["error"]) == RunVerifier.ERR_ANCHOR_RANKED, "verifier: anchor_id on a ranked run -> anchor_ranked: " + String(res.get("error", "")))
 	RunState.reset()
 
 	if _failures.is_empty():

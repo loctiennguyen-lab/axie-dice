@@ -30,6 +30,19 @@ func run() -> void:
 	var d5 := face("dmg", 5)
 	var set3 := [1, 1, 1, 2, 3]
 	# --- h_volley Spiked Shield ---
+	for t in [1, 2]:
+		var ev := _eng({"h_volley": t})
+		BoTestBase.force(ev, set3, [face("shield", 9), d5, d5, d5, d5])
+		var uu := ev.party[0] as Unit
+		var want := {3: 1, 6: 2, 9: 3, 12: 4}
+		for vv in want:
+			uu.custom_state.erase("tmp_thorns")
+			ev._mut_spiked(uu, uu, vv)
+			eq(int(uu.custom_state.get("tmp_thorns", 0)), want[vv], "tier %d: shield %d -> %d Thorns (integer /3)" % [t, vv, want[vv]])
+		uu.custom_state.erase("tmp_thorns")
+		for k in 5:
+			ev._mut_spiked(uu, uu, 12)   # a 5-face Set of Shield 12 on one Axie
+		eq(int(uu.custom_state.get("tmp_thorns", 0)), 4, "tier %d: per-Axie cap 4 over a whole turn" % t)
 	var shields := {}
 	for t in [1, 2]:
 		var e := _eng({"h_volley": t})

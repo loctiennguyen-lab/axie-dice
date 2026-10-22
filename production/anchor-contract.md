@@ -38,7 +38,7 @@ Chưa có hiệu ứng đột biến/thức tỉnh (bước 2b): `mutation_on` v
 **RunState** (`autoload/RunState.gd`)
 - Field: `anchor_id: String` ("" = không có), `anchor_awakened: bool` (cờ khoá, không bao giờ tắt), `anchor_offer: Array` (3 id, giữ sau khi chọn), `anchor_wanted: bool`. Tất cả lưu trong `to_data()["anchor"]`, `reset()` xoá, `from_data()` đọc.
 - Opt-in: UI truyền `params["anchor"] = true` vào `begin_run` / `start_run_with_epoch`. Không truyền = luồng cũ, không đổi gì. Không ghi header, không ghi action log.
-- `anchor_gate_reason() -> String`: "" = mở; "off" (không opt-in) | "online" (không phải LocalEpochSource) | "ranked" | "kind" (daily/mission) | "stage" (`depth_stage` < 3) | "core_off".
+- `anchor_gate_reason() -> String`: "" = mở; "off" (không opt-in) | "ranked" | "kind" (daily/mission) | "stage" (`depth_stage` < 3) | "core_off".
 - `anchor_offer_open() -> bool`: true khi đang chờ chọn (cổng mở, chưa có Anchor, còn ít nhất 1 Anchor chọn được). Lần đầu gọi thì tạo `anchor_offer` từ `Rng(base_seed ^ CoreOffer.ANCHOR_SALT)`.
 - `anchor_disabled_reason(id) -> String` (G6): "" = chọn được; "rule_too_few_house_cores" = Luật run hiện tại để lại < 2 Lõi ruột hợp lệ; "unknown". UI vẽ thẻ xám + lý do. (Hiện chưa Luật nào làm vậy với 3 Anchor bật, test đã liệt kê.)
 - `pick_anchor(id) -> bool`: khoá, `save_run()` ngay, phát `anchor_chosen`, rồi mới mở offer Lõi 1. `decline_anchor() -> bool`: bỏ qua, mở offer Lõi 1.
@@ -47,6 +47,16 @@ Chưa có hiệu ứng đột biến/thức tỉnh (bước 2b): `mutation_on` v
 
 **EventBus**: `anchor_chosen(anchor_id)`, `anchor_awakened(anchor_id)`.
 
-**Verifier**: header hoặc `header.loadout` có `anchor_id != ""` -> `bad_header`.
+**Verifier**: (cũ, đã thay bằng mục "Online (Liam 22/10)" bên dưới).
 
 **R1 + bias** (`core_offer.gd`, knob trong `relic_tuning.gd`): `axis_weight_cap` 4, `anchor_house_bias` 1.5. Bias chỉ áp trong ô khi `build_offer` (ctx `anchor_house`); `reroll_card` không áp. Test: `t_anchor_runstate`, `t_core_offer_weights`.
+
+
+## Online (Liam 22/10)
+- Anchor mở cho run online thường (kind normal, không ranked). Ranked, daily, mission vẫn đóng; stage < 3 và `core_off` vẫn đóng. `anchor_gate_reason()` không còn mã "online".
+- `depth_stage` lấy từ header server ghi (`_start_core` đọc `hdr.depth_stage`), không phải số client tự tính.
+- Chọn Anchor là action log mới `pick_anchor` với args `[index]` (0..2 vào `anchor_offer`, `-1` = bỏ qua). Không tiêu epoch. Ghi ở `RunState.pick_anchor` / `decline_anchor`, online và offline như nhau. Ba allowlist khớp: `ActionLog.ALLOWED_FNS`, `RunVerifier` (match `pick_anchor`), `worker/src/run_core.js`.
+- Cờ opt-in vào `header.loadout.anchor = true` (chỉ khi run normal, không ranked; không có thì không có key). UI vẫn truyền `params.anchor`; `RunVerifier` truyền cờ qua loadout.
+- `RunVerifier`: ranked mà header/loadout/action có Anchor -> `anchor_ranked`. `pick_anchor` sai (index ngoài -1..2, chọn lần hai, sau offer Lõi đầu, stage < 3) -> `action_rejected`. Verifier vẫn chỉ nhận ranked như cũ; thêm tham số `allow_unranked` (mặc định false, server không bật) để replay run normal có Anchor (dùng trong `t_replay`).
+- Worker: `pick_anchor` bị từ chối nếu `meta.mode !== 'normal'`, hoặc `meta.depth_stage` có và < 3, hoặc args không phải đúng một số nguyên -1..2.
+- Chưa làm: bump RULES_VERSION (header loadout và allowlist đổi), làm ở nhánh tích hợp.
