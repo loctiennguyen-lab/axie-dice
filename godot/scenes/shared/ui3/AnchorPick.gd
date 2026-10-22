@@ -119,7 +119,8 @@ func _build_card(id: String, idx: int) -> PanelContainer:
 	top.add_child(names)
 	col.add_child(top)
 	_section(col, "RULE", "Rule", AnchorAdapter.rule_text(id), 3)
-	_section(col, "PRICE", "Price", "− " + AnchorAdapter.price_text(id), 2)
+	if AnchorAdapter.price_text(id) != "":   # an Anchor with no price shows no PRICE block (no fake cost line)
+		_section(col, "PRICE", "Price", "− " + AnchorAdapter.price_text(id), 2)
 	var aw := _section(col, "AWAKENS", "Awakens", "", 0)
 	var an := UI3.label(AnchorAdapter.awaken_name(id), "LabelDisplay")
 	an.name = "AwakenName"

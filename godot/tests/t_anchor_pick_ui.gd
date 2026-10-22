@@ -36,7 +36,7 @@ func _ready() -> void:
 	for c in v.cards:
 		var id := String(c.get_meta("anchor_id"))
 		_ok(c.find_child("RuleText", true, false) != null and (c.find_child("RuleText", true, false) as Label).text != "", "%s RULE" % id)
-		_ok(c.find_child("PriceText", true, false) != null, "%s PRICE" % id)
+		_ok((c.find_child("PriceText", true, false) != null) == (AnchorAdapter.price_text(id) != ""), "%s PRICE shown only when the Anchor has a price" % id)
 		_ok((c.find_child("AwakenCondition", true, false) as Label).text.contains("hold 2 of these 5 Cores"), "%s Awakens rule + hold 2" % id)
 		_ok(c.find_child("AwakenName", true, false) != null and (c.find_child("AwakenName", true, false) as Label).text != "", "%s awaken name" % id)
 		var hc := c.find_child("HouseCores", true, false)

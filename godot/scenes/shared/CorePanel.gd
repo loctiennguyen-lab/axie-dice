@@ -393,7 +393,9 @@ func _anchor_slot() -> PanelContainer:
 	b.visible = false
 	s.add_child(b)
 	var lines: Array[String] = ["%s · %s" % [AnchorAdapter.name_of(id), AnchorAdapter.house_name(house)],
-		AnchorAdapter.rule_text(id), AnchorAdapter.price_text(id)]
+		AnchorAdapter.rule_text(id)]
+	if AnchorAdapter.price_text(id) != "":
+		lines.append(AnchorAdapter.price_text(id))
 	lines.append("%s %s: %s" % [TranslationServer.translate("Awakens:"), AnchorAdapter.awaken_name(id), AnchorAdapter.awaken_rule(id)])
 	lines.append("%s %d/%d" % [TranslationServer.translate("House Cores"), AnchorAdapter.house_count(), Anchors.AWAKEN_NEED])
 	var own := AnchorAdapter.owned()
