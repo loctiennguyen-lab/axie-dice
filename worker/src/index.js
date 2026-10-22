@@ -205,9 +205,13 @@ async function loadPckManifest(env) {
   if (!m || !Number.isSafeInteger(m.total) || m.total <= 0 || !Array.isArray(m.parts) || m.parts.length === 0) {
     return bad('missing total/parts');
   }
+  // md5 is always written when the manifest is uploaded; without it servePck would fall back to a
+  // "pck-<total>" ETag that changes on every re-upload of the same bytes.
+  if (typeof m.md5 !== 'string' || !/^[0-9a-f]{32}$/.test(m.md5)) return bad('md5 missing or not 32 lowercase hex');
   let sum = 0;
   for (const p of m.parts) {
-    if (!p || typeof p.key !== 'string' || !p.key || !Number.isSafeInteger(p.size) || p.size <= 0) return bad('bad part entry');
+    if (!p || typeof p.key !== 'string' || !p.key.startsWith('pck/')) return bad('part key must start with pck/');
+    if (!Number.isSafeInteger(p.size) || p.size <= 0) return bad('bad part entry');
     sum += p.size;
   }
   if (sum !== m.total) return bad(`part sizes sum to ${sum}, total says ${m.total}`);
@@ -227,9 +231,11 @@ function parseRange(header, total) {
     end = total - 1;
   } else {
     start = Number(m[1]);
+    // RFC 7233: first-byte-pos > last-byte-pos is invalid syntax, so the header is ignored (200).
+    if (m[2] !== '' && Number(m[2]) < start) return null;
     end = m[2] === '' ? total - 1 : Math.min(Number(m[2]), total - 1);
   }
-  if (start >= total || end < start) return 'unsatisfiable';
+  if (start >= total) return 'unsatisfiable';
   return { start, end };
 }
 
