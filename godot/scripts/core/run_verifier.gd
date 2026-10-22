@@ -38,6 +38,7 @@ const ERR_BAD_HEADER := "bad_header"
 const ERR_REJECTED := "action_rejected"
 const ERR_STAGE_MISMATCH := "stage_mismatch"
 const ERR_UNKNOWN_ACTION := "unknown_action"
+const ERR_ANCHOR_RANKED := "anchor_ranked"
 
 
 ## Returns {ok, error, message, score, won, action_index, state} — `state` being the full
@@ -46,8 +47,10 @@ const ERR_UNKNOWN_ACTION := "unknown_action"
 ## injected bonuses/unlocks (defaults to the header's own `loadout`). Seeds come ONLY from the tape,
 ## and each one is checked against the hash of the log replayed so far, so an edited log fails with
 ## `action_rejected` instead of replaying into another run. MetaState is never read for a replay.
-static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -> Dictionary:
+## `allow_unranked` (default false, the server never sets it) replays a NORMAL unranked run from the loadout injected with it; used for Anchor runs.
+static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}, allow_unranked: bool = false) -> Dictionary:
 	var header: Dictionary = log.header
+	var is_ranked := bool(header.get("ranked", false))
 
 	# --- refuse before replaying, and say which of the refusals it was ------------------
 	if not log.is_complete():
@@ -68,7 +71,7 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 		return _fail(ERR_CONTENT_VERSION,
 			"This run was played on balance data '%s'; this referee has '%s'."
 			% [str(header.get("content_version", "?")), content_version])
-	if not bool(header.get("ranked", false)):
+	if not is_ranked and not allow_unranked:
 		return _fail(ERR_NOT_RANKED,
 			"Only a ranked run can be verified. An unranked one starts from unlocks that exist "
 			+ "only on the player's own machine.")
@@ -79,9 +82,11 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 	if int(header.get("depth_stage", 3)) != tape_stage:
 		return _fail(ERR_STAGE_MISMATCH, "The record claims depth stage %d; the server issued stage %d." % [int(header.get("depth_stage", 3)), tape_stage])
 
-	# Anchors are offline-only (anchor-mvp QA #3): an online run that names one is not a run this referee can replay.
-	if String(header.get("anchor_id", "")) != "" or String((header.get("loadout", {}) as Dictionary).get("anchor_id", "")) != "":
-		return _fail(ERR_BAD_HEADER, "Anchors only exist in offline runs; this record names one.")
+	# Anchors exist in normal runs only: a ranked record that names one (header, loadout or a pick_anchor action) is refused outright.
+	var hl: Dictionary = header.get("loadout", {}) as Dictionary
+	if is_ranked and (String(header.get("anchor_id", "")) != "" or String(hl.get("anchor_id", "")) != "" or bool(hl.get("anchor", false))
+			or bool(loadout.get("anchor", false)) or _log_has_anchor(log)):
+		return _fail(ERR_ANCHOR_RANKED, "Anchors are not allowed in ranked runs; this record uses one.")
 	var team: Array[String] = []
 	for k in (header.get("team_keys", []) as Array):
 		team.append(String(k))
@@ -91,12 +96,12 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 	# --- replay -------------------------------------------------------------------------
 	var lo: Dictionary = loadout if not loadout.is_empty() else (header.get("loadout", {}) as Dictionary)
 	# Ranked cannot dodge the Run Rule (rules_on must be true) and core_off is for tests/tools only.
-	if not bool(lo.get("rules_on", false)):
+	if is_ranked and not bool(lo.get("rules_on", false)):
 		return _fail(ERR_BAD_HEADER, "A ranked run always plays with the Run Rule on; this record says otherwise.")
-	if bool(lo.get("core_off", false)) and not RunState.core_flow_switches_allowed():
+	if is_ranked and bool(lo.get("core_off", false)) and not RunState.core_flow_switches_allowed():
 		return _fail(ERR_BAD_HEADER, "A ranked run cannot switch the Core flow off.")
 	var params := {"team_keys": team, "mode": String(header.get("mode", "short")),
-		"ascension": int(header.get("ascension", 0)), "ranked": true, "loadout": lo}
+		"ascension": int(header.get("ascension", 0)), "ranked": is_ranked, "loadout": lo}
 	if lo.has("bonuses"):
 		params["bonuses"] = ActionLog._restore_ints(lo["bonuses"])
 	var tape_src := TapeEpochSource.new(tape)
@@ -105,7 +110,7 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 	# The tape is checked against the log being verified, one entry at a time (see set_visible_len).
 	tape_src.bind_log(log)
 	tape_src.set_visible_len(0)
-	if not RunState.ranked:
+	if is_ranked and not RunState.ranked:
 		# start_new_run downgrades a ranked run whose team holds a Vault Axie, because a vault
 		# die exists only in one save. Reaching here means the log's own team cannot be ranked.
 		return _fail(ERR_NOT_RANKED,
@@ -184,6 +189,12 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 					tape_src.set_visible_len(i + 1)
 					RunState.apply_combat_result(engine.get_result())
 					engine = null
+			"pick_anchor":
+				var ai := int(args[0]) if args.size() == 1 else -99
+				if is_ranked:
+					return _fail(ERR_ANCHOR_RANKED, "A ranked run picked an Anchor.", i)
+				if node_open or not RunState.replay_pick_anchor(ai):
+					return _fail(ERR_REJECTED, "An Anchor pick was recorded that the replay cannot make (bad index, twice, after the first Core offer, or stage < 3).", i)
 			"pact_pick":
 				var pi := int(args[0]) if args.size() > 0 else -99
 				var ok_p := false
@@ -297,3 +308,10 @@ static func _fail(error: String, message: String, action_index: int = -1) -> Dic
 		"ok": false, "error": error, "message": message, "score": 0, "won": false,
 		"action_index": action_index, "state": {},
 	}
+
+
+static func _log_has_anchor(log: ActionLog) -> bool:
+	for e in log.entries:
+		if String((e as Dictionary).get("fn", "")) == "pick_anchor":
+			return true
+	return false
