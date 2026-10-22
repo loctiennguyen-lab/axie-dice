@@ -43,7 +43,7 @@ var _noreroll := false     # ablation (--noreroll=1)
 var _corehold := true      # S2: expert Holds dice when it owns c_steady_hold / c_kindle / rule_tundra (--corehold=0 turns off)
 const HOLD_CORES := ["c_steady_hold", "c_kindle", "rule_tundra", "c_key_strike"]
 var _force: Array = []     # --force=id,id : grant these Cores at run start (diagnosis only)
-var _anchor_mode := "none"   # none | auto | a_volley | a_gambler | a_mana_mine  (--anchor=)
+var _anchor_mode := "none"   # none | auto | decline | a_volley | a_gambler | a_mana_mine  (--anchor=)
 var _stage := 3              # depth stage of every run (--stage=1|2|3)
 var _anchor_aw_node := -1
 var _anchor_aw_turn := -1
@@ -290,6 +290,9 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 ## Anchor pick (opt-in with --anchor). random policies pick at random, expert by a team heuristic, --anchor=<id> forces one.
 func _anchor_step() -> void:
 	if _anchor_mode == "none" or not RunState._anchor_waiting or not RunState.anchor_offer_open():
+		return
+	if _anchor_mode == "decline":   # Anchor screen shown, the player passes (--anchor=decline)
+		RunState.decline_anchor()
 		return
 	var offer: Array = RunState.anchor_offer
 	var pick := String(offer[0])
