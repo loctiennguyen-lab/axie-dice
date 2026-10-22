@@ -2506,7 +2506,7 @@ func anchor_gate_reason() -> String:
 		return "ranked"
 	if run_kind != "normal":
 		return "kind"
-	if depth_stage < 3:
+	if depth_stage < 2:   # Liam 22/10: Anchors from stage 2 (was 3)
 		return "stage"
 	if core_off:
 		return "core_off"
@@ -2518,6 +2518,9 @@ func anchor_disabled_reason(id: String) -> String:
 	var def := Anchors.get_def(id)
 	if def.is_empty() or not bool(def.get("enabled", false)):
 		return "unknown"
+	# Mana Mine's rule and its awakening are about Overcast, which unlocks at stage 3 (Anchors open at stage 2).
+	if depth_stage < int(def.get("min_stage", 2)):
+		return "stage_locked"
 	var ctx := {"owned_ids": [run_rule] if run_rule != "" else [], "roster": roster, "seen": [], "mode": mode,
 		"first_run": not rules_on, "pick_index": 1, "front_size": 2, "ascension": ascension, "tier_chain": core_tier_chain}
 	var ok := 0

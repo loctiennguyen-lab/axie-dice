@@ -113,10 +113,15 @@ func _ready() -> void:
 	_start(106, {"anchor": false})
 	_assert(RunState.anchor_gate_reason() == "off" and RunState._core_offer_active, "no opt-in: old flow, pick 1 straight away")
 	_start(107)
-	RunState.depth_stage = 2
+	RunState.depth_stage = 1
 	RunState.anchor_offer = []
 	RunState._anchor_waiting = false
-	_assert(RunState.anchor_gate_reason() == "stage" and not RunState.anchor_offer_open(), "stage < 3: no Anchor")
+	_assert(RunState.anchor_gate_reason() == "stage" and not RunState.anchor_offer_open(), "stage 1: no Anchor")
+	RunState.depth_stage = 2
+	_assert(RunState.anchor_gate_reason() == "", "stage 2: Anchor open (Liam 22/10)")
+	_assert(RunState.anchor_disabled_reason("a_mana_mine") == "stage_locked", "stage 2: Mana Mine locked (Overcast is stage 3)")
+	_assert(RunState.anchor_disabled_reason("a_volley") == "" and RunState.anchor_disabled_reason("a_gambler") == "", "stage 2: Volley and Gambler pickable")
+	RunState.anchor_offer = []
 	RunState.depth_stage = 3
 	var tape := TapeEpochSource.new([])
 	_start(108, {}, null)

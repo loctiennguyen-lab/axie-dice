@@ -194,7 +194,7 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}, a
 				if is_ranked:
 					return _fail(ERR_ANCHOR_RANKED, "A ranked run picked an Anchor.", i)
 				if node_open or not RunState.replay_pick_anchor(ai):
-					return _fail(ERR_REJECTED, "An Anchor pick was recorded that the replay cannot make (bad index, twice, after the first Core offer, or stage < 3).", i)
+					return _fail(ERR_REJECTED, "An Anchor pick was recorded that the replay cannot make (bad index, twice, after the first Core offer, or stage < 2).", i)
 			"pact_pick":
 				var pi := int(args[0]) if args.size() > 0 else -99
 				var ok_p := false
