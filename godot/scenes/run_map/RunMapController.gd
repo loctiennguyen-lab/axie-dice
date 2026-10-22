@@ -1029,6 +1029,11 @@ func _enter_boss_fight() -> void:
 ## from RunState.current_node_id, which after_node() already advanced before the scene change.
 func _finish_node() -> void:
 	_close_overlay()
+	# The Run Rule pick can leave the run waiting for an Anchor (REWARD, no cards): do NOT advance the node, show the Anchor screen.
+	if RunState.phase == RunState.RunPhase.REWARD and RunState.pending_rewards.is_empty() and AnchorAdapter.offer_open():
+		_save_map_progress()
+		_maybe_show_pending_reward()
+		return
 	RunState.after_node()
 	_refresh(true)
 	# AFTER after_node(), not before: that call is what advances power_level and the phase, and
