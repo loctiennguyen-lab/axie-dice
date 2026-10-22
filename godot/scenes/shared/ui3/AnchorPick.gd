@@ -34,7 +34,7 @@ func setup(ids: Array, first_time := true) -> void:
 	t.name = "AnchorTitle"
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	head.add_child(t)
-	var sub := UI3.label(tr("This choice lasts the whole run. No reroll."), "LabelMuted")
+	var sub := UI3.label(tr("Anchor = a rule that stays all run. Hold 2 of its House Cores to awaken it."), "LabelMuted")
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	head.add_child(sub)
 	var center := CenterContainer.new()
@@ -129,20 +129,40 @@ func _build_card(id: String, idx: int) -> PanelContainer:
 	var an := UI3.label(AnchorAdapter.awaken_name(id), "LabelDisplay")
 	an.name = "AwakenName"
 	aw.add_child(an)
-	var ar := UI3.label(AnchorAdapter.awaken_rule(id) + " " + tr("Hold 2 House Cores."), "LabelMuted")
+	var ar := UI3.label(AnchorAdapter.awaken_rule(id), "LabelMuted")
 	ar.name = "AwakenRule"
 	ar.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	ar.custom_minimum_size.x = CARD_W - 48.0
 	aw.add_child(ar)
-	var hc := HBoxContainer.new()
+	var cond := UI3.label(tr("Awakens when you hold 2 of these 5 Cores"), "LabelMuted")
+	cond.name = "AwakenCondition"
+	cond.add_theme_color_override("font_color", UI3Theme.color("anchor_awake"))
+	cond.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cond.custom_minimum_size.x = CARD_W - 48.0
+	aw.add_child(cond)
+	var hcap := HBoxContainer.new()
+	hcap.add_theme_constant_override("separation", 8)
+	var hg := TextureRect.new()
+	hg.name = "HouseCoresGlyph"
+	hg.texture = UI3.icon(AnchorAdapter.house_icon(house))
+	hg.custom_minimum_size = Vector2(16, 16)
+	hg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	hg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	hg.modulate = AnchorAdapter.house_color(house)
+	hcap.add_child(hg)
+	hcap.add_child(UI3.label(tr("House Cores"), "LabelMuted"))
+	col.add_child(hcap)
+	var hc := HFlowContainer.new()
 	hc.name = "HouseCores"
-	hc.add_theme_constant_override("separation", 8)
+	hc.add_theme_constant_override("h_separation", 8)
+	hc.add_theme_constant_override("v_separation", 4)
+	hc.custom_minimum_size.x = CARD_W - 48.0
 	for cid in AnchorAdapter.house_cores(id):
 		hc.add_child(_core_icon(String(cid)))
 	col.add_child(hc)
-	col.add_child(UI3.label(tr("House Cores"), "LabelMuted"))
 	if reason != "":
-		card.modulate = Color(1, 1, 1, 0.55)
+		for ch in col.get_children():
+			(ch as CanvasItem).modulate = Color(1, 1, 1, 0.55)   # dim the body only; the reason row below stays at alpha 1
 		var why := UI3.label(AnchorAdapter.reason_text(reason), "LabelMuted")
 		why.name = "DisabledReason"
 		why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -172,21 +192,36 @@ func _core_icon(core_id: String) -> Control:
 	var p := PanelContainer.new()
 	p.name = "HouseCore_%s" % core_id
 	p.custom_minimum_size = Vector2(48, 48)
-	p.modulate.a = 0.55
 	p.mouse_filter = Control.MOUSE_FILTER_STOP
 	p.focus_mode = Control.FOCUS_ALL
-	p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 2,
-		UI3Theme.color("text_muted")))
+	var sb := UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 2, UI3Theme.color("text_muted"))
+	sb.content_margin_left = 8
+	sb.content_margin_right = 8
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 4
+	p.add_theme_stylebox_override("panel", sb)
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 8)
+	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(hb)
 	var ic := TextureRect.new()
 	var axis := String(def.core_axis) if def != null else ""
 	ic.texture = UI3.icon(String(CorePanel.AXIS_ICON.get(axis, "face_buff")))
+	ic.custom_minimum_size = Vector2(32, 32)
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	p.add_child(ic)
+	hb.add_child(ic)
+	var title := core_id
 	var tip := core_id
 	if def != null:
-		tip = "%s\n%s" % [UI3.title_case(UI3.player_text(String(def.name))), UI3.player_text(String(def.description))]
+		title = UI3.title_case(UI3.player_text(String(def.name)))
+		tip = "%s\n%s" % [title, UI3.player_text(String(def.description))]
+	var nl := UI3.label(title, "LabelMuted")
+	nl.name = "CoreName"
+	nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	nl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	hb.add_child(nl)
 	UI3Tooltip.bind(p, tip)
 	return p
 
@@ -206,7 +241,7 @@ func _refresh_take() -> void:
 	if selected < 0:
 		take_button.text = tr("Take")
 		take_button.disabled = true
-		UI3.set_disabled_reason(take_button, tr("Take"))
+		UI3.set_disabled_reason(take_button, tr("Pick one Anchor."))
 		reason_label.text = tr("Pick one Anchor.")
 	else:
 		UI3.clear_disabled_reason(take_button)

@@ -332,6 +332,7 @@ static func house_chip(short := false) -> PanelContainer:
 	var txt := "%d/%d" % [AnchorAdapter.house_count(), Anchors.AWAKEN_NEED]
 	if not short:
 		txt = "%s %s" % [TranslationServer.translate("House Cores"), txt]
+		txt += " · %s %s" % [TranslationServer.translate("awakens"), AnchorAdapter.awaken_name(id)]
 	var chip := UI3.icon_chip(txt, UI3.icon(AnchorAdapter.house_icon(house)), AnchorAdapter.house_color(house), "HouseChip")
 	chip.set_meta("state", "count")
 	return chip

@@ -37,7 +37,7 @@ func _ready() -> void:
 		var id := String(c.get_meta("anchor_id"))
 		_ok(c.find_child("RuleText", true, false) != null and (c.find_child("RuleText", true, false) as Label).text != "", "%s RULE" % id)
 		_ok(c.find_child("PriceText", true, false) != null, "%s PRICE" % id)
-		_ok((c.find_child("AwakenRule", true, false) as Label).text.contains("Hold 2 House Cores"), "%s Awakens rule + hold 2" % id)
+		_ok((c.find_child("AwakenCondition", true, false) as Label).text.contains("hold 2 of these 5 Cores"), "%s Awakens rule + hold 2" % id)
 		_ok(c.find_child("AwakenName", true, false) != null and (c.find_child("AwakenName", true, false) as Label).text != "", "%s awaken name" % id)
 		var hc := c.find_child("HouseCores", true, false)
 		_ok(hc != null and hc.get_child_count() == 5, "%s has 5 House Core icons" % id)
