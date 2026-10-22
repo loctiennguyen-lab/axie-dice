@@ -22,6 +22,11 @@ var _slot_by_id: Dictionary = {}     ## core id -> its slot node (rebuilt by ref
 var _fires: Dictionary = {}          ## core id -> activations seen by THIS panel (one fight in the combat HUD)
 var _sig := ""
 var _any := false
+var _chip_row: HBoxContainer          ## "House Cores x/2" chip, outside combat only (spec 2.2)
+var anchor_slot: PanelContainer = null  ## lane AU2: the 56 px Anchor tile at the head of CoreSlots (null = no Anchor)
+
+const ANCHOR_PX := 56
+const AWAKEN_ICON := "face_buff"       ## stand-in for ui_awaken (art pending)
 
 
 func _init() -> void:
@@ -33,6 +38,10 @@ func _init() -> void:
 	_slots.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_slots.add_theme_constant_override("separation", 4)
 	add_child(_slots)
+	_chip_row = HBoxContainer.new()
+	_chip_row.name = "HouseChipRow"
+	_chip_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_chip_row)
 	_quests = VBoxContainer.new()
 	_quests.name = "QuestChips"
 	_quests.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -46,13 +55,39 @@ func _ready() -> void:
 
 
 ## Depth v3 lane VZ: the Core's slot flashes (and its counter ticks up) whenever the engine reports it fired.
-func _on_core_fired(core_id: String, _uid: int, _amount: int, _kind: String) -> void:
+func _on_core_fired(core_id: String, _uid: int, _amount: int, kind: String) -> void:
 	_fires[core_id] = int(_fires.get(core_id, 0)) + 1
 	var s: PanelContainer = _slot_by_id.get(core_id)
 	if s == null or not is_instance_valid(s):
 		return
 	_update_count(s, core_id)
+	_update_anchor_badge()
 	pulse(core_id)
+	if kind == "awaken":
+		_awaken_mark(s)
+
+
+## Awaken rule acted: the Anchor tile gets a gold outline for 0.8 s (not a flash: it fades, no strobing).
+var awaken_marks := 0
+
+
+func _awaken_mark(s: PanelContainer) -> void:
+	awaken_marks += 1
+	if not s.is_inside_tree():
+		return
+	var old := s.get_node_or_null("AwakenMark")
+	if old != null:
+		old.queue_free()
+	var m := Panel.new()
+	m.name = "AwakenMark"
+	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	m.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	m.add_theme_stylebox_override("panel", UI3Theme.flat(Color(0, 0, 0, 0), UI3Theme.radius("s"), 4, UI3Theme.color("anchor_awake")))
+	s.add_child(m)
+	var tw := m.create_tween()
+	tw.tween_interval(0.5)
+	tw.tween_property(m, "modulate:a", 0.0, 0.3)
+	tw.tween_callback(m.queue_free)
 
 
 ## Short flash on a Core slot: scale 1 -> 1.18 -> 1 plus a cream tint (~0.3 s). Reduced motion: tint only.
@@ -145,7 +180,7 @@ func reset_counts() -> void:
 func _update_count(s: PanelContainer, core_id: String) -> void:
 	var l := s.get_node_or_null("FireCount") as Label
 	var n := int(_fires.get(core_id, 0))
-	if l == null:
+	if l == null or s == anchor_slot:
 		return
 	l.text = "x%d" % n if n < 10 else "x9+"   # two digits would spill out of the slot
 	l.visible = show_counts and n > 0
@@ -158,6 +193,7 @@ func refresh() -> bool:
 	if sig == _sig and _slots.get_child_count() > 0:
 		for id in _slot_by_id.keys():
 			_update_count(_slot_by_id[id], String(id))
+		_update_anchor_badge()
 		return _any
 	_sig = sig
 	_slot_by_id.clear()
@@ -167,6 +203,21 @@ func refresh() -> bool:
 	for c in _quests.get_children():
 		_quests.remove_child(c)
 		c.queue_free()
+	for c in _chip_row.get_children():
+		_chip_row.remove_child(c)
+		c.queue_free()
+	anchor_slot = null
+	var anchored := AnchorAdapter.has_anchor()
+	if anchored:
+		anchor_slot = _anchor_slot()
+		_slots.add_child(anchor_slot)
+		_slot_by_id[AnchorAdapter.current_id()] = anchor_slot
+		var sep := VSeparator.new()
+		sep.name = "AnchorDivider"
+		sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_slots.add_child(sep)
+		if not show_counts:
+			_chip_row.add_child(house_chip(false))
 	var cores: Array[String] = RelicSlots.owned_cores(RunState.owned_relic_ids)
 	var n_slots := RelicSlots.tuning().core_slots
 	for i in n_slots:
@@ -175,9 +226,11 @@ func refresh() -> bool:
 		if i < cores.size():
 			_slot_by_id[cores[i]] = sn
 			_add_count_label(sn, cores[i])
+			if AnchorAdapter.is_house_core(cores[i]):
+				_add_house_mark(sn)
 	var rule = RelicRegistry.get_def(RunState.run_rule) if RunState.run_rule != "" else null
 	_slots.add_child(_slot(rule, true, "Run rule"))
-	var any := not cores.is_empty() or rule != null
+	var any := not cores.is_empty() or rule != null or anchored
 	if rule != null:
 		_slot_by_id[String(rule.id)] = _slots.get_child(_slots.get_child_count() - 1)
 	for qid in RunState.core_quest_progress.keys():
@@ -196,11 +249,13 @@ func refresh() -> bool:
 		_quests.add_child(chip)
 		any = true
 	_any = any
+	_update_anchor_badge()
 	return any
 
 
 func _signature() -> String:
-	var parts: Array[String] = [",".join(RelicSlots.owned_cores(RunState.owned_relic_ids)), RunState.run_rule, str(slot_px)]
+	var parts: Array[String] = [",".join(RelicSlots.owned_cores(RunState.owned_relic_ids)), RunState.run_rule, str(slot_px),
+		"%s/%s/%d/%s" % [AnchorAdapter.current_id(), AnchorAdapter.awakened(), AnchorAdapter.house_count(), show_counts]]
 	for qid in RunState.core_quest_progress.keys():
 		parts.append("%s:%s" % [qid, JSON.stringify(RunState.core_quest_progress[qid])])
 	return "|".join(parts)
@@ -264,3 +319,127 @@ func _slot(def, is_rule: bool, empty_name: String) -> PanelContainer:
 	s.mouse_filter = Control.MOUSE_FILTER_STOP
 	s.focus_mode = Control.FOCUS_ALL
 	return s
+
+
+## "House Cores x/2" chip, or the lit "Awakened" chip once latched. `short` = glyph + x/2 only (tight 1280x720 combat HUD).
+static func house_chip(short := false) -> PanelContainer:
+	var id := AnchorAdapter.current_id()
+	var house := AnchorAdapter.house_id(id)
+	if AnchorAdapter.awakened():
+		var c := UI3.icon_chip(TranslationServer.translate("Awakened"), UI3.icon(AWAKEN_ICON), UI3Theme.color("anchor_awake"), "HouseChip")
+		c.set_meta("state", "awakened")
+		return c
+	var txt := "%d/%d" % [AnchorAdapter.house_count(), Anchors.AWAKEN_NEED]
+	if not short:
+		txt = "%s %s" % [TranslationServer.translate("House Cores"), txt]
+	var chip := UI3.icon_chip(txt, UI3.icon(AnchorAdapter.house_icon(house)), AnchorAdapter.house_color(house), "HouseChip")
+	chip.set_meta("state", "count")
+	return chip
+
+
+## Anchor tile: house-coloured frame + house glyph; awakened = double frame + awaken glyph. Tooltip lists rule, price,
+## awaken rule and the 5 house Cores (Owned marked).
+func _anchor_slot() -> PanelContainer:
+	var id := AnchorAdapter.current_id()
+	var house := AnchorAdapter.house_id(id)
+	var col := AnchorAdapter.house_color(house)
+	var awake := AnchorAdapter.awakened()
+	var s := PanelContainer.new()
+	s.name = "AnchorSlot"
+	s.custom_minimum_size = Vector2(ANCHOR_PX, ANCHOR_PX)
+	var frame := UI3Theme.color("anchor_awake") if awake else col
+	s.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 4 if awake else 3, frame))
+	if awake:
+		var inner := Panel.new()
+		inner.name = "AwakeInnerFrame"
+		inner.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		inner.offset_left = 4
+		inner.offset_top = 4
+		inner.offset_right = -4
+		inner.offset_bottom = -4
+		inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		inner.add_theme_stylebox_override("panel", UI3Theme.flat(Color(0, 0, 0, 0), UI3Theme.radius("s"), 2, col))
+		s.add_child(inner)
+	var ic := TextureRect.new()
+	ic.name = "HouseGlyph"
+	ic.texture = UI3.icon(AnchorAdapter.house_icon(house))
+	ic.custom_minimum_size = Vector2(ANCHOR_PX * 0.5, ANCHOR_PX * 0.5)
+	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	s.add_child(ic)
+	if awake:
+		var aw := TextureRect.new()
+		aw.name = "AwakenGlyph"
+		aw.texture = UI3.icon(AWAKEN_ICON)
+		aw.custom_minimum_size = Vector2(18, 18)
+		aw.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		aw.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		aw.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		aw.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		s.add_child(aw)
+	# Badge (combat only): x/2 until awakened, then xN activations. Never two badges at once.
+	var b := UI3.label("", "LabelDisplay")
+	b.name = "AnchorBadge"
+	b.add_theme_font_size_override("font_size", 18)
+	b.add_theme_color_override("font_outline_color", UI3Theme.color("panel"))
+	b.add_theme_constant_override("outline_size", 4)
+	b.size_flags_horizontal = Control.SIZE_SHRINK_END
+	b.size_flags_vertical = Control.SIZE_SHRINK_END
+	b.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.visible = false
+	s.add_child(b)
+	var lines: Array[String] = ["%s · %s" % [AnchorAdapter.name_of(id), AnchorAdapter.house_name(house)],
+		AnchorAdapter.rule_text(id), AnchorAdapter.price_text(id)]
+	lines.append("%s %s: %s" % [TranslationServer.translate("Awakens:"), AnchorAdapter.awaken_name(id), AnchorAdapter.awaken_rule(id)])
+	lines.append("%s %d/%d" % [TranslationServer.translate("House Cores"), AnchorAdapter.house_count(), Anchors.AWAKEN_NEED])
+	var own := AnchorAdapter.owned()
+	for cid in AnchorAdapter.house_cores(id):
+		var d = RelicRegistry.get_def(String(cid))
+		lines.append("%s %s" % [TranslationServer.translate("Owned") + ":" if own.has(cid) else "-", String(d.name) if d != null else String(cid)])
+	UI3Tooltip.bind(s, "\n".join(lines))
+	s.mouse_filter = Control.MOUSE_FILTER_STOP
+	s.focus_mode = Control.FOCUS_ALL
+	return s
+
+
+func _update_anchor_badge() -> void:
+	if anchor_slot == null or not is_instance_valid(anchor_slot):
+		return
+	var b := anchor_slot.get_node_or_null("AnchorBadge") as Label
+	if b == null:
+		return
+	var n := int(_fires.get(AnchorAdapter.current_id(), 0))
+	if AnchorAdapter.awakened():
+		b.text = "x%d" % n if n < 10 else "x9+"
+		b.visible = show_counts and n > 0
+	else:
+		b.text = "%d/%d" % [AnchorAdapter.house_count(), Anchors.AWAKEN_NEED]
+		b.visible = show_counts
+
+
+## House Core inside the panel: 3 px house ring just inside the tier border + house glyph (the glyph is the main sign).
+func _add_house_mark(s: PanelContainer) -> void:
+	var house := AnchorAdapter.house_id(AnchorAdapter.current_id())
+	var ring := Panel.new()
+	ring.name = "HouseRing"
+	ring.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ring.offset_left = 4
+	ring.offset_top = 4
+	ring.offset_right = -4
+	ring.offset_bottom = -4
+	ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ring.add_theme_stylebox_override("panel", UI3Theme.flat(Color(0, 0, 0, 0), UI3Theme.radius("s"), 3, AnchorAdapter.house_color(house)))
+	s.add_child(ring)
+	var g := TextureRect.new()
+	g.name = "HouseGlyph"
+	g.texture = UI3.icon(AnchorAdapter.house_icon(house))
+	g.custom_minimum_size = Vector2(16, 16)
+	g.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	g.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN   # bottom-left: bottom-right is the xN count
+	g.size_flags_vertical = Control.SIZE_SHRINK_END
+	g.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	s.add_child(g)
+	UI3Tooltip.bind(s, "%s\n%s %s" % [String(s.get_meta("ui3_tip", "")), TranslationServer.translate("House Core of"), AnchorAdapter.house_name(house)])

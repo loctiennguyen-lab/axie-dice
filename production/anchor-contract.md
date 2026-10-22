@@ -26,6 +26,10 @@ Design: `design/proposals/mutation-and-keystones-v1.md` (2.1, 2.2, "Liam chốt 
 - Relic name stays `r_keystone`. One RULES_VERSION bump for the whole MVP, done in step 2, not before.
 - Four show-points (UI lane): offer card, HUD chip (with awakened state), mutation banner on fire, tier-2 upgrade toast.
 
+## AU2 - bàn giao (lane anchor/ui, 22/10, bản cuối)
+Xong: AnchorAdapter dùng API thật; RunSetup.start_params truyền `anchor: true` (engine tự chặn online/ranked/daily/mission/stage<3); sửa lỗi RunMap `_finish_node` bỏ qua màn Anchor sau Luật run; AnchorPick layout (set_anchors_and_offsets_preset); HUD ô Anchor + chip x/2 -> Awakened; dải/banner MUTATION; moment AWAKEN (AnchorFx, nối RunMap + CombatView, glyph sửa không đè tên) + hit-stop 0.1s trong trận (tắt khi reduce flashing); Result: hàng Anchor + dòng Mutations trong thẻ Combos; `MetaState.anchor_codex` {id:{seen,picked,awakened}} (SaveStore + reload_from_store, save cũ = {}); Codex tab ANCHORS.
+Test mới: t_anchor_flow_start (luồng thật stage 3 / stage 2), t_anchor_codex. Ảnh: production/qa/evidence/anchor_*  (capture: tests/qa_anchor_capture.tscn).
+Chưa làm: ảnh MUTATION trong trận (đã có t_anchor_mutation), glyph nhà trong float đột biến, material_credit.ogg.
 ## Hợp đồng sự kiện cho UI (điều phối chốt 23/10)
 - Luật nền Anchor tác động: `EventBus.core_fired(core_id = anchor_id, unit_uid, amount, kind = "anchor")`.
 - Đột biến Cặp tác động: `core_fired(core_id = house_id, unit_uid, amount, kind = "mutation")`; khi nấc đột biến của một nhà thay đổi: `EventBus.mutation_on(house_id: String, tier: int)`.

@@ -95,6 +95,7 @@ const _BG_SCRIM_ALPHA := 0.6
 
 func _ready() -> void:
 	EventBus.node_entered.connect(_on_node_entered)
+	AnchorAdapter.listen("anchor_awakened", _on_anchor_awakened)
 	_graph = RunMapGraph.from_data(RunState.map_graph)
 	_root.theme = UI3Theme.get_theme()
 
@@ -1028,6 +1029,11 @@ func _enter_boss_fight() -> void:
 ## from RunState.current_node_id, which after_node() already advanced before the scene change.
 func _finish_node() -> void:
 	_close_overlay()
+	# The Run Rule pick can leave the run waiting for an Anchor (REWARD, no cards): do NOT advance the node, show the Anchor screen.
+	if RunState.phase == RunState.RunPhase.REWARD and RunState.pending_rewards.is_empty() and AnchorAdapter.offer_open():
+		_save_map_progress()
+		_maybe_show_pending_reward()
+		return
 	RunState.after_node()
 	_refresh(true)
 	# AFTER after_node(), not before: that call is what advances power_level and the phase, and
@@ -1163,8 +1169,16 @@ func _tex_icon(tex: Texture2D, px: float) -> TextureRect:
 ## map still has to advance exactly once: after_node() is now ONLY ever called from
 ## _on_reward_chosen(), so nothing else would ever call it for this node.
 func _maybe_show_pending_reward() -> void:
+	var afx := _play_awaken()   # awakened by something other than a Core pick: plays on this map beat
+	if afx != null:
+		if afx.running:
+			afx.finished.connect(_maybe_show_pending_reward, CONNECT_ONE_SHOT)
+			return
 	if RunState.phase == RunState.RunPhase.PACT:
 		_show_pact_overlay()
+		return
+	if RunState.pending_rewards.is_empty() and AnchorAdapter.offer_open():
+		_show_anchor_overlay()
 		return
 	if RunState.pending_rewards.is_empty():
 		if RunState.phase == RunState.RunPhase.REWARD:
@@ -1172,6 +1186,19 @@ func _maybe_show_pending_reward() -> void:
 			_refresh(true)
 		return
 	_show_reward_overlay("CHOOSE ONE REWARD")
+
+
+## Anchor pick (design/ux/anchor-mvp.md 1): same overlay host as the Core pick, before the first Core offer.
+## After the pick the engine opens pick 1 into pending_rewards, so the normal reward overlay follows.
+func _show_anchor_overlay() -> void:
+	var host := _open_ui3_screen()
+	var view := AnchorPick.new()
+	view.name = "AnchorPick"
+	host.add_child(view)
+	view.setup(AnchorAdapter.offer(), UI3Gacha.first_seen(str(RunState.get("_core_base_seed")), 3))
+	view.picked.connect(func(_id: String) -> void:
+		_save_map_progress()
+		_maybe_show_pending_reward())
 
 
 ## The eyebrow above the reward title. The mockup reads "WAVE 3 CLEARED"; this build resolves a
@@ -1586,6 +1613,7 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 			String(CorePanel.AXIS_ICON.get(axis, "face_buff")), UI3Theme.color("text_muted"), "AxisChip"))
 		if not bool(r.get("rule", false)):
 			_add_combo_labels(col, String(r.get("key", "")), chips)
+			_add_house_chip(card, chips, String(r.get("key", "")))
 		col.add_child(chips)
 	else:
 		var rar_lbl := UI3.label(_rarity_name(rar))
@@ -1623,6 +1651,28 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 ## B2 / B3: when taking this card completes a combo, a gold plate "<glyph> PAIR" / "<glyph> FULL" (dark text on gold,
 ## glyph = 2 / 3 cards) plus the combo name; owned partners ride in one chip "With: X, Y" inside the chip row
 ## (no separate "Works with" line). No 1/2 count and no progress bar anywhere.
+## Anchor lane: a house Core gets a "[glyph] House" chip; the card that takes the Anchor to 2/2 says "1/2 -> AWAKEN" and gets a
+## 2 px anchor_awake edge. Never a word about the tier of the next pick (gacha contract).
+static func _add_house_chip(card: Control, chips: HFlowContainer, key: String) -> void:
+	if not AnchorAdapter.is_house_core(key):
+		return
+	var house := AnchorAdapter.house_id(AnchorAdapter.current_id())
+	var icon := UI3.icon(AnchorAdapter.house_icon(house))
+	if AnchorAdapter.would_awaken(key):
+		var gold := UI3Theme.color("anchor_awake")
+		var c := UI3.icon_chip("%d/%d \u2192 %s" % [Anchors.AWAKEN_NEED - 1, Anchors.AWAKEN_NEED, TranslationServer.translate("AWAKEN")], icon, gold, "AwakenChip")
+		chips.add_child(c)
+		var edge := Panel.new()
+		edge.name = "AwakenEdge"
+		edge.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		edge.add_theme_stylebox_override("panel", UI3Theme.flat(Color(0, 0, 0, 0), UI3Theme.radius("m"), 2, gold))
+		card.add_child(edge)
+		card.set_meta("awaken", true)
+	else:
+		chips.add_child(UI3.icon_chip(TranslationServer.translate("House"), icon, AnchorAdapter.house_color(house), "HouseChip"))
+
+
 func _add_combo_labels(col: VBoxContainer, key: String, chips: HFlowContainer) -> void:
 	var owned := UI3Gacha.owned_ids()
 	var done := UI3Gacha.combo_completes(owned, key)
@@ -1711,6 +1761,7 @@ func _apply_and_finish(reward: Dictionary) -> void:
 	_taking = true
 	var before_ids: Array = UI3Gacha.owned_ids().duplicate()
 	var before_owned: Array = RunState.owned_relic_ids.duplicate()
+	var was_awake := AnchorAdapter.awakened()
 	var is_core := _is_core_card(reward) and not bool(reward.get("rule", false))
 	var pool_names: Array = []
 	if is_core and String(reward.get("key", "")) == "c_dim_stone":
@@ -1735,12 +1786,45 @@ func _apply_and_finish(reward: Dictionary) -> void:
 		if fx.running:
 			await fx.finished
 	var formed := UI3Gacha.combos_formed(before_ids, UI3Gacha.owned_ids())
-	# The banner plays OVER the Core-pick overlay (it is still there), then the node finishes.
-	var ban := _combo_banner(formed)
-	if ban != null and ban.running:
-		await ban.finished
+	# Awakening and a Pair on the same pick: ONE moment (the Pair line goes inside it), queue = no second banner.
+	if AnchorAdapter.has_anchor() and not was_awake and AnchorAdapter.awakened():
+		AnchorFx.arm(AnchorAdapter.current_id())
+	var afx := _play_awaken(_awaken_extra_line(formed))
+	if afx != null and afx.running:
+		await afx.finished
+	elif afx == null:
+		# The banner plays OVER the Core-pick overlay (it is still there), then the node finishes.
+		var ban := _combo_banner(formed)
+		if ban != null and ban.running:
+			await ban.finished
 	_taking = false
 	_finish_node()
+
+
+## Plays the awaken moment when one is pending and this run has not seen it yet. null = nothing to play.
+func _play_awaken(extra_line := "") -> AnchorFx:
+	if _overlay_layer == null or not AnchorFx.take_pending():
+		return null
+	return AnchorFx.play(_overlay_layer, AnchorAdapter.current_id(), extra_line)
+
+
+## "PAIR: <combo> . MUTATION: <name>" for the strongest newly formed combo, "" when none.
+func _awaken_extra_line(formed: Array) -> String:
+	if formed.is_empty():
+		return ""
+	var best: Dictionary = formed[0]
+	for f in formed:
+		if String(f["tier"]) == "full":
+			best = f
+			break
+	var house := AnchorAdapter.house_of_combo(String(best["id"]))
+	var line := "%s: %s" % [TranslationServer.translate("PAIR") if String(best["tier"]) != "full" else TranslationServer.translate("FULL"), UI3Gacha.combo_name(String(best["id"]))]
+	var mn := String(AnchorAdapter.mutation_of(house)["name"]) if house != "" else ""
+	return line + (" . %s: %s" % [TranslationServer.translate("MUTATION"), mn] if mn != "" else "")
+
+
+func _on_anchor_awakened(id: String) -> void:
+	AnchorFx.arm(id)
 
 
 ## Shows the strongest newly formed combo (Full beats Pair) as a big centre panel above the overlay layer.
@@ -1753,8 +1837,10 @@ func _combo_banner(formed: Array) -> GachaFx:
 			best = f
 			break
 	gacha_log.append("banner:%s" % String(best["tier"]))
+	var house := AnchorAdapter.house_of_combo(String(best["id"]))
+	var mut := {"house": house} if house != "" and not AnchorAdapter.mutation_of(house)["name"].is_empty() else {}
 	return GachaFx.banner(_overlay_layer, String(best["tier"]), UI3Gacha.combo_name(String(best["id"])),
-		UI3Gacha.combo_members(String(best["id"]), String(best["tier"]))) as GachaFx
+		UI3Gacha.combo_members(String(best["id"]), String(best["tier"])), mut) as GachaFx
 
 
 ## Spec 32: the slot kind of the new relic is full. The sale goes through RunState.acquire_relic (logged as
