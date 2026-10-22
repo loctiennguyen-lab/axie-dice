@@ -188,6 +188,9 @@ var _core_offer_active: bool = false      ## pending_rewards is a Core offer
 var _rule_offer_active: bool = false      ## pending_rewards is the Run Rule offer
 var core_bonus_queue: Array[int] = []      ## tiers of quest-step reward offers waiting to open (not counted as picks)
 var core_bonus_count: int = 0
+var core_extra_tiers: Array[int] = []      ## [elite, mid] tiers of the 2 extra Core picks (Short), drawn at new_run
+var core_extra_elite_done: int = 0         ## Elite wins that already gave an extra pick
+var core_extra_mid_done: bool = false
 var _core_close_pending: bool = false     ## a Core pick was just taken; the next after_node() only returns to MAP
 ## Counters that scope a Boon to "your first 3 fights", "first Boss", "first Battle reward".
 var _rewarding_kind: String = ""
@@ -339,6 +342,9 @@ func reset() -> void:
 	_core_close_pending = false
 	core_bonus_queue = []
 	core_bonus_count = 0
+	core_extra_tiers = []
+	core_extra_elite_done = 0
+	core_extra_mid_done = false
 	fights_started = 0
 	bosses_started = 0
 	first_battle_rewarded = false
@@ -562,6 +568,7 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 	core_off = bool(loadout.get("core_off", false))
 	rules_on = bool(loadout.get("rules_on", params.get("rules_on", MetaState.runs > 0)))
 	core_tier_chain = CoreOffer.draw_tier_chain(p_seed, p_mode)
+	core_extra_tiers = CoreOffer.draw_extra_tiers(p_seed, p_mode)
 	core_reroll_left = RelicSlots.tuning().core_reroll_max
 	anchor_wanted = bool(params.get("anchor", false))
 	if core_off:
@@ -959,6 +966,7 @@ func after_node() -> void:
 	power_level += 1
 	if not visited_node_ids.has(current_node_id):
 		visited_node_ids.append(current_node_id)
+	_note_extra_mid()
 	if _core_trigger_hit(current_node_id) and _open_core_offer():
 		return
 	if _open_bonus_offer():
@@ -986,6 +994,8 @@ func apply_combat_result(res: Dictionary, reward_seed: int = -1) -> void:
 		_crow_judge(res, kind)
 		if kind == "elite" or kind == "boss":
 			note_quest_event(kind)
+		if kind == "elite":
+			_note_extra_elite()
 		if kind == "boss" and _is_final_boss_row(current_node_id):
 			# src/engine.js finishCombat() (engine.js:997): `if(k==='boss'&&s.step>=s.len){
 			# s.phase='won'; return; }` — defeating the FINAL boss ends the run immediately,
@@ -1876,6 +1886,7 @@ func to_data() -> Dictionary:
 			"rules_on": rules_on, "base_seed": _core_base_seed, "offer_active": _core_offer_active, "offer_pick": _core_offer_pick, "core_off": core_off,
 			"rule_offer_active": _rule_offer_active, "close_pending": _core_close_pending,
 			"bonus_queue": core_bonus_queue.duplicate(), "bonus_count": core_bonus_count,
+			"extra_tiers": core_extra_tiers.duplicate(), "extra_elite_done": core_extra_elite_done, "extra_mid_done": core_extra_mid_done,
 			"combo_done": combo_done.duplicate(), "skipped_t": core_skipped_t.duplicate(), "quest_done": core_quest_done.duplicate(),
 			"combo_rerolls": combo_rerolls_gained},
 		"anchor": {"id": anchor_id, "awakened": anchor_awakened, "offer": anchor_offer.duplicate(),
@@ -2211,6 +2222,9 @@ func _core_from_data(c: Dictionary) -> void:
 	_core_close_pending = bool(c.get("close_pending", false))
 	core_bonus_queue.assign((c.get("bonus_queue", []) as Array).map(func(v): return int(v)))
 	core_bonus_count = int(c.get("bonus_count", 0))
+	core_extra_tiers.assign((c.get("extra_tiers", []) as Array).map(func(v): return int(v)))
+	core_extra_elite_done = int(c.get("extra_elite_done", 0))
+	core_extra_mid_done = bool(c.get("extra_mid_done", false))
 	combo_done = (c.get("combo_done", {}) as Dictionary).duplicate()
 	core_skipped_t.assign(c.get("skipped_t", []))
 	core_quest_done.assign(c.get("quest_done", []))
@@ -2464,6 +2478,25 @@ func _queue_core_pick(tier: int) -> bool:
 		return false
 	core_bonus_queue.append(clampi(tier, 0, 2))
 	return true
+
+
+## Extra Core pick after a won Elite (Short, knob core.extra_elite_max). Skipped when this node already opens a milestone pick.
+func _note_extra_elite() -> void:
+	if core_off or core_extra_tiers.size() < 2 or core_extra_elite_done >= RelicSlots.tuning().core_extra_elite_max:
+		return
+	if _core_trigger_hit(current_node_id):
+		return
+	core_extra_elite_done += 1
+	_queue_core_pick(core_extra_tiers[0])
+
+
+## Extra Core pick after the `core_extra_pick_nodes`-th finished node (Short, knob core.extra_pick_nodes).
+func _note_extra_mid() -> void:
+	var n := RelicSlots.tuning().core_extra_pick_nodes
+	if core_off or core_extra_tiers.size() < 2 or core_extra_mid_done or n <= 0 or visited_node_ids.size() < n:
+		return
+	core_extra_mid_done = true
+	_queue_core_pick(core_extra_tiers[1])
 
 
 func _open_bonus_offer() -> bool:

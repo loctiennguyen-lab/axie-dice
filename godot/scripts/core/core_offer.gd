@@ -49,6 +49,20 @@ static func draw_tier_chain(seed: int, mode: String) -> Array[int]:
 	return chain
 
 
+## Tiers of the two extra picks of a Short run: [elite, mid]. Own Rng so draw_tier_chain is unchanged. Full: none.
+static func draw_extra_tiers(seed: int, mode: String) -> Array[int]:
+	var out: Array[int] = []
+	if mode == "full":
+		return out
+	var t := tuning()
+	if t.core_extra_tiers_short.is_empty():
+		return out
+	var rng := Rng.new((seed ^ TIER_SALT) ^ 0xE7A91)
+	for v in (_weighted(rng, t.core_extra_tiers_short) as Array):
+		out.append(int(v))
+	return out
+
+
 ## rows = [[value, weight], ...]; returns value.
 static func _weighted(rng: Rng, rows: Array):
 	var total := 0

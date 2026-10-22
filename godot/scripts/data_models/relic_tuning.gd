@@ -62,6 +62,12 @@ extends Resource
 @export var rule_none_pct: int = 10            ## from run 2: chance one of the two rule cards is "no rule"
 @export var core_picks_short: int = 4
 @export var core_picks_full: int = 6
+## Extra Core picks (Short only, 6-pick run): [[elite_tier, mid_tier], weight]. Drawn once at new_run from its own Rng, so the 4 milestone
+## tiers (tier_chains_short) never change. The elite pick opens after the first won Elite that is not already a milestone node;
+## the mid pick opens after the `core_extra_pick_nodes`-th finished node. Both open as bonus offers (do not shift milestone indexes).
+@export var core_extra_tiers_short: Array = [[[1, 0], 45], [[2, 0], 20], [[1, 1], 35]]
+@export var core_extra_pick_nodes: int = 3     ## knob core.extra_pick_nodes (0 = no mid pick)
+@export var core_extra_elite_max: int = 1      ## knob core.extra_elite_max (Elite wins that give an extra pick; 0 = none)
 ## Tier chains for picks 1..4 (Short), weight each. 0 moss, 1 amber, 2 crystal.
 @export var tier_chains_short: Array = [
 	[[0, 1, 2, 1], 30], [[0, 1, 1, 2], 20], [[0, 0, 2, 1], 15], [[0, 1, 2, 2], 10],
