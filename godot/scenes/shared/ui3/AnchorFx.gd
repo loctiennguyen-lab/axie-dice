@@ -70,7 +70,7 @@ static func play(parent: Node, id: String, extra_line := "", fly_to := Rect2()) 
 		fx.queue_free()   # instant mode (tests / headless): content is built for this frame only, never blocks input
 		return fx
 	fx.running = true
-	fx._animate()
+	fx._animate()   # coroutine: waits one frame for the containers to size, then starts the tween
 	return fx
 
 
@@ -172,7 +172,13 @@ func _build(extra_line: String) -> void:
 	strip.custom_minimum_size.x = 760
 	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card.add_child(strip)
-	for n in ["AwakenTag", "AwakenName", "AwakenRule", "AwakenStrip"]:
+	var hint := UI3.label(TranslationServer.translate("Click to continue"), "LabelMuted")
+	hint.name = "AwakenHint"
+	hint.add_theme_font_size_override("font_size", 16)   # key hint size (token)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_card.add_child(hint)
+	for n in ["AwakenTag", "AwakenName", "AwakenRule", "AwakenStrip", "AwakenHint"]:
 		(_card.get_node(n) as Control).modulate.a = 0.0
 	card_frame.modulate.a = 0.0
 
@@ -198,7 +204,7 @@ func _swap_frame() -> void:
 
 func _show_final() -> void:
 	card_frame.modulate.a = 1.0
-	for n in ["AwakenTag", "AwakenName", "AwakenRule", "AwakenStrip"]:
+	for n in ["AwakenTag", "AwakenName", "AwakenRule", "AwakenStrip", "AwakenHint"]:
 		(_card.get_node(n) as Control).modulate.a = 1.0
 	_swap_frame()
 	_card.scale = Vector2.ONE
@@ -207,13 +213,16 @@ func _show_final() -> void:
 func _animate() -> void:
 	var reduced := CombatView.flashes_suppressed()
 	var total := duration()
+	await get_tree().process_frame   # CenterContainer has not sorted yet: size is 0 until the next frame
+	if not running or not is_inside_tree():
+		return   # skipped / freed during that one frame
 	_card.pivot_offset = _card.size * 0.5
 	_tw = create_tween()
 	if reduced:
 		_tw.tween_property(card_frame, "modulate:a", 1.0, 0.3)
 		_tw.tween_callback(_swap_frame)
 		_tw.tween_property(card_frame, "modulate:a", 1.0, 0.3)
-		for n in ["AwakenTag", "AwakenName", "AwakenRule", "AwakenStrip"]:
+		for n in ["AwakenTag", "AwakenName", "AwakenRule", "AwakenStrip", "AwakenHint"]:
 			_tw.parallel().tween_property(_card.get_node(n), "modulate:a", 1.0, 0.3)
 		_tw.tween_interval(maxf(total - 0.9, 0.1))
 		_tw.tween_callback(_end)
@@ -233,7 +242,7 @@ func _animate() -> void:
 		_wave_r[1] = r
 		_waves.queue_redraw(), 1.0, reach, 0.6).set_delay(0.6)
 	_tw.tween_callback(func() -> void: _shake(shake)).set_delay(0.5)
-	var at := {"AwakenTag": 0.6, "AwakenName": 0.9, "AwakenRule": 1.1, "AwakenStrip": 1.3}
+	var at := {"AwakenTag": 0.6, "AwakenName": 0.9, "AwakenRule": 1.1, "AwakenStrip": 1.3, "AwakenHint": 1.6}
 	for n in at.keys():
 		_tw.tween_property(_card.get_node(n), "modulate:a", 1.0, 0.2).set_delay(float(at[n]))
 	_tw.chain().tween_interval(maxf(total - 0.5 - 1.5, 0.0))   # hold up to ~2.2 s

@@ -339,6 +339,9 @@ func _build_card_rows(s: Dictionary) -> VBoxContainer:
 	col.add_theme_constant_override("separation", 12)
 	col.add_child(_build_shard_card(s))
 	col.add_child(_build_pass_card(s))
+	var anchor := _build_anchor_card(s)
+	if anchor != null:
+		col.add_child(anchor)
 	col.add_child(_build_relics_card(s["relic_ids"] as Array, String(s.get("run_rule", "")), s.get("core_impact", {}) as Dictionary))
 	var combos := _build_combos_card(s)
 	if combos != null:
@@ -358,8 +361,7 @@ func _build_card_rows(s: Dictionary) -> VBoxContainer:
 func _build_combos_card(s: Dictionary) -> Control:
 	var done: Dictionary = s.get("combo_done", {})
 	var skipped := RunCard.skipped_names(s.get("skipped_t", []) as Array)
-	var anchor_id := String(s.get("anchor_id", ""))
-	if done.is_empty() and skipped.is_empty() and ComboAdapter.all().is_empty() and anchor_id == "":
+	if done.is_empty() and skipped.is_empty() and ComboAdapter.all().is_empty():
 		return null
 	var card := UI3.plate(&"row")
 	card.name = "CombosCard"
@@ -367,11 +369,6 @@ func _build_combos_card(s: Dictionary) -> Control:
 	col.add_theme_constant_override("separation", 8)
 	card.add_child(col)
 	col.add_child(_card_caption(tr("Combos") + " · %d" % done.size()))
-	if anchor_id != "":
-		col.add_child(_anchor_row(anchor_id, bool(s.get("anchor_awakened", false))))
-		var mut := _mutation_line(s.get("house_tiers", {}) as Dictionary)
-		if mut != null:
-			col.add_child(mut)
 	if done.is_empty():
 		var none := UI3.label(tr("No combos this run."), "LabelMuted")
 		none.name = "NoCombos"
@@ -402,6 +399,24 @@ func _build_combos_card(s: Dictionary) -> Control:
 		sk.name = "SkippedLine"
 		sk.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		col.add_child(sk)
+	return card
+
+
+## Own card ABOVE the Cores card: the run's Anchor, awake state and the Mutations it reached. null = no Anchor this run.
+func _build_anchor_card(s: Dictionary) -> Control:
+	var anchor_id := String(s.get("anchor_id", ""))
+	if anchor_id == "":
+		return null
+	var card := UI3.plate(&"row")
+	card.name = "AnchorCard"
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 8)
+	card.add_child(col)
+	col.add_child(_card_caption(tr("Anchor")))
+	col.add_child(_anchor_row(anchor_id, bool(s.get("anchor_awakened", false))))
+	var mut := _mutation_line(s.get("house_tiers", {}) as Dictionary)
+	if mut != null:
+		col.add_child(mut)
 	return card
 
 
