@@ -65,6 +65,11 @@ func _ready() -> void:
 	# --- waiting state survives save/load, decline works ---
 	_start(102)
 	_assert(RunState._anchor_waiting, "waiting")
+	var pw0 := RunState.power_level
+	var vis0 := RunState.visited_node_ids.size()
+	RunState.after_node()   # a caller treating the empty REWARD as a finished node (sim bot, map controller)
+	_assert(RunState._anchor_waiting and RunState.power_level == pw0 and RunState.visited_node_ids.size() == vis0,
+		"after_node while the Anchor pick is open changes nothing (power_level %d -> %d)" % [pw0, RunState.power_level])
 	var wd := RunState.to_data()
 	RunState.reset()
 	RunState.from_data(JSON.parse_string(JSON.stringify(wd)))

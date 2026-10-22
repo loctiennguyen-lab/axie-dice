@@ -962,6 +962,8 @@ func enter_node(node_id: String, node_kind: String, seed: int = -1) -> void:
 func after_node() -> void:
 	if phase == RunPhase.WON or phase == RunPhase.LOST:
 		return
+	if _anchor_waiting:
+		return   # the Anchor pick is still open: no node was finished, power_level / visited must not move
 	if _core_close_pending:   # the Core pick that followed this node was just taken: nothing else to count
 		_core_close_pending = false
 		if _open_bonus_offer():
