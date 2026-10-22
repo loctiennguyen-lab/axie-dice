@@ -132,5 +132,20 @@
   "dmg_overuse_penalty": 2,
   "nondmg_mana": 1
  },
+ "anchor": {
+  "volley_pct_3": 40,
+  "volley_pct_4": 65,
+  "volley_pct_5": 90,
+  "volley_cap": 20,
+  "volley_set_add": 0.0,
+  "gambler_set_add": 0.35,
+  "gambler_turn_cap": 0.60,
+  "gambler_crack_pct": 15,
+  "mine_mana": 1,
+  "mine_overcast_cost": 1,
+  "mine_wild_cost": 2,
+  "beat_per_turn": 2,
+  "beat_cost2": 2
+ },
  "_doc_depth_v3_traits": "Depth v3 6.7/6.7b anti-spam mechanics. plating.* = M1/M6 (P = clamp(round(budget/div), min, max); off_turns after any debuff/poison; decay_turn = anti-stall, non-boss Plating -1 per turn from it, ward stops). ward.* = M2, mend.* = M4 (fight_cap_pct of the source's own max HP), spite.* = M3, charge.* = M5 (period 4: charge turn n%period==charge_at, strike n%period==0), traits.* = max trait bearers in a normal fight (early = before the first Elite), run_rules.* = R12/R13."
 }

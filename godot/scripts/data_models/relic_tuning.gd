@@ -62,6 +62,12 @@ extends Resource
 @export var rule_none_pct: int = 10            ## from run 2: chance one of the two rule cards is "no rule"
 @export var core_picks_short: int = 4
 @export var core_picks_full: int = 6
+## Extra Core picks (Short only, 6-pick run): [[elite_tier, mid_tier], weight]. Drawn once at new_run from its own Rng, so the 4 milestone
+## tiers (tier_chains_short) never change. The elite pick opens after the first won Elite that is not already a milestone node;
+## the mid pick opens after the `core_extra_pick_nodes`-th finished node. Both open as bonus offers (do not shift milestone indexes).
+@export var core_extra_tiers_short: Array = [[[1, 0], 45], [[2, 0], 20], [[1, 1], 35]]
+@export var core_extra_pick_nodes: int = 3     ## knob core.extra_pick_nodes (0 = no mid pick)
+@export var core_extra_elite_max: int = 1      ## knob core.extra_elite_max (Elite wins that give an extra pick; 0 = none)
 ## Tier chains for picks 1..4 (Short), weight each. 0 moss, 1 amber, 2 crystal.
 @export var tier_chains_short: Array = [
 	[[0, 1, 2, 1], 30], [[0, 1, 1, 2], 20], [[0, 0, 2, 1], 15], [[0, 1, 2, 2], 10],
@@ -69,6 +75,15 @@ extends Resource
 ## Full adds two final picks drawn from these [[t5,t6], weight].
 @export var tier_tail_full: Array = [[[1, 2], 40], [[2, 2], 25], [[1, 1], 35]]
 @export var core_stat_max_per_offer: int = 1
+## R1 (core-visibility-fix): an axis is drawn with weight min(valid Cores in its cell, this).
+@export var axis_weight_cap: int = 4
+## Anchor (lane AE 2a): relative weight of the Anchor's house Cores when a Core offer picks inside an axis cell.
+## Reroll (reroll_card) never applies it (anchor-mvp QA #13). 1.0 = no bias.
+@export var anchor_house_bias: float = 5.0
+## Anchor: relative weight of an axis that holds one of the Anchor's house Cores, when a Core offer draws axes (anchor.axis_bias). Not used by reroll.
+@export var anchor_axis_bias: float = 3.0
+## Anchor: extra weight of a Core that is a 2nd member of a combo the player already holds 1 member of (only with an Anchor; reroll never; 1.0 = off).
+@export var anchor_partner_bias: float = 3.0
 @export var core_quest_max_per_offer: int = 1
 ## Where Core pick 2.. opens: ["row", n] = after the node on map row n, ["boss", k] = after the k-th boss.
 @export var core_triggers_short: Array = [["row", 5], ["boss", 1], ["boss", 2]]

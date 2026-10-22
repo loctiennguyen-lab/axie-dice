@@ -1,0 +1,131 @@
+[
+ {
+  "id": "h_volley",
+  "name_en": "Volley",
+  "combo_ids": [
+   "combo_shield_engine",
+   "combo_turtle_fort",
+   "combo_toxic_guard",
+   "combo_molt"
+  ],
+  "mutation": {
+   "name_en": "Spiked Shield",
+   "tier1": {
+    "rule_en": "1/3 of the Shield from a Shield-face die in a SET turns into Thorns until the end of the enemy turn (rounded down, max 4 per Axie).",
+    "shield_div": 3,
+    "max": 4,
+    "name_en": "Spiked Shield"
+   },
+   "tier2": {
+    "rule_en": "Thorns keep the full number; the Shield is not reduced.",
+    "shield_cost": false
+   }
+  }
+ },
+ {
+  "id": "h_gambler",
+  "name_en": "Gambler",
+  "combo_ids": [
+   "combo_bramble_hide",
+   "combo_lake_fishing"
+  ],
+  "mutation": {
+   "name_en": "Crack Mana",
+   "tier1": {
+    "rule_en": "First time each turn a die Cracks from a Gamble: +1 mana.",
+    "mana": 1,
+    "per_turn": 1,
+    "name_en": "Crack Mana"
+   },
+   "tier2": {
+    "rule_en": "First two times each turn a die Cracks from a Gamble: +1 mana each.",
+    "mana": 1,
+    "per_turn": 2
+   }
+  }
+ },
+ {
+  "id": "h_mana_mine",
+  "name_en": "Mana Mine",
+  "combo_ids": [
+   "combo_endless_mana",
+   "combo_rising_tide"
+  ],
+  "mutation": {
+   "name_en": "Mana Overflow",
+   "tier1": {
+    "rule_en": "At end of turn with 3+ mana left: spend 1 mana, all enemies take 2 damage (once per turn, after Mana Pool and Mana Ward).",
+    "min_mana": 3,
+    "cost": 1,
+    "dmg": 2,
+    "name_en": "Mana Overflow"
+   },
+   "tier2": {
+    "rule_en": "4 damage.",
+    "min_mana": 3,
+    "cost": 1,
+    "dmg": 4
+   }
+  }
+ },
+ {
+  "id": "h_kin",
+  "name_en": "Kin",
+  "combo_ids": [
+   "combo_golden_nest",
+   "combo_ancient_turtle"
+  ],
+  "mutation": {
+   "name_en": "Cover",
+   "tier1": {
+    "rule_en": "First turn with a SET each turn, the front-row Axie with least HP (Egg included) gets Shield = 2 x SET dice (not multiplied by the SET).",
+    "shield_per_die": 2,
+    "name_en": "Cover"
+   },
+   "tier2": {
+    "rule_en": "3 x SET dice.",
+    "shield_per_die": 3
+   }
+  }
+ },
+ {
+  "id": "h_embers",
+  "name_en": "Embers",
+  "combo_ids": [
+   "combo_slow_burn",
+   "combo_final_stroke"
+  ],
+  "mutation": {
+   "name_en": "Last Strike",
+   "tier1": {
+    "rule_en": "The die you use last in the turn, if part of a SET, gives +0.30 multiplier (still under m_cap).",
+    "mult": 0.3,
+    "name_en": "Last Strike"
+   },
+   "tier2": {
+    "rule_en": "+0.60.",
+    "mult": 0.6
+   }
+  }
+ },
+ {
+  "id": "h_big_hand",
+  "name_en": "Big Hand",
+  "combo_ids": [
+   "combo_dice_rainbow",
+   "combo_rain"
+  ],
+  "mutation": {
+   "name_en": "Hunt Four",
+   "tier1": {
+    "rule_en": "On a turn with exactly a SET of three, the first Safe reroll is free (once per turn, still counts toward the 3 rolls).",
+    "free_safe": 1,
+    "name_en": "Hunt Four"
+   },
+   "tier2": {
+    "rule_en": "The second Safe reroll costs only 1 mana.",
+    "second_safe_cost": 1
+   }
+  }
+ }
+]

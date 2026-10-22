@@ -58,6 +58,24 @@ func _ready() -> void:
 	_check(labels.size() >= 1 and labels[0] == V4Ui.set_label(int(c.bo[0]["size"]), int(c.bo[0]["m100"])), "label from engine: %s" % str(labels))
 	_check(String(labels[0]).begins_with("SET OF 3") and String(labels[0]).contains("×1.3"), "set of 3 x1.3 at default knobs: %s" % str(labels))
 	_check(bl.last_banner == "", "no banner for a set of 3")
+	# Anchor Gambler with a Gamble bonus: the group label must use m100_for (what each die shows), not the raw snapshot m100.
+	c.anchor_id = "a_gambler"
+	c.anchor_turn["gb100"] = 30
+	c._snap_bo()
+	v._rebuild_all()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var raw_m := int(c.bo[0]["m100"])
+	var real_m := c.m100_for(c.by_uid(int((c.bo[0]["uids"] as Array)[0])))
+	_check(real_m == raw_m + 30, "Gambler gb100 raises m100_for: %d vs raw %d" % [real_m, raw_m])
+	var a_labels := bl.group_labels()
+	_check(a_labels[0] == V4Ui.set_label(int(c.bo[0]["size"]), real_m), "Anchor: label uses m100_for: %s" % str(a_labels))
+	_check(a_labels[0] != V4Ui.set_label(int(c.bo[0]["size"]), raw_m), "Anchor: label differs from the raw snapshot m100")
+	c.anchor_id = ""
+	c.anchor_turn["gb100"] = 0
+	c._snap_bo()
+	v._rebuild_all()
+	await get_tree().process_frame
 	var chips := 0
 	for b in v._die_slot_buttons:
 		if b.visible and b.find_child("PartChip", true, false) != null:

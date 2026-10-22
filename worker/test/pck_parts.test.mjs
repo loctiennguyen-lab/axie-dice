@@ -24,6 +24,7 @@ function fakeR2(objs, calls = []) {
   };
 }
 
+const MD5 = '0123456789abcdef0123456789abcdef';
 const SIZES = [10, 7, 5, 3]; // total 25
 const TOTAL = 25;
 const full = new Uint8Array(TOTAL).map((_, i) => (i * 7 + 3) & 255);
@@ -36,7 +37,7 @@ function build({ manifest } = {}) {
     off += n;
     return { key, size: n };
   });
-  const m = manifest !== undefined ? manifest : JSON.stringify({ total: TOTAL, md5: 'abc', parts });
+  const m = manifest !== undefined ? manifest : JSON.stringify({ total: TOTAL, md5: MD5, parts });
   if (m !== null) objs.set('index.pck.parts.json', new TextEncoder().encode(m));
   objs.set('index.pck', new Uint8Array([1, 2, 3]));
   return objs;
@@ -100,8 +101,25 @@ test('HEAD: headers, no body, no part reads', async () => {
 });
 
 test('If-None-Match with manifest md5 -> 304', async () => {
-  const res = await worker.fetch(req({ 'if-none-match': '"abc"' }), { GAME: fakeR2(build()) });
+  const res = await worker.fetch(req({ 'if-none-match': `"${MD5}"` }), { GAME: fakeR2(build()) });
   assert.equal(res.status, 304);
+  assert.equal(res.headers.get('etag'), `"${MD5}"`);
+});
+
+test('ETag is the manifest md5, never the pck-<total> fallback', async () => {
+  const res = await worker.fetch(req(), { GAME: fakeR2(build()) });
+  assert.equal(res.headers.get('etag'), `"${MD5}"`);
+});
+
+test('bytes=5-3 (first > last) is ignored -> 200 whole file (RFC 7233)', async () => {
+  const res = await worker.fetch(req({ range: 'bytes=5-3' }), { GAME: fakeR2(build()) });
+  assert.equal(res.status, 200);
+  assert.deepEqual(await bytes(res), full);
+});
+
+test('bytes=30-20 (first > last, also past end) is ignored -> 200, not 416', async () => {
+  const res = await worker.fetch(req({ range: 'bytes=30-20' }), { GAME: fakeR2(build()) });
+  assert.equal(res.status, 200);
 });
 
 test('no manifest -> old single-object path', async () => {
@@ -115,6 +133,32 @@ test('corrupt manifest -> 500 with reason', async () => {
     const res = await worker.fetch(req(), { GAME: fakeR2(build({ manifest: m })) });
     assert.equal(res.status, 500);
     assert.match(await res.text(), /index\.pck manifest invalid/);
+  }
+});
+
+test('part key outside pck/ prefix -> 500, nothing read', async () => {
+  const parts = SIZES.map((n, i) => ({ key: `pck/index.pck.00${i}`, size: n }));
+  parts[2].key = 'index.pck';
+  const calls = [];
+  const res = await worker.fetch(req(), { GAME: fakeR2(build({ manifest: JSON.stringify({ total: TOTAL, md5: MD5, parts }) }), calls) });
+  assert.equal(res.status, 500);
+  assert.match(await res.text(), /pck\//);
+  assert.equal(calls.filter((c) => c.key.startsWith('pck/')).length, 0);
+});
+
+test('md5 missing, short, uppercase, or non-hex -> 500 (no ETag fallback)', async () => {
+  const parts = SIZES.map((n, i) => ({ key: `pck/index.pck.00${i}`, size: n }));
+  const bads = [
+    { total: TOTAL, parts },                                   // missing
+    { total: TOTAL, md5: MD5.slice(0, 31), parts },            // 31 chars
+    { total: TOTAL, md5: MD5.toUpperCase(), parts },           // uppercase
+    { total: TOTAL, md5: 'z'.repeat(32), parts },              // not hex
+    { total: TOTAL, md5: 12345, parts },                       // not a string
+  ];
+  for (const m of bads) {
+    const res = await worker.fetch(req(), { GAME: fakeR2(build({ manifest: JSON.stringify(m) })) });
+    assert.equal(res.status, 500, JSON.stringify(m.md5));
+    assert.match(await res.text(), /index\.pck manifest invalid: md5/);
   }
 });
 

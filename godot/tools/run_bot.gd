@@ -34,9 +34,20 @@ static var combo_script: bool = false
 
 
 ## Takes every Core / Run Rule offer that is open (a pick can open the next one), calling after_node() as the screens do.
+## Anchor test hook: -2 = the bot ignores Anchors (old behaviour); -1 = decline; 0..2 = pick that card of the offer.
+static var anchor_pick_index: int = -2
+
+
 static func drain_core_offers() -> void:
 	var guard := 0
-	while (RunState._core_offer_active or RunState._rule_offer_active) and not RunState.pending_rewards.is_empty() and guard < 16:
+	while guard < 16:
+		if RunState._anchor_waiting and anchor_pick_index > -2:
+			guard += 1
+			if not RunState.replay_pick_anchor(anchor_pick_index):
+				break
+			continue
+		if not ((RunState._core_offer_active or RunState._rule_offer_active) and not RunState.pending_rewards.is_empty()):
+			break
 		guard += 1
 		if core_script and not _core_rerolled and RunState._core_offer_active and RunState.core_can_reroll(0):
 			_core_rerolled = true
@@ -72,8 +83,14 @@ static func _combo_card(cards: Array, fallback: Dictionary) -> Dictionary:
 
 
 static func play_run(seed_value: int, team: Array[String] = DEFAULT_TEAM,
-		mode: String = "short", ascension: int = 0) -> Dictionary:
-	RunState.start_new_run(seed_value, team, mode, ascension, true)
+		mode: String = "short", ascension: int = 0, extra: Dictionary = {}) -> Dictionary:
+	if extra.is_empty():
+		RunState.start_new_run(seed_value, team, mode, ascension, true)
+	else:
+		# Non-default start (Anchor tests): `extra` is merged into the run params; ranked defaults to false here.
+		var params := {"team_keys": team.duplicate(), "mode": mode, "ascension": ascension, "ranked": false}
+		params.merge(extra, true)
+		RunState.start_run_with_epoch(LocalEpochSource.new(PackedByteArray(), seed_value), params, seed_value)
 	_core_rerolled = false
 	drain_core_offers()
 	var graph := RunMapGraph.from_data(RunState.map_graph)

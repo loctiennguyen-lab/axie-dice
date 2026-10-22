@@ -32,6 +32,8 @@ export const ALLOWED_FNS = new Set([
   'overcast',
   // depth v4: Mat Tam ([uid, slot])
   'wild_face',
+  // Anchor online (Liam 22/10): [index 0..2] into the Anchor offer, [-1] = declined. Spends no epoch.
+  'pick_anchor',
 ]);
 
 /** kind -> action(s) that consume it at position log_len (ADR 4.2). null = consumed on reply. A list means any of them. */
@@ -237,7 +239,7 @@ export class RunCore {
   // ------------------------------------------------------------------ log delta checks
 
   /** Syntactic check of a delta. Returns null when fine, else an internal reason string. */
-  _deltaProblem(delta, prevLen, claimedLen) {
+  _deltaProblem(delta, prevLen, claimedLen, meta = null) {
     if (!Array.isArray(delta)) return 'delta_not_array';
     if (prevLen + delta.length > MAX_ACTIONS) return 'max_actions';
     if (claimedLen !== prevLen + delta.length) return 'log_len';
@@ -247,6 +249,12 @@ export class RunCore {
       if (!Array.isArray(args) || args.length > MAX_PARAMS) return 'args';
       for (const v of args) {
         if (Array.isArray(v)) { if (!v.every(isCanonScalar)) return 'arg_val'; } else if (!isCanonScalar(v)) return 'arg_val';
+      }
+      if (a.fn === 'pick_anchor') {
+        // Anchors: normal runs only, from stage 2 (depth_stage null = not written, allowed), one integer in -1..2.
+        if (meta && meta.mode !== 'normal') return 'anchor_mode';
+        if (meta && meta.depth_stage != null && meta.depth_stage < 2) return 'anchor_stage';
+        if (args.length !== 1 || !Number.isInteger(args[0]) || args[0] < -1 || args[0] > 2) return 'anchor_args';
       }
     }
     return null;
@@ -320,7 +328,7 @@ export class RunCore {
     if ((m.kind === 'run_start') !== (seq === 0)) return fail(seq, 'out_of_order');
 
     const prevLen = last ? last.log_len : 0;
-    const bad = this._deltaProblem(delta, prevLen, m.log_len) || this._consumeProblem(last, delta);
+    const bad = this._deltaProblem(delta, prevLen, m.log_len, meta) || this._consumeProblem(last, delta);
     if (bad) { this._anomaly('delta_rejected', { seq, why: bad }); return fail(seq, 'rejected'); }
     const h = await this._verifyChain(meta, last, delta, m.h);
     if (!h) { this._anomaly('chain_mismatch', { seq }); return fail(seq, 'rejected'); }
@@ -476,7 +484,7 @@ export class RunCore {
     if (seq !== last.seq + 1) return fail(seq, 'out_of_order');
     if (m.outcome !== 'won' && m.outcome !== 'lost') return fail(seq, 'bad_request');
     const delta = m.log_delta ?? [];
-    const bad = this._deltaProblem(delta, last.log_len, m.log_len) || this._consumeProblem(last, delta);
+    const bad = this._deltaProblem(delta, last.log_len, m.log_len, meta) || this._consumeProblem(last, delta);
     if (bad) { this._anomaly('close_rejected', { why: bad }); return fail(seq, 'rejected'); }
     const h = await this._verifyChain(meta, last, delta, m.h);
     if (!h) { this._anomaly('close_chain_mismatch', {}); return fail(seq, 'rejected'); }

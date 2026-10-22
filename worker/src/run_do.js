@@ -15,7 +15,7 @@ import { settleEscrow } from './missions.js';
 // ActionLog.RULES_VERSION (godot/scripts/core/action_log.gd) here at every bump; test/rules_supported.test.mjs
 // fails if the client's current value is missing. The Worker only checks the hash chain, it never runs game
 // rules (run_core.js header), so accepting a version needs no Worker rule change.
-export const SUPPORTED_RULE_VERSIONS = ['godot-2026-09-21-a', 'godot-2026-10-13-j', 'godot-2026-10-13-k', 'godot-2026-10-13-l', 'godot-2026-10-13-m', 'godot-2026-10-13-n', 'godot-2026-10-20-o', 'godot-2026-10-22-p', 'godot-2026-10-23-q', 'godot-2026-10-23-r'];
+export const SUPPORTED_RULE_VERSIONS = ['godot-2026-09-21-a', 'godot-2026-10-13-j', 'godot-2026-10-13-k', 'godot-2026-10-13-l', 'godot-2026-10-13-m', 'godot-2026-10-13-n', 'godot-2026-10-20-o', 'godot-2026-10-22-p', 'godot-2026-10-23-q', 'godot-2026-10-23-r', 'godot-2026-10-25-s'];
 export const SUPPORTED_RULES = new Set(SUPPORTED_RULE_VERSIONS);
 
 const json = (body, status = 200) =>

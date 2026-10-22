@@ -21,10 +21,11 @@ var _no_match: Label
 var _current_tab := "basic"
 var _tab_buttons: Dictionary = {}   # key -> Button
 ## Lane GM (D1): the Core book and the Combo book. Tiles are built from MetaState.core_codex / combo_codex.
-const BOOK_TABS: Array = [["cores", "CORES"], ["combos", "COMBOS"]]
+const BOOK_TABS: Array = [["cores", "CORES"], ["combos", "COMBOS"], ["anchors", "ANCHORS"]]
 const BOOK_LEDE := {
 	"cores": "Every Core you have been offered. The ones you have not met yet stay a question mark.",
 	"combos": "Pairs and Fulls you have put together. Form one in a run to light its tile.",
+	"anchors": "Every Anchor you have been offered, taken, and awakened.",
 }
 var _book_grid: GridContainer
 
@@ -252,6 +253,20 @@ func _fill_book(key: String) -> void:
 				chips.append("Picked")
 			_book_grid.add_child(_tile("CoreTile_%s" % def.id, seen, UI3.title_case(UI3.player_text(String(def.name))),
 				tier + (" · " + ", ".join(chips) if not chips.is_empty() else "")))
+	elif key == "anchors":
+		for a in Anchors.enabled():
+			total += 1
+			var id := String((a as Dictionary).get("id", ""))
+			var e: Dictionary = MetaState.anchor_codex.get(id, {})
+			var seen := bool(e.get("seen", false))
+			seen_n += 1 if seen else 0
+			var chips: Array[String] = []
+			if bool(e.get("picked", false)):
+				chips.append("Picked")
+			if bool(e.get("awakened", false)):
+				chips.append("Awakened")
+			_book_grid.add_child(_tile("AnchorTile_%s" % id, seen, AnchorAdapter.name_of(id),
+				AnchorAdapter.house_name(AnchorAdapter.house_id(id)) + (" · " + ", ".join(chips) if not chips.is_empty() else "")))
 	else:
 		for c in ComboAdapter.all():
 			total += 1

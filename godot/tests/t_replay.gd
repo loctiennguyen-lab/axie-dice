@@ -41,6 +41,9 @@ const EXPECTED_TESTS: Array[String] = [
 	"test_the_referee_knows_every_action_the_log_can_hold",
 	"test_a_stashed_die_replays_and_a_tampered_stash_does_not",
 	"test_a_plating_charge_affix_elite_fight_replays_deterministically",
+	"test_an_anchor_fight_with_houses_and_awakening_replays",
+	"test_an_anchor_run_is_picked_in_the_log_and_replays",
+	"test_a_stage2_pick_of_mana_mine_is_refused",
 ]
 
 var _failures: Array[String] = []
@@ -63,6 +66,9 @@ func _ready() -> void:
 	test_the_referee_knows_every_action_the_log_can_hold()
 	test_a_stashed_die_replays_and_a_tampered_stash_does_not()
 	test_a_plating_charge_affix_elite_fight_replays_deterministically()
+	test_an_anchor_fight_with_houses_and_awakening_replays()
+	test_an_anchor_run_is_picked_in_the_log_and_replays()
+	test_a_stage2_pick_of_mana_mine_is_refused()
 
 	for test_name in EXPECTED_TESTS:
 		if not _completed.has(test_name):
@@ -328,6 +334,92 @@ func test_a_whole_run_is_rebuilt_from_its_log_by_the_referee() -> void:
 	_done("test_a_whole_run_is_rebuilt_from_its_log_by_the_referee")
 
 
+## Anchor (production/anchor-2b-brief.md): a whole fight played with each Anchor, awakened, every house mutation on tier 2, then rebuilt from
+## the seed + decisions alone. Same end state down to the RNG cursor, and the tally dictionaries match. The RunVerifier itself only replays
+## ranked online runs and refuses a record that names an Anchor (offline-only), so the Anchor rules are held by this combat replay.
+func test_an_anchor_fight_with_houses_and_awakening_replays() -> void:
+	var tiers := {}
+	for h in Anchors.houses():
+		tiers[String(h["id"])] = 2
+	for aid in ["a_volley", "a_gambler", "a_mana_mine"]:
+		_setup_extra = {"anchor_id": aid, "anchor_awakened": true, "house_tiers": tiers, "depth_stage": 3}
+		var log := ActionLog.new()
+		log.begin(COMBAT_SEED, ["plant1", "beast1", "aqua1", "reptile1", "bug1"], "short", 0, "test")
+		var played := _play_recorded(log)
+		_assert(log.size() > 0 and log.is_complete(), "%s: the Anchor fight recorded a complete log" % aid)
+		_assert(bool(played["finished"]), "%s: the Anchor fight finished" % aid)
+		var replay := _replay(log)
+		_assert(bool(replay["ok"]), "%s: %s" % [aid, str(replay.get("why", ""))])
+		_assert(_digest(replay["snapshot"]) == _digest(played["snapshot"]),
+			"%s: ANCHOR REPLAY DIVERGED\n  played: %s\n  replayed: %s" % [aid, _brief(played["snapshot"]), _brief(replay["snapshot"])])
+		_assert(int((replay["snapshot"] as Dictionary).get("rng_state", -1)) == int((played["snapshot"] as Dictionary).get("rng_state", -2)),
+			"%s: Anchor replay ended on a different RNG cursor" % aid)
+		var fired: Dictionary = (played["snapshot"] as Dictionary).get("anchor_fight", {}).get("fired", {})
+		print("  %s: %d decisions, replay identical, mutations fired %s" % [aid, log.size(), str(fired)])
+	_setup_extra = {}
+	_done("test_an_anchor_fight_with_houses_and_awakening_replays")
+
+
+## Anchor online (Liam 22/10): a normal unranked run with the Anchor opt-in logs pick_anchor, and the referee (allow_unranked) rebuilds the
+## same run from seed + tape + log. Ranked + Anchor, and every malformed pick, are refused.
+func test_an_anchor_run_is_picked_in_the_log_and_replays() -> void:
+	RunBot.anchor_pick_index = 1
+	var played := RunBot.play_run(RUN_SEED, TEAM, "short", 0, {"anchor": true, "loadout": {"rules_on": false}})
+	RunBot.anchor_pick_index = -2
+	var log: ActionLog = played["log"]
+	var picks := 0
+	for e in log.entries:
+		if String((e as Dictionary).get("fn", "")) == "pick_anchor":
+			picks += 1
+	_assert(picks == 1, "exactly one pick_anchor was logged")
+	_assert(String((played["state"] as Dictionary).get("anchor", {}).get("id", "")) != "", "the run owns an Anchor")
+	_assert(bool((log.header.get("loadout", {}) as Dictionary).get("anchor", false)), "header.loadout.anchor is set")
+	_assert(log.is_complete(), "the Anchor run's log is complete")
+	var verdict := RunVerifier.verify(log, played["tape"], {}, true)
+	_assert(bool(verdict["ok"]), "referee refused an honest Anchor run: %s — %s (action %s)" % [str(verdict["error"]), str(verdict["message"]), str(verdict["action_index"])])
+	if bool(verdict["ok"]):
+		_assert(_run_digest(verdict["state"]) == _run_digest(played["state"]),
+			"ANCHOR RUN DIVERGED\n  played:  %s\n  rebuilt: %s" % [_run_brief(played["state"]), _run_brief(verdict["state"])])
+	# Without allow_unranked the server path still refuses an unranked record.
+	_assert(String(RunVerifier.verify(log, played["tape"])["error"]) == RunVerifier.ERR_NOT_RANKED, "unranked is refused unless allowed")
+	# Tampers: out-of-range index, a second pick, ranked header carrying an Anchor.
+	var bad := _clone(log)
+	bad.entries[0] = {"fn": "pick_anchor", "args": [3]}
+	_assert(not bool(RunVerifier.verify(bad, played["tape"], {}, true)["ok"]), "index 3 refused")
+	var twice := _clone(log)
+	twice.entries.insert(1, {"fn": "pick_anchor", "args": [1]})
+	_assert(not bool(RunVerifier.verify(twice, played["tape"], {}, true)["ok"]), "a second pick refused")
+	var late := _clone(log)
+	late.entries.remove_at(0)
+	late.entries.insert(late.entries.size() - 1, {"fn": "pick_anchor", "args": [1]})
+	_assert(not bool(RunVerifier.verify(late, played["tape"], {}, true)["ok"]), "a pick after the first Core offer refused")
+	var ranked := _clone(log)
+	ranked.header["ranked"] = true
+	var rv := RunVerifier.verify(ranked, played["tape"])
+	_assert(not bool(rv["ok"]) and String(rv["error"]) == RunVerifier.ERR_ANCHOR_RANKED, "ranked + pick_anchor -> anchor_ranked (got %s)" % str(rv["error"]))
+	_done("test_an_anchor_run_is_picked_in_the_log_and_replays")
+
+
+## Stage 2 run (Anchor open, Mana Mine locked until stage 3): a log whose pick_anchor points at Mana Mine is refused by the referee.
+func test_a_stage2_pick_of_mana_mine_is_refused() -> void:
+	RunBot.anchor_pick_index = 0
+	var played := RunBot.play_run(RUN_SEED, TEAM, "short", 0, {"anchor": true, "depth_stage": 2, "loadout": {"rules_on": false}})
+	RunBot.anchor_pick_index = -2
+	var log: ActionLog = played["log"]
+	var offer: Array = (played["state"] as Dictionary).get("anchor", {}).get("offer", [])
+	var honest := RunVerifier.verify(log, played["tape"], {}, true)
+	_assert(bool(honest["ok"]), "honest stage-2 Anchor run accepted: %s %s" % [str(honest["error"]), str(honest["message"])])
+	var mi := offer.find("a_mana_mine")
+	_assert(mi >= 0, "Mana Mine is in the stage-2 offer (offer %s)" % str(offer))
+	var bad := _clone(log)
+	for i in bad.entries.size():
+		if String((bad.entries[i] as Dictionary).get("fn", "")) == "pick_anchor":
+			bad.entries[i] = {"fn": "pick_anchor", "args": [mi]}
+	var v := RunVerifier.verify(bad, played["tape"], {}, true)
+	_assert(not bool(v["ok"]) and String(v["error"]) == RunVerifier.ERR_REJECTED, "Mana Mine at stage 2 -> action_rejected (got %s)" % str(v["error"]))
+	_done("test_a_stage2_pick_of_mana_mine_is_refused")
+
+
 ## An action the log can record but the referee cannot replay is a run that can never be
 ## scored — and the player would never find out why. The live JS build has exactly this bug
 ## today: `client.html:4624` lists ten logged verbs in a comment that calls itself "kept in sync
@@ -504,6 +596,8 @@ func _sample_args(fn: String) -> Array:
 			return [0, 1]
 		"aid_use":
 			return ["delay_clock", 2]
+		"pick_anchor":
+			return [0]
 	return []
 
 
@@ -579,9 +673,13 @@ func _play_recorded_run(seed_value: int) -> Dictionary:
 	return RunBot.play_run(seed_value, TEAM)
 
 
+## Extra combat_setup keys for _fresh_engine (the Anchor test sets anchor_id / anchor_awakened / house_tiers here).
+var _setup_extra: Dictionary = {}
+
+
 func _fresh_engine() -> CombatEngine:
 	var engine := CombatEngine.new()
-	engine.setup_new({
+	var setup := {
 		"node_id": "replay_node",
 		"kind": "battle",
 		"pw": 2,
@@ -589,7 +687,9 @@ func _fresh_engine() -> CombatEngine:
 		"roster_snapshot": _synthetic_roster(),
 		"relic_ids": [],
 		"combat_seed": COMBAT_SEED,
-	})
+	}
+	setup.merge(_setup_extra, true)
+	engine.setup_new(setup)
 	return engine
 
 

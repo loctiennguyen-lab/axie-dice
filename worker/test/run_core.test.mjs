@@ -446,6 +446,33 @@ test('C1: a pact_pick delta (take, take+sell, skip) is accepted', async () => {
   assert.equal(r.t, 'epoch_res');
 });
 
+test('Anchor online: pick_anchor is accepted on a normal stage-3 run, refused on ranked / stage 1 / bad args', async () => {
+  const ok = await fresh({}, { charge: async () => true });
+  await ok.c.hello();
+  await start(ok.c);
+  assert.equal((await ok.c.epoch('node', { node_id: 'r1_c0' }, [A('pick_anchor', [2])])).t, 'epoch_res');
+  assert.equal((await ok.c.epoch('end_turn', { turn: 1, attempt: 0 }, [A('enter_node', ['r1_c0', 'battle'])])).t, 'epoch_res', 'pick_anchor spends no epoch: the node epoch still consumes enter_node');
+  for (const args of [[3], [-2], [], [0, 1], ['1']]) {
+    const f = await fresh({});
+    await f.c.hello();
+    await start(f.c);
+    const m = await f.c.build('node', { node_id: 'r1_c0' }, [A('pick_anchor', args)]);
+    assert.equal((await f.c.send(m)).code, 'rejected', 'args ' + JSON.stringify(args));
+  }
+  const dec = await fresh({});
+  await dec.c.hello();
+  await start(dec.c);
+  assert.equal((await dec.c.send(await dec.c.build('node', { node_id: 'r1_c0' }, [A('pick_anchor', [-1])]))).t, 'epoch_res', 'decline is fine');
+  const rk = await fresh({ mode: 'ranked' });
+  await rk.c.hello();
+  await start(rk.c);
+  assert.equal((await rk.c.send(await rk.c.build('node', { node_id: 'r1_c0' }, [A('pick_anchor', [0])]))).code, 'rejected', 'ranked');
+  const lo = await fresh({ depth_stage: 1 });
+  await lo.c.hello();
+  await lo.c.epoch('run_start', { mode: 'short', ascension: 0 }, [], { client_nonce: NONCE, depth_stage: 1 });
+  assert.equal((await lo.c.send(await lo.c.build('node', { node_id: 'r1_c0' }, [A('pick_anchor', [0])], { depth_stage: 1 }))).code, 'rejected', 'stage 1');
+});
+
 test('money moves last: any rejection leaves the wallet alone; a different Aid at the same seq has its own idem key', async () => {
   const charges = [];
   const { c } = await fresh({}, { charge: async (idem, aid) => { charges.push([idem, aid]); return aid !== 'R2'; } });

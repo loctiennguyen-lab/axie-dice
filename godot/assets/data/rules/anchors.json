@@ -1,0 +1,123 @@
+[
+ {
+  "id": "a_volley",
+  "enabled": true,
+  "name_en": "Volley",
+  "name_vi": "Tam Tấu",
+  "rule_en": "Every turn a SET of 3+ fires once: all enemies take 40/65/90% of the SET's base total (max 20).",
+  "cost_en": "",
+  "house_id": "h_volley",
+  "house_cores": [
+   "c_sonic_shield",
+   "c_thorn_shield",
+   "c_living_wall",
+   "c_backline_glow",
+   "c_descend"
+  ],
+  "awaken": {
+   "name_en": "Thorn Storm",
+   "rule_en": "The SET fires a second time when you use its last die, and the blast pierces enemy Shield."
+  }
+ },
+ {
+  "id": "a_gambler",
+  "enabled": true,
+  "name_en": "Gambler",
+  "name_vi": "Con Bạc",
+  "rule_en": "A clean Gamble (2+ dice, none Cracked): every SET this turn +0.35 (max +0.60). Gamble Crack chance 15% (normally 30%).",
+  "cost_en": "",
+  "house_id": "h_gambler",
+  "house_cores": [
+   "c_elder_trunk",
+   "c_thorn_shield",
+   "c_hollow_core",
+   "c_mana_ward",
+   "c_thorn_pact"
+  ],
+  "awaken": {
+   "name_en": "Second Wind",
+   "rule_en": "Once per turn, when a Gamble Cracks, the Cracked dice are rerolled at once for free."
+  }
+ },
+ {
+  "id": "a_mana_mine",
+  "enabled": true,
+  "min_stage": 3,
+  "name_en": "Mana Mine",
+  "name_vi": "Mỏ Mana",
+  "rule_en": "When the first roll of a turn makes a SET: +1 mana. Overcast costs only 1.",
+  "cost_en": "",
+  "house_id": "h_mana_mine",
+  "house_cores": [
+   "c_mana_pool",
+   "c_deep_current",
+   "c_tidecaller",
+   "c_overflow",
+   "c_dewdrop"
+  ],
+  "awaken": {
+   "name_en": "Double Beat",
+   "rule_en": "Overcast can be used twice per turn (the second costs 2 mana)."
+  }
+ },
+ {
+  "id": "a_kin",
+  "enabled": false,
+  "name_en": "Kin",
+  "name_vi": "Đồng Tộc",
+  "rule_en": "A SET with 3+ dice of the same class +0.40; a SET without that -0.25.",
+  "cost_en": "A SET that misses the class condition -0.25.",
+  "house_id": "h_kin",
+  "house_cores": [
+   "c_nest",
+   "c_golden_egg",
+   "c_living_wall",
+   "c_early_scales",
+   "c_squad_up"
+  ],
+  "awaken": {
+   "name_en": "Unison",
+   "rule_en": "First turn of each fight, Axies of the same class roll the same part (up to a SET of four)."
+  }
+ },
+ {
+  "id": "a_embers",
+  "enabled": false,
+  "name_en": "Embers",
+  "name_vi": "Giữ Lửa",
+  "rule_en": "You may Hold 2 dice; a Held die used next turn gets +0.50.",
+  "cost_en": "Only Held dice carry over.",
+  "house_id": "h_embers",
+  "house_cores": [
+   "c_three_dice",
+   "c_overflow",
+   "c_finisher",
+   "c_chimera_hunt",
+   "c_kindle"
+  ],
+  "awaken": {
+   "name_en": "Passed Flame",
+   "rule_en": "Once per turn a carried Held die joins any SET as a Temp Face, free of mana (up to a SET of four)."
+  }
+ },
+ {
+  "id": "a_big_hand",
+  "enabled": false,
+  "name_en": "Big Hand",
+  "name_vi": "Bàn Tay Lớn",
+  "rule_en": "A SET of three gives no bonus; a SET of four or five gets +0.40.",
+  "cost_en": "A SET of three loses its bonus.",
+  "house_id": "h_big_hand",
+  "house_cores": [
+   "c_collector",
+   "c_sixth_die",
+   "c_cascade",
+   "c_prism",
+   "c_finisher"
+  ],
+  "awaken": {
+   "name_en": "Sixth Hand",
+   "rule_en": "Each turn with a SET of four or more, roll one bonus die to use this turn (it does not join the SET)."
+  }
+ }
+]

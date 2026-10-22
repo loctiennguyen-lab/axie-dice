@@ -33,6 +33,7 @@ func _ready() -> void:
 	for id in V4Coach.ORDER:
 		_check(V4Coach.text_for(id) != "" and not V4Coach.text_for(id).contains("\n"), "one sentence for %s" % id)
 	for stage in [1, 2, 3]:
+		V4Coach.reset_for_tests()   # each stage gets a fresh bubble; otherwise stage 3 depends on which C-ids the roll still allows
 		RunState.start_new_run(424242, ["plant1", "beast1", "aqua1", "reptile1", "bug1"] as Array[String], "short", 6, false)
 		await get_tree().process_frame
 		RunState.enter_node("r1_c0", "battle")

@@ -160,6 +160,12 @@ var depth_stage: int = 3
 ## Depth v3 Core run state (lane B). Saved in to_data/from_data.
 var core_first_extra: bool = false
 var core_tier_chain: Array[int] = []      ## tier of each Core pick, drawn once at new_run (TIER_SALT)
+## Anchor (lane AE 2a, design/proposals/mutation-and-keystones-v1.md; production/anchor-contract.md).
+var anchor_id: String = ""                 ## chosen Anchor ("" = none); locked for the run
+var anchor_awakened: bool = false          ## latched the first time >= 2 house Cores are owned; never turns off
+var anchor_offer: Array = []               ## the 3 offered ids (kept after the pick so a resume shows the same cards)
+var anchor_wanted: bool = false            ## opt-in: params.anchor == true (the UI sets it; default off keeps old flows untouched)
+var _anchor_waiting: bool = false          ## pick 1 is held back until pick_anchor() / decline_anchor()
 var core_pick_index: int = 0              ## Core offers opened so far (the next one is index core_pick_index)
 var core_seen: Array[String] = []         ## every Core id shown this run, rerolled-out ones included
 var core_reroll_left: int = 0             ## whole-run Core rerolls (one card each)
@@ -182,6 +188,9 @@ var _core_offer_active: bool = false      ## pending_rewards is a Core offer
 var _rule_offer_active: bool = false      ## pending_rewards is the Run Rule offer
 var core_bonus_queue: Array[int] = []      ## tiers of quest-step reward offers waiting to open (not counted as picks)
 var core_bonus_count: int = 0
+var core_extra_tiers: Array[int] = []      ## [elite, mid] tiers of the 2 extra Core picks (Short), drawn at new_run
+var core_extra_elite_done: int = 0         ## Elite wins that already gave an extra pick
+var core_extra_mid_done: bool = false
 var _core_close_pending: bool = false     ## a Core pick was just taken; the next after_node() only returns to MAP
 ## Counters that scope a Boon to "your first 3 fights", "first Boss", "first Battle reward".
 var _rewarding_kind: String = ""
@@ -289,6 +298,11 @@ func reset() -> void:
 	last_run_xp = 0
 	daily_mission_granted = false
 	run_kind = "normal"
+	anchor_id = ""
+	anchor_awakened = false
+	anchor_offer = []
+	anchor_wanted = false
+	_anchor_waiting = false
 	daily_run_reward_granted = false
 	pending_rewards = []
 	pending_combat = {}
@@ -328,6 +342,9 @@ func reset() -> void:
 	_core_close_pending = false
 	core_bonus_queue = []
 	core_bonus_count = 0
+	core_extra_tiers = []
+	core_extra_elite_done = 0
+	core_extra_mid_done = false
 	fights_started = 0
 	bosses_started = 0
 	first_battle_rewarded = false
@@ -534,6 +551,13 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 	loadout["bonuses"] = meta_bonus.duplicate(true)
 	loadout["boon_id"] = boon_id
 	loadout["rules_on"] = bool(loadout.get("rules_on", params.get("rules_on", MetaState.runs > 0)))
+	# Anchor opt-in rides in the header loadout so a replay holds back pick 1 exactly like the live run did. Only a normal
+	# unranked run can carry it (the gate shuts every other kind), and the key is absent otherwise so old headers stay byte-identical.
+	var want_anchor := bool(params.get("anchor", false)) or bool(loadout.get("anchor", false))
+	if want_anchor and not ranked and p_kind == "normal":
+		loadout["anchor"] = true
+	else:
+		loadout.erase("anchor")
 	if ranked:
 		# Ranked never skips the Run Rule (no first-run exemption), and core_off is a test/tool switch only: the
 		# verifier refuses a ranked log that claims otherwise (depth-v3-contract, lane B review).
@@ -551,7 +575,9 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 	core_off = bool(loadout.get("core_off", false))
 	rules_on = bool(loadout.get("rules_on", params.get("rules_on", MetaState.runs > 0)))
 	core_tier_chain = CoreOffer.draw_tier_chain(p_seed, p_mode)
+	core_extra_tiers = CoreOffer.draw_extra_tiers(p_seed, p_mode)
 	core_reroll_left = RelicSlots.tuning().core_reroll_max
+	anchor_wanted = want_anchor
 	if core_off:
 		set_phase(RunPhase.MAP)
 	else:
@@ -893,6 +919,9 @@ func enter_node(node_id: String, node_kind: String, seed: int = -1) -> void:
 				"start_mana": int(boon_n.get("start_mana", 0)),
 				"first_dmg_face_bonus": int(boon_n.get("first_dmg_face_bonus", 0)),
 				"start_eggs": int(boon_n.get("start_eggs", 0)),
+				"anchor_id": anchor_id,
+				"anchor_awakened": anchor_awakened,
+				"house_tiers": house_tiers_now(),
 				"run_mods": run_mods.duplicate(),
 				"relic_state": relic_state.duplicate(true),
 				# Compatibility: lets CombatEngine ask for end_turn/reroll seeds itself until the UI
@@ -933,6 +962,8 @@ func enter_node(node_id: String, node_kind: String, seed: int = -1) -> void:
 func after_node() -> void:
 	if phase == RunPhase.WON or phase == RunPhase.LOST:
 		return
+	if _anchor_waiting:
+		return   # the Anchor pick is still open: no node was finished, power_level / visited must not move
 	if _core_close_pending:   # the Core pick that followed this node was just taken: nothing else to count
 		_core_close_pending = false
 		if _open_bonus_offer():
@@ -944,6 +975,7 @@ func after_node() -> void:
 	power_level += 1
 	if not visited_node_ids.has(current_node_id):
 		visited_node_ids.append(current_node_id)
+	_note_extra_mid()
 	if _core_trigger_hit(current_node_id) and _open_core_offer():
 		return
 	if _open_bonus_offer():
@@ -971,6 +1003,8 @@ func apply_combat_result(res: Dictionary, reward_seed: int = -1) -> void:
 		_crow_judge(res, kind)
 		if kind == "elite" or kind == "boss":
 			note_quest_event(kind)
+		if kind == "elite":
+			_note_extra_elite()
 		if kind == "boss" and _is_final_boss_row(current_node_id):
 			# src/engine.js finishCombat() (engine.js:997): `if(k==='boss'&&s.step>=s.len){
 			# s.phase='won'; return; }` — defeating the FINAL boss ends the run immediately,
@@ -1678,6 +1712,7 @@ func _grant_relic(relic_id: String, source: String) -> void:
 	RelicHooks.run_fire(owned_relic_ids, "on_relic_acquired", {"relic_id": relic_id, "source": source})   # H8
 	if RelicSlots.is_core(gdef):
 		_note_combo_grant()
+		_note_anchor_awaken()
 
 
 ## Takes a relic respecting the slot rules (RelicSlots.check_add). When every slot of its kind is
@@ -1860,8 +1895,11 @@ func to_data() -> Dictionary:
 			"rules_on": rules_on, "base_seed": _core_base_seed, "offer_active": _core_offer_active, "offer_pick": _core_offer_pick, "core_off": core_off,
 			"rule_offer_active": _rule_offer_active, "close_pending": _core_close_pending,
 			"bonus_queue": core_bonus_queue.duplicate(), "bonus_count": core_bonus_count,
+			"extra_tiers": core_extra_tiers.duplicate(), "extra_elite_done": core_extra_elite_done, "extra_mid_done": core_extra_mid_done,
 			"combo_done": combo_done.duplicate(), "skipped_t": core_skipped_t.duplicate(), "quest_done": core_quest_done.duplicate(),
 			"combo_rerolls": combo_rerolls_gained},
+		"anchor": {"id": anchor_id, "awakened": anchor_awakened, "offer": anchor_offer.duplicate(),
+			"wanted": anchor_wanted, "waiting": _anchor_waiting},
 	}
 
 
@@ -1870,6 +1908,12 @@ func from_data(d: Dictionary) -> void:
 	run_seed = int(d.get("run_seed", 0))
 	ranked = bool(d.get("ranked", false))
 	run_kind = String(d.get("kind", "ranked" if ranked else "normal"))
+	var an: Dictionary = d.get("anchor", {}) as Dictionary
+	anchor_id = String(an.get("id", ""))
+	anchor_awakened = bool(an.get("awakened", false))
+	anchor_offer = (an.get("offer", []) as Array).duplicate()
+	anchor_wanted = bool(an.get("wanted", false))
+	_anchor_waiting = bool(an.get("waiting", false))
 	mode = String(d.get("mode", "short"))
 	ascension = int(d.get("ascension", 0))
 
@@ -2154,7 +2198,8 @@ func _core_ctx(pick: int = -1) -> Dictionary:
 		"first_run": not rules_on, "pick_index": core_pick_index if pick < 0 else pick, "front_size": 2,
 		"ascension": ascension, "tier_chain": core_tier_chain,
 		# a bonus (quest/event/shop) offer is opened with _core_offer_pick == core_pick_index; milestone offers use index-1
-		"bonus": pick >= 0 and pick == core_pick_index}
+		"bonus": pick >= 0 and pick == core_pick_index,
+		"anchor_house": ((Anchors.get_def(anchor_id).get("house_cores", []) as Array) if anchor_id != "" else [])}
 
 
 ## Knob from the held Run Rule's rule_knobs, else `default`.
@@ -2186,6 +2231,9 @@ func _core_from_data(c: Dictionary) -> void:
 	_core_close_pending = bool(c.get("close_pending", false))
 	core_bonus_queue.assign((c.get("bonus_queue", []) as Array).map(func(v): return int(v)))
 	core_bonus_count = int(c.get("bonus_count", 0))
+	core_extra_tiers.assign((c.get("extra_tiers", []) as Array).map(func(v): return int(v)))
+	core_extra_elite_done = int(c.get("extra_elite_done", 0))
+	core_extra_mid_done = bool(c.get("extra_mid_done", false))
 	combo_done = (c.get("combo_done", {}) as Dictionary).duplicate()
 	core_skipped_t.assign(c.get("skipped_t", []))
 	core_quest_done.assign(c.get("quest_done", []))
@@ -2212,6 +2260,13 @@ func _open_opening_offers() -> void:
 func _open_core_offer() -> bool:
 	if core_off or core_pick_index >= CoreOffer.picks_total(mode):
 		return false
+	if core_pick_index == 0 and not _anchor_waiting and anchor_id == "" and anchor_offer.is_empty() and anchor_offer_open():
+		# QA #11: the Anchor is chosen (and saved) BEFORE the first Core offer exists. REWARD with no cards = "pick an Anchor".
+		_anchor_waiting = true
+		pending_rewards = []
+		reward_reroll_charges = 0
+		set_phase(RunPhase.REWARD)
+		return true
 	var t := RelicSlots.tuning()
 	if (rule_knob("core_skip_picks", []) as Array).has(core_pick_index):
 		# Run Rule knob (R6): this pick is dropped. Its tier chain slot and trigger are used up, the next pick keeps its own.
@@ -2434,6 +2489,25 @@ func _queue_core_pick(tier: int) -> bool:
 	return true
 
 
+## Extra Core pick after a won Elite (Short, knob core.extra_elite_max). Skipped when this node already opens a milestone pick.
+func _note_extra_elite() -> void:
+	if core_off or core_extra_tiers.size() < 2 or core_extra_elite_done >= RelicSlots.tuning().core_extra_elite_max:
+		return
+	if _core_trigger_hit(current_node_id):
+		return
+	core_extra_elite_done += 1
+	_queue_core_pick(core_extra_tiers[0])
+
+
+## Extra Core pick after the `core_extra_pick_nodes`-th finished node (Short, knob core.extra_pick_nodes).
+func _note_extra_mid() -> void:
+	var n := RelicSlots.tuning().core_extra_pick_nodes
+	if core_off or core_extra_tiers.size() < 2 or core_extra_mid_done or n <= 0 or visited_node_ids.size() < n:
+		return
+	core_extra_mid_done = true
+	_queue_core_pick(core_extra_tiers[1])
+
+
 func _open_bonus_offer() -> bool:
 	if core_off or core_bonus_queue.is_empty():
 		return false
@@ -2458,6 +2532,120 @@ func _open_bonus_offer() -> bool:
 	return true
 
 
+## Why Anchors are not available in this run ("" = available). One gate (QA #3): not ranked, kind normal, stage >= 3, Core flow on.
+## Online normal runs are allowed since 22/10 (the pick is an action in the log); `depth_stage` is the one the server wrote into the run_start header.
+func anchor_gate_reason() -> String:
+	if not anchor_wanted:
+		return "off"
+	if ranked or run_kind == "ranked":
+		return "ranked"
+	if run_kind != "normal":
+		return "kind"
+	if depth_stage < 2:   # Liam 22/10: Anchors from stage 2 (was 3)
+		return "stage"
+	if core_off:
+		return "core_off"
+	return ""
+
+
+## G6: "" when `id` can be picked under the current Run Rule, else why not. Counts the house Cores that could still be offered.
+func anchor_disabled_reason(id: String) -> String:
+	var def := Anchors.get_def(id)
+	if def.is_empty() or not bool(def.get("enabled", false)):
+		return "unknown"
+	# Mana Mine's rule and its awakening are about Overcast, which unlocks at stage 3 (Anchors open at stage 2).
+	if depth_stage < int(def.get("min_stage", 2)):
+		return "stage_locked"
+	var ctx := {"owned_ids": [run_rule] if run_rule != "" else [], "roster": roster, "seen": [], "mode": mode,
+		"first_run": not rules_on, "pick_index": 1, "front_size": 2, "ascension": ascension, "tier_chain": core_tier_chain}
+	var ok := 0
+	for cid in (def.get("house_cores", []) as Array):
+		if CoreOffer.is_valid(RelicRegistry.get_def(String(cid)), ctx):
+			ok += 1
+	return "" if ok >= Anchors.AWAKEN_NEED else "rule_too_few_house_cores"
+
+
+## True while the run is waiting for an Anchor pick. Builds `anchor_offer` (3 ids, Rng(base_seed ^ ANCHOR_SALT)) the first time
+## the gate is open; false when the gate is shut, an Anchor is chosen, or no offered Anchor can be picked under the Run Rule.
+func anchor_offer_open() -> bool:
+	if anchor_id != "" or anchor_gate_reason() != "":
+		return false
+	if anchor_offer.is_empty():
+		var ids: Array = []
+		for a in Anchors.enabled():
+			ids.append(String(a["id"]))
+		anchor_offer = Anchors.offer_three(Rng.new(_core_base_seed ^ CoreOffer.ANCHOR_SALT), ids)
+	for id in anchor_offer:
+		if anchor_disabled_reason(String(id)) == "":
+			return true
+	return false
+
+
+## Locks the Anchor, opens the first Core offer, then writes the save. False when refused.
+func pick_anchor(id: String) -> bool:
+	return _pick_anchor(id, true)
+
+
+## The player passes on Anchors this run and the save is written at once. Nothing is locked; pick 1 opens as usual.
+func decline_anchor() -> bool:
+	return _decline_anchor(true)
+
+
+## `persist` = false on replay (verifier, bots): replaying a log must never overwrite the real run save.
+func _pick_anchor(id: String, persist: bool) -> bool:
+	if anchor_id != "" or not anchor_offer_open() or not anchor_offer.has(id) or anchor_disabled_reason(id) != "":
+		return false
+	# Logged as the INDEX into the offer (the verifier rebuilds the offer from the seed), before anything the pick opens.
+	action_log.record("pick_anchor", [anchor_offer.find(id)])
+	anchor_id = id
+	_anchor_waiting = false
+	EventBus.anchor_chosen.emit(id)
+	_resume_after_anchor()
+	# Saved after the first Core offer is open: a save between the two would reload into an empty reward screen.
+	# The offer is drawn from the run seed, so saving after it does not let a reload re-roll anything.
+	if persist:
+		save_run()
+	return true
+
+
+func _decline_anchor(persist: bool) -> bool:
+	if not _anchor_waiting:
+		return false
+	action_log.record("pick_anchor", [-1])
+	_anchor_waiting = false
+	anchor_offer = ["-"]   # non-empty so _open_core_offer does not ask again
+	_resume_after_anchor()
+	if persist:
+		save_run()
+	return true
+
+
+## Replay entry for a logged `pick_anchor` ([index] / [-1]): the very same logic the player used. False when the run could not have made it.
+func replay_pick_anchor(index: int) -> bool:
+	if not _anchor_waiting or index < -1 or index > 2:
+		return false
+	if index == -1:
+		return _decline_anchor(false)
+	if index >= anchor_offer.size():
+		return false
+	return _pick_anchor(String(anchor_offer[index]), false)
+
+
+func _resume_after_anchor() -> void:
+	if core_pick_index == 0 and _core_offer_pick <= 0 and not _core_offer_active:
+		if not _open_core_offer():
+			set_phase(RunPhase.MAP)
+
+
+## Latches anchor_awakened the first time >= 2 house Cores are owned (finished quest Cores count). Never cleared (QA #1-#2).
+func _note_anchor_awaken() -> void:
+	if anchor_id == "" or anchor_awakened:
+		return
+	if Anchors.is_awakened(combo_owned_ids(), anchor_id):
+		anchor_awakened = true
+		EventBus.anchor_awakened.emit(anchor_id)
+
+
 ## Owned Core/rule ids PLUS finished quest Cores: what CoreCombos reads (gacha pack, a finished quest Core still counts).
 func combo_owned_ids() -> Array:
 	var out: Array = owned_relic_ids.duplicate()
@@ -2472,6 +2660,7 @@ func combo_owned_ids() -> Array:
 ## Pair tier, so its first formation (Full) gives the reroll. Pure function of the grants, so replay reproduces it.
 func _note_combo_grant() -> void:
 	var st := CoreCombos.state(combo_owned_ids())
+	var tiers_before := _house_tiers_of(combo_done)
 	for cid in st.keys():
 		var tier := String(st[cid])
 		var had := String(combo_done.get(cid, ""))
@@ -2482,6 +2671,32 @@ func _note_combo_grant() -> void:
 			combo_rerolls_gained += 1
 			core_reroll_left += 1
 		EventBus.combo_formed.emit(String(cid), tier)
+	if anchor_id != "":
+		var tiers_after := _house_tiers_of(st)
+		for hid in tiers_after.keys():
+			if int(tiers_after[hid]) != int(tiers_before.get(hid, 0)):
+				EventBus.mutation_on.emit(String(hid), int(tiers_after[hid]))
+
+
+## Mutation tier per house (0 none, 1, 2) from a combo-state dict (combo id -> "pair"|"full"). Pure.
+func _house_tiers_of(combo_state: Dictionary) -> Dictionary:
+	var out := {}
+	for h in Anchors.houses():
+		var hid := String(h["id"])
+		out[hid] = Anchors.mutation_tier([], hid, combo_state)
+	return out
+
+
+## What the combat gets: {house_id: tier} for tiers > 0, only with an Anchor (without one: {} and every mutation hook is skipped).
+func house_tiers_now() -> Dictionary:
+	var out := {}
+	if anchor_id == "":
+		return out
+	var t := _house_tiers_of(CoreCombos.state(combo_owned_ids()))
+	for hid in t.keys():
+		if int(t[hid]) > 0:
+			out[hid] = int(t[hid])
+	return out
 
 
 func _on_combo_turn_phase(_old: int, new_phase: int) -> void:

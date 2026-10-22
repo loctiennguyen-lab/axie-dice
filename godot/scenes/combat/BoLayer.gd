@@ -15,10 +15,18 @@ var _banner_tween: Tween = null
 var label_lift := 0.0                   # raised while the REROLL chips sit above the cards
 var cards_provider: Callable = Callable()   # () -> uid -> Rect2 in this layer's space; polled so frames follow a tray that moves
 var _last_bo: Array = []
+## group dict -> real M in percent (engine m100_for: Anchor/Embers/Overcast adds included). Unset = raw snapshot m100.
+var m100_provider := Callable()
 var _last_cards: Dictionary = {}
 var last_banner: String = ""            # test hook
 var _seen: Dictionary = {}              # part -> best size already announced this fight/turn
 var _banner_key := Vector3i(-1, 0, 0)   # (part, size, m100) the visible banner announces
+
+
+func _m100(g: Dictionary) -> int:
+	if m100_provider.is_valid():
+		return int(m100_provider.call(g))
+	return int(g["m100"])
 
 
 func _init() -> void:
@@ -46,8 +54,9 @@ func refresh(bo: Array, cards: Dictionary) -> void:
 		if first:
 			continue
 		var sz := int(g["size"])
-		_groups.append({"rect": r.grow(6.0), "label": V4Ui.set_label(sz, int(g["m100"])),
-			"size": sz, "part": int(g["part"]), "m100": int(g["m100"])})
+		var m := _m100(g)
+		_groups.append({"rect": r.grow(6.0), "label": V4Ui.set_label(sz, m),
+			"size": sz, "part": int(g["part"]), "m100": m})
 	while _labels.size() < _groups.size():
 		var l := UI3.label("", "LabelDisplay")
 		l.add_theme_font_size_override("font_size", 24)
@@ -91,7 +100,7 @@ func _drop_stale_banner(bo: Array) -> void:
 	if _banner == null or not _banner.visible:
 		return
 	for g in bo:
-		if Vector3i(int(g["part"]), int(g["size"]), int(g["m100"])) == _banner_key:
+		if Vector3i(int(g["part"]), int(g["size"]), _m100(g)) == _banner_key:
 			return
 	_banner.visible = false
 	last_banner = ""
@@ -121,8 +130,8 @@ func announce(bo: Array, tray_top: float) -> void:
 		live[int(g["part"])] = int(g["size"])
 		var sz := int(g["size"])
 		if V4Ui.has_banner(sz) and sz > int(_seen.get(int(g["part"]), 0)):
-			_show_banner(V4Ui.banner_text(int(g["part"]), sz, int(g["m100"])), sz, tray_top,
-				Vector3i(int(g["part"]), sz, int(g["m100"])))
+			_show_banner(V4Ui.banner_text(int(g["part"]), sz, _m100(g)), sz, tray_top,
+				Vector3i(int(g["part"]), sz, _m100(g)))
 	_seen = live
 
 
