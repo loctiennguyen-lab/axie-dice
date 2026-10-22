@@ -42,6 +42,7 @@
  {
   "id": "a_mana_mine",
   "enabled": true,
+  "min_stage": 3,
   "name_en": "Mana Mine",
   "name_vi": "Mỏ Mana",
   "rule_en": "On a turn-one natural SET: +1 mana, and Overcast costs only 1.",
