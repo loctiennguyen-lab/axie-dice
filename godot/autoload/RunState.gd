@@ -2545,25 +2545,37 @@ func anchor_offer_open() -> bool:
 
 ## Locks the Anchor and writes the save at once (before the first Core offer exists). False when refused.
 func pick_anchor(id: String) -> bool:
+	return _pick_anchor(id, true)
+
+
+## The player passes on Anchors this run and the save is written at once. Nothing is locked; pick 1 opens as usual.
+func decline_anchor() -> bool:
+	return _decline_anchor(true)
+
+
+## `persist` = false on replay (verifier, bots): replaying a log must never overwrite the real run save.
+func _pick_anchor(id: String, persist: bool) -> bool:
 	if anchor_id != "" or not anchor_offer_open() or not anchor_offer.has(id) or anchor_disabled_reason(id) != "":
 		return false
 	# Logged as the INDEX into the offer (the verifier rebuilds the offer from the seed), before anything the pick opens.
 	action_log.record("pick_anchor", [anchor_offer.find(id)])
 	anchor_id = id
 	_anchor_waiting = false
-	save_run()
+	if persist:
+		save_run()
 	EventBus.anchor_chosen.emit(id)
 	_resume_after_anchor()
 	return true
 
 
-## The player passes on Anchors this run. Nothing is locked; pick 1 opens as usual.
-func decline_anchor() -> bool:
+func _decline_anchor(persist: bool) -> bool:
 	if not _anchor_waiting:
 		return false
 	action_log.record("pick_anchor", [-1])
 	_anchor_waiting = false
 	anchor_offer = ["-"]   # non-empty so _open_core_offer does not ask again
+	if persist:
+		save_run()
 	_resume_after_anchor()
 	return true
 
@@ -2573,10 +2585,10 @@ func replay_pick_anchor(index: int) -> bool:
 	if not _anchor_waiting or index < -1 or index > 2:
 		return false
 	if index == -1:
-		return decline_anchor()
+		return _decline_anchor(false)
 	if index >= anchor_offer.size():
 		return false
-	return pick_anchor(String(anchor_offer[index]))
+	return _pick_anchor(String(anchor_offer[index]), false)
 
 
 func _resume_after_anchor() -> void:
