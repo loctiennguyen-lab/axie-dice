@@ -1808,7 +1808,8 @@ func _play_awaken(extra_line := "") -> AnchorFx:
 	if _overlay_layer == null or not AnchorFx.take_pending():
 		return null
 	var rect := Rect2()
-	if is_instance_valid(_core_panel) and _core_panel.is_inside_tree() and _core_panel.anchor_slot != null:
+	if is_instance_valid(_core_panel) and _core_panel.is_inside_tree() and _core_panel.anchor_slot != null \
+			and _core_panel.anchor_slot.is_visible_in_tree():
 		rect = _core_panel.anchor_slot.get_global_rect()
 	return AnchorFx.play(_overlay_layer, AnchorAdapter.current_id(), extra_line, rect)
 

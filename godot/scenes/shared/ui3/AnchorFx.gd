@@ -172,9 +172,8 @@ func _build(extra_line: String) -> void:
 	strip.custom_minimum_size.x = 760
 	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card.add_child(strip)
-	var hint := UI3.label(TranslationServer.translate("Click to continue"), "LabelMuted")
+	var hint := UI3.label(TranslationServer.translate("Click to continue"), "LabelKeyHint")
 	hint.name = "AwakenHint"
-	hint.add_theme_font_size_override("font_size", 16)   # key hint size (token)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card.add_child(hint)
