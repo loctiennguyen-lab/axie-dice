@@ -30,8 +30,9 @@ func _load_all() -> void:
 	dir.list_dir_begin()
 	var file_name := dir.get_next()
 	while file_name != "":
-		if file_name.ends_with(".tres"):
-			var def = load(RELIC_DIR + file_name)
+		var res_name := def_file_name(file_name)
+		if res_name != "":
+			var def = load(RELIC_DIR + res_name)
 			# relic_tuning.tres lives here too (a RelicTuning, no `id`): skip anything that is not a def.
 			if def != null and def is RelicDef and "id" in def:
 				_defs_by_id[def.id] = def
@@ -39,6 +40,14 @@ func _load_all() -> void:
 	dir.list_dir_end()
 	_defs_sorted = _defs_by_id.values()
 	_defs_sorted.sort_custom(func(a, b): return a.sort_index < b.sort_index)
+
+## The .tres a directory entry stands for, or "" when it is not one. An exported build (web) lists
+## `x.tres.remap` instead of `x.tres` (the text resource was converted to binary); load() still takes
+## the original path. Without this the web build loaded NO Cores and NO Run Rules at all.
+static func def_file_name(entry: String) -> String:
+	var n := entry.trim_suffix(".remap")
+	return n if n.ends_with(".tres") else ""
+
 
 ## Ordered list of currently-loaded RelicDefs, sorted by sort_index. Callers filtering to
 ## "owned relics for this combat" must filter THIS array (preserving order), never re-sort
