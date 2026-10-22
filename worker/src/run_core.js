@@ -251,9 +251,9 @@ export class RunCore {
         if (Array.isArray(v)) { if (!v.every(isCanonScalar)) return 'arg_val'; } else if (!isCanonScalar(v)) return 'arg_val';
       }
       if (a.fn === 'pick_anchor') {
-        // Anchors: normal runs only, from stage 3 (depth_stage null = not written, treated as 3), one integer in -1..2.
+        // Anchors: normal runs only, from stage 2 (depth_stage null = not written, allowed), one integer in -1..2.
         if (meta && meta.mode !== 'normal') return 'anchor_mode';
-        if (meta && meta.depth_stage != null && meta.depth_stage < 2) return 'anchor_stage';   // Anchors from stage 2 (Liam 22/10)
+        if (meta && meta.depth_stage != null && meta.depth_stage < 2) return 'anchor_stage';
         if (args.length !== 1 || !Number.isInteger(args[0]) || args[0] < -1 || args[0] > 2) return 'anchor_args';
       }
     }
