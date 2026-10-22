@@ -95,7 +95,25 @@ func _case(c: Dictionary) -> void:
 		BoTestBase.force(v._combat, [1, 1, 1, 2, 3], [BoTestBase.face("shield", 9), BoTestBase.face("dmg", 5), BoTestBase.face("dmg", 5), BoTestBase.face("dmg", 5), BoTestBase.face("dmg", 5)])
 		v._combat.use_die(uid, uid)
 	else:
-		EventBus.core_fired.emit(house, uid, 1, "mutation")
+		# real Crack Mana: Gamble two dice with a seed where exactly 1+ die Cracks; tier 1 pays +1 mana
+		var seed_c := -1
+		for sd in 400:
+			var pe := CombatEngine.new()
+			pe.setup_new({"node_id": "bo", "kind": "battle", "pw": 2, "ascension": 0, "roster_snapshot": CoreTestUtil.roster(["plant1", "beast1", "aqua1", "reptile1", "bug1"]),
+				"relic_ids": [], "combat_seed": 7, "start_mana": 0, "depth_stage": 3, "anchor_id": "a_gambler", "anchor_awakened": false})
+			pe.rerolls = 0
+			BoTestBase.force(pe, [0, 1, 2, 3, 4], [BoTestBase.face("dmg", 5), BoTestBase.face("dmg", 5), BoTestBase.face("dmg", 5), BoTestBase.face("dmg", 5), BoTestBase.face("dmg", 5)])
+			pe.reroll_dice([pe.party[0].uid, pe.party[1].uid], sd, false, 0)
+			if pe.party[0].cracked or pe.party[1].cracked:
+				seed_c = sd
+				break
+		_check(seed_c >= 0, "h_gambler: found a Cracking seed")
+		var ce: CombatEngine = v._combat
+		ce.rerolls = 0
+		BoTestBase.force(ce, [0, 1, 2, 3, 4], [BoTestBase.face("dmg", 5), BoTestBase.face("dmg", 5), BoTestBase.face("dmg", 5), BoTestBase.face("dmg", 5), BoTestBase.face("dmg", 5)])
+		var m0 := ce.mana
+		ce.reroll_dice([ce.party[0].uid, ce.party[1].uid], seed_c, false, 0)
+		_check(ce.mana - m0 == 1, "h_gambler: a real Gamble Crack pays +1 mana (%d)" % (ce.mana - m0))
 	await _frames(4)
 	_check(_fired.has(house), "%s: core_fired mutation emitted" % house)
 	_check(v.mutation_log.size() >= 1 and v.mutation_log[0]["mode"] == "banner", "%s: first fire shows the MUTATION banner" % house)
