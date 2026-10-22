@@ -230,7 +230,11 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Set (+0.4, needs a Set), wild_face only 3->4 (2 mana, once per fight, never onto an Overcast die), 2-tier Core combos
 ## (core_combos.json) + Core reroll bonus (cap 2), 3 meme Cores (first_run_hidden), Core Codex meta + daily combo challenge.
 ## Same actions give a different run. Worker SUPPORTED_RULE_VERSIONS gained -q.
-const FINGERPRINT := "ce0a58c2f11d1f912097150aa8a9cd44cc883e661f63b5b52167c2275c80b2f1"
+## BUMPED, 2026-10-25: `ActionLog.RULES_VERSION` -> `godot-2026-10-25-s`. Anchor MVP (int/anchor): 3 Anchors + 6 mutation houses
+## (tier 1/2, tier 2 needs disjoint Pairs) + awakening, `pick_anchor` in the action log (online normal runs, stage >= 2, Mana Mine stage 3),
+## after_node guard while the Anchor pick is open, 6 Core picks per Short run, R1 axis draw + house/axis/partner bias.
+## Same actions give a different run. Worker SUPPORTED_RULE_VERSIONS gained -s.
+const FINGERPRINT := "b37c360d936605a00706e13a4c6eb97b282d5d761188d0a981b1d82d0e8bebb0"
 
 
 func _ready() -> void:
