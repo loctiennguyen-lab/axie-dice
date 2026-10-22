@@ -160,6 +160,12 @@ var depth_stage: int = 3
 ## Depth v3 Core run state (lane B). Saved in to_data/from_data.
 var core_first_extra: bool = false
 var core_tier_chain: Array[int] = []      ## tier of each Core pick, drawn once at new_run (TIER_SALT)
+## Anchor (lane AE 2a, design/proposals/mutation-and-keystones-v1.md; production/anchor-contract.md).
+var anchor_id: String = ""                 ## chosen Anchor ("" = none); locked for the run
+var anchor_awakened: bool = false          ## latched the first time >= 2 house Cores are owned; never turns off
+var anchor_offer: Array = []               ## the 3 offered ids (kept after the pick so a resume shows the same cards)
+var anchor_wanted: bool = false            ## opt-in: params.anchor == true (the UI sets it; default off keeps old flows untouched)
+var _anchor_waiting: bool = false          ## pick 1 is held back until pick_anchor() / decline_anchor()
 var core_pick_index: int = 0              ## Core offers opened so far (the next one is index core_pick_index)
 var core_seen: Array[String] = []         ## every Core id shown this run, rerolled-out ones included
 var core_reroll_left: int = 0             ## whole-run Core rerolls (one card each)
@@ -289,6 +295,11 @@ func reset() -> void:
 	last_run_xp = 0
 	daily_mission_granted = false
 	run_kind = "normal"
+	anchor_id = ""
+	anchor_awakened = false
+	anchor_offer = []
+	anchor_wanted = false
+	_anchor_waiting = false
 	daily_run_reward_granted = false
 	pending_rewards = []
 	pending_combat = {}
@@ -552,6 +563,7 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 	rules_on = bool(loadout.get("rules_on", params.get("rules_on", MetaState.runs > 0)))
 	core_tier_chain = CoreOffer.draw_tier_chain(p_seed, p_mode)
 	core_reroll_left = RelicSlots.tuning().core_reroll_max
+	anchor_wanted = bool(params.get("anchor", false))
 	if core_off:
 		set_phase(RunPhase.MAP)
 	else:
@@ -893,6 +905,9 @@ func enter_node(node_id: String, node_kind: String, seed: int = -1) -> void:
 				"start_mana": int(boon_n.get("start_mana", 0)),
 				"first_dmg_face_bonus": int(boon_n.get("first_dmg_face_bonus", 0)),
 				"start_eggs": int(boon_n.get("start_eggs", 0)),
+				"anchor_id": anchor_id,
+				"anchor_awakened": anchor_awakened,
+				"house_tiers": house_tiers_now(),
 				"run_mods": run_mods.duplicate(),
 				"relic_state": relic_state.duplicate(true),
 				# Compatibility: lets CombatEngine ask for end_turn/reroll seeds itself until the UI
@@ -1678,6 +1693,7 @@ func _grant_relic(relic_id: String, source: String) -> void:
 	RelicHooks.run_fire(owned_relic_ids, "on_relic_acquired", {"relic_id": relic_id, "source": source})   # H8
 	if RelicSlots.is_core(gdef):
 		_note_combo_grant()
+		_note_anchor_awaken()
 
 
 ## Takes a relic respecting the slot rules (RelicSlots.check_add). When every slot of its kind is
@@ -1862,6 +1878,8 @@ func to_data() -> Dictionary:
 			"bonus_queue": core_bonus_queue.duplicate(), "bonus_count": core_bonus_count,
 			"combo_done": combo_done.duplicate(), "skipped_t": core_skipped_t.duplicate(), "quest_done": core_quest_done.duplicate(),
 			"combo_rerolls": combo_rerolls_gained},
+		"anchor": {"id": anchor_id, "awakened": anchor_awakened, "offer": anchor_offer.duplicate(),
+			"wanted": anchor_wanted, "waiting": _anchor_waiting},
 	}
 
 
@@ -1870,6 +1888,12 @@ func from_data(d: Dictionary) -> void:
 	run_seed = int(d.get("run_seed", 0))
 	ranked = bool(d.get("ranked", false))
 	run_kind = String(d.get("kind", "ranked" if ranked else "normal"))
+	var an: Dictionary = d.get("anchor", {}) as Dictionary
+	anchor_id = String(an.get("id", ""))
+	anchor_awakened = bool(an.get("awakened", false))
+	anchor_offer = (an.get("offer", []) as Array).duplicate()
+	anchor_wanted = bool(an.get("wanted", false))
+	_anchor_waiting = bool(an.get("waiting", false))
 	mode = String(d.get("mode", "short"))
 	ascension = int(d.get("ascension", 0))
 
@@ -2154,7 +2178,8 @@ func _core_ctx(pick: int = -1) -> Dictionary:
 		"first_run": not rules_on, "pick_index": core_pick_index if pick < 0 else pick, "front_size": 2,
 		"ascension": ascension, "tier_chain": core_tier_chain,
 		# a bonus (quest/event/shop) offer is opened with _core_offer_pick == core_pick_index; milestone offers use index-1
-		"bonus": pick >= 0 and pick == core_pick_index}
+		"bonus": pick >= 0 and pick == core_pick_index,
+		"anchor_house": ((Anchors.get_def(anchor_id).get("house_cores", []) as Array) if anchor_id != "" else [])}
 
 
 ## Knob from the held Run Rule's rule_knobs, else `default`.
@@ -2212,6 +2237,13 @@ func _open_opening_offers() -> void:
 func _open_core_offer() -> bool:
 	if core_off or core_pick_index >= CoreOffer.picks_total(mode):
 		return false
+	if core_pick_index == 0 and not _anchor_waiting and anchor_id == "" and anchor_offer.is_empty() and anchor_offer_open():
+		# QA #11: the Anchor is chosen (and saved) BEFORE the first Core offer exists. REWARD with no cards = "pick an Anchor".
+		_anchor_waiting = true
+		pending_rewards = []
+		reward_reroll_charges = 0
+		set_phase(RunPhase.REWARD)
+		return true
 	var t := RelicSlots.tuning()
 	if (rule_knob("core_skip_picks", []) as Array).has(core_pick_index):
 		# Run Rule knob (R6): this pick is dropped. Its tier chain slot and trigger are used up, the next pick keeps its own.
@@ -2458,6 +2490,90 @@ func _open_bonus_offer() -> bool:
 	return true
 
 
+## Why Anchors are not available in this run ("" = available). One gate (QA #3): offline epoch, not ranked, kind normal, stage >= 3.
+func anchor_gate_reason() -> String:
+	if not anchor_wanted:
+		return "off"
+	if epoch == null or not (epoch is LocalEpochSource) or epoch.is_remote():
+		return "online"
+	if ranked or run_kind == "ranked":
+		return "ranked"
+	if run_kind != "normal":
+		return "kind"
+	if depth_stage < 3:
+		return "stage"
+	if core_off:
+		return "core_off"
+	return ""
+
+
+## G6: "" when `id` can be picked under the current Run Rule, else why not. Counts the house Cores that could still be offered.
+func anchor_disabled_reason(id: String) -> String:
+	var def := Anchors.get_def(id)
+	if def.is_empty() or not bool(def.get("enabled", false)):
+		return "unknown"
+	var ctx := {"owned_ids": [run_rule] if run_rule != "" else [], "roster": roster, "seen": [], "mode": mode,
+		"first_run": not rules_on, "pick_index": 1, "front_size": 2, "ascension": ascension, "tier_chain": core_tier_chain}
+	var ok := 0
+	for cid in (def.get("house_cores", []) as Array):
+		if CoreOffer.is_valid(RelicRegistry.get_def(String(cid)), ctx):
+			ok += 1
+	return "" if ok >= Anchors.AWAKEN_NEED else "rule_too_few_house_cores"
+
+
+## True while the run is waiting for an Anchor pick. Builds `anchor_offer` (3 ids, Rng(base_seed ^ ANCHOR_SALT)) the first time
+## the gate is open; false when the gate is shut, an Anchor is chosen, or no offered Anchor can be picked under the Run Rule.
+func anchor_offer_open() -> bool:
+	if anchor_id != "" or anchor_gate_reason() != "":
+		return false
+	if anchor_offer.is_empty():
+		var ids: Array = []
+		for a in Anchors.enabled():
+			ids.append(String(a["id"]))
+		anchor_offer = Anchors.offer_three(Rng.new(_core_base_seed ^ CoreOffer.ANCHOR_SALT), ids)
+	for id in anchor_offer:
+		if anchor_disabled_reason(String(id)) == "":
+			return true
+	return false
+
+
+## Locks the Anchor and writes the save at once (before the first Core offer exists). False when refused.
+func pick_anchor(id: String) -> bool:
+	if anchor_id != "" or not anchor_offer_open() or not anchor_offer.has(id) or anchor_disabled_reason(id) != "":
+		return false
+	anchor_id = id
+	_anchor_waiting = false
+	save_run()
+	EventBus.anchor_chosen.emit(id)
+	_resume_after_anchor()
+	return true
+
+
+## The player passes on Anchors this run. Nothing is locked; pick 1 opens as usual.
+func decline_anchor() -> bool:
+	if not _anchor_waiting:
+		return false
+	_anchor_waiting = false
+	anchor_offer = ["-"]   # non-empty so _open_core_offer does not ask again
+	_resume_after_anchor()
+	return true
+
+
+func _resume_after_anchor() -> void:
+	if core_pick_index == 0 and _core_offer_pick <= 0 and not _core_offer_active:
+		if not _open_core_offer():
+			set_phase(RunPhase.MAP)
+
+
+## Latches anchor_awakened the first time >= 2 house Cores are owned (finished quest Cores count). Never cleared (QA #1-#2).
+func _note_anchor_awaken() -> void:
+	if anchor_id == "" or anchor_awakened:
+		return
+	if Anchors.is_awakened(combo_owned_ids(), anchor_id):
+		anchor_awakened = true
+		EventBus.anchor_awakened.emit(anchor_id)
+
+
 ## Owned Core/rule ids PLUS finished quest Cores: what CoreCombos reads (gacha pack, a finished quest Core still counts).
 func combo_owned_ids() -> Array:
 	var out: Array = owned_relic_ids.duplicate()
@@ -2472,6 +2588,7 @@ func combo_owned_ids() -> Array:
 ## Pair tier, so its first formation (Full) gives the reroll. Pure function of the grants, so replay reproduces it.
 func _note_combo_grant() -> void:
 	var st := CoreCombos.state(combo_owned_ids())
+	var tiers_before := _house_tiers_of(combo_done)
 	for cid in st.keys():
 		var tier := String(st[cid])
 		var had := String(combo_done.get(cid, ""))
@@ -2482,6 +2599,32 @@ func _note_combo_grant() -> void:
 			combo_rerolls_gained += 1
 			core_reroll_left += 1
 		EventBus.combo_formed.emit(String(cid), tier)
+	if anchor_id != "":
+		var tiers_after := _house_tiers_of(st)
+		for hid in tiers_after.keys():
+			if int(tiers_after[hid]) != int(tiers_before.get(hid, 0)):
+				EventBus.mutation_on.emit(String(hid), int(tiers_after[hid]))
+
+
+## Mutation tier per house (0 none, 1, 2) from a combo-state dict (combo id -> "pair"|"full"). Pure.
+func _house_tiers_of(combo_state: Dictionary) -> Dictionary:
+	var out := {}
+	for h in Anchors.houses():
+		var hid := String(h["id"])
+		out[hid] = Anchors.mutation_tier([], hid, combo_state)
+	return out
+
+
+## What the combat gets: {house_id: tier} for tiers > 0, only with an Anchor (without one: {} and every mutation hook is skipped).
+func house_tiers_now() -> Dictionary:
+	var out := {}
+	if anchor_id == "":
+		return out
+	var t := _house_tiers_of(CoreCombos.state(combo_owned_ids()))
+	for hid in t.keys():
+		if int(t[hid]) > 0:
+			out[hid] = int(t[hid])
+	return out
 
 
 func _on_combo_turn_phase(_old: int, new_phase: int) -> void:
