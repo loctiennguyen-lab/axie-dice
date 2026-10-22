@@ -44,6 +44,7 @@ var _corehold := true      # S2: expert Holds dice when it owns c_steady_hold / 
 const HOLD_CORES := ["c_steady_hold", "c_kindle", "rule_tundra", "c_key_strike"]
 var _force: Array = []     # --force=id,id : grant these Cores at run start (diagnosis only)
 var _anchor_mode := "none"   # none | auto | a_volley | a_gambler | a_mana_mine  (--anchor=)
+var _stage := 3              # depth stage of every run (--stage=1|2|3)
 var _anchor_aw_node := -1
 var _anchor_aw_turn := -1
 var _anchor_mut := {}
@@ -102,6 +103,7 @@ func _ready() -> void:
 	_shop_mode = String(args.get("shop", "all"))
 	_beam = int(args.get("beam", 3))
 	_anchor_mode = String(args.get("anchor", "none"))
+	_stage = clampi(int(args.get("stage", 3)), 1, 3)
 	_nohold = int(args.get("hold", 0)) != 1   # Hold is OFF by default: ablation showed it costs ~4 points
 	_noreroll = int(args.get("noreroll", 0)) == 1
 	_corehold = int(args.get("corehold", 1)) == 1
@@ -195,7 +197,7 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 	_team_keys = team.duplicate()
 	RunState.start_run_with_epoch(LocalEpochSource.new(PackedByteArray(), seed_value), {
 		"team_keys": team, "mode": "short", "ascension": asc, "ranked": false, "rules_on": true,
-		"newcomer": false, "bonuses": {}, "anchor": _anchor_mode != "none"}, seed_value)
+		"newcomer": false, "bonuses": {}, "anchor": _anchor_mode != "none", "depth_stage": _stage}, seed_value)
 	for fid in _force:
 		RunState._grant_relic(String(fid), "sim_force")
 	_drain_core_offers()
