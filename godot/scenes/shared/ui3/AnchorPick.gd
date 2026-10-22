@@ -11,7 +11,6 @@ const CARD_H := 560.0
 
 var cards: Array[PanelContainer] = []
 var take_button: Button
-var reason_label: Label
 var reveal: GachaReveal
 var selected := -1
 var _ids: Array = []
@@ -65,10 +64,6 @@ func setup(ids: Array, first_time := true) -> void:
 	take_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	take_button.pressed.connect(_take)
 	actions.add_child(take_button)
-	reason_label = UI3.label("", "LabelMuted")
-	reason_label.name = "TakeReason"
-	reason_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	actions.add_child(reason_label)
 	_refresh_take()
 	# Flip like the Core pick (no random tier: neutral moss look, first time = longer aura).
 	reveal = GachaReveal.new()
@@ -242,12 +237,10 @@ func _refresh_take() -> void:
 		take_button.text = tr("Take")
 		take_button.disabled = true
 		UI3.set_disabled_reason(take_button, tr("Pick one Anchor."))
-		reason_label.text = tr("Pick one Anchor.")
 	else:
 		UI3.clear_disabled_reason(take_button)
 		take_button.disabled = false
 		take_button.text = tr("Take %s") % AnchorAdapter.name_of(String(_ids[selected]))
-		reason_label.text = ""
 
 
 func _take() -> void:
