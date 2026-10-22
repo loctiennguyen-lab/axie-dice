@@ -88,9 +88,9 @@ func _ready() -> void:
 	rm.queue_free()
 	s.queue_free()
 	await _frames(2)
-	# ---- stage 2
-	var s2 := await _begin(1)
-	_ok(MetaState.depth_stage() == 2, "stage 2 account")
+	# ---- stage 1 (Anchors open from stage 2 since Liam 22/10; t_anchor_flow_online_stage2 covers stage 2)
+	var s2 := await _begin(0)
+	_ok(MetaState.depth_stage() == 1, "stage 1 account")
 	var rm2: Node = load("res://scenes/run_map/RunMap.tscn").instantiate()
 	add_child(rm2)
 	await _frames(8)
@@ -99,8 +99,8 @@ func _ready() -> void:
 		await _frames(2)
 		rm2._take_selected_reward()
 		await _frames(8)
-	_ok(rm2.find_child("AnchorPick", true, false) == null and RunState.anchor_id == "" and not RunState._anchor_waiting, "stage 2: no Anchor screen")
-	_ok(not RunState.pending_rewards.is_empty(), "stage 2: Core offer opens directly")
+	_ok(rm2.find_child("AnchorPick", true, false) == null and RunState.anchor_id == "" and not RunState._anchor_waiting, "stage 1: no Anchor screen")
+	_ok(not RunState.pending_rewards.is_empty(), "stage 1: Core offer opens directly")
 	rm2.queue_free()
 	s2.queue_free()
 	UI3Gacha.instant_override = -1
