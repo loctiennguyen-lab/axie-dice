@@ -43,6 +43,7 @@ const EXPECTED_TESTS: Array[String] = [
 	"test_a_plating_charge_affix_elite_fight_replays_deterministically",
 	"test_an_anchor_fight_with_houses_and_awakening_replays",
 	"test_an_anchor_run_is_picked_in_the_log_and_replays",
+	"test_a_stage2_pick_of_mana_mine_is_refused",
 ]
 
 var _failures: Array[String] = []
@@ -67,6 +68,7 @@ func _ready() -> void:
 	test_a_plating_charge_affix_elite_fight_replays_deterministically()
 	test_an_anchor_fight_with_houses_and_awakening_replays()
 	test_an_anchor_run_is_picked_in_the_log_and_replays()
+	test_a_stage2_pick_of_mana_mine_is_refused()
 
 	for test_name in EXPECTED_TESTS:
 		if not _completed.has(test_name):
@@ -396,6 +398,26 @@ func test_an_anchor_run_is_picked_in_the_log_and_replays() -> void:
 	var rv := RunVerifier.verify(ranked, played["tape"])
 	_assert(not bool(rv["ok"]) and String(rv["error"]) == RunVerifier.ERR_ANCHOR_RANKED, "ranked + pick_anchor -> anchor_ranked (got %s)" % str(rv["error"]))
 	_done("test_an_anchor_run_is_picked_in_the_log_and_replays")
+
+
+## Stage 2 run (Anchor open, Mana Mine locked until stage 3): a log whose pick_anchor points at Mana Mine is refused by the referee.
+func test_a_stage2_pick_of_mana_mine_is_refused() -> void:
+	RunBot.anchor_pick_index = 0
+	var played := RunBot.play_run(RUN_SEED, TEAM, "short", 0, {"anchor": true, "depth_stage": 2, "loadout": {"rules_on": false}})
+	RunBot.anchor_pick_index = -2
+	var log: ActionLog = played["log"]
+	var offer: Array = (played["state"] as Dictionary).get("anchor", {}).get("offer", [])
+	var honest := RunVerifier.verify(log, played["tape"], {}, true)
+	_assert(bool(honest["ok"]), "honest stage-2 Anchor run accepted: %s %s" % [str(honest["error"]), str(honest["message"])])
+	var mi := offer.find("a_mana_mine")
+	_assert(mi >= 0, "Mana Mine is in the stage-2 offer (offer %s)" % str(offer))
+	var bad := _clone(log)
+	for i in bad.entries.size():
+		if String((bad.entries[i] as Dictionary).get("fn", "")) == "pick_anchor":
+			bad.entries[i] = {"fn": "pick_anchor", "args": [mi]}
+	var v := RunVerifier.verify(bad, played["tape"], {}, true)
+	_assert(not bool(v["ok"]) and String(v["error"]) == RunVerifier.ERR_REJECTED, "Mana Mine at stage 2 -> action_rejected (got %s)" % str(v["error"]))
+	_done("test_a_stage2_pick_of_mana_mine_is_refused")
 
 
 ## An action the log can record but the referee cannot replay is a run that can never be
