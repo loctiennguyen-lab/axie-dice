@@ -545,6 +545,13 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 	loadout["bonuses"] = meta_bonus.duplicate(true)
 	loadout["boon_id"] = boon_id
 	loadout["rules_on"] = bool(loadout.get("rules_on", params.get("rules_on", MetaState.runs > 0)))
+	# Anchor opt-in rides in the header loadout so a replay holds back pick 1 exactly like the live run did. Only a normal
+	# unranked run can carry it (the gate shuts every other kind), and the key is absent otherwise so old headers stay byte-identical.
+	var want_anchor := bool(params.get("anchor", false)) or bool(loadout.get("anchor", false))
+	if want_anchor and not ranked and p_kind == "normal":
+		loadout["anchor"] = true
+	else:
+		loadout.erase("anchor")
 	if ranked:
 		# Ranked never skips the Run Rule (no first-run exemption), and core_off is a test/tool switch only: the
 		# verifier refuses a ranked log that claims otherwise (depth-v3-contract, lane B review).
@@ -563,7 +570,7 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 	rules_on = bool(loadout.get("rules_on", params.get("rules_on", MetaState.runs > 0)))
 	core_tier_chain = CoreOffer.draw_tier_chain(p_seed, p_mode)
 	core_reroll_left = RelicSlots.tuning().core_reroll_max
-	anchor_wanted = bool(params.get("anchor", false))
+	anchor_wanted = want_anchor
 	if core_off:
 		set_phase(RunPhase.MAP)
 	else:
@@ -2490,12 +2497,11 @@ func _open_bonus_offer() -> bool:
 	return true
 
 
-## Why Anchors are not available in this run ("" = available). One gate (QA #3): offline epoch, not ranked, kind normal, stage >= 3.
+## Why Anchors are not available in this run ("" = available). One gate (QA #3): not ranked, kind normal, stage >= 3, Core flow on.
+## Online normal runs are allowed since 22/10 (the pick is an action in the log); `depth_stage` is the one the server wrote into the run_start header.
 func anchor_gate_reason() -> String:
 	if not anchor_wanted:
 		return "off"
-	if epoch == null or not (epoch is LocalEpochSource) or epoch.is_remote():
-		return "online"
 	if ranked or run_kind == "ranked":
 		return "ranked"
 	if run_kind != "normal":
@@ -2541,6 +2547,8 @@ func anchor_offer_open() -> bool:
 func pick_anchor(id: String) -> bool:
 	if anchor_id != "" or not anchor_offer_open() or not anchor_offer.has(id) or anchor_disabled_reason(id) != "":
 		return false
+	# Logged as the INDEX into the offer (the verifier rebuilds the offer from the seed), before anything the pick opens.
+	action_log.record("pick_anchor", [anchor_offer.find(id)])
 	anchor_id = id
 	_anchor_waiting = false
 	save_run()
@@ -2553,10 +2561,22 @@ func pick_anchor(id: String) -> bool:
 func decline_anchor() -> bool:
 	if not _anchor_waiting:
 		return false
+	action_log.record("pick_anchor", [-1])
 	_anchor_waiting = false
 	anchor_offer = ["-"]   # non-empty so _open_core_offer does not ask again
 	_resume_after_anchor()
 	return true
+
+
+## Replay entry for a logged `pick_anchor` ([index] / [-1]): the very same logic the player used. False when the run could not have made it.
+func replay_pick_anchor(index: int) -> bool:
+	if not _anchor_waiting or index < -1 or index > 2:
+		return false
+	if index == -1:
+		return decline_anchor()
+	if index >= anchor_offer.size():
+		return false
+	return pick_anchor(String(anchor_offer[index]))
 
 
 func _resume_after_anchor() -> void:
