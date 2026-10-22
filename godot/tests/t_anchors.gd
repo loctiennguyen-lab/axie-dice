@@ -24,8 +24,9 @@ func _ready() -> void:
 	for a in all:
 		var id := String(a["id"])
 		_assert(id.begins_with("a_"), "id prefix " + id)
-		for k in ["name_en", "name_vi", "rule_en", "cost_en", "house_id"]:
+		for k in ["name_en", "name_vi", "rule_en", "house_id"]:
 			_assert(String(a.get(k, "")) != "", "%s has %s" % [id, k])
+		_assert(a.has("cost_en"), "%s has cost_en (may be empty: no price)" % id)
 		_assert(String(a["awaken"].get("name_en", "")) != "" and String(a["awaken"].get("rule_en", "")) != "", id + " awaken")
 		var cores: Array = a["house_cores"]
 		_assert(cores.size() == 5, id + " has 5 house cores")
