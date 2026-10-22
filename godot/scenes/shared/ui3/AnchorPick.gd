@@ -20,12 +20,13 @@ var _skipped_flip := false
 
 func setup(ids: Array, first_time := true) -> void:
 	_ids = ids
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var head := VBoxContainer.new()
 	head.name = "AnchorHead"
-	head.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	head.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	head.offset_top = 56
+	head.offset_bottom = 156
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	head.add_theme_constant_override("separation", 8)
 	add_child(head)
@@ -37,7 +38,7 @@ func setup(ids: Array, first_time := true) -> void:
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	head.add_child(sub)
 	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(center)
 	var col := VBoxContainer.new()

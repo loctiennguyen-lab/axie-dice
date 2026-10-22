@@ -26,14 +26,10 @@ Design: `design/proposals/mutation-and-keystones-v1.md` (2.1, 2.2, "Liam chốt 
 - Relic name stays `r_keystone`. One RULES_VERSION bump for the whole MVP, done in step 2, not before.
 - Four show-points (UI lane): offer card, HUD chip (with awakened state), mutation banner on fire, tier-2 upgrade toast.
 
-## AU2 - bàn giao (lane anchor/ui, 21/10)
-Xong và commit (xanh): việc 1 (AnchorAdapter + AnchorPick), việc 2 (HUD: ô Anchor 56px trong CorePanel, chip/badge x/2, vòng nhà + glyph trên Lõi ruột, chip "1/2 -> AWAKEN" trên thẻ Lõi; t_anchor_hud), việc 3 (dải MUTATION dưới banner PAIR, banner đột biến trong trận + 1 float/lượt/nhà; knob `banner_pair_mutation_sec`; t_anchor_mutation).
-Việc 4 DANG DỞ (code đã viết, CHƯA có test, CHƯA nối vào luồng):
-- `godot/scenes/shared/ui3/AnchorFx.gd` (moment 2.5s / 1.6s reduce flashing, scrim, khung đôi, sóng, rung, bấm/Space/Enter/A/Esc nhảy cuối, `AnchorFx.play(parent, id, extra_line, fly_to_rect)`, `arm/take_pending`, cờ một-lần-mỗi-run `played_run`). Import sạch, chưa chạy.
-- Âm: đã chép `city_hall_upgrade_complete.ogg` vào sfx/ui, event `dm_awaken` (DiceMomentAudio), `sfx.awaken` trong gacha_timing.json, knob `awaken_sec`/`awaken_reduced_sec`. t_assets + t_v4ui_audio xanh.
-- CÒN: (a) nối: RunMapController `_apply_and_finish` — nếu `AnchorAdapter.awakened()` vừa chuyển false->true khi nhận thẻ thì bỏ banner Cặp, gọi `AnchorFx.play` với extra_line "PAIR: <combo> . MUTATION: <tên>"; nguồn khác: `AnchorAdapter.listen("anchor_awakened", ...)` -> `AnchorFx.arm`, phát ở nhịp bản đồ kế (CombatView cũng listen + `dm_awaken` khi `core_fired` kind "awaken"); (b) test t_anchor_awaken (skip bằng Esc/click, reduce flashing 1.6s, một lần/run, instant_override); (c) `AnchorFx.run_key` đang dùng RunState.get("_core_base_seed"), kiểm lại với RunState của engine; (d) hit-stop 0.1s chưa làm; banner "AWAKENED" lần đầu trong trận (4.4) chưa làm; glyph nhà trong float đột biến chưa có; material_credit.ogg chưa chép (dm_mutation tạm dùng star_activate).
-Việc 5 (Result: hàng Anchor + Mutations trong thẻ Combos, Codex tab Anchors, MetaState.anchor_codex qua SaveStore + reload_from_store + test lưu/đọc) và việc 6 (t_ui_laws, t_ui3_theme, t_gacha_*, cả suite một lần, ảnh 1280/1920) CHƯA làm.
-Ghi chú lệch spec: glyph nhà trên Lõi ruột đặt góc dưới-TRÁI (góc dưới-phải đã là xN); chip ngoài trận khi thức tỉnh đổi thành "Awakened" (không bỏ hẳn); luật tier1 dùng cho cả Pair và Full ở dải đột biến.
+## AU2 - bàn giao (lane anchor/ui, 22/10, bản cuối)
+Xong: AnchorAdapter dùng API thật; RunSetup.start_params truyền `anchor: true` (engine tự chặn online/ranked/daily/mission/stage<3); sửa lỗi RunMap `_finish_node` bỏ qua màn Anchor sau Luật run; AnchorPick layout (set_anchors_and_offsets_preset); HUD ô Anchor + chip x/2 -> Awakened; dải/banner MUTATION; moment AWAKEN (AnchorFx, nối RunMap + CombatView, glyph sửa không đè tên) + hit-stop 0.1s trong trận (tắt khi reduce flashing); Result: hàng Anchor + dòng Mutations trong thẻ Combos; `MetaState.anchor_codex` {id:{seen,picked,awakened}} (SaveStore + reload_from_store, save cũ = {}); Codex tab ANCHORS.
+Test mới: t_anchor_flow_start (luồng thật stage 3 / stage 2), t_anchor_codex. Ảnh: production/qa/evidence/anchor_*  (capture: tests/qa_anchor_capture.tscn).
+Chưa làm: ảnh MUTATION trong trận (đã có t_anchor_mutation), glyph nhà trong float đột biến, material_credit.ogg.
 ## Hợp đồng sự kiện cho UI (điều phối chốt 23/10)
 - Luật nền Anchor tác động: `EventBus.core_fired(core_id = anchor_id, unit_uid, amount, kind = "anchor")`.
 - Đột biến Cặp tác động: `core_fired(core_id = house_id, unit_uid, amount, kind = "mutation")`; khi nấc đột biến của một nhà thay đổi: `EventBus.mutation_on(house_id: String, tier: int)`.

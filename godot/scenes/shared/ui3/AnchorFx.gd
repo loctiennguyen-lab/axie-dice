@@ -142,10 +142,14 @@ func _build(extra_line: String) -> void:
 	aw.texture = UI3.icon(CorePanel.AWAKEN_ICON)
 	aw.custom_minimum_size = Vector2(56, 56)
 	aw.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	aw.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	aw.position = Vector2(280 - 16 - 56 - 4, 4)   # top-right corner; a plain Control holder so the PanelContainer does not stretch it over the name
 	aw.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	aw.visible = false
-	card_frame.add_child(aw)
+	var holder := Control.new()
+	holder.name = "AwakenGlyphHolder"
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(aw)
+	card_frame.add_child(holder)
 	var an := UI3.label(AnchorAdapter.awaken_name(anchor_id), "LabelScreenTitle")
 	an.name = "AwakenName"
 	an.add_theme_color_override("font_color", gold)
@@ -189,7 +193,7 @@ func _swap_frame() -> void:
 		inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		inner.add_theme_stylebox_override("panel", UI3Theme.flat(Color(0, 0, 0, 0), UI3Theme.radius("m"), 3, hcol))
 		card_frame.add_child(inner)
-	(card_frame.get_node("AwakenGlyph") as Control).visible = true
+	(card_frame.find_child("AwakenGlyph", true, false) as Control).visible = true
 
 
 func _show_final() -> void:
