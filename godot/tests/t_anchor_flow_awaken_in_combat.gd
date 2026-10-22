@@ -11,6 +11,7 @@ var rm: Node = null
 const CASES := [
 	{"anchor": "a_volley", "owned": "c_sonic_shield", "take": "c_thorn_shield"},
 	{"anchor": "a_gambler", "owned": "c_hollow_core", "take": "c_mana_ward"},
+	{"anchor": "a_mana_mine", "owned": "c_mana_pool", "take": "c_deep_current"},
 ]
 
 
@@ -99,6 +100,36 @@ func _case(c: Dictionary) -> void:
 			e.use_die(e.party[i].uid, tgt.uid)
 		await _frames(4)
 		_check(bool(e.anchor_turn["vol2"]) and other.hp == 86, "a_volley: Thorn Storm blasts a second time (hp %d)" % other.hp)
+	elif aid == "a_mana_mine":
+		# Roll turns until the first roll is a natural SET with an Overcast-able die (rng is the run's; bounded loop).
+		var tried := 0
+		var pick_uid := -1
+		var gain := -1
+		while tried < 600 and pick_uid < 0:
+			tried += 1
+			var m_before := e.mana
+			e.roll_all()
+			if not bool(e.anchor_turn.get("mine", false)) or e.bo.is_empty():
+				continue
+			for mu in (e.bo[0]["uids"] as Array):
+				var bu := e.by_uid(int(mu))
+				var m_now := e.mana
+				e.mana = 10
+				var can := bu != null and e.can_overcast(bu.uid)
+				e.mana = m_now
+				if can:
+					pick_uid = bu.uid
+					gain = m_now - m_before
+					break
+		_check(pick_uid >= 0, "a_mana_mine: found a natural SET turn (%d rolls)" % tried)
+		if pick_uid >= 0:
+			_check(gain == 1, "a_mana_mine: natural SET on the first roll pays +1 mana (%d)" % gain)
+			e.mana = 10
+			_check(e.overcast_cost() == 1, "a_mana_mine: Overcast costs 1 after the SET")
+			_check(e.overcast(pick_uid) and e.mana == 9, "a_mana_mine: first Overcast paid 1 (mana %d)" % e.mana)
+			_check(e.overcast_cost() == 2 and e.overcast_per_turn() == 2, "a_mana_mine awake: second Overcast costs 2, 2 per turn")
+			_check(e.overcast(pick_uid) and e.mana == 7, "a_mana_mine awake: second Overcast accepted, paid 2 (mana %d)" % e.mana)
+			_check(not e.overcast(pick_uid), "a_mana_mine: no third Overcast")
 	else:
 		var seed_c := _cracking_seed("a_gambler")
 		_check(seed_c >= 0, "a_gambler: found a Cracking seed")
