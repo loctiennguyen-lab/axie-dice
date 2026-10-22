@@ -1,5 +1,26 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (22/10 chiều) — ANCHOR MVP ĐÃ DEPLOY (godot-port 83d73bc, RULES -s, Worker 7aaffe19, pck md5 917649e0)
+Liam chốt thêm hôm nay: (1) Anchor mở cho run ONLINE thường (web chạy online: epoch_source=remote) — `pick_anchor [index]` vào action log +
+ALLOWED_FNS 3 chỗ, Worker chặn ranked/daily/mission và stage 1; (2) Anchor mở từ STAGE 2 (tài khoản Liam trên D1: runs_completed=1 = stage 2);
+Mana Mine `min_stage: 3` (Overcast mở ở stage 3) — hiện thẻ khoá + lý do; (3) Gai tạm Spiked Shield tối đa 4 MỖI AXIE mỗi lượt;
+(4) làm song song tối đa + việc gì cũng có QA (memory parallel-and-qa-always).
+Lỗi lớn tìm ra bằng sim: `RunState.after_node()` không chặn khi màn chọn Anchor đang chờ → đếm node ảo (power_level +1 cả run). Đã sửa (c746fc0)
++ test. Đây là lý do mọi số "có Anchor" trước đó thấp ~10 điểm.
+Số chốt (knob gốc, n 240-320): ép Gambler/Mana Mine/Volley 19.6/20.0/20.8 (chênh 1.2), expert tự chọn 24.1, random 10.0, spam 15.5 (chưa đạt ≤12),
+thức tỉnh 60/49/42%, đột biến nhà bất kỳ 43-55%, expert stage 2 25.6, expert không Anchor 23.5. Báo cáo: `production/qa/sim/sim-anchor-mvp.md`.
+Chữ: cả 3 Anchor không có giá thật ở knob này → bỏ dòng PRICE; Gambler ghi "Crack 15% (normally 30%)"; Mana Mine "first roll of a turn".
+Review: lead-programmer x5 (engine, online, sửa, UI code, tích hợp), ux-designer (UI → đã sửa 6 điểm). QA luồng thật: t_anchor_flow_online_stage2,
+_gut_progress, _pair_mutation, _awaken_in_combat (3 Anchor), _online_session (RunSetup→RemoteEpochSource giả) + t_replay từ chối Mana Mine stage 2.
+Suite 224 (223 xanh; t_desktop_signin đỏ cả trên godot-port gốc ở máy này — kiểm lại khi máy rảnh). Worker 236/236.
+Theo dõi sau playtest: spam 15.5, expert tự chọn 24.1 (Volley theo heuristic đội 32.8%). Run online dở của Liam trên -r sẽ không tiếp tục được (-s).
+Deploy + QA trên web (22/10): md5 html/js/wasm/pck khớp. Phát hiện lỗi CŨ trên web: `RelicRegistry` liệt kê `res://resources/relics/`
+mà bản export trả `x.tres.remap` → web KHÔNG nạp Lõi/Luật run nào (run mở thẳng ra map). Sửa 120f4a9 (`def_file_name`), test t_relic_registry_export,
+giữ -s (luật không đổi), export + deploy lại. Server tính stage theo run online đã đóng (D1), không theo save client: tài khoản Liam có 1 run
+đóng → stage 2. Đã kiểm trên tài khoản Liam (Liam cho phép): run mới → Luật run (chọn Hard Shell, bỏ Mystic Wasteland vì cắt còn 3 lượt Lõi)
+→ màn chọn Anchor hiện, Mana Mine khoá đúng lý do. Dừng ở màn chọn, Liam tự chọn.
+Worktree dùng hôm nay (dọn sau): IA (int/anchor), IA2, AF (anchor/ui-fix), PM (fix/pck-manifest), SA2-4 (sim detached).
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (25/10) — ANCHOR MVP: ĐỦ CODE, CHƯA ĐẠT SỐ; CÒN SIM 6 MỐC → TÍCH HỢP → REVIEW → QA → DEPLOY
 Liam chốt thêm (24-25/10): (1) TĂNG mốc chọn Lõi 4 → 6 mỗi run (vì 3 vòng chỉnh knob không đủ: combo/run chỉ 0.3-0.5); (2) cho hoàn tất merge
 engine vào nhánh UI (đã làm). Mọi worktree SẠCH (không file sửa dở), không còn tiến trình Godot chạy.
