@@ -530,6 +530,7 @@ func _apply_arena_for_node() -> void:
 
 
 func _exit_tree() -> void:
+	Engine.time_scale = 1.0   # never leave a hit-stop behind
 	_stage3d.dispose_all()
 
 
@@ -3380,12 +3381,25 @@ func _on_anchor_awakened(id: String) -> void:
 	if not AnchorFx.take_pending():
 		return
 	awaken_log.append("play")
+	_awaken_hit_stop()
 	var rect := Rect2()
 	if _hud_frame != null and _hud_frame.core_panel != null and _hud_frame.core_panel.anchor_slot != null:
 		rect = _hud_frame.core_panel.anchor_slot.get_global_rect()
 	awaken_fx = AnchorFx.play(self, id, "", rect)
 	if _hud_frame != null and _hud_frame.core_panel != null:
 		_hud_frame.core_panel.refresh()
+
+
+## Spec 4.4: 0.1 s hit-stop when the Anchor wakes mid-fight. Real-time timer (ignores time_scale); skipped with reduce flashing / in tests.
+func _awaken_hit_stop() -> void:
+	if disable_juice_for_tests or MetaState.reduce_flash or not is_inside_tree():
+		return
+	hit_stops += 1
+	Engine.time_scale = 0.05
+	get_tree().create_timer(0.1, true, false, true).timeout.connect(func() -> void: Engine.time_scale = 1.0)
+
+
+var hit_stops := 0
 
 
 func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> void:
