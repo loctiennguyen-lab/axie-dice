@@ -1080,6 +1080,7 @@ func _build_hud_r1() -> void:
 	_bo_layer = BoLayer.new()
 	_shell_root.add_child(_bo_layer)
 	_bo_layer.cards_provider = _card_rects
+	_bo_layer.m100_provider = _bo_group_m100
 	for b in _die_slot_buttons:
 		var nm: String = (b as Button).name
 		(b as Button).get_parent().remove_child(b)
@@ -4464,6 +4465,16 @@ func _card_rects() -> Dictionary:
 			var inv := _bo_layer.get_global_transform().affine_inverse() if _bo_layer != null else Transform2D.IDENTITY
 			rects[(units[i] as Unit).uid] = Rect2(inv * gr.position, gr.size)
 	return rects
+
+
+## Real M of a Set group for the label: m100_for on a live die of the group, so it matches the number on each die.
+func _bo_group_m100(g: Dictionary) -> int:
+	if _combat != null:
+		for uid in (g["uids"] as Array):
+			var u: Unit = _combat.by_uid(int(uid))
+			if u != null:
+				return _combat.m100_for(u)
+	return int(g["m100"])
 
 
 func _refresh_bo_layer() -> void:
