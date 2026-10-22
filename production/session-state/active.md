@@ -1,5 +1,35 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (25/10) — ANCHOR MVP: ĐỦ CODE, CHƯA ĐẠT SỐ; CÒN SIM 6 MỐC → TÍCH HỢP → REVIEW → QA → DEPLOY
+Liam chốt thêm (24-25/10): (1) TĂNG mốc chọn Lõi 4 → 6 mỗi run (vì 3 vòng chỉnh knob không đủ: combo/run chỉ 0.3-0.5); (2) cho hoàn tất merge
+engine vào nhánh UI (đã làm). Mọi worktree SẠCH (không file sửa dở), không còn tiến trình Godot chạy.
+Ba nhánh làn (chưa merge vào godot-port; RULES_VERSION vẫn -r, CHƯA bump):
+- `../my-game-wt/AE` `anchor/eng` @ **60d55a6**: engine Anchor đủ (3 Anchor + giá, 6 nhà đột biến nấc 1/2, 3 thức tỉnh, cổng offline+stage≥3,
+  R1 rút trục, bias nhà/trục, replay). Tóm tắt luật: `production/anchor-2b-brief.md` (worktree AE).
+- `../my-game-wt/AU2` `anchor/ui` @ **8dce003** (đã merge AE 2a+2b): màn chọn Anchor, HUD ô Anchor + chip x/2→Awakened, chip AWAKEN trên thẻ Lõi,
+  dải MUTATION, moment thức tỉnh AnchorFx + âm dm_awaken + hit-stop, Result + Codex tab Anchors (`MetaState.anchor_codex`), RunSetup bật
+  `anchor: true`, sửa lỗi Luật run bỏ qua màn Anchor; test t_anchor_flow_start/codex/hud/mutation/awaken_ui/pick_ui; ảnh
+  `production/qa/evidence/anchor_*` (AU2). Bàn giao: mục "AU2 - bàn giao" trong `production/anchor-contract.md` (AU2). Chưa: ảnh MUTATION
+  trong trận, glyph nhà trong float, material_credit.ogg. CHƯA chạy cả suite trên AU2 sau 8dce003.
+- `../my-game-wt/SA` `sim/anchor` @ **d533bd2** (= AE + godot-port tooling): bot sim Anchor (`--anchor=auto|none|a_*`), 3 vòng chỉnh knob
+  (Volley 40/65/90 cap 20 set_add 0; Gambler Nứt 15% +0.35; Mỏ Mana Mặt Tạm 2; house_bias 5.0, axis_bias 3.0, partner_bias 3.0 mới) và
+  **d533bd2 = 6 mốc chọn Lõi** (thêm sau Elite thắng đầu tiên không phải milestone + sau nút N; t_core_pick_points). Báo cáo
+  `production/qa/sim/sim-anchor-mvp.md` (SA). SIM VỚI 6 MỐC CHƯA CHẠY.
+Số trước 6 mốc (vòng 3): expert có Anchor 14.2 (mục tiêu 20±3, không quá ~21), random 6.7, spam 2.5, thức tỉnh Volley 17%/Gambler 52%/
+Mỏ Mana 33% (mục tiêu ≥33% mỗi Anchor), đột biến Cặp nấc 1 ≤24% (mục tiêu ≥40%), 3 Anchor chênh 6.2 (mục tiêu ≤5).
+Việc tiếp theo (thứ tự):
+1. SA: sim 6 mốc (expert auto 160, random 120, spam 120, mỗi Anchor ép 80, expert none 120; Short A0 stage 3, lô 40); nếu expert > 23 thì
+   tăng `difficulty.enemy_dmg_mult` 0.05/bước hoặc hạ knob Anchor (≤3 vòng). Ghi mục "Vòng 6 mốc" vào báo cáo SA. Nếu vẫn chưa đạt → hỏi Liam.
+2. Tạo nhánh tích hợp `int/anchor` từ godot-port: merge AE 60d55a6 → SA (tip sau bước 1) → AU2 8dce003; grep marker, `--import`.
+3. Bump RULES_VERSION → `-s` + `SUPPORTED_RULE_VERSIONS` (worker/src/run_do.js) + fingerprint t_rules_version; suite KHÔNG cờ skip + Worker test;
+   cập nhật sàn test trong `.claude/docs/technical-preferences.md` (hiện 206/206, Worker 229/229).
+4. Review độc lập: lead-programmer (engine + replay + save) và ux-designer (UI, ảnh 2 cỡ).
+5. QA luồng thật (qa-tester, 4 test FLOW trong `production/qa/anchor-mvp-qa-plan.md` mục 3) ở stage của tài khoản Liam.
+6. Merge vào godot-port, push `axiedice godot-port:main`, deploy: `bash export-web.sh` → `bash deploy-r2.sh --pck-only` → `cd worker && npx
+   wrangler deploy` → `bash deploy-r2.sh --rest` → kiểm md5 `/index.pck` + html/js/wasm + mở axiedice.fun. Kèm nợ Worker trong
+   `production/release/deploy-2026-10-23.md` (manifest key prefix `pck/`, md5 bắt buộc). Liam đã cho phép deploy gói này.
+7. Báo Liam 3-5 dòng "để ý gì" (memory finish-then-deploy-for-playtest).
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (24/10, cập nhật) — CÒN LẠI CỦA ANCHOR MVP (theo thứ tự)
 Làn đang mở (mỗi làn có bàn giao trong `production/anchor-contract.md` của worktree đó):
 - `../my-game-wt/AE` nhánh `anchor/eng`: bước 1 xong (b07c0df..435e6a9, cfbbe3d hợp đồng sự kiện). Bước 2a (RunState anchor_id/anchor_awakened/
