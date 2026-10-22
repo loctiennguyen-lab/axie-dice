@@ -82,6 +82,7 @@ func _ready() -> void:
 		_ok(RunState.action_log.is_complete(), "action log complete")
 		_ok(rm.find_child("AnchorPick", true, false) == null or not (rm.find_child("AnchorPick", true, false) as Control).visible, "pick screen gone")
 		_ok(not RunState.pending_rewards.is_empty() or RunState.phase == RunState.RunPhase.MAP, "first Core offer or map after the pick")
+		_ok(RunState.power_level == 0 and not RunState.visited_node_ids.has(""), "no phantom node from the Anchor wait (power_level %d)" % RunState.power_level)
 	rm.queue_free()
 	await _frames(2)
 	# ---- stage 1: no screen
