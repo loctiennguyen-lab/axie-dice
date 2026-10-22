@@ -57,6 +57,7 @@ const _RELIC_ROW_H := 44.0
 
 @onready var _root: Control = %Root
 var _content: Control = null
+var _core_panel: CorePanel = null   ## the left-plate Cores strip (rebuilt with the plate); source of the Anchor tile rect
 var _graph: RunMapGraph = null
 var _edges_canvas: _EdgeCanvas = null
 var _nodes_layer: Control = null
@@ -789,6 +790,7 @@ func _rebuild_left() -> void:
 	rcol.add_child(UI3.label(tr("Cores · %d") % RunState.owned_relic_ids.size(), "LabelTitle"))
 	var core_panel := CorePanel.new()
 	core_panel.slot_px = 40
+	_core_panel = core_panel
 	rcol.add_child(core_panel)
 	core_panel.visible = core_panel.refresh()
 	var scroll := ScrollContainer.new()
@@ -1805,7 +1807,10 @@ func _apply_and_finish(reward: Dictionary) -> void:
 func _play_awaken(extra_line := "") -> AnchorFx:
 	if _overlay_layer == null or not AnchorFx.take_pending():
 		return null
-	return AnchorFx.play(_overlay_layer, AnchorAdapter.current_id(), extra_line)
+	var rect := Rect2()
+	if is_instance_valid(_core_panel) and _core_panel.is_inside_tree() and _core_panel.anchor_slot != null:
+		rect = _core_panel.anchor_slot.get_global_rect()
+	return AnchorFx.play(_overlay_layer, AnchorAdapter.current_id(), extra_line, rect)
 
 
 ## "PAIR: <combo> . MUTATION: <name>" for the strongest newly formed combo, "" when none.
