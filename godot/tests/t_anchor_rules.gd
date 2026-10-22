@@ -29,6 +29,15 @@ func run() -> void:
 	BoTestBase.force(v, [1, 1, 1, 2, 3], [d5, d5, d5, d5, d5])
 	eq(v.m100_for(v.party[0]), 115, "Volley price: SET -0.15")
 	eq(v.m100_for(v.party[3]), 100, "Volley price: loose die untouched")
+	# Wild preview must include the Anchor price and match the real M after the action
+	var vp := _eng("a_volley", 10)
+	BoTestBase.force(vp, [1, 1, 1, 2, 3], [d5, d5, d5, d5, d5])
+	var pvv := vp.preview_wild(vp.party[3].uid, 1)
+	ok(bool(pvv["ok"]), "volley wild preview ok")
+	var pv_m := int(round(float(pvv["mult"]) * 100.0))
+	ok(vp.wild_face(vp.party[3].uid, 1), "volley wild_face")
+	eq(pv_m, vp.m100_for(vp.party[3]), "Wild preview mult = real M with Anchor price")
+	eq(vp.bo_group_m100(vp.bo[0]), vp.m100_for(vp.party[3]), "bo_group_m100 = member M")
 	for t in v.enemies:
 		(t as Unit).hp = 90
 		(t as Unit).max_hp = 90

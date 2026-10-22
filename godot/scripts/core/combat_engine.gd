@@ -1556,7 +1556,7 @@ func preview_wild(unit_uid: int, slot: int) -> Dictionary:
 	out["groups"] = groups
 	for g in groups:
 		if (g["uids"] as Array).has(unit_uid):
-			out["mult"] = float(g["m100"]) / 100.0
+			out["mult"] = float(bo_group_m100(g)) / 100.0
 			out["bo_label"] = {3: "BỘ BA", 4: "BỘ BỐN", 5: "BỘ NĂM"}[int(g["size"])]
 			break
 	return out
@@ -1858,6 +1858,12 @@ func m100_for(u: Unit) -> int:
 		if (anchor_turn.get("oc2", []) as Array).has(u.uid):
 			add += roundi(overcast_add() * 100.0)   # Double Beat: the second Overcast on the same Set stacks
 	return clampi(100 + add, 100, bo_cap100())
+
+
+## Group M x100 including the Anchor's Set add (Volley price / Gambler bonus), clamped like m100_for. For previews/UI; excludes the
+## per-die parts (Overcast, Last Strike) that depend on which die is asked about.
+func bo_group_m100(g: Dictionary) -> int:
+	return clampi(int(g["m100"]) + _anchor_set_add100(), 100, bo_cap100())
 
 
 ## ---- Anchor base rules + awakenings (production/anchor-2b-brief.md) ---------------------------------------------
