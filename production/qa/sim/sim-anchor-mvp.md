@@ -76,3 +76,22 @@ Do vong 3: expert auto 14.2 (n=120); ep Volley 10.0 / Gambler 16.2 / Mana Mine 1
 | dot bien nac1 nha | >=40% | <=17% | <=26% | <=22% | <=24% |
 **Ket luan: CHUA DAT sau 3 vong.** Knob cuoi: volley 40/65/90 cap 20 set_add 0.0; gambler Nut 15% set_add 0.35; mine wild 2; house_bias 5.0, axis_bias 3.0, partner_bias 3.0 (moi). Ly do: giam gia + buff nhe dua expert tu 11 len ~14; bias nang Loi ruot (x1.7-2.3) nhung combo/run chi 0.3->0.4 vi chi co 4 moc chon Loi/run. Van xa 20: de dat can doi co che (them moc chon Loi, ha nguong Cap, hoac Anchor cho +dame truc tiep), khong chi so knob. Volley van yeu nhat (10), nhieu khi Volley khong thuc tinh (can 2 Loi ruot, Loi nha Volley nam o tier H). CI +-7 nen chenh giua Anchor chua tin duoc ngay ca voi 80 run.
 Test sua expect: t_anchor_rules, t_anchor_awaken, t_core_offer_weights (ratio 1.15..2.6). Xanh: t_anchor_rules 190, t_anchor_awaken 37, t_mutation_houses 86, t_core_offer_weights 57, t_core_combos 143, t_anchor_runstate 84, t_anchors 172.
+
+## Vòng 6 mốc (22/10, sau d533bd2)
+Cách đo: Short A0 stage 3, lô 40, chạy song song ở 4 worktree (SA, SA2-4 detached). Gộp bằng script đọc CSV `sim-*-<vòng>_*.csv`.
+"Đột biến nhà bất kỳ" = % run có ≥1 nhà nấc ≥1; "nhà Anchor" = riêng nhà của Anchor đang cầm.
+
+| vòng | knob | expert auto | ép G / M / V | random / spam | thức tỉnh G/M/V (ép) | đột biến bất kỳ (auto) |
+|---|---|---|---|---|---|---|
+| v6 (n=160, ép n=80) | gốc (V3 cũ) | 18.1 | 17.5 / 21.2 / 23.8 | 11.7 / 6.7 | 58/59/40 | 49% |
+| w1 (n=160) | V 35/55/80 cap18, G +0.40 Nứt 12 | 16.2 | 13.8 / 15.0 / 20.0 | 11.7 / 5.8 | 52/49/42 | 48% |
+| w2 (n=160) | + G +0.45 cap .80 Nứt 10, M Mặt Tạm 1 | 12.5 | 11.2 / 9.4 / - | 12.5 / 5.8 | 52/48/- | 47% |
+| w3 (n=400) | gốc + sửa engine (review) + pick_anchor trong log | 12.0 | 11.5 / 13.0 / 16.5 | 6.5 / 6.0 | 54/54/39 | 44% |
+| w5 (n=240) | buff mạnh: V 50/75/100 cap24, G +0.45 cap .90 Nứt 8, M +2 mana, Mặt Tạm 1 | 13.8 | 11.2 / 14.6 / 16.7 | 5.5 / 4.5 | 55/50/36 | 42% |
+Expert không Anchor: 23.5% (n=400). Expert có Anchor ở stage 2: 14.4% (n=160).
+
+Lưu ý nhiễu: từ khi `pick_anchor` vào action log, seed epoch local băm cả log nên dãy RNG sau lượt chọn Anchor khác hẳn bản cũ; "cùng seed" trước/sau không còn so cặp được. v6 18.1 là mẫu may (cùng knob, w3 ra 12.0 với n=400).
+
+Chẩn đoán (expert ép Volley, n=160 mỗi biến thể): tắt đột biến 16.9; bias offer = 1.0 16.9; bot bỏ ưu tiên Lõi ruột 13.8; giữ luồng Anchor nhưng tắt mọi hiệu ứng Anchor trong trận 13.8; mở màn Anchor rồi TỪ CHỐI (không Anchor nào) 14.4 so với không có màn 23.5-25.
+=> Hiệu ứng Anchor trong trận có lợi (+2-3), đột biến trung tính, buff luật nền gần như không đổi số. Phần tụt ~10 điểm nằm ở LUỒNG mở run khi có màn Anchor (kể cả khi từ chối): mana đầu lượt trung bình 2.79 -> 1.04, m_v0 886 -> 712. Đang truy gốc (agent riêng).
+Knob giữ: gốc (V 40/65/90 cap 20, G +0.35 cap .60 Nứt 15, M +1 mana, Overcast 1, Mặt Tạm 2) — buff không đổi số nên giữ bản đã duyệt. Chữ luật sửa: cả 3 Anchor không có giá thật ở knob này (Nứt gốc 30%, Mặt Tạm gốc 2), nên bỏ dòng PRICE.
