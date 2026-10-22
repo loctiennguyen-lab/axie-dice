@@ -95,3 +95,15 @@ Lưu ý nhiễu: từ khi `pick_anchor` vào action log, seed epoch local băm c
 Chẩn đoán (expert ép Volley, n=160 mỗi biến thể): tắt đột biến 16.9; bias offer = 1.0 16.9; bot bỏ ưu tiên Lõi ruột 13.8; giữ luồng Anchor nhưng tắt mọi hiệu ứng Anchor trong trận 13.8; mở màn Anchor rồi TỪ CHỐI (không Anchor nào) 14.4 so với không có màn 23.5-25.
 => Hiệu ứng Anchor trong trận có lợi (+2-3), đột biến trung tính, buff luật nền gần như không đổi số. Phần tụt ~10 điểm nằm ở LUỒNG mở run khi có màn Anchor (kể cả khi từ chối): mana đầu lượt trung bình 2.79 -> 1.04, m_v0 886 -> 712. Đang truy gốc (agent riêng).
 Knob giữ: gốc (V 40/65/90 cap 20, G +0.35 cap .60 Nứt 15, M +1 mana, Overcast 1, Mặt Tạm 2) — buff không đổi số nên giữ bản đã duyệt. Chữ luật sửa: cả 3 Anchor không có giá thật ở knob này (Nứt gốc 30%, Mặt Tạm gốc 2), nên bỏ dòng PRICE.
+
+### Nguyên nhân thật + số chốt (w6, sau c746fc0)
+Gốc: `RunState.after_node()` không chặn khi màn chọn Anchor đang chờ. Bot sim (và `RunMapController` khi REWARD trống) gọi nó ngay sau lượt chọn Luật run → đếm một node ảo: `power_level` +1 cả run (quái mạnh hơn một nấc), `visited_node_ids` có `""`. Mọi số "có Anchor" ở v6..w5 đều bị thổi độ khó. Sửa: guard `_anchor_waiting` trong `after_node`, test ở `t_anchor_runstate` + `t_anchor_flow_online_stage2` (power_level 0 sau khi chọn).
+Knob chốt = gốc (không buff). Đo w6:
+| nhóm | n | win | thức tỉnh | đột biến bất kỳ |
+|---|---|---|---|---|
+| expert tự chọn | 320 | 24.1 ±4.7 (Volley 32.8, Gambler 20.1, Mana Mine 12.5 theo heuristic đội) | | 47% |
+| ép Gambler / Mana Mine / Volley | 240 mỗi | 19.6 / 20.0 / 20.8 | 60 / 49 / 42% | 50 / 55 / 43% |
+| từ chối Anchor | 160 | 22.5 (≈ không Anchor 23.5: hết lỗi) | | |
+| random / spam | 200 | 10.0 / 15.5 | | |
+| expert stage 2 (tự chọn) | 160 | 25.6 | | |
+So mục tiêu: ép từng Anchor 20±3 ĐẠT, chênh 1.2 ĐẠT, random ĐẠT, thức tỉnh ĐẠT, đột biến ĐẠT. Chưa đạt: spam 15.5 (>12, CI ±5; spam cầm Mana Mine 20%, Gambler 15.6 với n~60) và expert tự chọn 24.1 (>~21, do heuristic bot ghép Volley cho đội khiên). Liam đã cho chốt sau vòng này; hai số này ghi để theo dõi sau playtest.
