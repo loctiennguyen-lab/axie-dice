@@ -234,7 +234,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## (tier 1/2, tier 2 needs disjoint Pairs) + awakening, `pick_anchor` in the action log (online normal runs, stage >= 2, Mana Mine stage 3),
 ## after_node guard while the Anchor pick is open, 6 Core picks per Short run, R1 axis draw + house/axis/partner bias.
 ## Same actions give a different run. Worker SUPPORTED_RULE_VERSIONS gained -s.
-const FINGERPRINT := "b37c360d936605a00706e13a4c6eb97b282d5d761188d0a981b1d82d0e8bebb0"
+## Moved 2026-10-25 (NOT bumped): RelicRegistry maps an exported `x.tres.remap` entry to `x.tres`. The rules are the same;
+## the web build simply had not loaded any Core / Run Rule before (axiedice.fun, found 22/10). Local/editor runs are identical.
+const FINGERPRINT := "046ea8e4fa34cb5963a06c4f0df45b858c205e7aaa0e32502865c7a814596015"
 
 
 func _ready() -> void:
