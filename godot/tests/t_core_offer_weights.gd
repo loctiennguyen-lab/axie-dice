@@ -78,6 +78,20 @@ func _ready() -> void:
 			sum_yes += int(yes.get(id, 0))
 	print("  house Cores shown (a_volley, 3 tiers): no Anchor %d, Anchor %d (x%.2f)" % [sum_no, sum_yes, float(sum_yes) / maxf(1.0, sum_no)])
 	_assert(sum_yes > sum_no * 1.02, "house bias raises house Core appearances")
+	# overall target ~1.5x for the Anchor's own Cores (cell bias + axis bias together), printed per Anchor
+	for aid in ["a_volley", "a_gambler", "a_mana_mine"]:
+		var hc: Array = Anchors.get_def(aid)["house_cores"]
+		var s_no := 0
+		var s_yes := 0
+		for tier in [0, 1, 2]:
+			var no2 := _draw(tier, _ctx([], []), 5)
+			var yes2 := _draw(tier, _ctx([], hc), 5)
+			for id in hc:
+				s_no += int(no2.get(id, 0))
+				s_yes += int(yes2.get(id, 0))
+		var ratio := float(s_yes) / maxf(1.0, s_no)
+		print("  house Cores %s: no Anchor %d, Anchor %d -> x%.2f (target ~1.5)" % [aid, s_no, s_yes, ratio])
+		_assert(ratio > 1.15 and ratio < 2.2, "%s house Core ratio %.2f within 1.15..2.2" % [aid, ratio])
 
 	# reroll never applies the bias: identical result with and without anchor_house
 	var offer := CoreOffer.build_offer(Rng.new(9), 1, ctx, 3)

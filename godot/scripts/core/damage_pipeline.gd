@@ -150,6 +150,8 @@ static func resolve(ctx: Dictionary) -> int:
 	var thorns_now := int(tgt.status.get("thorns", 0))
 	if bool(tgt.custom_state.get("spite", false)):
 		thorns_now = 0                           # M3 Spite replaces the old thorns of this unit
+	if tgt.side == "p":
+		thorns_now += int(tgt.custom_state.get("tmp_thorns", 0))   # Anchor h_volley Spiked Shield (never touches status thorns / thorns.cap)
 	if tgt.side == "p" and tgt.is_token:       # thornling: Eggs reflect at least this much from the moment they exist
 		thorns_now = maxi(thorns_now, int(RelicHooks.max_val(combat, "eggThorns", 0.0)))
 	if src != null and attack and not skip_thorns and thorns_now > 0 and src.hp > 0 and src != tgt:

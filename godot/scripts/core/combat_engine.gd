@@ -114,6 +114,16 @@ var wild_used: int = 0
 ## Depth v4 3.7 (MD 22/10): Overcasts used this turn (cap overcast.per_turn). The Set it hit is stored as the `overcast` flag on every
 ## member die at the moment of use (locked: a later reroll / Mat Tam does not move it). In the undo snapshot and the save; reset in roll_all.
 var overcast_used: int = 0
+## Anchor (design: production/anchor-2b-brief.md). anchor_id "" = no Anchor: every hook below is skipped, no rng, replays unchanged.
+var anchor_id: String = ""
+var anchor_awakened: bool = false
+## Per-turn Anchor tallies, reset in roll_all, in the undo snapshot AND the save. gb100 = Gambler clean-Gamble add (percent),
+## mine = Mana Mine turn-one natural SET happened, sw_used = Second Wind used, vol_* = Volley blast state, oc2 = uids stacked by Double Beat.
+var anchor_turn: Dictionary = {}
+## House mutations (production/anchor-2b-brief.md): {house_id: tier 1|2}, empty without an Anchor. Fixed for the fight, in snapshot + save.
+var house_tiers: Dictionary = {}
+## Per-FIGHT mutation tally (not reset per turn): {"kin": bool Cover already fired, "fired": {house_id: total amount}}. Snapshot + save.
+var anchor_fight: Dictionary = {}
 ## Every reroll this turn, any source: capped by reroll.hard_cap (3.10.3).
 var reroll_total_turn: int = 0
 ## Depth v4 3.10.2: lock per (turn, k) = {rmode, rsrc, uids, list}; asking for the same k again must repeat it exactly. NOT cleared by undo. Reset in roll_all.
@@ -197,6 +207,11 @@ func setup_new(combat_setup: Dictionary) -> void:
 	start_mana = int(combat_setup.get("start_mana", 0))
 	first_dmg_face_bonus = int(combat_setup.get("first_dmg_face_bonus", 0))
 	start_eggs = int(combat_setup.get("start_eggs", 0))
+	anchor_id = String(combat_setup.get("anchor_id", ""))
+	anchor_awakened = anchor_id != "" and bool(combat_setup.get("anchor_awakened", false))
+	anchor_turn = _anchor_turn_fresh()
+	house_tiers = _house_tiers_from_data(combat_setup.get("house_tiers", {})) if anchor_id != "" else {}
+	anchor_fight = _anchor_fight_fresh()
 	_first_dmg_used = false
 	relic_combat = {}
 	relic_run_in = (combat_setup.get("relic_state", {}) as Dictionary).duplicate(true)
@@ -352,6 +367,11 @@ func _state_dict() -> Dictionary:
 		"reroll_paid_k": reroll_paid_k,
 		"wild_used": wild_used,
 		"overcast_used": overcast_used,
+		"anchor_id": anchor_id,
+		"anchor_awakened": anchor_awakened,
+		"anchor_turn": anchor_turn.duplicate(true),
+		"house_tiers": house_tiers.duplicate(),
+		"anchor_fight": anchor_fight.duplicate(true),
 		"reroll_total_turn": reroll_total_turn,
 		"reroll_lock": _lock_to_data(),
 		"relic_combat": relic_combat.duplicate(true),
@@ -412,6 +432,11 @@ func _apply_state_dict(d: Dictionary) -> void:
 	reroll_paid_k = int(d.get("reroll_paid_k", 0))
 	wild_used = int(d.get("wild_used", 0))
 	overcast_used = int(d.get("overcast_used", 0))
+	anchor_id = String(d.get("anchor_id", ""))
+	anchor_awakened = bool(d.get("anchor_awakened", false))
+	anchor_turn = _anchor_turn_from_data(d.get("anchor_turn", {}))
+	house_tiers = _house_tiers_from_data(d.get("house_tiers", {}))
+	anchor_fight = _anchor_fight_from_data(d.get("anchor_fight", {}))
 	reroll_total_turn = int(d.get("reroll_total_turn", 0))
 	reroll_lock = _lock_from_data(d.get("reroll_lock", {}))
 	relic_combat = (d.get("relic_combat", {}) as Dictionary).duplicate(true)
@@ -570,7 +595,9 @@ func roll_all() -> void:
 	reroll_total_turn = 0
 	reroll_lock = {}
 	overcast_used = 0
+	anchor_turn = _anchor_turn_fresh()
 	for u in party:
+		u.custom_state.erase("tmp_thorns")   # Spiked Shield: Thorns last until the end of the enemy turn only
 		u.overcast = false
 		u.wild_slot = -1   # Mat Tam lasts one turn, mana not refunded (3.6)
 		u.cracked = false   # Lieu cracks last until the next roll (a parked die comes out clean too)
@@ -610,6 +637,7 @@ func roll_all() -> void:
 	RelicHooks.fire(self, "on_roll_end", {"combat": self})
 	RelicHooks.fire(self, "on_roll_settled", {"combat": self, "rerolled_uids": []})   # H1b
 	_snap_bo()
+	_anchor_mine_roll()
 
 
 ## Depth v3 Core Concord (hook `roll_share_class`): Axies of one class that rolled fresh this turn all show the face
@@ -900,6 +928,7 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false, rmode: int
 	var list: Array = _rerollable(uids)
 	var hook := _before_reroll(uids, from_aid, false)
 	var paid_cost := reroll_mana_cost(from_aid, eff)   # 0 while a free charge is left, for Aid and for Lieu
+	var mut_saved := reroll_mana_cost(from_aid, eff, false) - paid_cost   # Hunt Four discount, if any
 	if bool(hook["veto"]) or mana < int(hook["mana_cost"]) + paid_cost:
 		return false
 	if use_seed >= 0:
@@ -911,6 +940,10 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false, rmode: int
 	reroll_total_turn += 1
 	if chosen:
 		reroll_paid_k += 1
+		if eff == 1:
+			anchor_turn["safe_n"] = int(anchor_turn["safe_n"]) + 1
+			if mut_saved > 0:
+				_mut_emit("h_big_hand", 0, mut_saved)
 	var uid_list: Array = []
 	for lu in list:
 		uid_list.append((lu as Unit).uid)
@@ -939,12 +972,16 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false, rmode: int
 	if eff == 0:
 		# Lieu (3.5): ONE draw per uid the caller named, in the caller's order, from this reroll's own seed stream,
 		# even for a die that died or did not roll, so RNG use does not depend on state. Only a die rolled just now can crack.
-		var crack_pct := int(tune_knob("crack", "pct", 30.0))
+		var crack_pct := int(tune_knob("anchor", "gambler_crack_pct", 40.0)) if anchor_id == "a_gambler" else int(tune_knob("crack", "pct", 30.0))
+		var cracked_now: Array = []
 		for raw_c in uids:
 			var hit := _rng.next_int(100) < crack_pct
 			var cu := by_uid(int(raw_c))
 			if hit and cu != null and settled.has(cu.uid):
 				cu.cracked = true
+				cracked_now.append(cu.uid)
+		_mut_gamble(cracked_now)
+		_anchor_after_gamble(settled.size(), cracked_now, use_seed)
 	_snap_bo()
 	# JS clears the undo stack on reroll ONLY when the party lacks `safeReroll`
 	# (engine.js:502). Clearing unconditionally quietly disabled that relic's whole point.
@@ -1053,11 +1090,12 @@ func reroll_is_payable() -> bool:
 
 ## Mana the NEXT reroll costs on top of any relic surcharge: 0 while a free charge is left, and for an
 ## Aid reroll. Hook `reroll_mana_cost` (value = knob reroll.mana_cost) lets a Core discount it.
-func reroll_mana_cost(from_aid: bool = false, rmode: int = 1) -> int:
+func reroll_mana_cost(from_aid: bool = false, rmode: int = 1, with_mutation: bool = true) -> int:
 	if from_aid or rerolls > 0 or rmode == 0:
 		return 0   # Lieu is free (its price is the crack)
 	var base := int(tune_knob("reroll", "mana_cost_2", 1.0)) if reroll_paid_k <= 0 else int(tune_knob("reroll", "mana_cost_3", 3.0))
-	return maxi(0, int(RelicHooks.run_value_hook(self, "reroll_mana_cost", {"combat": self}, base)))
+	var c := maxi(0, int(RelicHooks.run_value_hook(self, "reroll_mana_cost", {"combat": self}, base)))
+	return _mut_safe_price(c) if with_mutation else c
 
 
 ## H1a. A handler may veto the reroll or charge Mana for it; dry_run tells it nothing may be spent.
@@ -1427,6 +1465,8 @@ func stash(unit_uid: int) -> bool:
 
 # ---- Depth v4 3.6 MAT TAM ----------------------------------------------------------------------------------
 func wild_cost() -> int:
+	if anchor_id == "a_mana_mine":
+		return maxi(0, int(tune_knob("anchor", "mine_wild_cost", 3.0)))   # Mana Mine price
 	return maxi(0, int(tune_knob("wild", "cost", 2.0)))
 
 
@@ -1524,6 +1564,10 @@ func preview_wild(unit_uid: int, slot: int) -> Dictionary:
 
 # ---- Overcast (lane OC): pay mana to power ONE die up this turn ---------------------------------------------
 func overcast_cost() -> int:
+	if anchor_awakened and anchor_id == "a_mana_mine" and overcast_used >= 1:
+		return maxi(0, int(tune_knob("anchor", "beat_cost2", 2.0)))   # Double Beat: the second Overcast of the turn
+	if anchor_id == "a_mana_mine" and bool(anchor_turn.get("mine", false)):
+		return maxi(0, int(tune_knob("anchor", "mine_overcast_cost", 1.0)))
 	return maxi(0, int(tune_knob("overcast", "mana_cost", 3.0)))
 
 
@@ -1538,6 +1582,8 @@ func overcast_mult() -> float:
 
 
 func overcast_per_turn() -> int:
+	if anchor_awakened and anchor_id == "a_mana_mine":
+		return maxi(0, int(tune_knob("anchor", "beat_per_turn", 2.0)))   # Double Beat
 	return maxi(0, int(tune_knob("overcast", "per_turn", 1.0)))
 
 
@@ -1568,7 +1614,7 @@ func overcast_block_reason(unit_uid: int) -> String:
 		return "Die is held"
 	if u.frozen:
 		return "Die is frozen"
-	if u.overcast:
+	if u.overcast and not _anchor_can_stack_oc(u):
 		return "Already overcast"
 	if overcast_used >= overcast_per_turn():
 		return "1 Overcast per turn"
@@ -1596,11 +1642,14 @@ func overcast(unit_uid: int) -> bool:
 	var members: Array = overcast_set_uids(u)
 	_push_undo()
 	var before := _face_value(u, u.roll_face_index())
+	var stack := u.overcast   # only legal through Double Beat (overcast_block_reason)
 	mana -= overcast_cost()
 	overcast_used += 1
 	for m in members:
 		var d := by_uid(int(m))
 		if d != null:
+			if stack:
+				(anchor_turn["oc2"] as Array).append(d.uid)
 			d.overcast = true
 	var after := _face_value(u, u.roll_face_index())
 	for m in members:
@@ -1660,6 +1709,7 @@ func _exec_face(u: Unit, target_uid: int) -> bool:
 	if u.side == "p" and String(f.get("type", "")) == "dmg" and bool(RelicHooks.run_value_hook(self, "face_blocked", {"combat": self, "unit": u}, false)):
 		return false   # Rebound Core: the top-Thorns Axie cannot use damage faces
 
+	var embers_last := u.side == "p" and _mut_embers_add100(u) > 0
 	var res_idx := _find_resonance_idx(u, f)
 	var is_resonant := res_idx >= 0
 	u.resonant_now = is_resonant
@@ -1696,6 +1746,10 @@ func _exec_face(u: Unit, target_uid: int) -> bool:
 	u.resonant_now = false
 	RelicHooks.fire(self, "on_face_used", {"combat": self, "unit": u, "face": f, "fi": fi,
 		"target_uid": target_uid, "side": u.side, "depth": 0})   # H2
+	if u.side == "p":
+		if embers_last:
+			_mut_emit("h_embers", u.uid, roundi(float(_mut_knob("h_embers", "mult", 0.0)) * 100.0))
+		_anchor_volley_use(u)
 	return true
 
 
@@ -1797,11 +1851,291 @@ func m100_for(u: Unit) -> int:
 	var add := 0
 	for g in bo:
 		if (g["uids"] as Array).has(u.uid):
-			add += int(g["m100"]) - 100
+			add += int(g["m100"]) - 100 + _anchor_set_add100() + _mut_embers_add100(u)
 			break
 	if u.overcast:
 		add += roundi(overcast_add() * 100.0)
+		if (anchor_turn.get("oc2", []) as Array).has(u.uid):
+			add += roundi(overcast_add() * 100.0)   # Double Beat: the second Overcast on the same Set stacks
 	return clampi(100 + add, 100, bo_cap100())
+
+
+## ---- Anchor base rules + awakenings (production/anchor-2b-brief.md) ---------------------------------------------
+static func _anchor_turn_fresh() -> Dictionary:
+	return {"gb100": 0, "mine": false, "sw_used": false, "vol_fired": false, "vol_uids": [], "vol_dmg": 0, "vol2": false, "oc2": [], "cr_n": 0, "safe_n": 0}
+
+
+static func _anchor_turn_from_data(raw) -> Dictionary:
+	var out := _anchor_turn_fresh()
+	if not (raw is Dictionary):
+		return out
+	var d: Dictionary = raw
+	out["gb100"] = int(d.get("gb100", 0))
+	for k in ["mine", "sw_used", "vol_fired", "vol2"]:
+		out[k] = bool(d.get(k, false))
+	out["vol_dmg"] = int(d.get("vol_dmg", 0))
+	out["cr_n"] = int(d.get("cr_n", 0))
+	out["safe_n"] = int(d.get("safe_n", 0))
+	for k in ["vol_uids", "oc2"]:
+		var l: Array = []
+		for x in (d.get(k, []) as Array):
+			l.append(int(x))
+		out[k] = l
+	return out
+
+
+## Percent added to a SET member's M by the Anchor right now (Volley price, Gambler clean-Gamble bonus). 0 without an Anchor.
+func _anchor_set_add100() -> int:
+	if anchor_id == "a_volley":
+		return -roundi(tune_knob("anchor", "volley_set_add", 0.15) * 100.0)
+	if anchor_id == "a_gambler":
+		return int(anchor_turn.get("gb100", 0))
+	return 0
+
+
+## Double Beat: an already-overcast die may be overcast again once (a second stack on the same Set).
+func _anchor_can_stack_oc(u: Unit) -> bool:
+	return anchor_awakened and anchor_id == "a_mana_mine" and overcast_used == 1 and not (anchor_turn.get("oc2", []) as Array).has(u.uid)
+
+
+## Mana Mine: a natural SET on the first roll of the turn gives +1 mana and cheap Overcast. Called at the end of roll_all (no wild yet).
+func _anchor_mine_roll() -> void:
+	if anchor_id != "a_mana_mine" or bo.is_empty():
+		return
+	anchor_turn["mine"] = true
+	var gain := int(tune_knob("anchor", "mine_mana", 1.0))
+	mana += gain
+	var allies := alive_party()
+	CoreHooks.fire(anchor_id, (allies[0] as Unit).uid if not allies.is_empty() else 0, gain, "mana")
+
+
+## Gambler: called once per Gamble (Lieu) after the Crack draws. `n` = dice rerolled, `cracked` = uids that cracked.
+## Clean Gamble (n >= 2, no Crack) raises every SET this turn (cap). Second Wind (awakened): rerolls the Cracked dice free, once a turn.
+func _anchor_after_gamble(n: int, cracked: Array, use_seed: int) -> void:
+	if anchor_id != "a_gambler":
+		return
+	if cracked.is_empty():
+		if n >= 2:
+			var cap := roundi(tune_knob("anchor", "gambler_turn_cap", 0.60) * 100.0)
+			var step := roundi(tune_knob("anchor", "gambler_set_add", 0.30) * 100.0)
+			var before := int(anchor_turn["gb100"])
+			anchor_turn["gb100"] = mini(cap, before + step)
+			if int(anchor_turn["gb100"]) > before:
+				CoreHooks.fire(anchor_id, 0, int(anchor_turn["gb100"]) - before, "rule")
+		return
+	if not anchor_awakened or bool(anchor_turn["sw_used"]):
+		return
+	anchor_turn["sw_used"] = true
+	# Second Wind: own seed derived from this Gamble's epoch seed (seed ^ (k+1)); no new epoch request, no crack draws.
+	if use_seed >= 0:
+		_rng = Rng.new(use_seed ^ (reroll_k + 1))
+	reroll_k += 1
+	reroll_lock[reroll_k] = {"rmode": 0, "rsrc": 2, "uids": _int_list(cracked), "list": _int_list(cracked)}
+	var redone: Array[int] = []
+	for cu_id in cracked:
+		var cu := by_uid(int(cu_id))
+		if cu == null:
+			continue
+		cu.cracked = false
+		_roll_unit(cu)
+		redone.append(cu.uid)
+	_resolve_cantrips()
+	RelicHooks.fire(self, "on_roll_settled", {"combat": self, "rerolled_uids": redone})
+	CoreHooks.fire(anchor_id, int(cracked[0]), redone.size(), "reroll")
+
+
+## Volley: first die used from a SET of 3+ each turn fires the SET: all enemies take pct of the SET's base total (dmg faces only), max cap each.
+## Thorn Storm (awakened): when the last die of that SET is used, it fires a second time and pierces enemy Shield (Plating still cuts).
+func _anchor_volley_use(u: Unit) -> void:
+	if anchor_id != "a_volley":
+		return
+	if not bool(anchor_turn["vol_fired"]):
+		var grp: Dictionary = {}
+		for g in bo:
+			if (g["uids"] as Array).has(u.uid):
+				grp = g
+				break
+		if grp.is_empty():
+			return
+		var total := 0
+		for m in (grp["uids"] as Array):
+			var d := by_uid(int(m))
+			if d == null or d.roll_face_index() < 0:
+				continue
+			if String(d.die[d.roll_face_index()].get("type", "")) == "dmg":
+				total += maxi(0, int(_face_base(d, d.roll_face_index())))
+		var pct := int(tune_knob("anchor", "volley_pct_%d" % clampi(int(grp["size"]), 3, 5), {3: 30.0, 4: 55.0, 5: 80.0}[clampi(int(grp["size"]), 3, 5)]))
+		var per := mini(int(tune_knob("anchor", "volley_cap", 16.0)), total * pct / 100)
+		anchor_turn["vol_fired"] = true
+		anchor_turn["vol_uids"] = (grp["uids"] as Array).duplicate()
+		anchor_turn["vol_dmg"] = per
+		_anchor_blast(u, per, false)
+		return
+	if not anchor_awakened or bool(anchor_turn["vol2"]):
+		return
+	if not (anchor_turn["vol_uids"] as Array).has(u.uid):
+		return
+	for m in (anchor_turn["vol_uids"] as Array):
+		var d2 := by_uid(int(m))
+		if d2 != null and d2.hp > 0 and not d2.roll_used():
+			return   # not every SET die used yet
+	anchor_turn["vol2"] = true
+	_anchor_blast(u, int(anchor_turn["vol_dmg"]), true)
+
+
+func _anchor_blast(u: Unit, per: int, pierce_shield: bool) -> void:
+	if per <= 0:
+		return
+	var sum := 0
+	for t in alive_enemies().duplicate():
+		var v := float(per)
+		if pierce_shield:
+			v = CombatTraits.reduce(self, t, v)   # Plating (boss too) still blocks the pierce blast
+		# attack:false = no Thorns back, no single-target Plating; src null = no source-side bonuses (burst damage)
+		sum += DamagePipeline.resolve({"combat": self, "src": null, "tgt": t, "value": int(v), "pierce": pierce_shield,
+			"attack": false, "face_type": "dmg", "from_burst": true})
+	CoreHooks.fire(anchor_id, u.uid, sum, "dmg")
+
+
+## ---- House mutations (houses.json; production/anchor-2b-brief.md) -----------------------------------------------
+static func _house_tiers_from_data(raw) -> Dictionary:
+	var out := {}
+	if raw is Dictionary:
+		for k in (raw as Dictionary).keys():
+			if int(raw[k]) > 0:
+				out[String(k)] = int(raw[k])
+	return out
+
+
+static func _anchor_fight_fresh() -> Dictionary:
+	return {"kin": false, "fired": {}}
+
+
+static func _anchor_fight_from_data(raw) -> Dictionary:
+	var out := _anchor_fight_fresh()
+	if raw is Dictionary:
+		out["kin"] = bool(raw.get("kin", false))
+		var f := {}
+		for k in (raw.get("fired", {}) as Dictionary).keys():
+			f[String(k)] = int(raw["fired"][k])
+		out["fired"] = f
+	return out
+
+
+func _mut_tier(house_id: String) -> int:
+	return int(house_tiers.get(house_id, 0))
+
+
+## Knob of the house's current tier from houses.json (0 when the house has no mutation on).
+func _mut_knob(house_id: String, key: String, default = 0):
+	var t := _mut_tier(house_id)
+	if t <= 0:
+		return default
+	var m: Dictionary = Anchors.get_house(house_id).get("mutation", {})
+	var tier_d: Dictionary = m.get("tier%d" % t, {})
+	if tier_d.has(key):
+		return tier_d[key]
+	var t1: Dictionary = m.get("tier1", {})   # tier 2 only lists what it changes
+	return t1.get(key, default)
+
+
+## A mutation did something: per-fight tally + the UI/stat event.
+func _mut_emit(house_id: String, uid: int, amount: int) -> void:
+	if amount <= 0:
+		return
+	var f: Dictionary = anchor_fight["fired"]
+	f[house_id] = int(f.get(house_id, 0)) + amount
+	CoreHooks.fire(house_id, uid, amount, "mutation")
+
+
+func _in_bo(u: Unit) -> bool:
+	for g in bo:
+		if (g["uids"] as Array).has(u.uid):
+			return true
+	return false
+
+
+## h_volley Spiked Shield: a Shield face from a SET die gives its recipient Thorns (1/3 of the value, rounded down, max 4) until the end of the
+## enemy turn. Tier 1 takes them off the Shield, tier 2 keeps the Shield whole. Returns the Shield to apply.
+func _mut_spiked(u: Unit, t: Unit, v: int) -> int:
+	if _mut_tier("h_volley") <= 0 or not _in_bo(u):
+		return v
+	var th := mini(int(_mut_knob("h_volley", "max", 4)), int(floor(float(v) * float(_mut_knob("h_volley", "shield_to_thorn_frac", 0.3333)) + 0.0001)))
+	if th <= 0:
+		return v
+	t.custom_state["tmp_thorns"] = int(t.custom_state.get("tmp_thorns", 0)) + th
+	_mut_emit("h_volley", t.uid, th)
+	return v if not bool(_mut_knob("h_volley", "shield_cost", true)) else maxi(0, v - th)
+
+
+## h_gambler Crack Mana: the first N Cracks of a turn (N = per_turn of the tier) give mana.
+func _mut_gamble(cracked: Array) -> void:
+	if _mut_tier("h_gambler") <= 0:
+		return
+	for cu in cracked:
+		if int(anchor_turn["cr_n"]) >= int(_mut_knob("h_gambler", "per_turn", 1)):
+			break
+		anchor_turn["cr_n"] = int(anchor_turn["cr_n"]) + 1
+		var g := int(_mut_knob("h_gambler", "mana", 1))
+		mana += g
+		_mut_emit("h_gambler", int(cu), g)
+
+
+## h_mana_mine Mana Overflow: end of the player turn (after Mana Pool / Mana Ward in on_turn_end), mana >= min: pay 1, every enemy takes dmg.
+## Never on the winning turn (no enemy left standing). Once per turn by construction (end_turn runs once).
+func _mut_overflow() -> void:
+	if _mut_tier("h_mana_mine") <= 0 or won or lost or alive_enemies().is_empty():
+		return
+	if mana < int(_mut_knob("h_mana_mine", "min_mana", 3)):
+		return
+	mana -= int(_mut_knob("h_mana_mine", "cost", 1))
+	var dmg := int(_mut_knob("h_mana_mine", "dmg", 2))
+	var sum := 0
+	for t in alive_enemies().duplicate():
+		sum += DamagePipeline.resolve({"combat": self, "src": null, "tgt": t, "value": dmg, "attack": false, "face_type": "dmg", "from_burst": true})
+	var al := alive_party()
+	_mut_emit("h_mana_mine", (al[0] as Unit).uid if not al.is_empty() else 0, maxi(sum, 1))
+
+
+## h_kin Cover: the first turn of the fight that shows a SET, the front-row Axie with the least HP (Egg included) gets Shield per SET die.
+func _mut_kin() -> void:
+	if _mut_tier("h_kin") <= 0 or bool(anchor_fight["kin"]) or bo.is_empty():
+		return
+	var best: Unit = null
+	for p in alive_party():
+		var pu := p as Unit
+		if row_of(pu) != 0:
+			continue
+		if best == null or pu.hp < best.hp or (pu.hp == best.hp and pu.uid < best.uid):
+			best = pu
+	if best == null:
+		return
+	anchor_fight["kin"] = true
+	var amt := int(_mut_knob("h_kin", "shield_per_die", 2)) * int((bo[0] as Dictionary)["uids"].size())
+	DamagePipeline.apply_shield(self, best, amt)
+	_mut_emit("h_kin", best.uid, amt)
+
+
+## h_embers Last Strike: percent added to the M of the SET die that is the last one used this turn (inside m100_for, so under m_cap).
+func _mut_embers_add100(u: Unit) -> int:
+	if _mut_tier("h_embers") <= 0 or u.side != "p" or not _in_bo(u):
+		return 0
+	if not CoreHooks.is_finisher(self, u):
+		return 0
+	return roundi(float(_mut_knob("h_embers", "mult", 0.0)) * 100.0)
+
+
+## h_big_hand Hunt Four: on a turn whose only SET is exactly three dice, the first paid Safe reroll is free (tier 1) and the second costs
+## at most 1 (tier 2). Counted by anchor_turn.safe_n (paid Safe rerolls this turn; still counts toward reroll.max_total).
+func _mut_safe_price(c: int) -> int:
+	if _mut_tier("h_big_hand") <= 0 or bo.size() != 1 or int((bo[0] as Dictionary)["size"]) != 3:
+		return c
+	var n := int(anchor_turn.get("safe_n", 0))
+	if n == 0:
+		return maxi(0, c - c * int(_mut_knob("h_big_hand", "free_safe", 1)))
+	if n == 1 and _mut_tier("h_big_hand") >= 2:
+		return mini(c, int(_mut_knob("h_big_hand", "second_safe_cost", 1)))
+	return c
 
 
 func bo_cap100() -> int:
@@ -1880,10 +2214,12 @@ func _note_best_bo() -> void:
 func _snap_bo() -> void:
 	var nb := recompute_bo()
 	if JSON.stringify(nb) == JSON.stringify(bo):
+		_mut_kin()
 		return
 	bo = nb
 	_note_best_bo()
 	EventBus.bo_changed.emit(_dup_dict_array(bo))
+	_mut_kin()
 
 
 static func _bo_from_data(raw: Array) -> Array:
@@ -2054,7 +2390,10 @@ func _do_face(u: Unit, target_uid: int, f: Dictionary, fi: int, is_echo: bool) -
 
 	elif face_type == "shield":
 		var do_sh := func(t: Unit) -> void:
-			DamagePipeline.apply_shield(self, t, v)
+			var sv := v
+			if u.side == "p":
+				sv = _mut_spiked(u, t, v)
+			DamagePipeline.apply_shield(self, t, sv)
 			if kw_pure.size() > 0:
 				StatusEngine.add_status(self, t, kw_pure, u)
 			if _has_kw(f, "bastion"):
@@ -2205,6 +2544,7 @@ func begin_end_turn(seed: int = -1) -> bool:
 	first_used = false
 	RelicHooks.fire(self, "on_turn_end", {"combat": self})   # H3
 	_drop_phantoms()   # Sixth Die vanishes at end of turn
+	_mut_overflow()
 
 	# mana overflow (relic OR mythic `overflow` face) — no-op today: no relic and no
 	# ported tier-1 face carries `overflow`. Kept so wiring either in later is content-only.

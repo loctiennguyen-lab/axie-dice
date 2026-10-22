@@ -41,6 +41,7 @@ const EXPECTED_TESTS: Array[String] = [
 	"test_the_referee_knows_every_action_the_log_can_hold",
 	"test_a_stashed_die_replays_and_a_tampered_stash_does_not",
 	"test_a_plating_charge_affix_elite_fight_replays_deterministically",
+	"test_an_anchor_fight_with_houses_and_awakening_replays",
 ]
 
 var _failures: Array[String] = []
@@ -63,6 +64,7 @@ func _ready() -> void:
 	test_the_referee_knows_every_action_the_log_can_hold()
 	test_a_stashed_die_replays_and_a_tampered_stash_does_not()
 	test_a_plating_charge_affix_elite_fight_replays_deterministically()
+	test_an_anchor_fight_with_houses_and_awakening_replays()
 
 	for test_name in EXPECTED_TESTS:
 		if not _completed.has(test_name):
@@ -328,6 +330,32 @@ func test_a_whole_run_is_rebuilt_from_its_log_by_the_referee() -> void:
 	_done("test_a_whole_run_is_rebuilt_from_its_log_by_the_referee")
 
 
+## Anchor (production/anchor-2b-brief.md): a whole fight played with each Anchor, awakened, every house mutation on tier 2, then rebuilt from
+## the seed + decisions alone. Same end state down to the RNG cursor, and the tally dictionaries match. The RunVerifier itself only replays
+## ranked online runs and refuses a record that names an Anchor (offline-only), so the Anchor rules are held by this combat replay.
+func test_an_anchor_fight_with_houses_and_awakening_replays() -> void:
+	var tiers := {}
+	for h in Anchors.houses():
+		tiers[String(h["id"])] = 2
+	for aid in ["a_volley", "a_gambler", "a_mana_mine"]:
+		_setup_extra = {"anchor_id": aid, "anchor_awakened": true, "house_tiers": tiers, "depth_stage": 3}
+		var log := ActionLog.new()
+		log.begin(COMBAT_SEED, ["plant1", "beast1", "aqua1", "reptile1", "bug1"], "short", 0, "test")
+		var played := _play_recorded(log)
+		_assert(log.size() > 0 and log.is_complete(), "%s: the Anchor fight recorded a complete log" % aid)
+		_assert(bool(played["finished"]), "%s: the Anchor fight finished" % aid)
+		var replay := _replay(log)
+		_assert(bool(replay["ok"]), "%s: %s" % [aid, str(replay.get("why", ""))])
+		_assert(_digest(replay["snapshot"]) == _digest(played["snapshot"]),
+			"%s: ANCHOR REPLAY DIVERGED\n  played: %s\n  replayed: %s" % [aid, _brief(played["snapshot"]), _brief(replay["snapshot"])])
+		_assert(int((replay["snapshot"] as Dictionary).get("rng_state", -1)) == int((played["snapshot"] as Dictionary).get("rng_state", -2)),
+			"%s: Anchor replay ended on a different RNG cursor" % aid)
+		var fired: Dictionary = (played["snapshot"] as Dictionary).get("anchor_fight", {}).get("fired", {})
+		print("  %s: %d decisions, replay identical, mutations fired %s" % [aid, log.size(), str(fired)])
+	_setup_extra = {}
+	_done("test_an_anchor_fight_with_houses_and_awakening_replays")
+
+
 ## An action the log can record but the referee cannot replay is a run that can never be
 ## scored — and the player would never find out why. The live JS build has exactly this bug
 ## today: `client.html:4624` lists ten logged verbs in a comment that calls itself "kept in sync
@@ -579,9 +607,13 @@ func _play_recorded_run(seed_value: int) -> Dictionary:
 	return RunBot.play_run(seed_value, TEAM)
 
 
+## Extra combat_setup keys for _fresh_engine (the Anchor test sets anchor_id / anchor_awakened / house_tiers here).
+var _setup_extra: Dictionary = {}
+
+
 func _fresh_engine() -> CombatEngine:
 	var engine := CombatEngine.new()
-	engine.setup_new({
+	var setup := {
 		"node_id": "replay_node",
 		"kind": "battle",
 		"pw": 2,
@@ -589,7 +621,9 @@ func _fresh_engine() -> CombatEngine:
 		"roster_snapshot": _synthetic_roster(),
 		"relic_ids": [],
 		"combat_seed": COMBAT_SEED,
-	})
+	}
+	setup.merge(_setup_extra, true)
+	engine.setup_new(setup)
 	return engine
 
 
