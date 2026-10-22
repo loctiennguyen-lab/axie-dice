@@ -48,6 +48,8 @@ static func disabled_reason(id: String) -> String:
 static func reason_text(code: String) -> String:
 	if code == "rule_too_few_house_cores":
 		return TranslationServer.translate("Your Run Rule leaves too few House Cores for this Anchor.")
+	if code == "stage_locked":
+		return TranslationServer.translate("Unlocks at stage 3 (needs Overcast).")
 	return TranslationServer.translate("Not available this run.")
 
 
