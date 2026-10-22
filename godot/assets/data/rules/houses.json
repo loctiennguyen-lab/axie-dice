@@ -11,8 +11,8 @@
   "mutation": {
    "name_en": "Spiked Shield",
    "tier1": {
-    "rule_en": "1/3 of the Shield from a Shield-face die in a SET turns into Thorns until the end of the enemy turn (rounded down, max 4).",
-    "shield_to_thorn_frac": 0.3333,
+    "rule_en": "1/3 of the Shield from a Shield-face die in a SET turns into Thorns until the end of the enemy turn (rounded down, max 4 per Axie).",
+    "shield_div": 3,
     "max": 4,
     "name_en": "Spiked Shield"
    },

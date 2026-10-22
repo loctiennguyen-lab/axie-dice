@@ -2055,15 +2055,16 @@ func _in_bo(u: Unit) -> bool:
 	return false
 
 
-## h_volley Spiked Shield: a Shield face from a SET die gives its recipient Thorns (1/3 of the value, rounded down, max 4) until the end of the
+## h_volley Spiked Shield: a Shield face from a SET die gives its recipient Thorns (1/3 of the value, rounded down, max 4 per Axie) until the end of the
 ## enemy turn. Tier 1 takes them off the Shield, tier 2 keeps the Shield whole. Returns the Shield to apply.
 func _mut_spiked(u: Unit, t: Unit, v: int) -> int:
 	if _mut_tier("h_volley") <= 0 or not _in_bo(u):
 		return v
-	var th := mini(int(_mut_knob("h_volley", "max", 4)), int(floor(float(v) * float(_mut_knob("h_volley", "shield_to_thorn_frac", 0.3333)) + 0.0001)))
+	var cur := int(t.custom_state.get("tmp_thorns", 0))
+	var th := mini(v / maxi(1, int(_mut_knob("h_volley", "shield_div", 3))), maxi(0, int(_mut_knob("h_volley", "max", 4)) - cur))   # integer division; cap is per Axie per turn
 	if th <= 0:
 		return v
-	t.custom_state["tmp_thorns"] = int(t.custom_state.get("tmp_thorns", 0)) + th
+	t.custom_state["tmp_thorns"] = cur + th
 	_mut_emit("h_volley", t.uid, th)
 	return v if not bool(_mut_knob("h_volley", "shield_cost", true)) else maxi(0, v - th)
 
