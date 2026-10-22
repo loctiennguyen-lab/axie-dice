@@ -93,6 +93,9 @@ func _ready() -> void:
 	_assert(Anchors.mutation_tier(full1, h, CoreCombos.state(full1)) == 2, "Full -> 2")
 	var two: Array = ["c_living_wall", "c_thorn_shield", "c_sonic_shield", "c_backline_glow"]
 	_assert(Anchors.mutation_tier(two, h, CoreCombos.state(two)) == 2, "2 Pairs same house -> 2")
+	# two Pairs that share a Core (turtle_fort + shield_engine share c_thorn_shield) stay tier 1
+	var shared3: Array = ["c_living_wall", "c_thorn_shield", "c_sonic_shield"]
+	_assert(Anchors.mutation_tier(shared3, h, CoreCombos.state(shared3)) == 1, "2 Pairs sharing a Core -> 1")
 	# Pair in another house does not count; two houses can both be on
 	var cross: Array = ["c_living_wall", "c_thorn_shield", "c_mana_pool", "c_deep_current"]
 	var st := CoreCombos.state(cross)
