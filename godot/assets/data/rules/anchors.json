@@ -42,9 +42,10 @@
  {
   "id": "a_mana_mine",
   "enabled": true,
+  "min_stage": 3,
   "name_en": "Mana Mine",
   "name_vi": "Mỏ Mana",
-  "rule_en": "On a turn-one natural SET: +1 mana, and Overcast costs only 1.",
+  "rule_en": "When the first roll of a turn makes a SET: +1 mana. Overcast costs only 1.",
   "cost_en": "Temp Face costs 2 mana.",
   "house_id": "h_mana_mine",
   "house_cores": [

@@ -446,7 +446,7 @@ test('C1: a pact_pick delta (take, take+sell, skip) is accepted', async () => {
   assert.equal(r.t, 'epoch_res');
 });
 
-test('Anchor online: pick_anchor is accepted on a normal stage-3 run, refused on ranked / stage < 3 / bad args', async () => {
+test('Anchor online: pick_anchor is accepted on a normal stage-3 run, refused on ranked / stage 1 / bad args', async () => {
   const ok = await fresh({}, { charge: async () => true });
   await ok.c.hello();
   await start(ok.c);
@@ -467,10 +467,10 @@ test('Anchor online: pick_anchor is accepted on a normal stage-3 run, refused on
   await rk.c.hello();
   await start(rk.c);
   assert.equal((await rk.c.send(await rk.c.build('node', { node_id: 'r1_c0' }, [A('pick_anchor', [0])]))).code, 'rejected', 'ranked');
-  const lo = await fresh({ depth_stage: 2 });
+  const lo = await fresh({ depth_stage: 1 });
   await lo.c.hello();
-  await lo.c.epoch('run_start', { mode: 'short', ascension: 0 }, [], { client_nonce: NONCE, depth_stage: 2 });
-  assert.equal((await lo.c.send(await lo.c.build('node', { node_id: 'r1_c0' }, [A('pick_anchor', [0])], { depth_stage: 2 }))).code, 'rejected', 'stage 2');
+  await lo.c.epoch('run_start', { mode: 'short', ascension: 0 }, [], { client_nonce: NONCE, depth_stage: 1 });
+  assert.equal((await lo.c.send(await lo.c.build('node', { node_id: 'r1_c0' }, [A('pick_anchor', [0])], { depth_stage: 1 }))).code, 'rejected', 'stage 1');
 });
 
 test('money moves last: any rejection leaves the wallet alone; a different Aid at the same seq has its own idem key', async () => {

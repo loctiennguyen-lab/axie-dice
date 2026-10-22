@@ -253,7 +253,7 @@ export class RunCore {
       if (a.fn === 'pick_anchor') {
         // Anchors: normal runs only, from stage 3 (depth_stage null = not written, treated as 3), one integer in -1..2.
         if (meta && meta.mode !== 'normal') return 'anchor_mode';
-        if (meta && meta.depth_stage != null && meta.depth_stage < 3) return 'anchor_stage';
+        if (meta && meta.depth_stage != null && meta.depth_stage < 2) return 'anchor_stage';   // Anchors from stage 2 (Liam 22/10)
         if (args.length !== 1 || !Number.isInteger(args[0]) || args[0] < -1 || args[0] > 2) return 'anchor_args';
       }
     }
