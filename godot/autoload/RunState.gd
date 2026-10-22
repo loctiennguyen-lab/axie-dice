@@ -2543,7 +2543,7 @@ func anchor_offer_open() -> bool:
 	return false
 
 
-## Locks the Anchor and writes the save at once (before the first Core offer exists). False when refused.
+## Locks the Anchor, opens the first Core offer, then writes the save. False when refused.
 func pick_anchor(id: String) -> bool:
 	return _pick_anchor(id, true)
 
@@ -2561,10 +2561,12 @@ func _pick_anchor(id: String, persist: bool) -> bool:
 	action_log.record("pick_anchor", [anchor_offer.find(id)])
 	anchor_id = id
 	_anchor_waiting = false
-	if persist:
-		save_run()
 	EventBus.anchor_chosen.emit(id)
 	_resume_after_anchor()
+	# Saved after the first Core offer is open: a save between the two would reload into an empty reward screen.
+	# The offer is drawn from the run seed, so saving after it does not let a reload re-roll anything.
+	if persist:
+		save_run()
 	return true
 
 
@@ -2574,9 +2576,9 @@ func _decline_anchor(persist: bool) -> bool:
 	action_log.record("pick_anchor", [-1])
 	_anchor_waiting = false
 	anchor_offer = ["-"]   # non-empty so _open_core_offer does not ask again
+	_resume_after_anchor()
 	if persist:
 		save_run()
-	_resume_after_anchor()
 	return true
 
 
