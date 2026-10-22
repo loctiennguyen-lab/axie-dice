@@ -114,11 +114,23 @@ static func house_of_combo(combo_id: String) -> String:
 ## `combo_state` = CoreCombos.state(owned) (combo id -> "pair"|"full"; hidden combos are already absent).
 ## A jackpot only ever reads "full", so it lands on tier 2 directly.
 static func mutation_tier(_owned: Array, house_id: String, combo_state: Dictionary) -> int:
-	var pairs := 0
+	var pair_sets: Array = []   # Core-id sets of the house's Pair-level combos
 	for cid in get_house(house_id).get("combo_ids", []):
 		var t := String(combo_state.get(cid, ""))
 		if t == "full":
 			return 2
 		if t == "pair":
-			pairs += 1
-	return 2 if pairs >= 2 else pairs
+			var row := CoreCombos.get_combo(String(cid))
+			pair_sets.append(row.get("pair", []) if row.get("pair") != null else [])
+	# Tier 2 by Pairs needs two Pairs whose Core sets do NOT overlap (shared Core = still tier 1).
+	# The Pair's Cores come from core_combos.json; a Pair in `combo_state` already implies they are owned.
+	for i in pair_sets.size():
+		for j in range(i + 1, pair_sets.size()):
+			var shared := false
+			for c in pair_sets[i]:
+				if (pair_sets[j] as Array).has(c):
+					shared = true
+					break
+			if not shared:
+				return 2
+	return mini(1, pair_sets.size())
