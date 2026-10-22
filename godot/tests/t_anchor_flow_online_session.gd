@@ -93,6 +93,7 @@ class FakeServer extends RefCounted:
 var _fail := 0
 var _checks := 0
 var _guard := SaveGuard.new()
+var _tree: SceneTree
 
 
 func _ok(c: bool, msg: String) -> void:
@@ -114,11 +115,12 @@ func _finish() -> void:
 	print("=== t_anchor_flow_online_session: %d checks, %d failure(s) ===" % [_checks, _fail])
 	if _fail == 0:
 		print("t_anchor_flow_online_session: PASS")
-	get_tree().quit(0 if _fail == 0 else 1)
+	_tree.quit(0 if _fail == 0 else 1)
 
 
 func _ready() -> void:
 	print("=== t_anchor_flow_online_session: start ===")
+	_tree = get_tree()
 	_guard.capture()
 	UI3Gacha.instant_override = 1
 	AnchorAdapter.test_state = null
@@ -177,6 +179,7 @@ func _ready() -> void:
 	await _frames(2)
 	rm._take_selected_reward()
 	await _frames(12)
+	rm.free()   # the map would change scene to Combat on node_entered
 	var before := srv.epoch_msgs.size()
 	var r := await RunState.request_enter_node("r1_c0", "battle")
 	_ok(bool(r["ok"]), "node epoch answered by the fake server: " + str(r))
@@ -186,6 +189,5 @@ func _ready() -> void:
 			if String((d as Dictionary).get("fn", "")) == "pick_anchor":
 				carried = true
 	_ok(carried, "next epoch request log_delta carries pick_anchor: " + str(srv.epoch_msgs.back().get("log_delta", []) if not srv.epoch_msgs.is_empty() else "<none>"))
-	rm.free()
 	s.queue_free()
 	_finish()
