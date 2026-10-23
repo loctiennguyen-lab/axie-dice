@@ -5,6 +5,9 @@ func _init() -> void:
 	_name = "t_anchor_rules2"
 
 
+func _k100(key: String) -> int:
+	return int(roundf(CombatEngine.tune_knob("anchor", key, 0.0) * 100.0))
+
 func _eng(anchor: String, mana: int = 0, awake: bool = false, stage: int = 3, relics: Array = []) -> CombatEngine:
 	var e := CombatEngine.new()
 	e.setup_new({"node_id": "bo", "kind": "battle", "pw": 2, "ascension": 0, "roster_snapshot": CoreTestUtil.roster(["plant1", "beast1", "aqua1", "reptile1", "bug1"]),
@@ -20,16 +23,16 @@ func run() -> void:
 	for i in 5:
 		(k.party[i] as Unit).cls = "plant" if i < 3 else "beast"
 	BoTestBase.force(k, [1, 1, 1, 2, 3], all5)
-	eq(k.m100_for(k.party[0]), 130 + 40, "Kin: SET of 3 with 3 same class = 1.30 + 0.40")
+	eq(k.m100_for(k.party[0]), 130 + _k100("kin_set_add"), "Kin: SET of 3 with 3 same class = 1.30 + 0.40")
 	eq(k.m100_for(k.party[3]), 100, "Kin: loose die untouched")
-	eq(k.bo_group_m100(k.bo[0]), 170, "Kin: bo_group_m100 matches member M")
+	eq(k.bo_group_m100(k.bo[0]), 130 + _k100("kin_set_add"), "Kin: bo_group_m100 matches member M")
 	(k.party[2] as Unit).cls = "beast"
 	k._snap_bo()
 	eq(k.m100_for(k.party[0]), 130 - 25, "Kin: SET without 3 same class = 1.30 - 0.25")
 	BoTestBase.force(k, [1, 1, 1, 1, 3], all5)
 	for i in 5:
 		(k.party[i] as Unit).cls = "plant" if i != 3 else "beast"
-	eq(k.m100_for(k.party[0]), 100 + 120 + 40, "Kin: SET of 4 (add 1.20) + 0.40")
+	eq(k.m100_for(k.party[0]), 100 + 120 + _k100("kin_set_add"), "Kin: SET of 4 (add 1.20) + 0.40")
 	# cap
 	ContentDB.combat_tune["bo"]["m_cap"] = 1.5
 	eq(k.m100_for(k.party[0]), 150, "Kin: cap holds (m_cap 1.5)")
@@ -43,12 +46,12 @@ func run() -> void:
 	BoTestBase.force(b4, [1, 1, 1, 1, 3], all5)
 	var plain4 := _eng("")
 	BoTestBase.force(plain4, [1, 1, 1, 1, 3], all5)
-	eq(b4.m100_for(b4.party[0]), plain4.m100_for(plain4.party[0]) + 40, "Big Hand: SET of 4 +0.40")
+	eq(b4.m100_for(b4.party[0]), plain4.m100_for(plain4.party[0]) + _k100("big_set45_add"), "Big Hand: SET of 4 +big_set45_add")
 	var b5 := _eng("a_big_hand")
 	BoTestBase.force(b5, [1, 1, 1, 1, 1], all5)
 	var plain5 := _eng("")
 	BoTestBase.force(plain5, [1, 1, 1, 1, 1], all5)
-	eq(b5.m100_for(b5.party[0]), mini(plain5.m100_for(plain5.party[0]) + 40, b5.bo_cap100()), "Big Hand: SET of 5 +0.40, capped")
+	eq(b5.m100_for(b5.party[0]), mini(plain5.m100_for(plain5.party[0]) + _k100("big_set45_add"), b5.bo_cap100()), "Big Hand: SET of 5 +0.40, capped")
 	# --- Embers ---
 	var m := _eng("a_embers")
 	eq(m.stash_cap(), 2, "Embers: Hold 2 dice")
@@ -64,11 +67,11 @@ func run() -> void:
 	var loose := _eng("a_embers")
 	BoTestBase.force(loose, [0, 1, 2, 3, 4], all5)
 	(loose.party[0] as Unit).stash_carry = true
-	eq(loose.m100_for(loose.party[0]), 150, "Embers: carried die +0.50")
+	eq(loose.m100_for(loose.party[0]), 100 + _k100("embers_add"), "Embers: carried die +embers_add")
 	eq(loose.m100_for(loose.party[1]), 100, "Embers: not carried = nothing")
 	BoTestBase.force(loose, [1, 1, 1, 2, 3], all5)
 	(loose.party[0] as Unit).stash_carry = true
-	eq(loose.m100_for(loose.party[0]), 130 + 50, "Embers: carried die in a SET stacks +0.50")
+	eq(loose.m100_for(loose.party[0]), 130 + _k100("embers_add"), "Embers: carried die in a SET stacks +0.50")
 	ContentDB.combat_tune["bo"]["m_cap"] = 1.4
 	eq(loose.m100_for(loose.party[0]), 140, "Embers: cap holds")
 	set_knobs("default")
@@ -78,7 +81,7 @@ func run() -> void:
 	for i in 5:
 		(k2.party[i] as Unit).cls = "plant" if i < 3 else "beast"
 	BoTestBase.force(k2, [1, 1, 1, 2, 3], all5)
-	eq(k2.m100_for(k2.party[0]), 170, "stage 2 Kin: +0.40")
+	eq(k2.m100_for(k2.party[0]), 130 + _k100("kin_set_add"), "stage 2 Kin: +kin_set_add")
 	var b2 := _eng("a_big_hand", 0, false, 2)
 	BoTestBase.force(b2, [1, 1, 1, 2, 3], all5)
 	eq(b2.m100_for(b2.party[0]), 100, "stage 2 Big Hand: SET of 3 no bonus")
@@ -86,7 +89,7 @@ func run() -> void:
 	eq(m2.stash_cap(), 2, "stage 2 Embers: Hold 2")
 	BoTestBase.force(m2, [0, 1, 2, 3, 4], all5)
 	(m2.party[0] as Unit).stash_carry = true
-	eq(m2.m100_for(m2.party[0]), 150, "stage 2 Embers: carried die +0.50")
+	eq(m2.m100_for(m2.party[0]), 100 + _k100("embers_add"), "stage 2 Embers: carried die +embers_add")
 
 	# --- Kin + Concord: Concord counts one die per class, so Kin's miss penalty is waived; Concord is not offered under Kin ---
 	var kc := _eng("a_kin", 0, false, 3, ["c_concord"])

@@ -8,6 +8,11 @@ var _checks := 0
 
 func _ready() -> void:
 	_guard.capture()
+	# Boss mechanics test, not a Resonance Shell test: the Shell is on for Elite/boss from stage 2 and would soak damage / skew HP thresholds. Switch it off here, restore at the end.
+	var _shell_backup: Dictionary = (ContentDB.combat_tune.get("shell", {}) as Dictionary).duplicate(true)
+	var _shell_off: Dictionary = _shell_backup.duplicate(true)
+	_shell_off["enabled"] = false
+	ContentDB.combat_tune["shell"] = _shell_off
 	await get_tree().process_frame
 	_phases()
 	_hollow_damage()
@@ -19,6 +24,7 @@ func _ready() -> void:
 	if _failures.is_empty():
 		print("t_boss_rhythm: PASS - %d checks OK" % _checks)
 	_guard.restore()
+	ContentDB.combat_tune["shell"] = _shell_backup
 	get_tree().quit(0 if _failures.is_empty() else 1)
 
 

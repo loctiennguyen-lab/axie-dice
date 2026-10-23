@@ -19,6 +19,11 @@ var _checks := 0
 
 func _ready() -> void:
 	print("=== t_boss_encounters: start ===")
+	# Boss mechanics test, not a Resonance Shell test: the Shell is on for Elite/boss from stage 2 and would soak damage / skew HP thresholds. Switch it off here, restore at the end.
+	var _shell_backup: Dictionary = (ContentDB.combat_tune.get("shell", {}) as Dictionary).duplicate(true)
+	var _shell_off: Dictionary = _shell_backup.duplicate(true)
+	_shell_off["enabled"] = false
+	ContentDB.combat_tune["shell"] = _shell_off
 	test_boss_node_spawns_a_real_boss()
 	test_normal_encounter_draws_from_the_pool()
 	test_normal_pool_is_gated_by_power_level()
@@ -33,6 +38,7 @@ func _ready() -> void:
 	test_mirror_copies_the_players_biggest_face()
 	test_ascension_hp_is_not_double_counted()
 
+	ContentDB.combat_tune["shell"] = _shell_backup
 	print("=== t_boss_encounters: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
 		print("t_boss_encounters: PASS — %d checks OK" % _checks)

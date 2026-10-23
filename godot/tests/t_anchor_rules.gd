@@ -5,6 +5,9 @@ func _init() -> void:
 	_name = "t_anchor_rules"
 
 
+func _k100(key: String) -> int:
+	return int(roundf(CombatEngine.tune_knob("anchor", key, 0.0) * 100.0))
+
 func _eng(anchor: String, mana: int = 0, awake: bool = false, seed_v: int = 7) -> CombatEngine:
 	var e := CombatEngine.new()
 	e.setup_new({"node_id": "bo", "kind": "battle", "pw": 2, "ascension": 0, "roster_snapshot": CoreTestUtil.roster(["plant1", "beast1", "aqua1", "reptile1", "bug1"]),
@@ -99,9 +102,9 @@ func run() -> void:
 	ok(clean_seed >= 0 and crack_seed >= 0, "found clean and cracking seeds")
 	var gc := _gamble_engine()
 	ok(gc.reroll_dice([gc.party[0].uid, gc.party[1].uid], clean_seed, false, 0), "clean Gamble accepted")
-	eq(gc.anchor_turn["gb100"], 35, "clean Gamble: +0.35")
+	eq(gc.anchor_turn["gb100"], _k100("gambler_set_add"), "clean Gamble: +gambler_set_add")
 	BoTestBase.force(gc, [1, 1, 1, 2, 3], [d5, d5, d5, d5, d5])
-	eq(gc.m100_for(gc.party[0]), 165, "SET M = 1.30 + 0.35")
+	eq(gc.m100_for(gc.party[0]), 130 + _k100("gambler_set_add"), "SET M = 1.30 + gambler_set_add")
 	gc.anchor_turn["gb100"] = 50
 	gc.anchor_turn["gb100"] = mini(60, 50 + 30)
 	eq(int(gc.anchor_turn["gb100"]), 60, "cap +0.60 per turn")
@@ -135,7 +138,7 @@ func run() -> void:
 	for s in 80:
 		var m := _eng("a_mana_mine", 0, false, s)
 		var has_set := not m.bo.is_empty()
-		eq(m.mana - _eng("", 0, false, s).mana, 1 if has_set else 0, "natural SET gives +1 mana (seed %d)" % s)
+		eq(m.mana - _eng("", 0, false, s).mana, int(CombatEngine.tune_knob("anchor", "mine_mana", 1.0)) if has_set else 0, "natural SET gives +mine_mana (seed %d)" % s)
 		eq(bool(m.anchor_turn["mine"]), has_set, "mine flag (seed %d)" % s)
 		if has_set:
 			hit += 1
