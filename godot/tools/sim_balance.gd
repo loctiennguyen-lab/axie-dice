@@ -910,10 +910,13 @@ func _eval(eng: CombatEngine) -> float:
 			var fi := int(eu.intent.get("face_index", -1))
 			if fi >= 0 and fi < eu.die.size() and String((eu.die[fi] as Dictionary).get("type", "")) == "dmg":
 				thr = float(eng._face_value(eu, fi))
-		v -= float(eu.hp) + 0.8 * float(eu.shield) + 4.0 + thr * 0.8
+		v -= float(eu.hp) + 0.8 * float(eu.shield) + 4.0 + thr * 0.8 + 0.8 * float(eng.shell_of(eu))   # anti-spam B: Shell left is HP left
 		v -= 0.7 * minf(float(eu.status.get("poison", 0)) * -1.0, 0.0)   # (poison counted below as bonus)
 		v += 0.9 * minf(float(eu.status.get("poison", 0)), float(eu.hp))
-	v += 0.5 * float(eng.mana)
+	if CombatEngine.antispam_on("mana_heat"):   # anti-spam A: mana over keep is burned into HP at end of turn
+		v += 0.5 * float(mini(eng.mana, eng.mana_heat_keep())) - 0.9 * float(eng.mana_heat_preview()["dmg"])
+	else:
+		v += 0.5 * float(eng.mana)
 	for f in eng.alive_party():
 		var fu: Unit = f
 		var inc := _incoming(eng, fu)
