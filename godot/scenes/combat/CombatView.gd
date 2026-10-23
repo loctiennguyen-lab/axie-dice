@@ -4501,13 +4501,11 @@ func _card_rects() -> Dictionary:
 	return rects
 
 
-## Real M of a Set group for the label: m100_for on a live die of the group, so it matches the number on each die.
+## Real M of a Set group for the label: the engine's group value (Anchor add + cap). Per-die extras (a carried Embers die, Overcast)
+## stay on the die's own number via m100_for, so one die never decides the whole SET's label.
 func _bo_group_m100(g: Dictionary) -> int:
 	if _combat != null:
-		for uid in (g["uids"] as Array):
-			var u: Unit = _combat.by_uid(int(uid))
-			if u != null:
-				return _combat.m100_for(u)
+		return _combat.bo_group_m100(g)
 	return int(g["m100"])
 
 
