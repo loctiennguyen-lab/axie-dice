@@ -121,6 +121,9 @@ var anchor_awakened: bool = false
 ## Per-turn Anchor tallies, reset in roll_all, in the undo snapshot AND the save. gb100 = Gambler clean-Gamble add (percent),
 ## mine = Mana Mine turn-one natural SET happened, sw_used = Second Wind used, vol_* = Volley blast state, oc2 = uids stacked by Double Beat.
 var anchor_turn: Dictionary = {}
+## Anti-spam v5 per-turn tally (design/proposals/anti-spam-v5.md): chain_last = type of the last face used this turn, chain_n = chain level (C),
+## heat_excess / heat_dmg = what the end-of-turn Mana Heat burned (A, for the UI). Reset in roll_all, in the undo snapshot AND the save.
+var antispam_turn: Dictionary = {}
 ## House mutations (production/anchor-2b-brief.md): {house_id: tier 1|2}, empty without an Anchor. Fixed for the fight, in snapshot + save.
 var house_tiers: Dictionary = {}
 ## Per-FIGHT mutation tally (not reset per turn): {"kin": bool Cover already fired, "fired": {house_id: total amount}}. Snapshot + save.
@@ -211,6 +214,7 @@ func setup_new(combat_setup: Dictionary) -> void:
 	anchor_id = String(combat_setup.get("anchor_id", ""))
 	anchor_awakened = anchor_id != "" and bool(combat_setup.get("anchor_awakened", false))
 	anchor_turn = _anchor_turn_fresh()
+	antispam_turn = _antispam_fresh()
 	house_tiers = _house_tiers_from_data(combat_setup.get("house_tiers", {})) if anchor_id != "" else {}
 	anchor_fight = _anchor_fight_fresh()
 	_first_dmg_used = false
@@ -264,6 +268,7 @@ func setup_new(combat_setup: Dictionary) -> void:
 	if ghost_team.is_empty():
 		enemies = _generate_encounter(kind, pw)
 		_apply_affix_start()
+		_apply_shell_start()
 	else:
 		enemies = RaidGhost.make_enemies(ghost_team, _alloc_token_uid)
 
@@ -371,6 +376,7 @@ func _state_dict() -> Dictionary:
 		"anchor_id": anchor_id,
 		"anchor_awakened": anchor_awakened,
 		"anchor_turn": anchor_turn.duplicate(true),
+		"antispam_turn": antispam_turn.duplicate(true),
 		"house_tiers": house_tiers.duplicate(),
 		"anchor_fight": anchor_fight.duplicate(true),
 		"reroll_total_turn": reroll_total_turn,
@@ -436,6 +442,7 @@ func _apply_state_dict(d: Dictionary) -> void:
 	anchor_id = String(d.get("anchor_id", ""))
 	anchor_awakened = bool(d.get("anchor_awakened", false))
 	anchor_turn = _anchor_turn_from_data(d.get("anchor_turn", {}))
+	antispam_turn = _antispam_from_data(d.get("antispam_turn", {}))
 	house_tiers = _house_tiers_from_data(d.get("house_tiers", {}))
 	anchor_fight = _anchor_fight_from_data(d.get("anchor_fight", {}))
 	reroll_total_turn = int(d.get("reroll_total_turn", 0))
@@ -597,6 +604,7 @@ func roll_all() -> void:
 	reroll_lock = {}
 	overcast_used = 0
 	anchor_turn = _anchor_turn_fresh()
+	antispam_turn = _antispam_fresh()
 	for u in party:
 		u.custom_state.erase("tmp_thorns")   # Spiked Shield: Thorns last until the end of the enemy turn only
 		u.overcast = false
@@ -821,6 +829,7 @@ func _lowest_by(units: Array, score: Callable) -> Unit:
 
 
 func _resolve_cantrips() -> void:
+	_chain_mute = true   # anti-spam C: a cantrip is not a decision, it never counts in the chain
 	for u in alive_party().duplicate():
 		var guard := 0
 		# Depth v3 Core Loop (c_loop): the first cantrip an Axie resolves each roll is used one extra time.
@@ -836,6 +845,7 @@ func _resolve_cantrips() -> void:
 					CoreHooks.fire("c_loop", u.uid, 1, "reroll")
 					_exec_face(u, u.uid)
 			_roll_unit(u)
+	_chain_mute = false
 
 
 ## ---- async twins (L1 B1): the view awaits the seed, then calls the sync rule with it -------------------
@@ -1769,6 +1779,7 @@ func _exec_face(u: Unit, target_uid: int) -> bool:
 	for i in range(1, reps):
 		_do_face(u, target_uid, f, fi, true)
 
+	_chain_note(u, f)
 	u.mark_used()
 	if is_resonant:
 		resonance_log[res_idx]["used"] = true
@@ -1865,6 +1876,9 @@ func _face_value(u: Unit, fi: int) -> int:
 		var m100 := m100_for(u)
 		if m100 > 100:
 			v = float(_mul_up(int(v), m100))
+		var rp := _chain_repeat_pct(u, f)
+		if rp != 0 and v >= 1.0:
+			v = maxf(1.0, float(_mul_up(int(v), 100 + rp)))   # anti-spam C: the same type twice in a row (after the M bag, never below 1)
 	if u.side == "p" and u.resonant_now:
 		v = ceil(v * RESONANCE_MULT)
 	var fv := int(RelicHooks.run_value_hook(self, "face_final", {"combat": self, "unit": u, "face_type": face_type, "part": String(f.get("part", "")), "fi": fi}, int(v)))
@@ -1893,6 +1907,7 @@ func m100_for(u: Unit) -> int:
 		add += roundi(overcast_add() * 100.0)
 		if (anchor_turn.get("oc2", []) as Array).has(u.uid):
 			add += roundi(overcast_add() * 100.0)   # Double Beat: the second Overcast on the same Set stacks
+	add += _chain_add100(u)   # anti-spam C: through the same bag, so it stays under bo.m_cap
 	return clampi(100 + add, 100, bo_cap100())
 
 
@@ -1913,6 +1928,174 @@ func bo_group_m100(g: Dictionary) -> int:
 ## Core adds to a Set's M, in percent (hook `set_add`, value 0; ctx: combat, group g {part,size,uids,...}). Cores v5 (Melting Pot, Golden Thread).
 func _core_set_add100(g: Dictionary) -> int:
 	return int(RelicHooks.run_value_hook(self, "set_add", {"combat": self, "group": g}, 0))
+
+
+# ===========================================================================
+# Anti-spam v5 (design/proposals/anti-spam-v5.md). Three independent blocks in combat_tune.json, each "enabled": false by default.
+# Deterministic (no rng). Off = not one line of the old path changes.
+# ===========================================================================
+var _chain_mute: bool = false
+
+
+static func _antispam_fresh() -> Dictionary:
+	return {"chain_last": "", "chain_n": 0, "heat_excess": 0, "heat_dmg": 0, "heat_uid": 0}
+
+
+static func _antispam_from_data(raw) -> Dictionary:
+	var out := _antispam_fresh()
+	if not (raw is Dictionary):
+		return out
+	var d: Dictionary = raw
+	out["chain_last"] = String(d.get("chain_last", ""))
+	for k in ["chain_n", "heat_excess", "heat_dmg", "heat_uid"]:
+		out[k] = int(d.get(k, 0))
+	return out
+
+
+static func antispam_on(block: String) -> bool:
+	return tune_knob(block, "enabled", 0.0) > 0.0
+
+
+## ---- A. Mana Heat: mana above `keep` at the end of the player turn burns into one front-row Axie ----
+func mana_heat_keep() -> int:
+	var k := int(tune_knob("mana_heat", "keep", 3.0))
+	if anchor_id == "a_mana_mine" and anchor_awakened:
+		k += int(tune_knob("mana_heat", "anchor_mine_keep_add", 2.0))
+	return k
+
+
+## What the end of this turn would burn right now: {excess, dmg, burned}. Pure; the UI shows it next to the End Turn button.
+func mana_heat_preview() -> Dictionary:
+	if not antispam_on("mana_heat"):
+		return {"excess": 0, "dmg": 0, "burned": 0}
+	var ex := maxi(0, mana - mana_heat_keep())
+	var dmg := mini(ex * int(tune_knob("mana_heat", "dmg", 2.0)), int(tune_knob("mana_heat", "per_turn_cap", 6.0)))
+	return {"excess": ex, "dmg": dmg, "burned": ex}
+
+
+## Target: the highest-HP living real Axie in the front row (ties: roster order). All excess mana is lost; damage is capped per turn.
+func _mana_heat_end_turn() -> void:
+	if not antispam_on("mana_heat") or won or lost:
+		return
+	var pv := mana_heat_preview()
+	var ex := int(pv["excess"])
+	if ex <= 0:
+		return
+	var pool: Array = []
+	for u in party:
+		if u.hp > 0 and not u.is_token and not is_sidelined(u):
+			pool.append(u)
+	if pool.is_empty():
+		return
+	if tune_knob("mana_heat", "target_front", 1.0) > 0.0:
+		pool = front_row_targets(pool)
+	var tgt: Unit = pool[0]
+	for u in pool:
+		if u.hp > tgt.hp:
+			tgt = u
+	var dmg := int(pv["dmg"])
+	mana -= ex
+	antispam_turn["heat_excess"] = ex
+	antispam_turn["heat_dmg"] = dmg
+	antispam_turn["heat_uid"] = tgt.uid
+	EventBus.mana_heat.emit(tgt.uid, ex, dmg, ex)
+	EventBus.float_text.emit(tgt.uid, "HEAT -%d" % dmg, "dmg", 1)
+	if dmg > 0:
+		DamagePipeline.resolve({"combat": self, "src": null, "tgt": tgt, "value": dmg,
+			"pierce": tune_knob("mana_heat", "pierce", 1.0) > 0.0, "attack": false, "face_type": "heat"})
+
+
+## ---- B. Shell: Elite / boss get a second health bar, cracked by a Set (BO), poison, pierce and Core damage ----
+func _apply_shell_start() -> void:
+	if not antispam_on("shell") or enemies.is_empty():
+		return
+	var e: Unit = enemies[0]
+	if (kind == "elite" and tune_knob("shell", "elite", 1.0) > 0.0) or (kind == "boss" and e.is_boss and tune_knob("shell", "boss", 1.0) > 0.0):
+		var sh := RulesMath.round_half_up(float(e.max_hp) * tune_knob("shell", "pct", 40.0) / 100.0)
+		if sh > 0:
+			e.custom_state["shell"] = sh
+			e.custom_state["shell_max"] = sh
+			EventBus.shell_changed.emit(e.uid, sh, sh, 0)
+
+
+func shell_of(e: Unit) -> int:
+	return int(e.custom_state.get("shell", 0))
+
+
+## True when the Shell is off for this unit right now (boss Hollow turn when shell.boss_open_turn_off).
+func shell_open(e: Unit) -> bool:
+	return e.is_boss and tune_knob("shell", "boss_open_turn_off", 1.0) > 0.0 and boss_is_hollow(e)
+
+
+## Pipeline hook (step 6e, before the target's own Shield). `off_set` = a plain dmg face from a die outside every Set: only off_set_pct of it
+## counts on the Shell. Returns the damage that goes on to Shield / HP.
+func shell_absorb(tgt: Unit, v: float, off_set: bool) -> float:
+	var sh := shell_of(tgt)
+	if sh <= 0 or v <= 0.0 or not antispam_on("shell") or shell_open(tgt):
+		return v
+	var eff: float = ceil(v * tune_knob("shell", "off_set_pct", 50.0) / 100.0) if off_set else v
+	eff = maxf(1.0, eff)
+	var used := mini(sh, int(eff))
+	tgt.custom_state["shell"] = sh - used
+	EventBus.shell_changed.emit(tgt.uid, sh - used, int(tgt.custom_state.get("shell_max", sh)), used)
+	if float(used) >= eff:
+		return 0.0
+	return ceil(v * (eff - float(used)) / eff)   # the part of the hit the Shell could not take, in original (unscaled) points
+
+
+func shell_off_set(src: Unit, ctx_attack: bool, face_type: String, pierce: bool) -> bool:
+	return ctx_attack and face_type == "dmg" and not pierce and src != null and src.side == "p" and not _in_bo(src)
+
+
+## ---- C. Chain: faces of a different type used in a row grow, the same type twice in a row shrinks ----
+func _chain_face_type(u: Unit) -> String:
+	var fi := u.roll_face_index()
+	if fi < 0 or fi >= u.die.size():
+		return ""
+	return String((u.die[fi] as Dictionary).get("type", ""))
+
+
+static func _chain_tracks(t: String) -> bool:
+	return (ContentDB.combat_tune.get("chain", {}) as Dictionary).get("types", []).has(t)
+
+
+## Bonus (percent) the NEXT face of `u` would get: 0 on the first face of the turn; a different type than the last gets
+## step_pct x min(chain_n + 1, max); a repeat gets 0 here (its penalty is _chain_repeat_pct).
+func _chain_add100(u: Unit) -> int:
+	if u.side != "p" or not antispam_on("chain"):
+		return 0
+	var t := _chain_face_type(u)
+	var last := String(antispam_turn.get("chain_last", ""))
+	if t == "" or last == "" or t == last or not _chain_tracks(t):
+		return 0
+	return int(tune_knob("chain", "step_pct", 15.0)) * mini(int(antispam_turn.get("chain_n", 0)) + 1, int(tune_knob("chain", "max", 3.0)))
+
+
+func _chain_repeat_pct(u: Unit, f: Dictionary) -> int:
+	if u.side != "p" or not antispam_on("chain"):
+		return 0
+	var t := String(f.get("type", ""))
+	if t != "" and t == String(antispam_turn.get("chain_last", "")) and _chain_tracks(t):
+		return int(tune_knob("chain", "repeat_pct", -10.0))
+	return 0
+
+
+## Called once per real face use (not per echo) after its effect resolved.
+func _chain_note(u: Unit, f: Dictionary) -> void:
+	if _chain_mute or u.side != "p" or not antispam_on("chain"):
+		return
+	var t := String(f.get("type", ""))
+	if not _chain_tracks(t):
+		return
+	var last := String(antispam_turn.get("chain_last", ""))
+	if last == "":
+		antispam_turn["chain_n"] = 0
+	elif t == last:
+		antispam_turn["chain_n"] = 0
+	else:
+		antispam_turn["chain_n"] = mini(int(antispam_turn.get("chain_n", 0)) + 1, int(tune_knob("chain", "max", 3.0)))
+	antispam_turn["chain_last"] = t
+	EventBus.chain_changed.emit(t, int(antispam_turn["chain_n"]))
 
 
 ## ---- Anchor base rules + awakenings (production/anchor-2b-brief.md) ---------------------------------------------
@@ -2717,6 +2900,7 @@ func begin_end_turn(seed: int = -1) -> bool:
 	RelicHooks.fire(self, "on_turn_end", {"combat": self})   # H3
 	_drop_phantoms()   # Sixth Die vanishes at end of turn
 	_mut_overflow()
+	_mana_heat_end_turn()
 
 	# mana overflow (relic OR mythic `overflow` face) — no-op today: no relic and no
 	# ported tier-1 face carries `overflow`. Kept so wiring either in later is content-only.

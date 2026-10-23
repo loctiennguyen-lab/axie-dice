@@ -36,6 +36,9 @@ signal spite(src_uid: int, tgt_uid: int, dmg: int, hits: int)             # M3: 
 signal charge_start(uid: int, target_uid: int)                            # M5: public tell, charge turn (boss: the prep turn before the strike)
 signal charge_hit(uid: int, target_uid: int, value: int)                  # M5: the x2.5 strike lands
 signal charge_break(uid: int)                                             # M5: stun / freeze interrupted the charge
+signal mana_heat(uid: int, excess: int, dmg: int, burned: int)             # anti-spam A: end of turn, mana over `keep` burned into `dmg` to Axie `uid`
+signal shell_changed(uid: int, shell: int, shell_max: int, absorbed: int)   # anti-spam B: an Elite/boss Shell was set (absorbed 0) or took a hit
+signal chain_changed(last_type: String, level: int)                         # anti-spam C: the turn's face chain moved (last face type, chain level)
 signal unit_spawned(uid: int)                                              # (no JS analogue)
 		# A unit JOINED a fight already in progress — gooey_king's SPLIT, a summoner's adds, an
 		# Axie Egg from a face/card/relic. JS has no such event because its view re-renders the

@@ -90,6 +90,8 @@ static func resolve(ctx: Dictionary) -> int:
 	if attack or tgt.side == "e":
 		v = float(RelicHooks.run_value_hook(combat, "incoming_dmg", {"src": src, "tgt": tgt, "combat": combat,
 			"single": bool(ctx.get("single", false)), "pierce": pierce, "attack": attack}, v))   # 6d. Cores / rules (Bastion, Fissure, Rising Tide)
+	if tgt.side == "e" and tgt.custom_state.has("shell") and combat.has_method("shell_absorb"):
+		v = combat.shell_absorb(tgt, v, combat.shell_off_set(src, attack, String(ctx.get("face_type", "dmg")), pierce))   # 6e. Shell (anti-spam v5 B)
 	if tgt.side == "p":
 		var dr := RelicHooks.sum(combat, "dr")
 		if dr > 0.0:
