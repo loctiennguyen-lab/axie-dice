@@ -1498,3 +1498,49 @@ static func set_king_value(ctx: Dictionary) -> int:
 	var nv := maxi(1, v + own)
 	_fire_live(ctx["combat"], "rule_set_is_king", u.uid, v - nv, ft)
 	return nv
+
+
+## ---- Pilot Light (R15): turn 1 of a normal / elite fight your damage faces deal t1_dmg_mult (0), you may Hold t1_stash_cap dice and
+## each die Held on turn 1 gets +held_bonus when used on turn 2. Normal / elite enemies +enemy_hp_mult HP. Not in boss fights.
+## `combat_state("pilot").on` is set at combat start (saved with the fight).
+static func pilot_on(combat) -> bool:
+	return RelicHooks_has(combat, "rule_pilot_light") and bool(combat_state(combat, "pilot").get("on", false))
+
+
+static func pilot_start(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	var kind := String(ctx.get("node_kind", ""))
+	if kind != "battle" and kind != "elite":
+		return
+	for e in combat.enemies:
+		if e.is_boss:
+			return
+	combat_state(combat, "pilot")["on"] = true
+	scale_enemies(ctx, float(rule_knob("rule_pilot_light", "enemy_hp_mult", 1.1)), false, "rule_pilot_light")
+
+
+static func pilot_cap(ctx: Dictionary) -> int:
+	var v := int(ctx["value"])
+	if pilot_on(ctx["combat"]) and int(ctx["combat"].turn) <= 1:
+		return maxi(v, int(rule_knob("rule_pilot_light", "t1_stash_cap", 4)))
+	return v
+
+
+static func pilot_stash(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	if not pilot_on(combat) or int(combat.turn) > 1:
+		return
+	var u = ctx["unit"]
+	combat_state(combat, "focus_rule_pilot_light")[str(u.uid)] = {"v": int(rule_knob("rule_pilot_light", "held_bonus", 3)), "fi": int(ctx.get("fi", u.roll_face_index()))}
+
+
+## Damage pipeline: turn-1 player damage faces are scaled by t1_dmg_mult. Returns the new value.
+static func pilot_dmg(combat, src, ctx: Dictionary, v: float) -> float:
+	if src == null or src.side != "p" or not bool(ctx.get("attack", false)) or String(ctx.get("face_type", "dmg")) != "dmg":
+		return v
+	if int(combat.turn) > 1 or not pilot_on(combat):
+		return v
+	var nv: float = ceil(v * float(rule_knob("rule_pilot_light", "t1_dmg_mult", 0)))
+	if nv < v:
+		fire("rule_pilot_light", src.uid, int(v - nv), "dmg")
+	return nv

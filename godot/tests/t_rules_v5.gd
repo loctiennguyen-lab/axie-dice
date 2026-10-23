@@ -12,6 +12,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	t_pack_alpha()
 	t_set_king()
+	t_pilot()
 	print("=== t_rules_v5: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	for f in _fails:
 		print("t_rules_v5: FAIL - %s" % f)
@@ -142,3 +143,50 @@ func t_set_king() -> void:
 		c.bo = []
 	_ok(tested > 0, "set king: tested at least one die")
 	_ok(CoreHooks.in_set(c, c.party[0]) == false, "in_set false without sets")
+
+
+func t_pilot() -> void:
+	_enable("rule_pilot_light")
+	var base := _combat([])
+	var c := _combat(["rule_pilot_light"])
+	for i in c.enemies.size():
+		_ok(c.enemies[i].max_hp == int(ceil(base.enemies[i].max_hp * 1.1)), "pilot: enemy %d HP x1.1" % i)
+	_ok(c.stash_cap() == 4 and base.stash_cap() == 1, "pilot: stash cap 4 on turn 1 (base %d)" % base.stash_cap())
+	var src: Unit = c.party[0]
+	var tgt: Unit = c.enemies[0]
+	tgt.max_hp = 100
+	tgt.hp = 100
+	_ok(_hit(c, src, tgt, 10, false, true) == 0, "pilot: turn 1 dmg face deals 0")
+	tgt.hp = 100
+	var bsrc: Unit = base.party[0]
+	var bt: Unit = base.enemies[0]
+	bt.max_hp = 100
+	bt.hp = 100
+	_ok(_hit(base, bsrc, bt, 10, false, true) == 10, "no rule: turn 1 deals 10")
+	# hold two dice on turn 1
+	var held: Array = []
+	for u in c.party:
+		if held.size() < 2 and c.can_stash(u.uid):
+			_ok(c.stash(u.uid), "stash %s" % u.key)
+			held.append(u)
+	_ok(held.size() == 2 and c.stash_count() == 2, "pilot: held 2 dice on turn 1")
+	var h: Unit = held[0]
+	var fi: int = h.roll_face_index()
+	var ft := String(h.die[fi].get("type", ""))
+	var v1 := c._face_value(h, fi)
+	c.turn = 2
+	h.stash_carry = true
+	var v2 := c._face_value(h, fi)
+	var bv := base._face_value(base.party[c.party.find(h)], fi)
+	if CoreHooks.VALUE_TYPES.has(ft) and bv > 0:
+		_ok(v2 == bv + 3, "pilot: held die +3 on turn 2: %d vs %d" % [v2, bv])
+	_hit(c, src, tgt, 10, false, true)
+	tgt.hp = 100
+	_ok(_hit(c, src, tgt, 10, false, true) == 10, "pilot: turn 2 dmg normal")
+	var c2 := CombatEngine.new()
+	c2.from_data(c.to_data())
+	_ok(CoreHooks.pilot_on(c2) and c2.party[c.party.find(h)].stash_carry, "pilot: state survives save/load")
+	var b := _combat(["rule_pilot_light"], {"kind": "boss"})
+	_ok(not CoreHooks.pilot_on(b), "pilot: off in boss fight")
+	_ok(b.enemies[0].max_hp == base.enemies[0].max_hp or b.enemies[0].is_boss, "pilot: boss fight HP unchanged")
+	_ok(b.stash_cap() == 1, "pilot: boss fight stash cap unchanged")

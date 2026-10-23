@@ -70,6 +70,11 @@ static func resolve(ctx: Dictionary) -> int:
 		v = 0.0                                                                  # patientfang drawback, after ALL bonuses
 		EventBus.float_text.emit(tgt.uid, "0", "dmg", 0)
 
+	if src != null and src.side == "p" and CoreHooks.RelicHooks_has(combat, "rule_pilot_light"):
+		v = CoreHooks.pilot_dmg(combat, src, ctx, v)                              # Pilot Light (R15): turn-1 damage faces
+		if v <= 0.0:
+			EventBus.float_text.emit(tgt.uid, "0", "dmg", 0)
+
 	# ---- target side (steps 6-13) — always ----
 	if tgt.status.get("vulnerable", 0) > 0:
 		v = ceil(v * 1.5)                                                        # 6. vulnerable
