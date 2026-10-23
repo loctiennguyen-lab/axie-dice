@@ -14,6 +14,8 @@ func _ready() -> void:
 	t_golden_egg()
 	t_tide_accumulator()
 	t_rising_tide_exclude()
+	t_steady_hold_real()
+	t_fissure_fires()
 	print("=== t_core_lf2: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	if _fails.is_empty():
 		print("t_core_lf2: PASS — %d checks OK" % _checks)
@@ -160,3 +162,77 @@ func t_rising_tide_exclude() -> void:
 	_ok(CoreOffer.is_valid(rt, _ctx(ROSTER, [])), "rising_tide: valid on its own")
 	_ok(not CoreOffer.is_valid(rt, _ctx(ROSTER, ["c_open_ranks"])), "rising_tide: hidden when open_ranks owned")
 	_ok(not CoreOffer.is_valid(RelicRegistry.get_def("c_open_ranks"), _ctx(ROSTER, ["rule_rising_tide"])), "open_ranks: hidden under rising_tide")
+
+
+## Park die 0 (forced to a plain damage face) and play the next turn: returns the unit.
+func _hold_turn(c: CombatEngine, fi: int) -> Unit:
+	var u: Unit = c.party[0]
+	_ok(c.stash(u.uid), "hold: stash accepted")
+	c.end_turn()
+	return c.party[0]
+
+
+func _prep(relics: Array) -> CombatEngine:
+	var c := _combat(relics)
+	var u: Unit = c.party[0]
+	u.die[u.roll_face_index()] = {"type": "dmg", "value": 5, "keywords": []}
+	u.max_hp = 9999
+	u.hp = 9999   # the fixture die must survive the enemy turns
+	return c
+
+
+func t_steady_hold_real() -> void:
+	var c := _prep(["c_steady_hold"])
+	var b := _prep([])
+	var fi: int = c.party[0].roll_face_index()
+	var key := "focus_c_steady_hold"
+	var want := [1, 2, 3, 3]
+	for turn in 4:
+		var u := _hold_turn(c, fi)
+		var ub: Unit = b.party[0]
+		if turn == 0:
+			ub = _hold_turn(b, fi)
+		if c.won or c.lost or u.hp <= 0 or u.roll_face_index() != fi:
+			_ok(false, "steady_hold real: fixture lost the die on turn %d (won %s lost %s hp %d fi %d want %d)" % [turn, c.won, c.lost, u.hp, u.roll_face_index(), fi])
+			return
+		var delta: int = c._face_value(u, fi) - b._face_value(ub, fi)
+		_ok(delta == want[turn] and u.stash_carry, "steady_hold real: after %d held turn(s) the die deals +%d (got %d)" % [turn + 1, want[turn], delta])
+		if turn == 1:
+			# undo of the next Hold rewinds the counter, a state round trip keeps it
+			var n_before := int((CoreHooks.combat_state(c, key)[str(u.uid)] as Dictionary)["n"])
+			_ok(c.stash(u.uid), "steady_hold real: re-hold")
+			_ok(int((CoreHooks.combat_state(c, key)[str(u.uid)] as Dictionary)["n"]) == n_before + 1, "steady_hold real: re-hold counts")
+			_ok(c.undo_last() and int((CoreHooks.combat_state(c, key)[str(u.uid)] as Dictionary)["n"]) == n_before, "steady_hold real: undo rewinds the counter")
+			var c2 := _combat(["c_steady_hold"])
+			c2._apply_state_dict(c._state_dict())
+			_ok(JSON.stringify(CoreHooks.combat_state(c2, key)) == JSON.stringify(CoreHooks.combat_state(c, key)), "steady_hold real: state round trip keeps the counter")
+	# using the die resets the ramp
+	var uu: Unit = c.party[0]
+	if not uu.held:
+		c.use_die(uu.uid, c.enemies[0].uid)
+	_ok(CoreHooks.focus_value(c, key, uu, "dmg") == 0, "steady_hold real: using the die resets the bonus")
+
+	# with Kindle the flat bonuses together stay inside the +10 room
+	var k := _prep(["c_kindle", "c_steady_hold"])
+	var kb := _prep([])
+	var kfi: int = k.party[0].roll_face_index()
+	var ku: Unit = null
+	for turn in 3:
+		ku = _hold_turn(k, kfi)
+		if turn == 0:
+			_hold_turn(kb, kfi)
+	if ku != null and ku.roll_face_index() == kfi and not k.lost:
+		var extra: int = k._face_value(ku, kfi) - kb._face_value(kb.party[0], kfi)
+		_ok(extra <= 10, "steady_hold+kindle: total flat stays <= +10 (got %d)" % extra)
+		_ok(CoreHooks.flat_total(k, ku, "dmg", "", kfi) <= 10, "steady_hold+kindle: flat_total <= 10")
+		_ok(extra >= 9, "steady_hold+kindle: both Cores really add (got %d)" % extra)
+	else:
+		_ok(false, "steady_hold+kindle: fixture lost the die")
+
+
+func t_fissure_fires() -> void:
+	for kw in ["weaken:2", "stun", "vulnerable:2", "freeze"]:
+		var c := _combat(["c_fissure"])
+		var e = c.enemies[0]
+		CoreHooks.fissure_used({"combat": c, "side": "p", "face": {"type": "dmg", "value": 3, "keywords": [kw]}, "target_uid": e.uid})
+		_ok(int(e.custom_state.get("fissure", -1)) == c.turn + 1, "fissure: a %s face marks the enemy" % kw)
