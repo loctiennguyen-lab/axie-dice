@@ -12,6 +12,8 @@ func _ready() -> void:
 	t_tidecaller()
 	t_steady_hold()
 	t_golden_egg()
+	t_tide_accumulator()
+	t_rising_tide_exclude()
 	print("=== t_core_lf2: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	if _fails.is_empty():
 		print("t_core_lf2: PASS — %d checks OK" % _checks)
@@ -133,3 +135,28 @@ func t_golden_egg() -> void:
 	var used: bool = s.use_die(u.uid, -1)
 	_ok(used and s._count_alive_tokens(s.party) == tok0 + 1, "golden_egg: summon face hatches an Egg (fixture)")
 	_ok(s.mana == m1 + 3 and bool(CoreHooks.combat_state(s, "ge")["on"]), "golden_egg: real summon face pays through use_die")
+
+
+func _tide_drop(costs: Array) -> int:
+	var t := _combat(["c_tidecaller"])
+	var hp0: int = t.enemies[0].hp
+	for cst in costs:
+		RelicHooks.fire(t, "on_active_played", {"combat": t, "cost": cst})
+	return hp0 - int(t.enemies[0].hp)
+
+
+func t_tide_accumulator() -> void:
+	var one := _tide_drop([2])
+	_ok(one > 0, "tide: 2 Mana -> one pulse")
+	_ok(_tide_drop([2, 2]) == 2 * one, "tide: two actives of 2 -> two pulses (leftover not eaten)")
+	_ok(_tide_drop([1, 1, 1, 1]) == 2 * one, "tide: 1+1+1+1 -> two pulses")
+	_ok(_tide_drop([3, 1]) == 2 * one, "tide: 3 then 1 -> two pulses (carry 1)")
+	_ok(_tide_drop([3]) == one, "tide: 3 Mana -> one pulse, 1 carried")
+
+
+func t_rising_tide_exclude() -> void:
+	var rt = RelicRegistry.get_def("rule_rising_tide")
+	_ok((rt.excludes as PackedStringArray).has("owned:c_open_ranks"), "rising_tide: excludes owned open_ranks")
+	_ok(CoreOffer.is_valid(rt, _ctx(ROSTER, [])), "rising_tide: valid on its own")
+	_ok(not CoreOffer.is_valid(rt, _ctx(ROSTER, ["c_open_ranks"])), "rising_tide: hidden when open_ranks owned")
+	_ok(not CoreOffer.is_valid(RelicRegistry.get_def("c_open_ranks"), _ctx(ROSTER, ["rule_rising_tide"])), "open_ranks: hidden under rising_tide")

@@ -88,7 +88,7 @@ rule("starfall", "Mưa Sao Khởi Nguyên", "Genesis Starfall", 1, "Your first C
 rule("heavy_finish", "Kết Nặng", "Heavy Finish", 1, "The last die you use each turn gets +3, but enemies deal 10% more damage.", knobs={"finisher_bonus": 3, "enemy_dmg_mult": 1.1})
 rule("wasteland", "Đất Hoang Huyền Bí", "Mystic Wasteland", 1, "Only 3 Core picks (no pick after the elite), but each shows 4 cards. Every Axie +4 Max HP.", knobs={"core_picks": 3, "core_cards": 4, "party_hp": 4})
 rule("dry_steppe", "Thảo Nguyên Khô", "Dry Steppe", 1, "Mana does not carry over: leftover Mana is lost at end of turn. +2 Mana at the start of every turn.", knobs={"mana_carry": 0, "turn_mana": 2})
-rule("rising_tide", "Thuỷ Triều Lên", "Rising Tide", 1, "Each fight one row is in the water: the front row takes 25% less damage, or the back row's damage faces get +2. They alternate fight by fight.", knobs={"front_dmg_taken": 0.75, "back_dmg": 2})
+rule("rising_tide", "Thuỷ Triều Lên", "Rising Tide", 1, "Each fight one row is in the water: the front row takes 25% less damage, or the back row's damage faces get +2. They alternate fight by fight.", knobs={"front_dmg_taken": 0.75, "back_dmg": 2}, excludes_extra=["owned:c_open_ranks"])
 rule("upside_down", "Thế Giới Lộn Ngược", "Upside Down", 1, "Single-target enemy attacks pick the back row first. The front row only takes AoE.", knobs={"enemy_target_row": "back"})
 rule("old_forest", "Rừng Già", "Old Forest", 2, "Every Axie and enemy has +30% HP. Heal and poison faces are 50% stronger. Fights run long, so spamming damage runs out of steam.", knobs={"hp_mult": 1.3, "heal_poison_mult": 1.5})
 rule("crow", "Quạ Đưa Tin", "Crow Herald", 1, "The fight before each Core pick (from pick 2): win within 5 turns (boss 7) with nobody down and the pick is one tier higher; if an Axie falls, one tier lower.", knobs={"fast_turns": 5, "fast_turns_boss": 7})
@@ -151,7 +151,8 @@ def main():
         if only and id_ not in only: continue
         ex = dict(r["extra"]); kn = ex.pop("knobs", {})
         rq = ex.pop("requires_extra", [])
-        open(os.path.join(out, id_ + ".tres"), "w").write(emit(out, id_, r["name"], r["desc"], 0, "run_rule", rq, [], ["rule"], "engine", 500 + i, ex, is_rule=True, weight=r["weight"], knobs=kn))
+        rx = ex.pop("excludes_extra", [])
+        open(os.path.join(out, id_ + ".tres"), "w").write(emit(out, id_, r["name"], r["desc"], 0, "run_rule", rq, rx, ["rule"], "engine", 500 + i, ex, is_rule=True, weight=r["weight"], knobs=kn))
         n += 1
     print("wrote", n)
 

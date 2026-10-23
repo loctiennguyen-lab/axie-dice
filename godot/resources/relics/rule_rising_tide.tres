@@ -15,6 +15,7 @@ hook_key = "rule_rising_tide"
 tags = PackedStringArray("rule")
 layer = "engine"
 core_axis = "run_rule"
+excludes = PackedStringArray("owned:c_open_ranks")
 run_rule = true
 weight = 1
 rule_knobs = {"front_dmg_taken": 0.75, "back_dmg": 2}
