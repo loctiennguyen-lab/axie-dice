@@ -1876,15 +1876,17 @@ func _update_bonus_chip(content: Dictionary, u: Unit, btn: Button, base_tip: Str
 		chip.queue_free()
 		chip = null
 	if chip == null:
-		var tex: Texture2D = UI3.icon(AnchorAdapter.house_icon(house)) if house != "" else null
+		var tex: Texture2D = null   # no glyph: the word is the mark (a glyph would not fit the card width); the house shows as the border colour
 		var col := AnchorAdapter.house_color(house) if house != "" else UI3Theme.color("text_muted")
 		chip = UI3.icon_chip(text, tex, col, "AnchorDieChip")
 		chip.mouse_filter = Control.MOUSE_FILTER_PASS   # PASS so the chip tooltip can show; clicks still reach the card
 		chip.set_meta("chip_key", key)
 		chip.set_meta("chip_text", text)
-		# Above the card: HOLD / OVERCAST / ? chips hang at y -8 (32 high), the REROLL chip at -32 (reroll mode only); this row sits over them.
+		# Above the card, one line, no glyph so it fits a 152 px card. HOLD / OVERCAST / ? chips hang at
+		# y -8 (32 high) and the REROLL chip at -32 (reroll mode only), so this row sits over them (y = -(height) - 8).
 		body.add_child(chip)
-		chip.position = Vector2(4.0, -46.0)
+		chip.z_index = 5   # over the FRONT / BACK row captions and their line
+		chip.position = Vector2(4.0, -chip.get_combined_minimum_size().y - 8.0)
 		content["anchor_chip"] = chip
 	chip.visible = true
 	UI3Tooltip.bind(chip, String(mark["tip"]))

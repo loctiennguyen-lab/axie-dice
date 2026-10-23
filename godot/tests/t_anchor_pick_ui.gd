@@ -84,6 +84,9 @@ func _ready() -> void:
 		seen_col[AnchorAdapter.house_color(h).to_html()] = true
 		_ok((c.find_child("RuleText", true, false) as Label).text == AnchorAdapter.rule_text(id3) and AnchorAdapter.rule_text(id3) != "", "%s rule text" % id3)
 		_ok((c.find_child("PriceText", true, false) != null) == (AnchorAdapter.price_text(id3) != ""), "%s price" % id3)
+		_ok((c.find_child("HouseName", true, false) as Label).get_theme_color("font_color") == AnchorAdapter.house_color(h), "%s House line in the house colour" % id3)
+		var pt := c.find_child("PriceText", true, false) as Label
+		_ok(pt == null or pt.get_theme_color("font_color") == UI3Theme.color("anchor_price"), "%s price in the amber price token" % id3)
 		_ok((c.find_child("AwakenName", true, false) as Label).text == AnchorAdapter.awaken_name(id3), "%s awaken name" % id3)
 		_ok(c.find_child("HouseCores", true, false).get_child_count() == 5, "%s 5 house cores" % id3)
 	_ok(seen_col.size() == 3, "3 distinct house colours")
