@@ -1544,3 +1544,19 @@ static func pilot_dmg(combat, src, ctx: Dictionary, v: float) -> float:
 	if nv < v:
 		fire("rule_pilot_light", src.uid, int(v - nv), "dmg")
 	return nv
+
+
+## ---- High Stakes (R16): a Gamble with no Crack gives every rerolled Axie clean_shield Shield, and clean_mana Mana once per turn.
+static func stakes_clean(combat, settled: Array, cracked: Array) -> void:
+	if not cracked.is_empty() or settled.is_empty():
+		return
+	var sh := int(rule_knob("rule_high_stakes", "clean_shield", 3))
+	for uid in settled:
+		var u = combat.by_uid(int(uid))
+		if u != null and u.hp > 0 and sh > 0:
+			DamagePipeline.apply_shield(combat, u, sh)
+			fire("rule_high_stakes", u.uid, sh, "shield")
+	var st := turn_state(combat, "cs_stakes")
+	if int(st.get("mana_n", 0)) < int(rule_knob("rule_high_stakes", "clean_mana_per_turn", 1)):
+		st["mana_n"] = int(st.get("mana_n", 0)) + 1
+		gain_mana(combat, int(rule_knob("rule_high_stakes", "clean_mana", 1)), "", "rule_high_stakes")

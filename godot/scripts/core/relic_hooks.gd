@@ -1801,6 +1801,7 @@ static var TABLE: Dictionary = {
 		"on_face_used": func(ctx: Dictionary): CoreHooks.focus_spent(ctx["combat"], "focus_rule_pilot_light", ctx["unit"]),
 		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "rule_pilot_light"),
 	},
+	"rule_high_stakes": {},   # engine half: CombatEngine.effective_rmode / reroll_dice call CoreHooks.stakes_clean
 	# data-only Run Rules: knobs live in RelicDef.rule_knobs, read by the lanes that own them
 	"rule_none": {},
 	"rule_crow": {},

@@ -973,6 +973,9 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false, rmode: int
 		# Lieu (3.5): ONE draw per uid the caller named, in the caller's order, from this reroll's own seed stream,
 		# even for a die that died or did not roll, so RNG use does not depend on state. Only a die rolled just now can crack.
 		var crack_pct := int(tune_knob("anchor", "gambler_crack_pct", 40.0)) if anchor_id == "a_gambler" else int(tune_knob("crack", "pct", 30.0))
+		if CoreHooks.RelicHooks_has(self, "rule_high_stakes"):
+			var hs := roundi(float(CoreHooks.rule_knob("rule_high_stakes", "crack_chance", 0.2)) * 100.0)
+			crack_pct = mini(hs, crack_pct) if anchor_id == "a_gambler" else hs   # Anchor Gambler: the lower of the two
 		var cracked_now: Array = []
 		for raw_c in uids:
 			var hit := _rng.next_int(100) < crack_pct
@@ -982,6 +985,8 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false, rmode: int
 				cracked_now.append(cu.uid)
 		_mut_gamble(cracked_now)
 		_anchor_after_gamble(settled.size(), cracked_now, use_seed)
+		if CoreHooks.RelicHooks_has(self, "rule_high_stakes"):
+			CoreHooks.stakes_clean(self, settled, cracked_now)
 	_snap_bo()
 	# JS clears the undo stack on reroll ONLY when the party lacks `safeReroll`
 	# (engine.js:502). Clearing unconditionally quietly disabled that relic's whole point.
@@ -1036,6 +1041,8 @@ func reroll_refusal(uids: Array, from_aid: bool = false, rmode: int = 1) -> Stri
 func effective_rmode(from_aid: bool, rmode: int) -> int:
 	if from_aid or rerolls > 0:
 		return 1
+	if CoreHooks.RelicHooks_has(self, "rule_high_stakes"):
+		return 0   # High Stakes (R16): every paid reroll is a Gamble
 	return 0 if rmode == 0 else 1
 
 

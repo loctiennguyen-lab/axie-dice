@@ -13,6 +13,7 @@ func _ready() -> void:
 	t_pack_alpha()
 	t_set_king()
 	t_pilot()
+	t_high_stakes()
 	print("=== t_rules_v5: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	for f in _fails:
 		print("t_rules_v5: FAIL - %s" % f)
@@ -190,3 +191,49 @@ func t_pilot() -> void:
 	_ok(not CoreHooks.pilot_on(b), "pilot: off in boss fight")
 	_ok(b.enemies[0].max_hp == base.enemies[0].max_hp or b.enemies[0].is_boss, "pilot: boss fight HP unchanged")
 	_ok(b.stash_cap() == 1, "pilot: boss fight stash cap unchanged")
+
+
+func t_high_stakes() -> void:
+	var cracks := 0
+	var cleans := 0
+	var tested_second := false
+	for sd in range(1, 61):
+		var c := _combat(["rule_high_stakes"])
+		var base := _combat([])
+		var u: Unit = c.party[1]
+		c.rerolls = 0
+		c.mana = 5
+		base.rerolls = 0
+		base.mana = 5
+		var sh0: int = u.shield
+		_ok(c.effective_rmode(false, 1) == 0 and base.effective_rmode(false, 1) == 1, "stakes: paid reroll is Gamble only with the rule")
+		_ok(c.reroll_dice([u.uid], sd), "stakes: reroll ok")
+		_ok(int(c.reroll_lock[c.reroll_k]["rmode"]) == 0, "stakes: lock rmode 0")
+		if u.cracked:
+			cracks += 1
+			_ok(u.shield == sh0 and c.mana == 5, "stakes: cracked Gamble gives nothing")
+			continue
+		cleans += 1
+		_ok(u.shield == sh0 + 3 and c.mana >= 6, "stakes: clean Gamble +3 shield +1 mana (%d, %d)" % [u.shield - sh0, c.mana])
+		if not tested_second:
+			# second clean Gamble in the same turn: no more mana (after a save/load too)
+			var c2 := CombatEngine.new()
+			c2.from_data(c.to_data())
+			for k in range(100, 160):
+				var d: CombatEngine = c2
+				d.mana = 6
+				var u2: Unit = d.party[2]
+				if d.reroll_dice([u2.uid], k) and not u2.cracked:
+					_ok(int(CoreHooks.turn_state(d, "cs_stakes").get("mana_n", 0)) == 1, "stakes: mana refund only once per turn")
+					tested_second = true
+					break
+	_ok(cracks > 0 and cleans > 0, "stakes: both outcomes seen (%d cracks, %d clean)" % [cracks, cleans])
+	_ok(cracks < 25, "stakes: ~20%% crack rate (%d/60)" % cracks)
+	_ok(tested_second, "stakes: second-gamble case tested")
+	# free reroll stays Safe, no refund
+	var f := _combat(["rule_high_stakes"])
+	f.mana = 5
+	var fr := f.rerolls
+	_ok(fr > 0 and f.effective_rmode(false, 1) == 1, "stakes: free reroll is Safe")
+	f.reroll_dice([f.party[0].uid], 7)
+	_ok(f.mana == 5, "stakes: free Safe reroll: no mana change")
