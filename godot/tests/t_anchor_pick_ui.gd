@@ -67,6 +67,29 @@ func _ready() -> void:
 	v2.reveal.skip()
 	v2._unhandled_key_input(key)
 	_ok(v2.selected == 2, "key 3 selects the third card")
+	# the three newer Anchors: house glyph + colour + rule text all come from data
+	UI3Gacha.instant_override = 1
+	AnchorAdapter.test_state = {"open": true, "offer": ["a_kin", "a_embers", "a_big_hand"], "reasons": {}, "picked": []}
+	var v3 := AnchorPick.new()
+	host.add_child(v3)
+	v3.setup(AnchorAdapter.offer(), true)
+	await get_tree().process_frame
+	_ok(v3.cards.size() == 3, "new Anchors: 3 cards")
+	var seen_col := {}
+	for c in v3.cards:
+		var id3 := String(c.get_meta("anchor_id"))
+		var h := AnchorAdapter.house_id(id3)
+		_ok(h != "" and AnchorAdapter.house_icon(h).begins_with("house_") and UI3.icon(AnchorAdapter.house_icon(h)) != null, "%s has its own house glyph" % id3)
+		_ok(AnchorAdapter.house_color(h) != UI3Theme.color("text_muted"), "%s has a house colour token" % id3)
+		seen_col[AnchorAdapter.house_color(h).to_html()] = true
+		_ok((c.find_child("RuleText", true, false) as Label).text == AnchorAdapter.rule_text(id3) and AnchorAdapter.rule_text(id3) != "", "%s rule text" % id3)
+		_ok((c.find_child("PriceText", true, false) != null) == (AnchorAdapter.price_text(id3) != ""), "%s price" % id3)
+		_ok((c.find_child("HouseName", true, false) as Label).get_theme_color("font_color") == AnchorAdapter.house_color(h), "%s House line in the house colour" % id3)
+		var pt := c.find_child("PriceText", true, false) as Label
+		_ok(pt == null or pt.get_theme_color("font_color") == UI3Theme.color("anchor_price"), "%s price in the amber price token" % id3)
+		_ok((c.find_child("AwakenName", true, false) as Label).text == AnchorAdapter.awaken_name(id3), "%s awaken name" % id3)
+		_ok(c.find_child("HouseCores", true, false).get_child_count() == 5, "%s 5 house cores" % id3)
+	_ok(seen_col.size() == 3, "3 distinct house colours")
 	AnchorAdapter.test_state = null
 	UI3Gacha.instant_override = -1
 	_guard.restore()

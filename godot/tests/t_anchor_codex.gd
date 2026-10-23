@@ -62,6 +62,24 @@ func _ready() -> void:
 	_check(t != null and t.get_meta("seen") == true and (t.find_child("TileSub", true, false) as Label).text.contains("Awakened"), "met tile shows Awakened")
 	var u: Node = cx.find_child("AnchorTile_a_gambler", true, false)
 	_check(u != null and u.get_meta("seen") == false and (u.find_child("TileName", true, false) as Label).text == "?", "unmet tile is ?")
+	# click a met tile: Rule / Price / Awakens detail; click again closes; unmet tile does nothing
+	for aid in ["a_kin", "a_embers", "a_big_hand"]:
+		MetaState.anchor_codex[aid] = {"seen": true, "picked": false, "awakened": false}
+	cx._select_tab("anchors")
+	await get_tree().process_frame
+	var mb := InputEventMouseButton.new()
+	mb.pressed = true
+	mb.button_index = MOUSE_BUTTON_LEFT
+	for aid in ["a_volley", "a_kin", "a_embers", "a_big_hand"]:
+		cx.find_child("AnchorTile_" + aid, true, false).gui_input.emit(mb)
+		var det: Node = cx.find_child("AnchorDetail", true, false)
+		_check(det != null and det.find_child("RuleText", true, false) != null and (det.find_child("AwakenName", true, false) as Label).text == AnchorAdapter.awaken_name(aid), "%s detail shows rule + awaken" % aid)
+		_check((det.find_child("PriceText", true, false) != null) == (AnchorAdapter.price_text(aid) != ""), "%s detail price" % aid)
+	cx.find_child("AnchorTile_a_big_hand", true, false).gui_input.emit(mb)
+	await get_tree().process_frame
+	_check(cx.find_child("AnchorDetail", true, false) == null, "same tile again closes the detail")
+	cx.find_child("AnchorTile_a_gambler", true, false).gui_input.emit(mb)
+	_check(cx.find_child("AnchorDetail", true, false) == null, "unmet tile has no detail")
 	cx.queue_free()
 	# Result
 	RunState.set_phase(RunState.RunPhase.WON)

@@ -1817,7 +1817,7 @@ func _update_dice_tray() -> void:
 		for fi in u.die.size():
 			faces.append({"type": String((u.die[fi] as Dictionary).get("type", "")),
 				"value": _live_face_value(u, fi)})
-		TrayColumn.update(content, {
+		var card := {
 			"name": "%s%s" % [u.n, _TIER_SUFFIX.get(u.tier, "")],
 			"class_icon": _class_portrait(u.cls), "hp": u.hp, "max_hp": u.max_hp,
 			"shield": u.shield, "status": u.status, "incoming": _incoming_damage_for(u),
@@ -1826,7 +1826,9 @@ func _update_dice_tray() -> void:
 			"faces": faces, "rolled": u.roll_face_index() if u.has_rolled() else -1,
 			"alive": u.hp > 0, "spent": used_this_turn, "selected": is_sel, "held": u.held, "overcast": u.overcast, "row": _combat.row_of(u),
 			"legal_target": as_target and _selected_ally_target_ok(u),
-			"tip": _tray_tooltip(u)}.merged(_v4_card_data(u), true))
+			"tip": _tray_tooltip(u)}.merged(_v4_card_data(u), true)
+		TrayColumn.update(content, card)
+		_update_bonus_chip(content, u, btn, String(card["tip"]))
 		TrayColumn.set_lifted(self, content, is_sel, disable_juice_for_tests)
 		if _maybe_play_roll_juice(u, btn):
 			fresh.append({"slot": i, "u": u})
@@ -1834,6 +1836,61 @@ func _update_dice_tray() -> void:
 		if _dice_pending.has(u.uid):
 			btn.modulate.a = 0.0   # the die is still in the air; its card shows on arrival
 	_start_dice_throw(fresh)
+
+
+## Anchor dice marks on a tray card, written out on the chip (no hover needed): "BONUS" (phantom die: use it this turn, never part of
+## the SET), "EMBER +0.5" (a carried Held die of Embers; value read from the engine knob) and "FREE · 0 mana" (Passed Flame can take it
+## as a Temp Face). Returns {} when the die has no mark, else {text, tip, house} (house "" = neutral chip, no glyph).
+func _anchor_die_mark(u: Unit) -> Dictionary:
+	if u.hp <= 0 or _combat == null:
+		return {}
+	if u.custom_state.has("phantom"):
+		# The engine does not tag the phantom's source. Big Hand only when it is clearly Sixth Hand (awakened, no Sixth Die Core owned).
+		var hand: bool = _combat.anchor_id == "a_big_hand" and _combat.anchor_awakened and not RunState.owned_relic_ids.has("c_sixth_die")
+		return {"text": TranslationServer.translate("BONUS"), "house": "h_big_hand" if hand else "",
+			"tip": TranslationServer.translate("Bonus die: use it this turn. It is not part of your SET.")}
+	if _combat.anchor_id == "a_embers" and u.stash_carry:
+		var house := AnchorAdapter.house_id("a_embers")
+		if bool(_combat.call("_pf_ready", u)):
+			return {"text": TranslationServer.translate("FREE · 0 mana"), "house": house,
+				"tip": TranslationServer.translate("Passed Flame: this carried die joins any SET as a Temp Face, free of mana.")}
+		var add := float(_combat.call("_anchor_embers_add100", u)) / 100.0
+		var amt := String.num(add, 2).rstrip("0").rstrip(".")
+		return {"text": TranslationServer.translate("EMBER +%s") % amt, "house": house,
+			"tip": TranslationServer.translate("Carried Held die: +%s when used.") % String.num(add, 2)}
+	return {}
+
+
+func _update_bonus_chip(content: Dictionary, u: Unit, btn: Button, base_tip: String) -> void:
+	var mark := _anchor_die_mark(u)
+	var body: Control = content["body"]
+	var chip: Control = content.get("anchor_chip", null)
+	if mark.is_empty():
+		if chip != null:
+			chip.visible = false
+		return
+	var text := String(mark["text"])
+	var house := String(mark["house"])
+	var key := text + "|" + house
+	if chip != null and String(chip.get_meta("chip_key", "")) != key:
+		chip.queue_free()
+		chip = null
+	if chip == null:
+		var tex: Texture2D = null   # no glyph: the word is the mark (a glyph would not fit the card width); the house shows as the border colour
+		var col := AnchorAdapter.house_color(house) if house != "" else UI3Theme.color("text_muted")
+		chip = UI3.icon_chip(text, tex, col, "AnchorDieChip")
+		chip.mouse_filter = Control.MOUSE_FILTER_PASS   # PASS so the chip tooltip can show; clicks still reach the card
+		chip.set_meta("chip_key", key)
+		chip.set_meta("chip_text", text)
+		# Above the card, one line, no glyph so it fits a 152 px card. HOLD / OVERCAST / ? chips hang at
+		# y -8 (32 high) and the REROLL chip at -32 (reroll mode only), so this row sits over them (y = -(height) - 8).
+		body.add_child(chip)
+		chip.z_index = 5   # over the FRONT / BACK row captions and their line
+		chip.position = Vector2(4.0, -chip.get_combined_minimum_size().y - 8.0)
+		content["anchor_chip"] = chip
+	chip.visible = true
+	UI3Tooltip.bind(chip, String(mark["tip"]))
+	UI3Tooltip.bind(btn, "%s\n%s" % [base_tip, String(mark["tip"])])
 
 
 ## True when the selected die's face may be used on `target` (an ally column). Heal / shield
@@ -3412,7 +3469,7 @@ func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> voi
 	var def = RelicRegistry.get_def(core_id)
 	var nm := UI3.title_case(UI3.player_text(String(def.name))) if def != null else core_id
 	if def == null and not Anchors.get_def(core_id).is_empty():
-		nm = AnchorAdapter.name_of(core_id)
+		nm = AnchorFx.awaken_line(core_id, amount) if kind == "awaken" else AnchorAdapter.name_of(core_id)
 	_append_log("[core] %s on %s" % [CoreFeedback.float_line(nm, amount, kind), _unit_name(uid)])
 	var armed := not _core_batch.is_empty()
 	var group: Dictionary = _core_batch.get(uid, {})
@@ -4467,13 +4524,11 @@ func _card_rects() -> Dictionary:
 	return rects
 
 
-## Real M of a Set group for the label: m100_for on a live die of the group, so it matches the number on each die.
+## Real M of a Set group for the label: the engine's group value (Anchor add + cap). Per-die extras (a carried Embers die, Overcast)
+## stay on the die's own number via m100_for, so one die never decides the whole SET's label.
 func _bo_group_m100(g: Dictionary) -> int:
 	if _combat != null:
-		for uid in (g["uids"] as Array):
-			var u: Unit = _combat.by_uid(int(uid))
-			if u != null:
-				return _combat.m100_for(u)
+		return _combat.bo_group_m100(g)
 	return int(g["m100"])
 
 

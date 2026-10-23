@@ -19,7 +19,7 @@ func _ready() -> void:
 	for a in en:
 		en_ids.append(a["id"])
 	en_ids.sort()
-	_assert(en_ids == ["a_gambler", "a_mana_mine", "a_volley"], "enabled = Volley, Gambler, Mana Mine: %s" % str(en_ids))
+	_assert(en_ids == ["a_big_hand", "a_embers", "a_gambler", "a_kin", "a_mana_mine", "a_volley"], "enabled = all 6: %s" % str(en_ids))
 	var seen_houses := {}
 	for a in all:
 		var id := String(a["id"])

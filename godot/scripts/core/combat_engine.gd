@@ -623,6 +623,7 @@ func roll_all() -> void:
 			u.stash_carry = false
 			u.clear_roll()
 	_share_class_rolls()
+	_anchor_unison()
 	_spawn_phantom_dice()
 	for e in enemies:
 		if e.hp > 0:
@@ -671,29 +672,35 @@ func _spawn_phantom_dice() -> void:
 		if pool.is_empty():
 			return
 		var src: Unit = pool[_rng.next_int(pool.size())]
-		var d := src.to_data()
-		var ph := Unit.from_data(d)
-		ph.uid = _alloc_token_uid()
-		ph.hp = 1
-		ph.max_hp = 1
-		ph.shield = 0
-		ph.status = {}
-		ph.held = false
-		ph.stash_carry = false
-		ph.frozen = false
-		ph.frozen_next = false
-		ph.plating = 0
-		ph.plating_off = 0
-		ph.roster_index = -1
-		ph.slot = -1
-		ph.growth = {}
-		ph.clear_roll()
-		ph.custom_state = {"phantom": true, "src_uid": src.uid}
-		party.append(ph)
-		_roll_unit(ph)
-		EventBus.unit_spawned.emit(ph.uid)
-		EventBus.float_text.emit(ph.uid, "6TH DIE", "buf", 0)
+		var ph := _make_phantom(src, "6TH DIE")
 		CoreHooks.fire("c_sixth_die", ph.uid, 1, "rule")
+
+
+## A bonus die: a copy of `src`'s die, rolled now from the current rng, usable this turn, dropped at the next roll. Shared by Sixth Die and Sixth Hand.
+func _make_phantom(src: Unit, label: String) -> Unit:
+	var d := src.to_data()
+	var ph := Unit.from_data(d)
+	ph.uid = _alloc_token_uid()
+	ph.hp = 1
+	ph.max_hp = 1
+	ph.shield = 0
+	ph.status = {}
+	ph.held = false
+	ph.stash_carry = false
+	ph.frozen = false
+	ph.frozen_next = false
+	ph.plating = 0
+	ph.plating_off = 0
+	ph.roster_index = -1
+	ph.slot = -1
+	ph.growth = {}
+	ph.clear_roll()
+	ph.custom_state = {"phantom": true, "src_uid": src.uid}
+	party.append(ph)
+	_roll_unit(ph)
+	EventBus.unit_spawned.emit(ph.uid)
+	EventBus.float_text.emit(ph.uid, label, "buf", 0)
+	return ph
 
 
 func _drop_phantoms() -> void:
@@ -1428,8 +1435,11 @@ static func tune_knob(section: String, key: String, default_value: float) -> flo
 
 ## How many dice may be parked at once. Hook `stash_cap` (value = knob stash.cap) lets a Core raise it.
 func stash_cap() -> int:
-	return int(RelicHooks.run_value_hook(self, "stash_cap", {"combat": self},
+	var cap := int(RelicHooks.run_value_hook(self, "stash_cap", {"combat": self},
 		int(tune_knob("stash", "cap", 1.0))))
+	if anchor_id == "a_embers":
+		cap = maxi(cap, int(tune_knob("anchor", "embers_hold_n", 2.0)))   # Embers: Hold 2 dice
+	return cap
 
 
 func stash_count() -> int:
@@ -1503,7 +1513,8 @@ func wild_block_reason(unit_uid: int, slot: int) -> String:
 	var u := by_uid(unit_uid)
 	if u == null or u.side != "p" or u.is_token or u.custom_state.has("phantom") or u.hp <= 0 or not u.has_rolled():
 		return "no_die"
-	if wild_used >= wild_per_battle():
+	var pf := _pf_ready(u)
+	if wild_used >= wild_per_battle() and not pf:
 		return "limit"
 	if u.roll_used():
 		return "used"
@@ -1521,7 +1532,7 @@ func wild_block_reason(unit_uid: int, slot: int) -> String:
 		return "same"
 	if not _bo_dice().has(u):
 		return "not_counted"
-	if mana < wild_cost():
+	if mana < wild_cost() and not pf:
 		return "mana"
 	# n >= 3 after attaching (otherwise it is useless and refused, mana untouched)
 	u.wild_slot = slot
@@ -1548,10 +1559,14 @@ func wild_face(unit_uid: int, slot: int) -> bool:
 		return false
 	var u := by_uid(unit_uid)
 	_push_undo()
-	mana -= wild_cost()
-	if CoreHooks.RelicHooks_has(self, "c_golden_thread"):
-		CoreHooks.fire("c_golden_thread", unit_uid, 1, "mana")   # the Mana it saved
-	wild_used += 1
+	if _pf_ready(u):
+		anchor_turn["pf_used"] = true   # Passed Flame: free, and it does not use the battle's Mat Tam
+		CoreHooks.fire(anchor_id, u.uid, wild_cost(), "awaken")
+	else:
+		mana -= wild_cost()
+		if CoreHooks.RelicHooks_has(self, "c_golden_thread"):
+			CoreHooks.fire("c_golden_thread", unit_uid, 1, "mana")   # the Mana it saved
+		wild_used += 1
 	u.wild_slot = slot
 	_snap_bo()
 	EventBus.float_text.emit(u.uid, "WILD", "buf", 0)
@@ -1769,6 +1784,7 @@ func _exec_face(u: Unit, target_uid: int) -> bool:
 		if embers_last:
 			_mut_emit("h_embers", u.uid, roundi(float(_mut_knob("h_embers", "mult", 0.0)) * 100.0))
 		_anchor_volley_use(u)
+		_anchor_embers_use(u, f)
 	return true
 
 
@@ -1870,8 +1886,9 @@ func m100_for(u: Unit) -> int:
 	var add := 0
 	for g in bo:
 		if (g["uids"] as Array).has(u.uid):
-			add += int(g["m100"]) - 100 + _anchor_set_add100() + _mut_embers_add100(u) + _core_set_add100(g)
+			add += int(g["m100"]) - 100 + _anchor_set_add100(g) + _mut_embers_add100(u) + _core_set_add100(g)
 			break
+	add += _anchor_embers_add100(u)
 	if u.overcast:
 		add += roundi(overcast_add() * 100.0)
 		if (anchor_turn.get("oc2", []) as Array).has(u.uid):
@@ -1880,9 +1897,17 @@ func m100_for(u: Unit) -> int:
 
 
 ## Group M x100 including the Anchor's Set add (Volley price / Gambler bonus), clamped like m100_for. For previews/UI; excludes the
-## per-die parts (Overcast, Last Strike) that depend on which die is asked about.
+## per-die parts (Embers carry, Last Strike) that depend on which die is asked about. Overcast is set-wide, so it is included.
 func bo_group_m100(g: Dictionary) -> int:
-	return clampi(int(g["m100"]) + _anchor_set_add100() + _core_set_add100(g), 100, bo_cap100())
+	var add := int(g["m100"]) - 100 + _anchor_set_add100(g) + _core_set_add100(g)
+	for m in (g["uids"] as Array):   # Overcast covers the whole SET (all members carry the flag), so the group value includes it
+		var d := by_uid(int(m))
+		if d != null and d.overcast:
+			add += roundi(overcast_add() * 100.0)
+			if (anchor_turn.get("oc2", []) as Array).has(d.uid):
+				add += roundi(overcast_add() * 100.0)
+			break
+	return clampi(100 + add, 100, bo_cap100())
 
 
 ## Core adds to a Set's M, in percent (hook `set_add`, value 0; ctx: combat, group g {part,size,uids,...}). Cores v5 (Melting Pot, Golden Thread).
@@ -1892,7 +1917,7 @@ func _core_set_add100(g: Dictionary) -> int:
 
 ## ---- Anchor base rules + awakenings (production/anchor-2b-brief.md) ---------------------------------------------
 static func _anchor_turn_fresh() -> Dictionary:
-	return {"gb100": 0, "mine": false, "sw_used": false, "vol_fired": false, "vol_uids": [], "vol_dmg": 0, "vol2": false, "oc2": [], "cr_n": 0, "safe_n": 0}
+	return {"gb100": 0, "pf_used": false, "sh": false, "rf": false, "mine": false, "sw_used": false, "vol_fired": false, "vol_uids": [], "vol_dmg": 0, "vol2": false, "oc2": [], "cr_n": 0, "safe_n": 0}
 
 
 static func _anchor_turn_from_data(raw) -> Dictionary:
@@ -1901,7 +1926,7 @@ static func _anchor_turn_from_data(raw) -> Dictionary:
 		return out
 	var d: Dictionary = raw
 	out["gb100"] = int(d.get("gb100", 0))
-	for k in ["mine", "sw_used", "vol_fired", "vol2"]:
+	for k in ["mine", "sw_used", "vol_fired", "vol2", "pf_used", "sh", "rf"]:
 		out[k] = bool(d.get(k, false))
 	out["vol_dmg"] = int(d.get("vol_dmg", 0))
 	out["cr_n"] = int(d.get("cr_n", 0))
@@ -1915,12 +1940,122 @@ static func _anchor_turn_from_data(raw) -> Dictionary:
 
 
 ## Percent added to a SET member's M by the Anchor right now (Volley price, Gambler clean-Gamble bonus). 0 without an Anchor.
-func _anchor_set_add100() -> int:
+func _anchor_set_add100(g: Dictionary = {}) -> int:
+	if anchor_id == "a_kin" and not g.is_empty():
+		return _anchor_kin_add100(g)
+	if anchor_id == "a_big_hand" and not g.is_empty():
+		return _anchor_big_add100(g)
 	if anchor_id == "a_volley":
 		return -roundi(tune_knob("anchor", "volley_set_add", 0.15) * 100.0)
 	if anchor_id == "a_gambler":
 		return int(anchor_turn.get("gb100", 0))
 	return 0
+
+
+## Kin: a SET with kin_class_n+ dice of one class gets +kin_set_add, any other SET -kin_miss_pen (counts the SET's own dice, wild included).
+func _anchor_kin_add100(g: Dictionary) -> int:
+	if bool(RelicHooks.run_value_hook(self, "roll_share_class", {"combat": self}, false)):
+		return 0   # Concord counts one die per class in a SET: Kin cannot be met, so the miss penalty is waived (Concord is also kept out of Kin's offers)
+	var cnt := {}
+	var need := int(tune_knob("anchor", "kin_class_n", 3.0))
+	for m in (g["uids"] as Array):
+		var d := by_uid(int(m))
+		if d == null or d.cls == "":
+			continue
+		cnt[d.cls] = int(cnt.get(d.cls, 0)) + 1
+		if int(cnt[d.cls]) >= need:
+			return roundi(tune_knob("anchor", "kin_set_add", 0.40) * 100.0)
+	return -roundi(tune_knob("anchor", "kin_miss_pen", 0.25) * 100.0)
+
+
+## Big Hand: a SET of three gives no bonus at all (its whole add is taken back); four or five get +big_set45_add on top.
+func _anchor_big_add100(g: Dictionary) -> int:
+	if int(g["size"]) <= 3:
+		return 100 - int(g["m100"])
+	return roundi(tune_knob("anchor", "big_set45_add", 0.40) * 100.0)
+
+
+## Embers: a Held die used the turn after it was parked (stash_carry) gets +embers_add on its M, in or out of a SET (inside m100_for, under the cap).
+func _anchor_embers_add100(u: Unit) -> int:
+	if anchor_id != "a_embers" or not u.stash_carry:
+		return 0
+	return roundi(tune_knob("anchor", "embers_add", 0.50) * 100.0)
+
+
+## Passed Flame (awakened Embers): once per turn a carried Held die may take a Temp Face (Mat Tam) with no mana and no battle-limit cost.
+func _pf_ready(u: Unit) -> bool:
+	return anchor_awakened and anchor_id == "a_embers" and u != null and u.stash_carry and not bool(anchor_turn.get("pf_used", false))
+
+
+## Embers: tells the UI when a Held die's +0.50 is spent on a face that takes M.
+func _anchor_embers_use(u: Unit, f: Dictionary) -> void:
+	if anchor_id == "a_embers" and u.stash_carry and BO_TYPES.has(String(f.get("type", ""))):
+		CoreHooks.fire(anchor_id, u.uid, _anchor_embers_add100(u), "rule")
+
+
+## Kin / Big Hand: once a turn, when the Set snapshot first shows a SET, tell the UI the base rule applied (amount = percent add of that SET).
+func _anchor_rule_fire() -> void:
+	if (anchor_id != "a_kin" and anchor_id != "a_big_hand") or bo.is_empty() or bool(anchor_turn["rf"]):
+		return
+	anchor_turn["rf"] = true
+	var g: Dictionary = bo[0]
+	CoreHooks.fire(anchor_id, int((g["uids"] as Array)[0]), _anchor_set_add100(g), "rule")
+
+
+## Unison (awakened Kin): first turn of the fight, up to unison_max Axies of one class show the face of the first of them. Own crit roll stays,
+## no rng draw (same shape as Concord's _share_class_rolls).
+func _anchor_unison() -> void:
+	if not anchor_awakened or anchor_id != "a_kin" or turn != 1:
+		return
+	var first := {}
+	var cnt := {}
+	var cap := int(tune_knob("anchor", "unison_max", 4.0))
+	var changed := 0
+	var lead := 0
+	for u in party:
+		if u.hp <= 0 or is_sidelined(u) or u.is_token or u.held or u.stash_carry or not u.has_rolled() or u.cls == "" or u.custom_state.has("asleep"):
+			continue
+		if not first.has(u.cls):
+			first[u.cls] = u.roll_face_index()
+			cnt[u.cls] = 1
+		elif int(cnt[u.cls]) < cap:
+			cnt[u.cls] = int(cnt[u.cls]) + 1
+			if u.roll_face_index() != int(first[u.cls]):
+				var crit: bool = u.roll_crit_now()
+				var f: Dictionary = u.die[int(first[u.cls])]
+				u.set_roll(int(first[u.cls]), crit and String(f.get("type", "")) == "dmg")
+				u.heavy = _has_kw(f, "heavy")
+				changed += 1
+				lead = u.uid
+	if changed > 0:
+		CoreHooks.fire(anchor_id, lead, changed, "awaken")
+
+
+## Sixth Hand (awakened Big Hand): the first time a turn shows a SET of sixth_hand_min_set+, one bonus die (a copy of a random living Axie's die)
+## is rolled for this turn. Not in the SET (phantoms never count). Its face roll and any cantrip it shows draw from its own stream (combat_seed, turn), so the main rng cursor never moves.
+func _anchor_sixth_hand() -> void:
+	if not anchor_awakened or anchor_id != "a_big_hand" or bool(anchor_turn["sh"]):
+		return
+	var big := false
+	for g in bo:
+		if int(g["size"]) >= int(tune_knob("anchor", "sixth_hand_min_set", 4.0)):
+			big = true
+	if not big:
+		return
+	var pool: Array = []
+	for u in party:
+		if u.hp > 0 and not is_sidelined(u) and not u.is_token and not u.custom_state.has("phantom"):
+			pool.append(u)
+	if pool.is_empty():
+		return
+	anchor_turn["sh"] = true
+	var keep := _rng
+	_rng = Rng.new(combat_seed ^ (turn * 7919) ^ 0x5A17)
+	var src: Unit = pool[_rng.next_int(pool.size())]
+	var ph := _make_phantom(src, "6TH HAND")
+	_resolve_cantrips()   # phantoms are sidelined (alive_party skips them), so a cantrip on the bonus die does not run; kept so the main rng stays untouched if that changes
+	_rng = keep
+	CoreHooks.fire(anchor_id, ph.uid, 1, "awaken")
 
 
 ## Double Beat: an already-overcast die may be overcast again once (a second stack on the same Set).
@@ -2246,11 +2381,14 @@ func _snap_bo() -> void:
 	var nb := recompute_bo()
 	if JSON.stringify(nb) == JSON.stringify(bo):
 		_mut_kin()
+		_anchor_sixth_hand()
 		return
 	bo = nb
 	_note_best_bo()
 	EventBus.bo_changed.emit(_dup_dict_array(bo))
 	_mut_kin()
+	_anchor_rule_fire()
+	_anchor_sixth_hand()
 
 
 static func _bo_from_data(raw: Array) -> Array:

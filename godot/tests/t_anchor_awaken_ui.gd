@@ -41,6 +41,16 @@ func _ready() -> void:
 	_check((fx.find_child("AwakenStrip", true, false) as Label).text.contains("Shield Engine"), "PAIR line merged in")
 	await _frames(2)
 	_check(not is_instance_valid(fx), "instant: node freed")
+	# 2b the three newer awakenings show their own name + rule, and each has its own combat float line
+	for aid in ["a_kin", "a_embers", "a_big_hand"]:
+		var fx2 := AnchorFx.play(host, aid)
+		_check((fx2.find_child("AwakenName", true, false) as Label).text == AnchorAdapter.awaken_name(aid) and AnchorAdapter.awaken_name(aid) != "", "%s awaken name" % aid)
+		_check((fx2.find_child("AwakenRule", true, false) as Label).text == AnchorAdapter.awaken_rule(aid), "%s awaken rule" % aid)
+		_check(fx2.find_child("HouseGlyph", true, false) != null, "%s house glyph" % aid)
+	_check(AnchorFx.awaken_line("a_kin", 3).contains("Unison") and AnchorFx.awaken_line("a_kin", 3).contains("3"), "Unison line carries the count")
+	_check(AnchorFx.awaken_line("a_embers", 2).contains("Passed Flame") and AnchorFx.awaken_line("a_embers", 2).contains("free"), "Passed Flame line says free")
+	_check(AnchorFx.awaken_line("a_big_hand", 1).contains("Sixth Hand") and AnchorFx.awaken_line("a_big_hand", 1).contains("bonus"), "Sixth Hand line says bonus die")
+	await _frames(2)
 	# 3 animated: skip by click / Space / Esc
 	UI3Gacha.instant_override = 0
 	CombatView.disable_juice_for_tests = false
@@ -127,6 +137,25 @@ func _ready() -> void:
 		EventBus.core_fired.emit("a_volley", v._combat.party[0].uid, 1, "awaken")
 		_check(cp.awaken_marks == 1, "awaken fire marks the Anchor tile")
 		_check(String((cp.anchor_slot.find_child("AnchorBadge", true, false) as Label).text).begins_with("x"), "badge shows the x count once Awakened")
+	# 7 tray marks: Embers carried die (EMBER / FREE) and a phantom bonus die (BONUS)
+	var cb = v._combat
+	var u0: Unit = cb.party[0]
+	cb.anchor_id = "a_embers"
+	u0.stash_carry = true
+	cb.anchor_awakened = false
+	v._update_dice_tray()
+	var ch = v._die_slot_content[0].get("anchor_chip", null)
+	_check(ch != null and ch.visible and ch.get_meta("chip_text").begins_with("EMBER +0.5"), "carried Embers die shows EMBER")
+	cb.anchor_awakened = true
+	v._update_dice_tray()
+	_check(v._die_slot_content[0]["anchor_chip"].get_meta("chip_text").begins_with("FREE"), "Passed Flame ready: FREE")
+	u0.stash_carry = false
+	v._update_dice_tray()
+	_check(not v._die_slot_content[0]["anchor_chip"].visible, "no carry: mark hidden")
+	u0.custom_state["phantom"] = true
+	v._update_dice_tray()
+	_check(v._die_slot_content[0]["anchor_chip"].get_meta("chip_text") == "BONUS", "phantom die shows BONUS")
+	u0.custom_state.erase("phantom")
 	AnchorAdapter.test_state = null
 	v.queue_free()
 	_guard.restore()

@@ -40,6 +40,21 @@ static func take_pending() -> bool:
 	return true
 
 
+## Per-Anchor float line when the awakened rule does its thing in combat ("awaken" core_fired kind). `amount` is what the engine reports
+## (Unison: dice synced, Passed Flame: mana saved, Sixth Hand: 1 bonus die). Names come from data; the verb is the only fixed text.
+const AWAKEN_VERB := {"a_kin": "%s: %d in step", "a_embers": "%s: free", "a_big_hand": "%s: bonus die"}
+
+
+static func awaken_line(id: String, amount: int) -> String:
+	var nm := AnchorAdapter.awaken_name(id)
+	if nm == "":
+		nm = AnchorAdapter.name_of(id)
+	if not AWAKEN_VERB.has(id):
+		return nm
+	var f := TranslationServer.translate(String(AWAKEN_VERB[id]))
+	return (f % [nm, amount]) if f.contains("%d") else (f % nm)
+
+
 static func arm(id: String) -> void:
 	pending = id
 
