@@ -227,7 +227,7 @@ func _ready() -> void:
 	# and a tampered rule pick (index outside the offer / another card) is refused or lands on a different state.
 	RunBot.core_pick_id = "rule_crow"
 	var crow_hit := false
-	for sd5 in range(1, 41):
+	for sd5 in range(1, 161):   # v5 grew the Run Rule pool (offer is a few of many), so Crow needs a wider seed scan
 		var pc: Dictionary = RunBot.play_run(sd5, TEAM)
 		if String(((pc["state"] as Dictionary).get("core", {}) as Dictionary).get("run_rule", "")) != "rule_crow":
 			continue
