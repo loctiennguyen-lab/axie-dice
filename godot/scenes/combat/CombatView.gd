@@ -1132,10 +1132,13 @@ func _update_hud() -> void:
 	var undo_sub := "nothing to undo"
 	if undo_n > 0:
 		undo_sub = "%d die%s used this turn" % [undo_n, "" if undo_n == 1 else "s"]
-	var rr_cost := _combat.reroll_mana_cost()
+	var stakes := _stakes_pct()
+	var rr_cost := _combat.reroll_mana_cost(false, 0 if stakes > 0 else 1)   # High Stakes: the paid reroll is a free Gamble
 	var rr_paid_ok := _combat.rerolls <= 0 and _combat.reroll_is_payable() and _combat.mana >= rr_cost
 	var rr_tip := "Reroll unused dice (%s)" % KeyBindings.text(KeyBindings.COMBAT_REROLL)
-	if _combat.rerolls <= 0:
+	if _combat.rerolls <= 0 and stakes > 0 and _combat.reroll_is_payable():
+		rr_tip = TranslationServer.translate("High Stakes: every paid reroll is a Gamble. Each die has a %d%% chance to Crack. A clean Gamble gives +3 Shield and the first one each turn +1 mana.") % stakes
+	elif _combat.rerolls <= 0:
 		rr_tip = ("Need %d MP to reroll (you have %d). Free rerolls are used." % [rr_cost, _combat.mana]) \
 			if _combat.reroll_is_payable() and _combat.mana < rr_cost else \
 			("Free rerolls are used. The next one costs %d mana." % rr_cost) if _combat.reroll_is_payable() \
@@ -1155,7 +1158,7 @@ func _update_hud() -> void:
 			hold_tip = "This die cannot be held (spent, frozen, a cantrip, or held last turn)."
 	_hud_frame.update_right(
 		{"enabled": executing and undo_n > 0, "sub": undo_sub},
-		{"n": _combat.rerolls, "max": _combat.max_rerolls, "cost": rr_cost, "tip": rr_tip,
+		{"n": _combat.rerolls, "max": _combat.max_rerolls, "cost": rr_cost, "tip": rr_tip, "stakes": stakes,
 		 "capped": _combat.rerolls <= 0 and not _combat.reroll_is_payable(),
 		 "enabled": executing and (_combat.rerolls > 0 or rr_paid_ok)},
 		{"sub": "E %s %d dice unused" % [HudKit.dot(), unused],
@@ -2918,7 +2921,7 @@ func _enter_rr_mode() -> void:
 	_rr_sel = (pin["uids"] as Array).duplicate() if not pin.is_empty() else _auto_reroll_uids()
 	_rebuild_all()
 	if _rr_bar != null:
-		(_rr_bar.safe_button if not _rr_bar.safe_button.disabled else _rr_bar.gamble_button).grab_focus()
+		(_rr_bar.safe_button if (_rr_bar.safe_button.visible and not _rr_bar.safe_button.disabled) else _rr_bar.gamble_button).grab_focus()
 
 
 func _exit_rr_mode(rebuild := true) -> void:
@@ -2965,6 +2968,13 @@ func _rr_die_why(u: Unit) -> String:
 	return ""
 
 
+## High Stakes (stage >= 2): the crack chance in percent of the forced Gamble, else 0.
+func _stakes_pct() -> int:
+	if _combat == null or _combat.depth_stage < 2 or not CoreHooks.RelicHooks_has(_combat, "rule_high_stakes"):
+		return 0
+	return roundi(float(CoreHooks.rule_knob("rule_high_stakes", "crack_chance", 0.2)) * 100.0)
+
+
 func _update_rr_bar() -> void:
 	var hud := _hud_frame
 	if hud == null or _combat == null:
@@ -2983,7 +2993,8 @@ func _update_rr_bar() -> void:
 	for b in [hud.undo_button, hud.reroll_button, hud.hold_button, hud.overcast_button, hud.wild_button]:
 		(b as Control).visible = false   # 5.1b: only the tray and the pick bar while picking
 	var n := _rr_sel.size()
-	var pct := CombatEngine.tune_knob("crack", "pct", 30.0)
+	var stakes := _stakes_pct()
+	var pct := float(stakes) if stakes > 0 else CombatEngine.tune_knob("crack", "pct", 30.0)
 	var gref := _combat.reroll_refusal(_rr_sel, false, 0)
 	var sref := _combat.reroll_refusal(_rr_sel, false, 1)
 	var cost := _combat.reroll_mana_cost(false, 1)
@@ -2997,14 +3008,17 @@ func _update_rr_bar() -> void:
 		line = V4Ui.gamble_line(n, pct)
 	else:
 		line = V4Ui.refusal_text(gref, cost, _combat.mana)
-	if sref != "" and sref != gref and pin.is_empty():
+	if stakes > 0 and pin.is_empty():
+		line = TranslationServer.translate("High Stakes: every reroll is a Gamble · Crack %d%%") % stakes \
+			+ ("\n" + V4Ui.refusal_text(gref, cost, _combat.mana) if gref != "" else "")
+	elif sref != "" and sref != gref and pin.is_empty():
 		line += "\n" + V4Ui.refusal_text(sref, cost, _combat.mana)
 	_rr_bar.update({
 		"gamble_ok": gref == "", "gamble_text": TranslationServer.translate("Gamble · free"),
 		"gamble_tip": TranslationServer.translate("Each rerolled die has a %d%% chance to Crack (half value, out of the Set, until next turn).") % int(pct) if gref == "" else V4Ui.refusal_text(gref, cost, _combat.mana),
 		"safe_ok": sref == "", "safe_text": TranslationServer.translate("Safe · %d MP") % cost,
 		"safe_tip": TranslationServer.translate("No risk. Costs mana.") if sref == "" else V4Ui.refusal_text(sref, cost, _combat.mana),
-		"line": line, "show_gamble": true})
+		"line": line, "show_gamble": true, "show_safe": stakes <= 0})
 	_rr_bar.place(get_viewport_rect().size.x - 24.0, hud.reroll_button.position.y)
 
 

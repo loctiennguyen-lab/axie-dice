@@ -37,6 +37,7 @@ func _ready() -> void:
 	CombatView.disable_juice_for_tests = true
 	MetaState.runs_with_battle = 99
 	await _test_alpha()
+	await _test_stakes()
 	_guard.restore()
 	if _fails.is_empty():
 		print("t_ui_v5_rules: PASS — %d checks OK" % _checks)
@@ -81,4 +82,31 @@ func _test_alpha() -> void:
 	v._update_portrait(alpha)
 	_check(not pa.is_leader(), "badge gone when the Leader is dead")
 	v.queue_free()
+	await get_tree().process_frame
+
+
+func _test_stakes() -> void:
+	var v: Node = await make_view(["rule_high_stakes"])
+	var c = v._combat
+	c.rerolls = 0
+	c.mana = 0
+	v._rebuild_all()
+	await get_tree().process_frame
+	var hud: CombatHud = v._hud_frame
+	_check(v._stakes_pct() == 20, "stakes pct 20, got %d" % v._stakes_pct())
+	_check(hud.reroll_button.text.begins_with("Gamble") and hud.reroll_button.text.contains("Crack 20%"),
+		"reroll button says Gamble · Crack 20%%: '%s'" % hud.reroll_button.text)
+	_check(not hud.reroll_button.disabled, "free Gamble is usable with 0 mana")
+	_check(hud.reroll_button.tooltip_text.contains("Gamble") and hud.reroll_button.tooltip_text.contains("+3 Shield"), "tooltip explains Gamble")
+	v._enter_rr_mode()
+	await get_tree().process_frame
+	_check(v._rr_bar.gamble_button.visible and not v._rr_bar.safe_button.visible, "pick bar: only Gamble under High Stakes")
+	_check(v._rr_bar.line.text.contains("Crack 20%"), "bar line mentions Crack 20%%: '%s'" % v._rr_bar.line.text)
+	_check(CoreFeedback.float_line("High Stakes", 3, "shield") == "High Stakes +3 Shield", "+3 Shield float")
+	_check(CoreFeedback.float_line("High Stakes", 1, "mana") == "High Stakes +1 Mana", "+1 mana float")
+	v.queue_free()
+	await get_tree().process_frame
+	var w: Node = await make_view([])
+	_check(w._stakes_pct() == 0, "no stakes without the rule")
+	w.queue_free()
 	await get_tree().process_frame
