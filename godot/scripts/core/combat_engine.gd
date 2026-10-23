@@ -2000,7 +2000,7 @@ func _anchor_unison() -> void:
 
 
 ## Sixth Hand (awakened Big Hand): the first time a turn shows a SET of sixth_hand_min_set+, one bonus die (a copy of a random living Axie's die)
-## is rolled for this turn. Not in the SET (phantoms never count). Draws from its own stream (combat_seed, turn) so no other roll shifts.
+## is rolled for this turn. Not in the SET (phantoms never count). Its face roll and any cantrip it shows draw from its own stream (combat_seed, turn), so the main rng cursor never moves.
 func _anchor_sixth_hand() -> void:
 	if not anchor_awakened or anchor_id != "a_big_hand" or bool(anchor_turn["sh"]):
 		return
@@ -2021,8 +2021,8 @@ func _anchor_sixth_hand() -> void:
 	_rng = Rng.new(combat_seed ^ (turn * 7919) ^ 0x5A17)
 	var src: Unit = pool[_rng.next_int(pool.size())]
 	var ph := _make_phantom(src, "6TH HAND")
+	_resolve_cantrips()   # a cantrip face on the bonus die also draws from the own stream
 	_rng = keep
-	_resolve_cantrips()
 	CoreHooks.fire(anchor_id, ph.uid, 1, "awaken")
 
 
