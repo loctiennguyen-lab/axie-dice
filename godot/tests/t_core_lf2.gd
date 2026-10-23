@@ -106,7 +106,7 @@ func t_steady_hold() -> void:
 
 
 func t_golden_egg() -> void:
-	_ok("dies or hatches" in String(RelicRegistry.get_def("c_golden_egg").description), "golden_egg: rule text mentions hatching")
+	_ok("hatches (once per turn)" in String(RelicRegistry.get_def("c_golden_egg").description), "golden_egg: rule text mentions hatching")
 	var c := _combat(["c_golden_egg"])
 	var m0: int = c.mana
 	RelicHooks.fire(c, "on_egg_hatched", {"combat": c, "egg": c._mk_ally()})
@@ -115,3 +115,21 @@ func t_golden_egg() -> void:
 	n.mana = 0
 	RelicHooks.fire(n, "on_egg_hatched", {"combat": n, "egg": n._mk_ally()})
 	_ok(n.mana == 0, "golden_egg: hatching pays nothing without the Core")
+
+	# second hatch in the same turn pays nothing
+	var m2: int = c.mana
+	RelicHooks.fire(c, "on_egg_hatched", {"combat": c, "egg": c._mk_ally()})
+	_ok(c.mana == m2, "golden_egg: second hatch the same turn pays nothing")
+	c.turn += 1
+	RelicHooks.fire(c, "on_egg_hatched", {"combat": c, "egg": c._mk_ally()})
+	_ok(c.mana == m2 + 3, "golden_egg: next turn pays again")
+	# real summon path through use_die
+	var s := _combat(["c_golden_egg"])
+	var u: Unit = s.party[0]
+	var fi := u.roll_face_index()
+	u.die[fi] = {"type": "summon", "value": 1, "keywords": []}
+	var m1: int = s.mana
+	var tok0 := s._count_alive_tokens(s.party)
+	var used: bool = s.use_die(u.uid, -1)
+	_ok(used and s._count_alive_tokens(s.party) == tok0 + 1, "golden_egg: summon face hatches an Egg (fixture)")
+	_ok(s.mana == m1 + 3 and bool(CoreHooks.combat_state(s, "ge")["on"]), "golden_egg: real summon face pays through use_die")

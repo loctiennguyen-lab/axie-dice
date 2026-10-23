@@ -1006,6 +1006,15 @@ static func golden_egg_fall(ctx: Dictionary) -> void:
 	golden_egg_trigger(ctx["combat"])
 
 
+## An Egg hatching pays at most once per turn (anti-farm); an Egg dying always pays.
+static func golden_egg_hatch(ctx: Dictionary) -> void:
+	var st := turn_state(ctx["combat"], "cs_ge_hatch")
+	if bool(st.get("done", false)):
+		return
+	st["done"] = true
+	golden_egg_trigger(ctx["combat"])
+
+
 ## Golden Egg payout, shared by an Egg dying and an Egg hatching (summon face / Broodmother).
 static func golden_egg_trigger(combat) -> void:
 	gain_mana(combat, 3, "", "c_golden_egg")

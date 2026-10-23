@@ -1741,7 +1741,7 @@ static var TABLE: Dictionary = {
 	"c_chimera_hunt": {"on_kill": func(ctx: Dictionary): CoreHooks.chimera_kill(ctx)},
 	"c_golden_egg": {
 		"on_dmg_taken": func(ctx: Dictionary): CoreHooks.golden_egg_fall(ctx),
-		"on_egg_hatched": func(ctx: Dictionary): CoreHooks.golden_egg_trigger(ctx["combat"]),
+		"on_egg_hatched": func(ctx: Dictionary): CoreHooks.golden_egg_hatch(ctx),
 		"on_face_used": func(ctx: Dictionary): CoreHooks.golden_egg_used(ctx),
 		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_golden_egg"),
 	},
