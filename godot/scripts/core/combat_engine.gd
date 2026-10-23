@@ -1922,6 +1922,8 @@ func _anchor_set_add100(g: Dictionary = {}) -> int:
 
 ## Kin: a SET with kin_class_n+ dice of one class gets +kin_set_add, any other SET -kin_miss_pen (counts the SET's own dice, wild included).
 func _anchor_kin_add100(g: Dictionary) -> int:
+	if bool(RelicHooks.run_value_hook(self, "roll_share_class", {"combat": self}, false)):
+		return 0   # Concord counts one die per class in a SET: Kin cannot be met, so the miss penalty is waived (Concord is also kept out of Kin's offers)
 	var cnt := {}
 	var need := int(tune_knob("anchor", "kin_class_n", 3.0))
 	for m in (g["uids"] as Array):

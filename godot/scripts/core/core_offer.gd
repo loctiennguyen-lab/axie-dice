@@ -229,6 +229,8 @@ static func is_valid(def, ctx: Dictionary) -> bool:
 	var owned: Array = ctx.get("owned_ids", [])
 	if owned.has(id) or (ctx.get("seen", []) as Array).has(id):
 		return false
+	if id == "c_concord" and String(ctx.get("anchor_id", "")) == "a_kin":
+		return false   # Concord lets one die per class into a SET; Kin needs three of a class
 	for tk in def.requires:
 		if not token_ok(String(tk), ctx):
 			return false
