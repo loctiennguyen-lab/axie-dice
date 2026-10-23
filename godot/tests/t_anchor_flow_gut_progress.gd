@@ -65,8 +65,8 @@ func _ready() -> void:
 	AnchorFx.pending = ""
 	AnchorFx.played_run = ""
 	AnchorFx.log.clear()
-	RunState.start_run_with_epoch(LocalEpochSource.new(PackedByteArray(), 601), {"team_keys": TEAM, "mode": "short",
-		"ascension": 0, "ranked": false, "anchor": true, "depth_stage": 3, "loadout": {"rules_on": false}}, 601)
+	RunState.start_run_with_epoch(LocalEpochSource.new(PackedByteArray(), 605), {"team_keys": TEAM, "mode": "short",
+		"ascension": 0, "ranked": false, "anchor": true, "depth_stage": 3, "loadout": {"rules_on": false}}, 605)   # seed 605: Anchor offer holds a_volley (3 of 6 by seed)
 	RunState.depth_stage = 3
 	var rm: Node = load("res://scenes/run_map/RunMap.tscn").instantiate()
 	add_child(rm)

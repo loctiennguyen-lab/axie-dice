@@ -82,7 +82,7 @@ class FakeServer extends RefCounted:
 		epoch_msgs.append(m)
 		last_h = h
 		last_len = int(m["log_len"])
-		var seed_value := 1000 + seq * 7
+		var seed_value := 1001 + seq * 7   # base seed 1001: its Anchor offer holds a_gambler (offer is 3 of 6 by seed, so the test pins a seed)
 		rows.append({"seq": seq, "kind": m["kind"], "seed": seed_value})
 		var extra := {}
 		if m["kind"] == "node":
