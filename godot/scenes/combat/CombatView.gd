@@ -1827,6 +1827,7 @@ func _update_dice_tray() -> void:
 			"alive": u.hp > 0, "spent": used_this_turn, "selected": is_sel, "held": u.held, "overcast": u.overcast, "row": _combat.row_of(u),
 			"legal_target": as_target and _selected_ally_target_ok(u),
 			"tip": _tray_tooltip(u)}.merged(_v4_card_data(u), true))
+		_update_bonus_chip(content, u)
 		TrayColumn.set_lifted(self, content, is_sel, disable_juice_for_tests)
 		if _maybe_play_roll_juice(u, btn):
 			fresh.append({"slot": i, "u": u})
@@ -1834,6 +1835,39 @@ func _update_dice_tray() -> void:
 		if _dice_pending.has(u.uid):
 			btn.modulate.a = 0.0   # the die is still in the air; its card shows on arrival
 	_start_dice_throw(fresh)
+
+
+## Anchor dice marks on a tray card: BONUS (phantom die from Sixth Hand / Sixth Die: use it this turn, never part of the SET) and
+## EMBER (a carried Held die of Embers, +bonus; FREE once Passed Flame can take it as a Temp Face). Word + house glyph, never colour alone.
+func _update_bonus_chip(content: Dictionary, u: Unit) -> void:
+	var text := ""
+	var tip := ""
+	if u.custom_state.has("phantom"):
+		text = "BONUS"
+		tip = TranslationServer.translate("Bonus die: use it this turn. It is not part of your SET.")
+	elif _combat != null and _combat.anchor_id == "a_embers" and u.stash_carry and u.hp > 0:
+		var free: bool = bool(_combat.call("_pf_ready", u))
+		text = "FREE" if free else "EMBER"
+		tip = TranslationServer.translate("Passed Flame: this carried die joins any SET as a Temp Face, free of mana.") if free \
+			else TranslationServer.translate("Carried Held die: +0.50 when used.")
+	var body: Control = content["body"]
+	var chip: Control = content.get("anchor_chip", null)
+	if text == "":
+		if chip != null:
+			chip.visible = false
+		return
+	if chip == null:
+		var house := AnchorAdapter.house_id(AnchorAdapter.current_id()) if text != "BONUS" else AnchorAdapter.house_id("a_big_hand")
+		chip = UI3.icon_chip(text, UI3.icon(AnchorAdapter.house_icon(house)), AnchorAdapter.house_color(house), "AnchorDieChip")
+		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		chip.position = Vector2(8.0, -30.0)
+		body.add_child(chip)
+		content["anchor_chip"] = chip
+	chip.visible = true
+	for c in chip.find_children("*", "Label", true, false):
+		(c as Label).text = text
+	chip.set_meta("chip_text", text)
+	UI3Tooltip.bind(chip, tip)
 
 
 ## True when the selected die's face may be used on `target` (an ally column). Heal / shield
@@ -3412,7 +3446,7 @@ func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> voi
 	var def = RelicRegistry.get_def(core_id)
 	var nm := UI3.title_case(UI3.player_text(String(def.name))) if def != null else core_id
 	if def == null and not Anchors.get_def(core_id).is_empty():
-		nm = AnchorAdapter.name_of(core_id)
+		nm = AnchorFx.awaken_line(core_id, amount) if kind == "awaken" else AnchorAdapter.name_of(core_id)
 	_append_log("[core] %s on %s" % [CoreFeedback.float_line(nm, amount, kind), _unit_name(uid)])
 	var armed := not _core_batch.is_empty()
 	var group: Dictionary = _core_batch.get(uid, {})
