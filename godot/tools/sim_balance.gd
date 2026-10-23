@@ -1093,6 +1093,8 @@ func _core_hold(eng: CombatEngine) -> void:
 		for u in ready:
 			if not eng.can_stash(u.uid):
 				continue
+			if RunState.anchor_id == "a_embers" and eng._in_bo(u):
+				continue   # never break a SET to park (Shell and every SET bonus punish it); park the leftovers only
 			var fv: int = eng._face_value(u, u.roll_face_index())
 			if big:
 				fv = -fv
