@@ -1878,9 +1878,17 @@ func m100_for(u: Unit) -> int:
 
 
 ## Group M x100 including the Anchor's Set add (Volley price / Gambler bonus), clamped like m100_for. For previews/UI; excludes the
-## per-die parts (Overcast, Last Strike) that depend on which die is asked about.
+## per-die parts (Embers carry, Last Strike) that depend on which die is asked about. Overcast is set-wide, so it is included.
 func bo_group_m100(g: Dictionary) -> int:
-	return clampi(int(g["m100"]) + _anchor_set_add100(g), 100, bo_cap100())
+	var add := int(g["m100"]) - 100 + _anchor_set_add100(g)
+	for m in (g["uids"] as Array):   # Overcast covers the whole SET (all members carry the flag), so the group value includes it
+		var d := by_uid(int(m))
+		if d != null and d.overcast:
+			add += roundi(overcast_add() * 100.0)
+			if (anchor_turn.get("oc2", []) as Array).has(d.uid):
+				add += roundi(overcast_add() * 100.0)
+			break
+	return clampi(100 + add, 100, bo_cap100())
 
 
 ## ---- Anchor base rules + awakenings (production/anchor-2b-brief.md) ---------------------------------------------

@@ -107,3 +107,16 @@ func run() -> void:
 	ok(not CoreOffer.is_valid(cd, cx), "Concord is not offered under Kin")
 	cx["anchor_id"] = "a_volley"
 	eq(CoreOffer.is_valid(cd, cx), base_ok, "other Anchors do not change Concord's validity")
+
+	# --- bo_group_m100 includes the SET-wide Overcast (UI label), not the per-die parts ---
+	var oc := _eng("a_mana_mine", 12)
+	BoTestBase.force(oc, [1, 1, 1, 2, 3], all5)
+	var g0 := oc.bo_group_m100(oc.bo[0])
+	ok(oc.overcast(oc.party[0].uid), "Overcast the SET")
+	eq(oc.bo_group_m100(oc.bo[0]), g0 + 50, "group value gains the Overcast +0.50")
+	eq(oc.bo_group_m100(oc.bo[0]), oc.m100_for(oc.party[1]), "group value = M of an ordinary SET die")
+	eq(oc.bo_group_m100(oc.bo[0]), oc.m100_for(oc.party[0]), "...and of the overcast die itself")
+	var oe := _eng("a_embers", 12)
+	BoTestBase.force(oe, [1, 1, 1, 2, 3], all5)
+	(oe.party[0] as Unit).stash_carry = true
+	eq(oe.bo_group_m100(oe.bo[0]), oe.m100_for(oe.party[1]), "per-die Embers carry stays out of the group value")
