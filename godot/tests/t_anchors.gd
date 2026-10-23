@@ -47,7 +47,9 @@ func _ready() -> void:
 			_assert(not combo_seen.has(cid), "combo in one house " + String(cid))
 			combo_seen[cid] = true
 			_assert(Anchors.house_of_combo(String(cid)) == String(h["id"]), "house_of_combo " + String(cid))
-	_assert(combo_seen.size() == 14, "all 14 combos assigned")
+	# all() skips disabled combos (Volcano), houses still list them, so check "every live combo has a house".
+	for c in CoreCombos.all():
+		_assert(combo_seen.has(String((c as Dictionary).get("id", ""))), "live combo has a house " + String((c as Dictionary).get("id", "")))
 	_assert(Anchors.house_of_combo("combo_x") == "", "house_of_combo unknown")
 
 	# offer_three: deterministic, distinct, input-order independent
