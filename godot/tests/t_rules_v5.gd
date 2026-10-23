@@ -14,6 +14,7 @@ func _ready() -> void:
 	t_set_king()
 	t_pilot()
 	t_high_stakes()
+	t_set_king_copycat()
 	print("=== t_rules_v5: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	for f in _fails:
 		print("t_rules_v5: FAIL - %s" % f)
@@ -186,6 +187,10 @@ func t_pilot() -> void:
 	_ok(_hit(c, src, tgt, 10, false, true) == 10, "pilot: turn 2 dmg normal")
 	var c2 := CombatEngine.new()
 	c2.from_data(c.to_data())
+	# held on turn 1 but used on turn 3: no +3
+	c.turn = 3
+	_ok(c._face_value(h, fi) == bv, "pilot: no +3 when used on turn 3")
+	c.turn = 2
 	_ok(CoreHooks.pilot_on(c2) and c2.party[c.party.find(h)].stash_carry, "pilot: state survives save/load")
 	var b := _combat(["rule_pilot_light"], {"kind": "boss"})
 	_ok(not CoreHooks.pilot_on(b), "pilot: off in boss fight")
@@ -230,6 +235,12 @@ func t_high_stakes() -> void:
 	_ok(cracks > 0 and cleans > 0, "stakes: both outcomes seen (%d cracks, %d clean)" % [cracks, cleans])
 	_ok(cracks < 25, "stakes: ~20%% crack rate (%d/60)" % cracks)
 	_ok(tested_second, "stakes: second-gamble case tested")
+	# stage 1: no Gamble exists, so paid rerolls stay Safe
+	var s1 := _combat(["rule_high_stakes"], {"depth_stage": 1})
+	s1.rerolls = 0
+	s1.mana = 5
+	_ok(s1.effective_rmode(false, 1) == 1, "stakes: stage 1 stays Safe")
+	_ok(s1.can_reroll([s1.party[1].uid]), "stakes: stage 1 paid reroll still allowed")
 	# free reroll stays Safe, no refund
 	var f := _combat(["rule_high_stakes"])
 	f.mana = 5
@@ -237,3 +248,25 @@ func t_high_stakes() -> void:
 	_ok(fr > 0 and f.effective_rmode(false, 1) == 1, "stakes: free reroll is Safe")
 	f.reroll_dice([f.party[0].uid], 7)
 	_ok(f.mana == 5, "stakes: free Safe reroll: no mana change")
+
+
+## Recorded behaviour: a Copycat copy does not count toward Sets (combat._bo_dice), so under Set Is King it is a lone die: -2 (min 1).
+func t_set_king_copycat() -> void:
+	var c := _combat(["rule_set_is_king"])
+	var base := _combat([])
+	for i in c.party.size():
+		var u: Unit = c.party[i]
+		var fi := _val_face(c, u, "dmg")
+		if fi < 0:
+			continue
+		var v0 := base._face_value(base.party[i], fi)
+		if v0 < 3:
+			continue
+		u.custom_state["copycat_turn"] = c.turn
+		c.bo = [{"part": 0, "size": 3, "uids": [u.uid, 98, 99], "hi": false, "m100": 100}]
+		_ok(c._face_value(u, fi) == v0 + 2, "copycat: still +2 if a stale Set lists it (bo is rebuilt without it on the next snap)")
+		c.bo = []
+		_ok(not c._bo_dice().has(u), "copycat copy is not a Set die")
+		_ok(c._face_value(u, fi) == maxi(1, v0 - 2), "copycat copy under Set Is King: -2 like a lone die")
+		return
+	_ok(false, "copycat: no usable die")

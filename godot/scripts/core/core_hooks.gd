@@ -528,7 +528,7 @@ static func bonus(combat, u, ft: String, id: String, part: String = "") -> int:
 				return 0
 			return int(rule_knob("rule_set_is_king", "set_dice_bonus", 2)) if in_set(combat, u) else -int(rule_knob("rule_set_is_king", "nonset_penalty", 2))
 		"rule_pilot_light":
-			return 0 if sec else focus_value(combat, "focus_rule_pilot_light", u, ft)
+			return 0 if (sec or int(combat.turn) != 2) else focus_value(combat, "focus_rule_pilot_light", u, ft)
 		"rule_heavy_finish":
 			return 0 if (sec or not val or not is_finisher(combat, u)) else 3
 		"c_mana_pool":

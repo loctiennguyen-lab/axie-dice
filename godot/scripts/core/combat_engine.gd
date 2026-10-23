@@ -1041,8 +1041,9 @@ func reroll_refusal(uids: Array, from_aid: bool = false, rmode: int = 1) -> Stri
 func effective_rmode(from_aid: bool, rmode: int) -> int:
 	if from_aid or rerolls > 0:
 		return 1
-	if CoreHooks.RelicHooks_has(self, "rule_high_stakes"):
-		return 0   # High Stakes (R16): every paid reroll is a Gamble
+	if depth_stage >= 2 and CoreHooks.RelicHooks_has(self, "rule_high_stakes"):
+		return 0   # High Stakes (R16): every paid reroll is a Gamble. Stage 1 has no Gamble (reroll_refusal), so it stays Safe;
+		# at integration the rule gets requires stage_min:2 (token from lane NC).
 	return 0 if rmode == 0 else 1
 
 
