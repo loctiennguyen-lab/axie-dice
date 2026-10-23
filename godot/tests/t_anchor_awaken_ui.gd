@@ -145,10 +145,10 @@ func _ready() -> void:
 	cb.anchor_awakened = false
 	v._update_dice_tray()
 	var ch = v._die_slot_content[0].get("anchor_chip", null)
-	_check(ch != null and ch.visible and ch.get_meta("chip_text") == "EMBER", "carried Embers die shows EMBER")
+	_check(ch != null and ch.visible and ch.get_meta("chip_text").begins_with("EMBER +0.5"), "carried Embers die shows EMBER")
 	cb.anchor_awakened = true
 	v._update_dice_tray()
-	_check(v._die_slot_content[0]["anchor_chip"].get_meta("chip_text") == "FREE", "Passed Flame ready: FREE")
+	_check(v._die_slot_content[0]["anchor_chip"].get_meta("chip_text").begins_with("FREE"), "Passed Flame ready: FREE")
 	u0.stash_carry = false
 	v._update_dice_tray()
 	_check(not v._die_slot_content[0]["anchor_chip"].visible, "no carry: mark hidden")
