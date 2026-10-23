@@ -62,7 +62,7 @@
  },
  {
   "id": "a_kin",
-  "enabled": false,
+  "enabled": true,
   "name_en": "Kin",
   "name_vi": "Đồng Tộc",
   "rule_en": "A SET with 3+ dice of the same class +0.40; a SET without that -0.25.",
@@ -82,7 +82,7 @@
  },
  {
   "id": "a_embers",
-  "enabled": false,
+  "enabled": true,
   "name_en": "Embers",
   "name_vi": "Giữ Lửa",
   "rule_en": "You may Hold 2 dice; a Held die used next turn gets +0.50.",
@@ -102,7 +102,7 @@
  },
  {
   "id": "a_big_hand",
-  "enabled": false,
+  "enabled": true,
   "name_en": "Big Hand",
   "name_vi": "Bàn Tay Lớn",
   "rule_en": "A SET of three gives no bonus; a SET of four or five gets +0.40.",
