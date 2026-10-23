@@ -2196,7 +2196,7 @@ static func core_flow_switches_allowed() -> bool:
 func _core_ctx(pick: int = -1) -> Dictionary:
 	return {"owned_ids": owned_relic_ids, "roster": roster, "seen": core_seen, "mode": mode,
 		"first_run": not rules_on, "pick_index": core_pick_index if pick < 0 else pick, "front_size": 2,
-		"ascension": ascension, "tier_chain": core_tier_chain,
+		"ascension": ascension, "tier_chain": core_tier_chain, "depth_stage": depth_stage, "anchor_id": anchor_id,
 		# a bonus (quest/event/shop) offer is opened with _core_offer_pick == core_pick_index; milestone offers use index-1
 		"bonus": pick >= 0 and pick == core_pick_index,
 		"anchor_house": ((Anchors.get_def(anchor_id).get("house_cores", []) as Array) if anchor_id != "" else [])}
@@ -2557,7 +2557,7 @@ func anchor_disabled_reason(id: String) -> String:
 	if depth_stage < int(def.get("min_stage", 2)):
 		return "stage_locked"
 	var ctx := {"owned_ids": [run_rule] if run_rule != "" else [], "roster": roster, "seen": [], "mode": mode,
-		"first_run": not rules_on, "pick_index": 1, "front_size": 2, "ascension": ascension, "tier_chain": core_tier_chain}
+		"first_run": not rules_on, "pick_index": 1, "front_size": 2, "ascension": ascension, "tier_chain": core_tier_chain, "depth_stage": depth_stage, "anchor_id": id}
 	var ok := 0
 	for cid in (def.get("house_cores", []) as Array):
 		if CoreOffer.is_valid(RelicRegistry.get_def(String(cid)), ctx):

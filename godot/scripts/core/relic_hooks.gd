@@ -1672,6 +1672,7 @@ static var TABLE: Dictionary = {
 		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_gatekeeper"),
 	},
 	"c_thorn_growth": {"on_dmg_taken": func(ctx: Dictionary): CoreHooks.thorn_growth_hit(ctx)},
+	"c_bloodline_ward": {"on_shield": func(ctx: Dictionary): CoreHooks.bloodline_shield(ctx)},
 	"c_thorn_shield": {"on_turn_end": func(ctx: Dictionary): CoreHooks.thorn_shield_turn_end(ctx)},
 	"c_thorn_rebound": {
 		"thorns_extra": func(ctx: Dictionary): return CoreHooks.rebound_extra(ctx),

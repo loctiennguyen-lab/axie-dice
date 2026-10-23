@@ -75,6 +75,9 @@ core("squad_up", "Hợp Đội", "Squad Up", 1, "pos", ["class_pair"], [], ["att
 core("wicked_tally", "Tích Ác", "Wicked Tally", 1, "dice", [], [], ["attack"], "Each time a finishing die kills an enemy it gets +1 for the run (max +6).", disabled=True, needs="cut 2.10")
 core("verdict", "Phán Quyết", "Verdict", 2, "rule", [], [], ["attack"], "Enemies under 20% HP die at once (not bosses). Finishing faces always Execute.", disabled=True, needs="cut 2.10")
 
+# ---- Cores v5 (design/proposals/cores-rules-v5.md section 10, 23/10)
+core("bloodline_ward", "Phòng Thủ Huyết Thống", "Bloodline Ward", 0, "pos", ["class_pair"], [], ["nonattack"], "When an Axie gains Shield from a shield face, each adjacent Axie of the same class gains half of it (rounded up).")
+
 # Run rules: slug, vn, name, weight, desc, extra
 R = []
 def rule(slug, vn, name, weight, desc, **extra):

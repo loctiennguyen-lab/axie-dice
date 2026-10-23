@@ -1081,6 +1081,26 @@ static func spore_fall(ctx: Dictionary) -> void:
 
 
 # --------------------------------------------------------------------------------------------
+# Cores v5 (design/proposals/cores-rules-v5.md section 10)
+# --------------------------------------------------------------------------------------------
+
+## K1 Bloodline Ward: Shield from a shield FACE also goes, halved (rounded up), to each adjacent Axie of the same class.
+static func bloodline_shield(ctx: Dictionary) -> void:
+	if not bool(ctx.get("face", false)):
+		return
+	var combat = ctx["combat"]
+	var tgt = ctx["tgt"]
+	if tgt.side != "p" or tgt.is_token or String(tgt.cls) == "":
+		return
+	var half := int(ceil(int(ctx["v"]) / 2.0))
+	combat.shield_from_face = false   # the spread is not a face: no chain
+	for n in RelicHooks.slot_neighbors(combat, tgt):
+		if n.hp > 0 and not n.is_token and n.cls == tgt.cls:
+			DamagePipeline.apply_shield(combat, n, half)
+			fire("c_bloodline_ward", n.uid, half, "shield")
+
+
+# --------------------------------------------------------------------------------------------
 # quests: progress lives in combat.relic_run_out["<core id>"] = {n, boss, steps_done, done}; lane B pays rewards
 # --------------------------------------------------------------------------------------------
 

@@ -149,6 +149,7 @@ func _build_table() -> void:
 	_scen["c_thorn_growth"] = func(i): _thorn_growth(i)
 	_scen["c_thorn_pact"] = func(i): var c := _combat([i]); RelicHooks.fire(c, "on_roll_settled", {"combat": c, "rerolled_uids": [c.party[0].uid]})
 	_scen["c_thorn_rebound"] = func(i): var c := _combat([i]); c.party[2].status["thorns"] = 5; _hit_on(c, c.party[2])
+	_scen["c_bloodline_ward"] = func(i): var c := _combat([i]); for k in 5: c.party[k].cls = "plant"; _play(c, c.party[2], _face("shield", 5))
 	_scen["c_thorn_shield"] = func(i): var c := _combat([i]); c.party[1].shield = 7; RelicHooks.fire(c, "on_turn_end", {"combat": c})
 	_scen["c_three_dice"] = func(i): var c := _combat([i]); RelicHooks.fire(c, "on_turn_end", {"combat": c})
 	_scen["c_tidecaller"] = func(i): var c := _combat([i]); RelicHooks.fire(c, "on_reroll_paid", {"combat": c, "cost": 3, "k": 1})
