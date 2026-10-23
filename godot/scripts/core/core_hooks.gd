@@ -460,7 +460,7 @@ static func mana_pool_turn_end(ctx: Dictionary) -> void:
 	gain_mana(combat, mini(3, int(combat.mana) / 3), "", "c_mana_pool")
 
 
-## Ngon Trieu: every 3 Mana spent (reroll or active) deals 2 damage to all enemies.
+## Ngon Trieu: every 2 Mana spent (reroll or active) deals 2 damage to all enemies.
 static func tide_spent(ctx: Dictionary) -> void:
 	var combat = ctx["combat"]
 	var cost := int(ctx.get("cost", 0))
@@ -468,7 +468,7 @@ static func tide_spent(ctx: Dictionary) -> void:
 		return
 	var st := combat_state(combat, "tide_acc")
 	var acc := int(st.get("n", 0)) + cost
-	while acc >= 3:
+	while acc >= 2:
 		acc -= 3
 		for e in combat.alive_enemies().duplicate():
 			fire("c_tidecaller", e.uid, int(DamagePipeline.resolve({"combat": combat, "src": null, "tgt": e, "value": 2, "attack": false})), "dmg")

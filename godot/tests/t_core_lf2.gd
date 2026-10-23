@@ -9,6 +9,7 @@ var _checks := 0
 func _ready() -> void:
 	t_fissure_gate()
 	t_open_ranks_gate()
+	t_tidecaller()
 	print("=== t_core_lf2: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	if _fails.is_empty():
 		print("t_core_lf2: PASS — %d checks OK" % _checks)
@@ -65,3 +66,16 @@ func t_open_ranks_gate() -> void:
 		var o = RelicRegistry.get_def(id)
 		_ok((o.excludes as PackedStringArray).has("owned:c_open_ranks"), "%s excludes open_ranks" % id)
 		_ok(not CoreOffer.is_valid(o, _ctx(ROSTER, ["c_open_ranks"])), "%s hidden when open_ranks owned" % id)
+
+
+func t_tidecaller() -> void:
+	_ok(String(RelicRegistry.get_def("c_tidecaller").description).begins_with("Every 2 Mana"), "tidecaller: rule text says 2 Mana")
+	var t := _combat(["c_tidecaller"])
+	var hp0: int = t.enemies[0].hp
+	RelicHooks.fire(t, "on_active_played", {"combat": t, "cost": 2})
+	_ok(t.enemies[0].hp < hp0, "tidecaller: one active costing 2 deals damage")
+	var t2 := _combat(["c_tidecaller"])
+	RelicHooks.fire(t2, "on_reroll_paid", {"combat": t2, "cost": 1, "k": 1})
+	_ok(t2.enemies[0].hp == hp0, "tidecaller: 1 mana alone does nothing")
+	RelicHooks.fire(t2, "on_reroll_paid", {"combat": t2, "cost": 1, "k": 2})
+	_ok(t2.enemies[0].hp < hp0, "tidecaller: 1+1 mana triggers")

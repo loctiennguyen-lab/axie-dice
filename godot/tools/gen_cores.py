@@ -42,7 +42,7 @@ core("open_ranks", "Đội Hình Mở", "Open Ranks", 2, "pos", [], ["owned:c_li
 core("growing_shell", "Mai Lớn Dần", "Growing Shell", 1, "pos", ["front_hero"], FRONT_EXC, ["nonattack", "front"], "Each enemy a front-row Axie kills gives it +1 Max HP for the run. If it falls, it loses two thirds of the stacks.")
 core("descend", "Xuống Trận", "Take The Field", 2, "pos", ["back_face:heal"], ["owned:c_open_ranks"] + FRONT_EXC, ["nonattack", "convert_to_dmg"], "Pick a back-row Axie with heal faces: it moves to the front for good, its heal and buff faces become damage faces +2, +8 Max HP, 30% lifesteal.")
 # ---- mana
-core("tidecaller", "Ngọn Triều", "Rising Wave", 0, "mana", [], [], ["nonattack", "convert_to_dmg"], "Every 3 Mana you spend deals 2 damage to all enemies.")
+core("tidecaller", "Ngọn Triều", "Rising Wave", 0, "mana", [], [], ["nonattack", "convert_to_dmg"], "Every 2 Mana you spend deals 2 damage to all enemies.")
 core("mana_pool", "Hồ Mana", "Mana Pool", 0, "mana", [], ["rule:rule_dry_steppe"], ["nonattack"], "Mana faces give +1. End of turn: every 3 unspent Mana earns 1 more (max +3 per turn).")
 core("mana_ward", "Đổi Mana Lấy Khiên", "Mana Ward", 1, "mana", [], [], ["nonattack"], "End of turn, spend up to 6 unused Mana: every 2 Mana gives each front-row Axie 3 Shield.")
 core("overflow", "Bể Tràn", "Overflow", 1, "mana", [], ["rule:rule_dry_steppe"], ["nonattack", "convert_to_dmg"], "Mana above 8 turns into pierce damage to all enemies and drops back to 8.")
