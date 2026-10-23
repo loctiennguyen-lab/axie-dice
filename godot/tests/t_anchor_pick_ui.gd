@@ -79,7 +79,7 @@ func _ready() -> void:
 	for c in v3.cards:
 		var id3 := String(c.get_meta("anchor_id"))
 		var h := AnchorAdapter.house_id(id3)
-		_ok(h != "" and AnchorAdapter.house_icon(h) != "ui_mooncard", "%s has its own house glyph" % id3)
+		_ok(h != "" and AnchorAdapter.house_icon(h).begins_with("house_") and UI3.icon(AnchorAdapter.house_icon(h)) != null, "%s has its own house glyph" % id3)
 		_ok(AnchorAdapter.house_color(h) != UI3Theme.color("text_muted"), "%s has a house colour token" % id3)
 		seen_col[AnchorAdapter.house_color(h).to_html()] = true
 		_ok((c.find_child("RuleText", true, false) as Label).text == AnchorAdapter.rule_text(id3) and AnchorAdapter.rule_text(id3) != "", "%s rule text" % id3)
