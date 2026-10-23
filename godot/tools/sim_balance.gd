@@ -297,7 +297,10 @@ func _anchor_step() -> void:
 	var offer: Array = RunState.anchor_offer
 	var pick := String(offer[0])
 	if _anchor_mode != "auto":
-		pick = _anchor_mode if offer.has(_anchor_mode) else pick
+		if not offer.has(_anchor_mode):   # 6 Anchors, 3 offered: a forced run must really hold the forced Anchor
+			offer[0] = _anchor_mode
+			RunState.anchor_offer = offer
+		pick = _anchor_mode
 	elif _policy.begins_with("expert") or _policy == "free_hold":
 		pick = _anchor_heuristic(offer)
 	else:
