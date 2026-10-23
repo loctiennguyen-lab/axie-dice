@@ -239,9 +239,10 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	_shell_bar.use_fixed_fill(UI3Theme.color("shell"))
 	_shell_bar.set_kind(HPBar.Kind.SHIELD, 8, 4, 16)
 	_shell_bar.use_fixed_fill(UI3Theme.color("shell"))
+	_shell_bar.custom_minimum_size.x = 0.0   # HPBar defaults to 96 wide: it would sit under the label
 	_shell_bar.anchor_right = 1.0
 	_shell_bar.offset_left = 22.0
-	_shell_bar.offset_right = -128.0
+	_shell_bar.offset_right = -138.0
 	_shell_bar.offset_top = 4.0
 	_shell_bar.offset_bottom = 12.0
 	_shell_row.add_child(_shell_bar)
@@ -251,7 +252,7 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	_shell_label.add_theme_color_override("font_color", UI3Theme.color("shell"))
 	_shell_label.anchor_left = 1.0
 	_shell_label.anchor_right = 1.0
-	_shell_label.offset_left = -124.0
+	_shell_label.offset_left = -134.0
 	_shell_label.offset_right = 0.0
 	_shell_label.offset_top = -4.0
 	_shell_label.offset_bottom = 20.0
@@ -478,7 +479,7 @@ func set_shell(cur: int, max_v: int) -> void:
 	if max_v <= 0:
 		return
 	_shell_bar.set_stats(maxi(cur, 0), max_v)
-	_shell_label.text = "SHELL %d / %d" % [maxi(cur, 0), max_v]
+	_shell_label.text = "SHELL %d/%d" % [maxi(cur, 0), max_v]
 	_shell_row.set_meta("shell_text", _shell_label.text)
 
 
