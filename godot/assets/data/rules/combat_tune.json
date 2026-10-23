@@ -139,10 +139,10 @@
   "volley_pct_5": 90,
   "volley_cap": 20,
   "volley_set_add": 0.0,
-  "gambler_set_add": 0.45,
+  "gambler_set_add": 0.55,
   "gambler_turn_cap": 0.60,
   "gambler_crack_pct": 10,
-  "mine_mana": 1,
+  "mine_mana": 2,
   "mine_overcast_cost": 1,
   "mine_wild_cost": 2,
   "beat_per_turn": 2,
@@ -152,8 +152,8 @@
   "kin_miss_pen": 0.25,
   "unison_max": 4,
   "embers_hold_n": 2,
-  "embers_add": 0.75,
-  "big_set45_add": 0.40,
+  "embers_add": 1.50,
+  "big_set45_add": 0.60,
   "sixth_hand_min_set": 4
  },
  "mana_heat": {
