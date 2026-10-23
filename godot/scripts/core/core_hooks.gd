@@ -314,7 +314,7 @@ static func shell_kill(ctx: Dictionary) -> void:
 
 
 static func shell_fall(ctx: Dictionary) -> void:
-	if not fell_now(ctx):
+	if not fell_now(ctx, "c_growing_shell"):
 		return
 	var st := _shell_stacks(ctx["combat"])
 	var key := str(ctx["tgt"].uid)
@@ -636,12 +636,14 @@ static func _has_kw(face: Dictionary, kw: String) -> bool:
 	return false
 
 
-## True the first time an Axie / Egg is seen fallen (on_dmg_taken, hp 0).
-static func fell_now(ctx: Dictionary) -> bool:
+## True the first time `who` (a Core id) sees this Axie / Egg fallen (on_dmg_taken, hp 0). One flag per Core, so two
+## Cores that react to the same fall (Last Testament + Spore Burst, combo Funeral Pyre) both fire.
+static func fell_now(ctx: Dictionary, who: String) -> bool:
 	var t = ctx["tgt"]
-	if t.side != "p" or t.hp > 0 or bool(t.custom_state.get("c_fell", false)):
+	var key := "c_fell_" + who
+	if t.side != "p" or t.hp > 0 or bool(t.custom_state.get(key, false)):
 		return false
-	t.custom_state["c_fell"] = true
+	t.custom_state[key] = true
 	return true
 
 
@@ -1019,7 +1021,7 @@ static func thorn_settled(ctx: Dictionary) -> void:
 
 static func golden_egg_fall(ctx: Dictionary) -> void:
 	var t = ctx["tgt"]
-	if not (t.is_token and t.key == "egg") or not fell_now(ctx):
+	if not (t.is_token and t.key == "egg") or not fell_now(ctx, "c_golden_egg"):
 		return
 	golden_egg_trigger(ctx["combat"])
 
@@ -1089,7 +1091,7 @@ static func cascade_used(ctx: Dictionary) -> void:
 
 
 static func spore_fall(ctx: Dictionary) -> void:
-	if not fell_now(ctx):
+	if not fell_now(ctx, "c_spore_burst"):
 		return
 	var combat = ctx["combat"]
 	var half: bool = ctx["tgt"].is_token
@@ -1185,7 +1187,7 @@ static func _set_size_of(combat, u) -> int:
 
 ## K2 Last Testament: when an Axie falls, every living Axie of its class gets +2 on every face until the end of the fight (max +6). Eggs do not count.
 static func last_testament_fall(ctx: Dictionary) -> void:
-	if not fell_now(ctx):
+	if not fell_now(ctx, "c_last_testament"):
 		return
 	var combat = ctx["combat"]
 	var dead = ctx["tgt"]

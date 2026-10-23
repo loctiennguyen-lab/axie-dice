@@ -175,6 +175,9 @@ func _build_table() -> void:
 	_scen["rule_quick_beat"] = func(i): var c := _combat([i]); c.enemies[0].is_boss = true; RelicHooks.fire(c, "on_turn_start", {"combat": c})
 	_scen["rule_upside_down"] = func(i): _upside(i)
 	_scen["rule_crow"] = func(_i): _crow()
+	# Run Rules v5: Pack Alpha marks its leader at fight start (2+ enemies); High Stakes pays a clean Gamble
+	_scen["rule_pack_alpha"] = func(i): var c := _combat([i]); _play(c, c.party[0], _face("dmg", 5), c.enemies[c.enemies.size() - 1].uid)
+	_scen["rule_high_stakes"] = func(i): var c := _combat([i]); c.depth_stage = 3; CoreHooks.stakes_clean(c, [c.party[0].uid], [])
 	_scen["c_fossil"] = func(i): _bet_run(i)
 	_scen["c_dim_stone"] = func(i): _bet_run(i)
 

@@ -2199,7 +2199,6 @@ func _core_ctx(pick: int = -1) -> Dictionary:
 		"ascension": ascension, "tier_chain": core_tier_chain, "depth_stage": depth_stage, "anchor_id": anchor_id,
 		# a bonus (quest/event/shop) offer is opened with _core_offer_pick == core_pick_index; milestone offers use index-1
 		"bonus": pick >= 0 and pick == core_pick_index,
-		"anchor_id": anchor_id,
 		"anchor_house": ((Anchors.get_def(anchor_id).get("house_cores", []) as Array) if anchor_id != "" else [])}
 
 

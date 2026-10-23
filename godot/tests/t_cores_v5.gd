@@ -199,6 +199,14 @@ func t_k2() -> void:
 		_fell(c2, c2.party[k])
 	_ok(CoreHooks.flat_total(c2, c2.party[4], "dmg") == 6, "K2: capped at +6")
 	_ok(_fired("c_last_testament") > 0, "K2: fired")
+	# Funeral Pyre: Last Testament and Spore Burst both react to the SAME fall (one fall flag per Core)
+	var c3 := _combat(["c_last_testament", "c_spore_burst"])
+	for k in 5:
+		c3.party[k].cls = "plant"
+	var lt0 := _fired("c_last_testament")
+	var sp0 := _fired("c_spore_burst")
+	_fell(c3, c3.party[0])
+	_ok(_fired("c_last_testament") > lt0 and _fired("c_spore_burst") > sp0, "K2 + Spore Burst: one fall fires both Cores")
 
 
 func t_k3() -> void:
