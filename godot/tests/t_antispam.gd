@@ -92,11 +92,13 @@ func _test_off_is_identical() -> void:
 
 
 func _test_chain() -> void:
-	var seq := [BoTestBase.face("dmg", 10), BoTestBase.face("shield", 10), BoTestBase.face("dmg", 10), BoTestBase.face("dmg", 10), BoTestBase.face("heal", 10)]
+	# party index -> face. Beast (1) and Reptile (3) hit for +2 by class, so damage dice sit on 0 / 2 / 4. Use order 0,1,2,4,3.
+	var seq := [BoTestBase.face("dmg", 10), BoTestBase.face("shield", 10), BoTestBase.face("dmg", 10), BoTestBase.face("heal", 10), BoTestBase.face("dmg", 10)]
+	var order := [0, 1, 2, 4, 3]
 	_fresh()
 	var off := _prep(seq)
 	var offv: Array = []
-	for i in 5:
+	for i in order:
 		offv.append(_fv(off, i))
 	eq(offv, [10, 10, 10, 10, 10], "chain off: values untouched")
 	_tune("chain", {"enabled": true})
@@ -104,31 +106,31 @@ func _test_chain() -> void:
 	var want := [10, 12, 13, 9, 12]   # first 10 | other type +15% | other +30% | same type -10% (chain 0) | other +15%
 	var snaps: Array = []
 	var tgt := (e.enemies[0] as Unit).uid
-	for i in 5:
-		eq(_fv(e, i), want[i], "chain step %d shows %d" % [i, want[i]])
+	for k in 5:
+		var i: int = order[k]
+		eq(_fv(e, i), want[k], "chain step %d shows %d" % [k, want[k]])
 		var hp0 := (e.enemies[0] as Unit).hp
-		ok(e.use_die((e.party[i] as Unit).uid, tgt), "use die %d" % i)
+		var tid2 := tgt if String(seq[i]["type"]) == "dmg" else (e.party[i] as Unit).uid
+		ok(e.use_die((e.party[i] as Unit).uid, tid2), "use die %d" % i)
 		snaps.append(e.to_data())
 		if String(seq[i]["type"]) == "dmg":
-			eq(hp0 - (e.enemies[0] as Unit).hp, want[i], "actual damage of step %d = preview" % i)
+			eq(hp0 - (e.enemies[0] as Unit).hp, want[k], "actual damage of step %d = preview" % k)
 	eq(String(e.antispam_turn["chain_last"]), "heal", "last type tracked")
 	eq(int(e.antispam_turn["chain_n"]), 1, "chain level after the last step")
 	e.undo_last()
 	eq(String(e.antispam_turn["chain_last"]), "dmg", "undo rewinds the chain type")
 	eq(int(e.antispam_turn["chain_n"]), 0, "undo rewinds the chain level")
-	eq(_fv(e, 4), 12, "after undo the same face shows the same value")
+	eq(_fv(e, 3), 12, "after undo the same face shows the same value")
 	var ld := CombatEngine.new()
 	ld.from_data(JSON.parse_string(JSON.stringify(snaps[2])))
 	eq(String(ld.antispam_turn["chain_last"]), "dmg", "save/load keeps chain type")
 	eq(int(ld.antispam_turn["chain_n"]), 2, "save/load keeps chain level")
-	eq(_fv(ld, 3), 9, "loaded fight prices the next same-type die with the penalty")
-	# max level and the cap: step 40% x level 3 on a Set die still stays under bo.m_cap
+	eq(_fv(ld, 4), 9, "loaded fight prices the next same-type die with the penalty")
 	_tune("chain", {"enabled": true, "step_pct": 200})
 	var c := _prep(seq)
-	c.use_die((c.party[0] as Unit).uid, tgt)
+	c.use_die((c.party[0] as Unit).uid, (c.enemies[0] as Unit).uid)
 	eq(c.m100_for(c.party[1]), c.bo_cap100(), "chain add is clamped by bo.m_cap")
 	eq(int(CombatEngine.tune_knob("chain", "max", 0.0)), 3, "chain.max default 3")
-	# new turn: tally resets
 	c.end_turn(5)
 	eq(String(c.antispam_turn["chain_last"]), "", "tally reset on the next turn")
 
@@ -136,8 +138,9 @@ func _test_chain() -> void:
 func _test_heat() -> void:
 	_fresh()
 	var off := _eng("battle", 9)
+	var om := off.mana
 	off.begin_end_turn(5)
-	eq(off.mana, 9, "heat off: mana untouched")
+	eq(off.mana, om, "heat off: mana untouched")
 	_tune("mana_heat", {"enabled": true})
 	var e := _eng("battle", 6)
 	(e.party[0] as Unit).hp = 50
@@ -190,7 +193,7 @@ func _test_shell() -> void:
 	# numbers: dummy elite, hand-set shell
 	var plain := BoTestBase.face("dmg", 10)
 	var pierce := BoTestBase.face("dmg", 10, 0, ["pierce"])
-	var faces := [plain, pierce, plain, plain, plain]
+	var faces := [plain, plain, plain, plain, pierce]
 	var s := _prep_shell(faces, 8)
 	var t := s.enemies[0] as Unit
 	var tid := t.uid
@@ -198,10 +201,11 @@ func _test_shell() -> void:
 	eq(shell_left(t), 3, "plain dmg face (no Set) counts 50%: 10 -> 5 off the shell 8")
 	eq(t.hp, 999, "nothing reached HP")
 	var snap := s.to_data()
-	s.use_die((s.party[1] as Unit).uid, tid)
+	s.use_die((s.party[4] as Unit).uid, tid)
 	eq(shell_left(t), 0, "pierce counts full: shell gone")
 	eq(t.hp, 999 - 7, "pierce 10 vs shell 3: 7 through")
 	s.undo_last()
+	t = s.enemies[0] as Unit   # undo rebuilds the units
 	eq(shell_left(t), 3, "undo restores the shell")
 	eq(t.hp, 999, "and HP")
 	var ld := CombatEngine.new()
@@ -210,7 +214,7 @@ func _test_shell() -> void:
 	# Set die counts full
 	var sets := _eng("elite", 0, "", false, 4)
 	var sf := [plain, plain, plain, plain, plain]
-	force(sets, [0, 1, 2, 3, 4], [_p(plain, "x"), _p(plain, "x"), _p(plain, "x"), _p(plain, "y"), _p(plain, "z")])
+	force(sets, [0, 0, 0, 1, 2], [_p(plain, "x"), _p(plain, "x"), _p(plain, "x"), _p(plain, "y"), _p(plain, "z")])
 	_dummy(sets)
 	var st := sets.enemies[0] as Unit
 	st.custom_state["shell"] = 8
@@ -221,8 +225,9 @@ func _test_shell() -> void:
 	eq(st.hp, 999 - (sv - 8), "the rest goes to HP")
 	# boss Hollow turn: no shell
 	var open := false
+	bb.custom_state["trait"] = ""   # the Agony boss has no rhythm; this test needs one
 	for tn in range(1, 7):
-		b.turn = tn
+		bb.custom_state["turn_count"] = tn
 		if b.boss_is_hollow(bb):
 			open = true
 			eq(b.shell_absorb(bb, 20.0, false), 20.0, "hollow turn: shell open, damage passes whole")

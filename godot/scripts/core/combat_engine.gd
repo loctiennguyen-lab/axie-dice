@@ -821,6 +821,7 @@ func _lowest_by(units: Array, score: Callable) -> Unit:
 
 
 func _resolve_cantrips() -> void:
+	_chain_mute = true   # anti-spam C: a cantrip is not a decision, it never counts in the chain
 	for u in alive_party().duplicate():
 		var guard := 0
 		# Depth v3 Core Loop (c_loop): the first cantrip an Axie resolves each roll is used one extra time.
@@ -836,6 +837,7 @@ func _resolve_cantrips() -> void:
 					CoreHooks.fire("c_loop", u.uid, 1, "reroll")
 					_exec_face(u, u.uid)
 			_roll_unit(u)
+	_chain_mute = false
 
 
 ## ---- async twins (L1 B1): the view awaits the seed, then calls the sync rule with it -------------------
@@ -1883,6 +1885,9 @@ func bo_group_m100(g: Dictionary) -> int:
 # Anti-spam v5 (design/proposals/anti-spam-v5.md). Three independent blocks in combat_tune.json, each "enabled": false by default.
 # Deterministic (no rng). Off = not one line of the old path changes.
 # ===========================================================================
+var _chain_mute: bool = false
+
+
 static func _antispam_fresh() -> Dictionary:
 	return {"chain_last": "", "chain_n": 0, "heat_excess": 0, "heat_dmg": 0, "heat_uid": 0}
 
@@ -2028,7 +2033,7 @@ func _chain_repeat_pct(u: Unit, f: Dictionary) -> int:
 
 ## Called once per real face use (not per echo) after its effect resolved.
 func _chain_note(u: Unit, f: Dictionary) -> void:
-	if u.side != "p" or not antispam_on("chain"):
+	if _chain_mute or u.side != "p" or not antispam_on("chain"):
 		return
 	var t := String(f.get("type", ""))
 	if not _chain_tracks(t):
