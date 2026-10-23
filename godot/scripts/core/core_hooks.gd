@@ -471,6 +471,9 @@ static func mana_pool_turn_end(ctx: Dictionary) -> void:
 
 
 ## Ngon Trieu: every 2 Mana spent (reroll or active) deals 2 damage to all enemies.
+const TIDE_STEP := 2   # Mana spent per Rising Wave pulse (text in c_tidecaller.tres / gen_cores.py must say the same)
+
+
 static func tide_spent(ctx: Dictionary) -> void:
 	var combat = ctx["combat"]
 	var cost := int(ctx.get("cost", 0))
@@ -478,8 +481,8 @@ static func tide_spent(ctx: Dictionary) -> void:
 		return
 	var st := combat_state(combat, "tide_acc")
 	var acc := int(st.get("n", 0)) + cost
-	while acc >= 2:
-		acc -= 3
+	while acc >= TIDE_STEP:
+		acc -= TIDE_STEP
 		for e in combat.alive_enemies().duplicate():
 			fire("c_tidecaller", e.uid, int(DamagePipeline.resolve({"combat": combat, "src": null, "tgt": e, "value": 2, "attack": false})), "dmg")
 	st["n"] = acc
