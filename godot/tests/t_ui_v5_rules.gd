@@ -39,6 +39,7 @@ func _ready() -> void:
 	await _test_alpha()
 	await _test_stakes()
 	await _test_shell()
+	await _test_new_cores()
 	_guard.restore()
 	if _fails.is_empty():
 		print("t_ui_v5_rules: PASS — %d checks OK" % _checks)
@@ -148,3 +149,30 @@ func _test_shell() -> void:
 	v.queue_free()
 	await get_tree().process_frame
 	ContentDB.combat_tune = backup
+
+
+const NEW_CORES := ["c_bloodline_ward", "c_smoldering", "c_cache_plate", "c_golden_thread", "c_last_testament",
+	"c_melting_pot", "c_hunters_reward", "c_support_hand", "c_cracked_glass", "c_high_roller", "c_magma_seed"]
+
+
+func _test_new_cores() -> void:
+	var cp := CorePanel.new()
+	add_child(cp)
+	for id in NEW_CORES:
+		var def = RelicRegistry.get_def(id)
+		_check(def != null, "%s resolves" % id)
+		if def == null:
+			continue
+		var nm := UI3.title_case(UI3.player_text(String(def.name)))
+		var txt := UI3.player_text(String(def.description))
+		_check(nm != "", "%s has a name" % id)
+		_check(txt.length() > 20 and not txt.contains("[") and not txt.contains("RULE:") and not txt.contains("undefined"), "%s rule text clean: '%s'" % [id, txt])
+		var icon_name := String(CorePanel.AXIS_ICON.get(String(def.core_axis), ""))
+		_check(icon_name != "" and UI3.icon(icon_name) != null, "%s axis icon '%s' (axis '%s')" % [id, icon_name, def.core_axis])
+		var slot := cp._slot(def, false, "")
+		var ic := slot.get_node_or_null("AxisIcon") as TextureRect
+		_check(ic != null and ic.texture != null, "%s slot shows an icon" % id)
+		var tip := UI3Tooltip.text_of(slot)
+		_check(tip.contains(String(def.name)) and tip.contains(txt), "%s slot tooltip carries name + rule text" % id)
+		slot.free()
+	cp.free()
