@@ -8,6 +8,7 @@ var _checks := 0
 
 func _ready() -> void:
 	t_fissure_gate()
+	t_open_ranks_gate()
 	print("=== t_core_lf2: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	if _fails.is_empty():
 		print("t_core_lf2: PASS — %d checks OK" % _checks)
@@ -53,3 +54,14 @@ func t_fissure_gate() -> void:
 	ContentDB.heroes["t_dbf"] = {"die": [{"type": "dmg", "value": 3}, {"type": "shield", "value": 2}]}
 	_ok(not CoreOffer.is_valid(d, _ctx(["t_dbf"], [])), "fissure: no debuff -> hidden")
 	ContentDB.heroes.erase("t_dbf")
+
+
+func t_open_ranks_gate() -> void:
+	var d = RelicRegistry.get_def("c_open_ranks")
+	_ok((d.requires as PackedStringArray).is_empty(), "open_ranks: no requires")
+	_ok(CoreOffer.is_valid(d, _ctx(ROSTER, [])), "open_ranks: valid with no front Core owned")
+	_ok(not CoreOffer.is_valid(d, _ctx(ROSTER, ["c_living_wall"])), "open_ranks: living_wall excludes it")
+	for id in ["c_backline_glow", "c_descend"]:
+		var o = RelicRegistry.get_def(id)
+		_ok((o.excludes as PackedStringArray).has("owned:c_open_ranks"), "%s excludes open_ranks" % id)
+		_ok(not CoreOffer.is_valid(o, _ctx(ROSTER, ["c_open_ranks"])), "%s hidden when open_ranks owned" % id)

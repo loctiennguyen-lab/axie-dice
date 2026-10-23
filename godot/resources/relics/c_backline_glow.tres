@@ -16,3 +16,4 @@ tags = PackedStringArray("nonattack")
 layer = "positional"
 core_axis = "pos"
 requires = PackedStringArray("back_face:heal|mana|buff")
+excludes = PackedStringArray("owned:c_open_ranks")
