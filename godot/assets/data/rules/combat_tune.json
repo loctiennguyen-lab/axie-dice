@@ -169,6 +169,7 @@
   "enabled": true,
   "pct": 25,
   "off_set_pct": 50,
+  "stage_min": 2,
   "elite": 1,
   "boss": 1,
   "boss_open_turn_off": 1

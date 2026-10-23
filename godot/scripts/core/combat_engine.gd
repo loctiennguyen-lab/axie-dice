@@ -2009,6 +2009,8 @@ func _mana_heat_end_turn() -> void:
 func _apply_shell_start() -> void:
 	if not antispam_on("shell") or enemies.is_empty():
 		return
+	if depth_stage < int(tune_knob("shell", "stage_min", 2.0)):
+		return   # stage 1 has no Wild / Gamble yet, so a Set is hard to build: no Shell for newcomers
 	var e: Unit = enemies[0]
 	if (kind == "elite" and tune_knob("shell", "elite", 1.0) > 0.0) or (kind == "boss" and e.is_boss and tune_knob("shell", "boss", 1.0) > 0.0):
 		var sh := RulesMath.round_half_up(float(e.max_hp) * tune_knob("shell", "pct", 40.0) / 100.0)

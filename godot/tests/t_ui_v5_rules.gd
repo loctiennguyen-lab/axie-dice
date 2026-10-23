@@ -64,6 +64,10 @@ func _test_alpha() -> void:
 	v._update_portrait(alpha)
 	var pa: UnitPortrait = v._portraits[alpha.uid]
 	_check(pa.is_leader(), "Leader badge shown on the Alpha")
+	pa.set_intent({"show": true, "type": "dmg", "num": 22, "label": "ATTACK", "target": "Olek the Magnificent Warrior", "boosted": false})
+	await get_tree().process_frame
+	_check(pa._plate.get_combined_minimum_size().x <= UnitPortrait.WIDTH + 0.5, "Leader plate min width %.0f stays <= %.0f" % [pa._plate.get_combined_minimum_size().x, UnitPortrait.WIDTH])
+	_check(pa._intent_panel.get_global_rect().end.x <= pa._plate.get_global_rect().end.x + 0.5, "intent column inside the plate")
 	var badge := pa.find_child("LeaderBadge", true, false) as Control
 	_check(badge != null and (badge.find_child("Text", true, false) as Label).text == "LEADER" \
 		and badge.find_child("Icon", true, false) != null, "badge has glyph + the word LEADER")
@@ -83,6 +87,7 @@ func _test_alpha() -> void:
 	alpha.hp = 0
 	v._update_portrait(alpha)
 	_check(not pa.is_leader(), "badge gone when the Leader is dead")
+	_check(String(v.alpha_notes[0]).contains(":") and String(v.alpha_notes[0]).ends_with(v._unit_name(alpha.uid)), "block note names the Leader: %s" % v.alpha_notes[0])
 	v.queue_free()
 	await get_tree().process_frame
 
@@ -103,7 +108,8 @@ func _test_stakes() -> void:
 	v._enter_rr_mode()
 	await get_tree().process_frame
 	_check(v._rr_bar.gamble_button.visible and not v._rr_bar.safe_button.visible, "pick bar: only Gamble under High Stakes")
-	_check(v._rr_bar.line.text.contains("Crack 20%"), "bar line mentions Crack 20%%: '%s'" % v._rr_bar.line.text)
+	_check(v._rr_bar.line.text.contains("Crack 20%") and v._rr_bar.line.text.contains("half value"), "bar line: Crack 20%% + half value: '%s'" % v._rr_bar.line.text)
+	_check(c.reroll_mana_cost(false, 0) == 0 and v._rr_bar.gamble_button.text.contains("free"), "pick-bar Gamble price (free) matches engine")
 	_check(CoreFeedback.float_line("High Stakes", 3, "shield") == "High Stakes +3 Shield", "+3 Shield float")
 	_check(CoreFeedback.float_line("High Stakes", 1, "mana") == "High Stakes +1 Mana", "+1 mana float")
 	v.queue_free()
@@ -138,10 +144,28 @@ func _test_shell() -> void:
 	var p: UnitPortrait = v._portraits[boss.uid]
 	_check(p.has_shell(), "shell on: bar shown on the Elite")
 	var txt := p.find_child("ShellText", true, false) as Label
-	_check(txt != null and txt.text == "%d / %d" % [sh, sh], "shell number '%s'" % (txt.text if txt != null else "?"))
+	_check(txt != null and txt.text == "SHELL %d / %d" % [sh, sh], "shell label+number '%s'" % (txt.text if txt != null else "?"))
 	_check(UI3Tooltip.text_of(p.find_child("ShellRow", true, false)).contains("50%"), "tooltip says outside a SET deals 50%")
 	EventBus.shell_changed.emit(boss.uid, sh - 5, sh, 5)
-	_check(txt.text == "%d / %d" % [sh - 5, sh], "shell_changed updates the number")
+	_check(txt.text == "SHELL %d / %d" % [sh - 5, sh], "shell_changed updates the number")
+	# off-set hit: one float per turn
+	var hitter: Unit = v._party_dice_units()[0]
+	EventBus.face_used.emit(hitter.uid, "p", boss.uid, false, "", "", "dmg")
+	EventBus.shell_changed.emit(boss.uid, sh - 8, sh, 3)
+	EventBus.shell_changed.emit(boss.uid, sh - 11, sh, 3)
+	_check(v.shell_notes.size() == 1 and String(v.shell_notes[0]) == "Outside a SET: 50% to Shell", "off-set Shell note once per turn: %s" % str(v.shell_notes))
+	# first-sight coach
+	V4Coach.reset_for_tests()
+	V4Coach.enabled_in_tests = true
+	v._coach_turn = -1
+	v._update_coach()
+	_check(v.coach_shown_id == "C8", "Shell coach shown first time, got '%s'" % v.coach_shown_id)
+	_check(V4Coach.text_for("C8").contains("50%") and V4Coach.text_for("C8").contains("SET of 3"), "coach text")
+	v.coach_shown_id = ""
+	v._coach_turn = -1
+	v._update_coach()
+	_check(v.coach_shown_id != "C8", "Shell coach only once")
+	V4Coach.enabled_in_tests = false
 	for e in v._combat.enemies:
 		if e != boss:
 			v._update_portrait(e)

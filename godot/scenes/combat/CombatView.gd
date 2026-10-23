@@ -1666,6 +1666,7 @@ func _connect_event_bus() -> void:
 	EventBus.relic_pulsed.connect(_on_relic_pulsed)
 	EventBus.core_fired.connect(_on_core_fired)
 	EventBus.shell_changed.connect(_on_shell_changed)
+	EventBus.face_used.connect(_track_face_for_shell)
 	AnchorAdapter.listen("anchor_awakened", _on_anchor_awakened)
 	ComboAdapter.connect_fired(_on_combo_fired)
 	EventBus.float_text.connect(_on_float_text)
@@ -3010,7 +3011,7 @@ func _update_rr_bar() -> void:
 	else:
 		line = V4Ui.refusal_text(gref, cost, _combat.mana)
 	if stakes > 0 and pin.is_empty():
-		line = TranslationServer.translate("High Stakes: every reroll is a Gamble · Crack %d%%") % stakes \
+		line = TranslationServer.translate("High Stakes: Gamble · Crack %d%% per die. Crack = half value this turn.") % stakes \
 			+ ("\n" + V4Ui.refusal_text(gref, cost, _combat.mana) if gref != "" else "")
 	elif sref != "" and sref != gref and pin.is_empty():
 		line += "\n" + V4Ui.refusal_text(sref, cost, _combat.mana)
@@ -3509,10 +3510,29 @@ var _alpha_broken := false
 var alpha_notes: Array = []   ## test hook
 
 
-func _on_shell_changed(uid: int, shell: int, shell_max: int, _absorbed: int) -> void:
+var _last_face_uid := -1
+var _last_face_type := ""
+var _shell_note_turn := -1
+var shell_notes: Array = []   ## test hook
+
+
+## Remembers who used which face last: face_used fires just before the damage resolves, so a shell hit knows its source.
+func _track_face_for_shell(uid: int, _side: String, _target: int, _aoe: bool, _part: String, _name: String, ftype: String) -> void:
+	_last_face_uid = uid
+	_last_face_type = ftype
+
+
+func _on_shell_changed(uid: int, shell: int, shell_max: int, absorbed: int) -> void:
 	var p: UnitPortrait = _portraits.get(uid)
 	if p != null:
 		p.set_shell(shell, shell_max)
+	if absorbed > 0 and _combat != null and _shell_note_turn != _combat.turn:
+		var src: Unit = _combat.by_uid(_last_face_uid)
+		if src != null and _combat.shell_off_set(src, true, _last_face_type, false):
+			_shell_note_turn = _combat.turn
+			var t := TranslationServer.translate("Outside a SET: 50% to Shell")
+			shell_notes.append(t)
+			_spawn_core_note(uid, [{"text": t, "token": "shell"}])
 
 
 func _on_pack_alpha_fired(uid: int, amount: int, kind: String) -> bool:
@@ -3520,7 +3540,11 @@ func _on_pack_alpha_fired(uid: int, amount: int, kind: String) -> bool:
 		_append_log("[core] Pack Alpha: -50%% on %s" % _unit_name(uid))
 		if _combat != null and _alpha_note_turn != _combat.turn:
 			_alpha_note_turn = _combat.turn
-			var t := TranslationServer.translate("−50% · hit the Leader")
+			var lead := ""
+			for e in _combat.enemies:
+				if bool(e.custom_state.get("alpha", false)):
+					lead = _unit_name(e.uid)
+			var t := TranslationServer.translate("−50% · hit the Leader") + ((": " + lead) if lead != "" else "")
 			alpha_notes.append(t)
 			_spawn_core_note(uid, [{"text": t, "token": "face_shield"}])
 		return true
@@ -4778,7 +4802,11 @@ func _update_coach() -> void:
 			pair = true
 		if int(parts[k]) == 3:
 			set3 = true
-	var id := V4Coach.next_id({"stage": _combat.depth_stage, "rolled": rolled, "pair": pair, "set3": set3, "bo": not _combat.bo.is_empty(),
+	var has_shell := false
+	for e in _combat.enemies:
+		if e.hp > 0 and int(e.custom_state.get("shell", 0)) > 0:
+			has_shell = true
+	var id := V4Coach.next_id({"shell": has_shell, "stage": _combat.depth_stage, "rolled": rolled, "pair": pair, "set3": set3, "bo": not _combat.bo.is_empty(),
 		"free_left": _combat.rerolls, "payable": _combat.reroll_is_payable(), "mana": _combat.mana,
 		"reroll_cost": _combat.reroll_mana_cost(false, 1), "wild_cost": _combat.wild_cost(), "oc_cost": _combat.overcast_cost()})
 	if id == "":

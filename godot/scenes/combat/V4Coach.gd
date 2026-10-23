@@ -3,7 +3,7 @@ extends RefCounted
 ## Depth v4 coach lines C1-C7 (combat-v4.md 5.3): one sentence, once per account, one bubble per turn.
 ## "Seen" flags live in MetaState.v4_coach_seen (meta save -> SaveStore, follows the account).
 
-const ORDER := ["C1", "C2", "C3", "C4", "C5", "C6", "C7"]
+const ORDER := ["C8", "C1", "C2", "C3", "C4", "C5", "C6", "C7"]
 const TEXT := {
 	"C1": "Every die has a part. 3 dice of the same part make a SET, and a SET is stronger.",
 	"C2": "You have a pair. Reroll the other dice to find a third of the same part.",
@@ -12,6 +12,7 @@ const TEXT := {
 	"C5": "Gamble: free, but each die has a chance to Crack.",
 	"C6": "Have a set of 3? Pay 2 mana to make it 4 — once per fight.",
 	"C7": "Overcast makes your whole Set stronger.",
+	"C8": "This Elite has a Shell: dice outside a SET deal only 50% to it. Make a SET of 3+ (Reroll / Wild help).",
 }
 const MIN_STAGE := {"C5": 2, "C6": 2, "C7": 3}
 
@@ -50,6 +51,9 @@ static func next_id(s: Dictionary) -> String:
 		if seen(id) or int(s.get("stage", 3)) < int(MIN_STAGE.get(id, 1)):
 			continue
 		match id:
+			"C8":
+				if bool(s.get("shell", false)) and bool(s.get("rolled", false)):
+					return id
 			"C1":
 				if bool(s.get("rolled", false)):
 					return id

@@ -78,8 +78,10 @@ func _test_off_is_identical() -> void:
 	var a := _eng("elite", 6, "a_mana_mine", true, 4)
 	_play(a, 5)
 	_fresh()
-	for k in ["mana_heat", "shell", "chain"]:
+	for k in ["mana_heat", "chain"]:
 		ok(not CombatEngine.antispam_on(k), "%s ships disabled" % k)
+	ok(CombatEngine.antispam_on("shell"), "shell ships ENABLED (Liam 23/10, anti-spam-v5.md decision)")
+	_tune("shell", {"enabled": false})   # the identity check compares "absent" with "present but off"
 	var b := _eng("elite", 6, "a_mana_mine", true, 4)
 	_play(b, 5)
 	var da: Dictionary = JSON.parse_string(digest(a))
@@ -183,7 +185,12 @@ func _test_shell() -> void:
 	_tune("shell", {"enabled": true})
 	var e := _eng("elite", 0, "", false, 4)
 	var boss := e.enemies[0] as Unit
-	eq(int(boss.custom_state.get("shell", -1)), RulesMath.round_half_up(boss.max_hp * 0.4), "elite shell = 40% max HP")
+	var pct := CombatEngine.tune_knob("shell", "pct", 40.0) / 100.0
+	eq(int(boss.custom_state.get("shell", -1)), RulesMath.round_half_up(boss.max_hp * pct), "elite shell = pct of max HP (knob)")
+	var st1 := CombatEngine.new()
+	st1.setup_new({"node_id": "as1", "kind": "elite", "pw": 4, "ascension": 0, "roster_snapshot": CoreTestUtil.roster(["plant1", "beast1", "aqua1", "reptile1", "bug1"]),
+		"relic_ids": [], "combat_seed": 7, "start_mana": 0, "depth_stage": 1, "anchor_id": "", "anchor_awakened": false})
+	ok(not (st1.enemies[0] as Unit).custom_state.has("shell"), "stage 1: no shell (stage_min 2)")
 	ok(not (e.enemies[1] as Unit).custom_state.has("shell") if e.enemies.size() > 1 else true, "escorts have none")
 	var n := _eng("battle", 0, "", false, 4)
 	ok(not (n.enemies[0] as Unit).custom_state.has("shell"), "normal fight: no shell")
