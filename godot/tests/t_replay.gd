@@ -413,6 +413,16 @@ func test_a_stage2_pick_of_mana_mine_is_refused() -> void:
 		log = played["log"]
 		offer = (played["state"] as Dictionary).get("anchor", {}).get("offer", [])
 		if offer.has("a_mana_mine"):
+			# The honest log must not pick the locked Mana Mine: pick the first other card.
+			var alt := 0
+			while String(offer[alt]) == "a_mana_mine":
+				alt += 1
+			if alt != 0 or String((played["state"] as Dictionary).get("anchor", {}).get("id", "")) == "a_mana_mine":
+				RunBot.anchor_pick_index = alt
+				played = RunBot.play_run(RUN_SEED + sd, TEAM, "short", 0, {"anchor": true, "depth_stage": 2, "loadout": {"rules_on": false}})
+				RunBot.anchor_pick_index = -2
+				log = played["log"]
+			_assert(String((played["state"] as Dictionary).get("anchor", {}).get("id", "")) != "a_mana_mine", "the honest stage-2 run did not pick Mana Mine")
 			break
 	var honest := RunVerifier.verify(log, played["tape"], {}, true)
 	_assert(bool(honest["ok"]), "honest stage-2 Anchor run accepted: %s %s" % [str(honest["error"]), str(honest["message"])])

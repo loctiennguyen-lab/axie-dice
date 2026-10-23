@@ -5,10 +5,10 @@ func _init() -> void:
 	_name = "t_anchor_awaken2"
 
 
-func _eng(anchor: String, mana: int, awake: bool, seed_v: int = 7) -> CombatEngine:
+func _eng(anchor: String, mana: int, awake: bool, seed_v: int = 7, stage: int = -1) -> CombatEngine:
 	var e := CombatEngine.new()
 	e.setup_new({"node_id": "bo", "kind": "battle", "pw": 2, "ascension": 0, "roster_snapshot": CoreTestUtil.roster(["plant1", "beast1", "aqua1", "reptile1", "bug1"]),
-		"relic_ids": [], "combat_seed": seed_v, "start_mana": mana, "depth_stage": 3, "anchor_id": anchor, "anchor_awakened": awake})
+		"relic_ids": [], "combat_seed": seed_v, "start_mana": mana, "depth_stage": stage if stage > 0 else _st, "anchor_id": anchor, "anchor_awakened": awake})
 	return e
 
 
@@ -37,7 +37,17 @@ func _unison_run(awake: bool, turn_no: int) -> Array:
 	return _faces(e)
 
 
+var _st := 3   ## depth stage of the engines; the whole body runs at stage 3 and at stage 2 (Wild and Hold are open there)
+
+
 func run() -> void:
+	for st in [3, 2]:
+		_st = st
+		_body()
+	_cantrip_stream()
+
+
+func _body() -> void:
 	# --- Unison: first turn, same class rolls the same part, up to 4 ---
 	var on := _unison_run(true, 1)
 	eq(on, [0, 0, 0, 0, 4], "Unison turn 1: four dice show the first die's part, the fifth keeps its own")
@@ -110,3 +120,27 @@ func run() -> void:
 		e2.from_data(snap)
 		e2.wild_face(e2.party[3].uid, 1)
 		eq(JSON.stringify(e2.to_data().get("party")), JSON.stringify(e.to_data().get("party")), "replay from the same snapshot: identical party")
+
+
+## Sixth Hand with every spare face a cantrip: the bonus die's rolls must not move the main rng cursor. (Phantoms are sidelined, so
+## _resolve_cantrips never resolves a cantrip on them; the cursor check still guards the face roll and any later change there.)
+func _cantrip_stream() -> void:
+	for sd in [1, 2, 3, 4, 5]:
+		var e := _eng("a_big_hand", 5, true, sd)
+		var d5 := face("dmg", 5)
+		BoTestBase.force(e, [1, 1, 1, 2, 3], [d5, d5, d5, d5, d5])
+		var cant := face("dmg", 1, 0, ["cantrip"])
+		for u in e.party:
+			for fi in [0, 4, 5]:
+				(u as Unit).die[fi] = cant.duplicate(true)
+		var before := e._rng.get_state()
+		ok(e.wild_face(e.party[3].uid, 1), "seed %d: wild_face" % sd)
+		eq(e.party.size(), 6, "seed %d: bonus die spawned" % sd)
+		eq(e._rng.get_state(), before, "seed %d: main rng cursor did not move (bonus die rolls on its own stream)" % sd)
+		var e2 := _eng("a_big_hand", 5, true, sd)
+		BoTestBase.force(e2, [1, 1, 1, 2, 3], [d5, d5, d5, d5, d5])
+		for u in e2.party:
+			for fi in [0, 4, 5]:
+				(u as Unit).die[fi] = cant.duplicate(true)
+		e2.wild_face(e2.party[3].uid, 1)
+		eq(_faces(e2), _faces(e), "seed %d: deterministic" % sd)
