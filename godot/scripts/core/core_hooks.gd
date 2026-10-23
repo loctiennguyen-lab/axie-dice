@@ -1003,7 +1003,11 @@ static func golden_egg_fall(ctx: Dictionary) -> void:
 	var t = ctx["tgt"]
 	if not (t.is_token and t.key == "egg") or not fell_now(ctx):
 		return
-	var combat = ctx["combat"]
+	golden_egg_trigger(ctx["combat"])
+
+
+## Golden Egg payout, shared by an Egg dying and an Egg hatching (summon face / Broodmother).
+static func golden_egg_trigger(combat) -> void:
 	gain_mana(combat, 3, "", "c_golden_egg")
 	var w = null
 	for u in living_axies(combat):

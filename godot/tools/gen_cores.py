@@ -57,7 +57,7 @@ core("key_strike", "Trọng Điểm", "Key Strike", 1, "quest", [], [], ["nonatt
 core("chimera_hunt", "Săn Chimera", "Chimera Hunt", 1, "quest", [], [], ["attack"], "Quest in 3 steps: kill 8 enemies with a finishing die for +1 Core reroll; kill 20 for an Amber Core pick; kill a boss with a finishing die for a Crystal Core pick.", quest={"kind": "finisher_kills", "steps": [{"target": 8, "reward_tier": -1, "reward": "core_reroll"}, {"target": 20, "reward_tier": 1}, {"target": 1, "reward_tier": 2, "boss": True}]})
 # ---- rule (axis "rule")
 core("nest", "Tổ Ấm", "Nest", 0, "rule", [], [], ["nonattack", "egg"], "Start of combat: 1 Egg. Eggs count as front row, so single-target enemy attacks can pick them.")
-core("golden_egg", "Trứng Vàng", "Golden Egg", 1, "rule", ["egg_source"], [], ["nonattack"], "When an Egg dies: +3 Mana, 4 Shield to your weakest Axie, and your team's next damage face gets +3.")
+core("golden_egg", "Trứng Vàng", "Golden Egg", 1, "rule", ["egg_source"], [], ["nonattack"], "When an Egg dies or hatches: +3 Mana, 4 Shield to your weakest Axie, and your team's next damage face gets +3.")
 core("blood_sign", "Chữ Ký Máu", "Blood Sign", 2, "rule", ["face:poison"], [], ["nonattack", "convert_to_dmg"], "Damage faces add 1 poison per 3 damage dealt (rounded down). Poison faces also deal damage equal to half their value.")
 core("loop", "Vòng Lặp", "Loop", 2, "rule", ["face:cantrip"], [], ["nonattack"], "Cantrip faces reroll and are used one extra time each turn.")
 core("cascade", "Thác Đổ", "Cascade", 2, "rule", [], ["rule:rule_balance", "owned:c_toxic_still"], ["attack"], "Damage faces used back to back form a chain: the 2nd gets +2, the 3rd +4, the 4th +6, the 5th+ +8. Using a non-damage face breaks the chain.")

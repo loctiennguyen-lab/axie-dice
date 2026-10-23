@@ -1256,6 +1256,7 @@ func play_active(relic_id: String, target_uid: int = -1) -> bool:
 					al.mark_used()
 					party.append(al)
 					EventBus.unit_spawned.emit(al.uid)
+					RelicHooks.fire(self, "on_egg_hatched", {"combat": self, "egg": al})
 			if src != null:
 				EventBus.float_text.emit(src.uid, "SUMMON", "buf", 0)
 		"shatter":
@@ -2452,6 +2453,7 @@ func _do_face(u: Unit, target_uid: int, f: Dictionary, fi: int, is_echo: bool) -
 					a.mark_used()
 					party.append(a)
 					EventBus.unit_spawned.emit(a.uid)
+					RelicHooks.fire(self, "on_egg_hatched", {"combat": self, "egg": a})
 			EventBus.float_text.emit(u.uid, "SUMMON", "buf", 0)
 		else:
 			for i in v:

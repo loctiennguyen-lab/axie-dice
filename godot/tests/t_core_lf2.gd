@@ -11,6 +11,7 @@ func _ready() -> void:
 	t_open_ranks_gate()
 	t_tidecaller()
 	t_steady_hold()
+	t_golden_egg()
 	print("=== t_core_lf2: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	if _fails.is_empty():
 		print("t_core_lf2: PASS — %d checks OK" % _checks)
@@ -102,3 +103,15 @@ func t_steady_hold() -> void:
 	RelicHooks.fire(c, "on_stash", {"combat": c, "unit": u, "face": u.current_face(), "fi": fi})
 	_ok(int(st[str(u.uid)]["v"]) == 1, "steady_hold: a fresh hold restarts at +1")
 	_ok(b.stash_cap() == 1 and c.stash_cap() == 2, "steady_hold: cap still 2")
+
+
+func t_golden_egg() -> void:
+	_ok("dies or hatches" in String(RelicRegistry.get_def("c_golden_egg").description), "golden_egg: rule text mentions hatching")
+	var c := _combat(["c_golden_egg"])
+	var m0: int = c.mana
+	RelicHooks.fire(c, "on_egg_hatched", {"combat": c, "egg": c._mk_ally()})
+	_ok(c.mana == m0 + 3 and bool(CoreHooks.combat_state(c, "ge")["on"]), "golden_egg: an Egg hatching pays +3 mana and arms the +3 dmg")
+	var n := _combat([])
+	n.mana = 0
+	RelicHooks.fire(n, "on_egg_hatched", {"combat": n, "egg": n._mk_ally()})
+	_ok(n.mana == 0, "golden_egg: hatching pays nothing without the Core")
