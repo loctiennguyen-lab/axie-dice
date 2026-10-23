@@ -280,6 +280,14 @@
     "anchor_awake": {
       "value": "#ffd21f",
       "meaning": "Anchor MVP · awakened state: double frame, chip, ui_awaken glyph, AWAKEN chip border. Lemon-gold, more saturated and yellower than rarity_legendary/accent (#ffb444) and egg/cream. Never alone: always with the double frame or the glyph ui_awaken + the word Awakened"
+    },
+    "leader": {
+      "value": "#ffd21f",
+      "meaning": "Pack Alpha run rule: LEADER badge border on the enemy plate. Always with the node_elite glyph and the word LEADER"
+    },
+    "shell": {
+      "value": "#9fb1bf",
+      "meaning": "Resonance Shell bar on Elite/boss plates, steel grey, distinct from shield blue. Always with the face_shield glyph and the word Shell"
     }
   },
   "contrast": [

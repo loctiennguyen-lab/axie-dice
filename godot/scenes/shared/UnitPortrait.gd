@@ -98,6 +98,7 @@ var _chip_style: StyleBoxFlat
 var _chip_icon: TextureRect
 var _chip_text: Label
 var _click_catcher: Button
+var _leader_badge: PanelContainer
 
 var _lit := false          # legal target / selected
 var _acting := false
@@ -226,6 +227,11 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	chips_row.add_theme_constant_override("separation", 4)
 	left.add_child(chips_row)
 	chips_row.add_child(_tag_chip)   # ELITE / BOSS tag sits under the name so a long name keeps its full width
+	_leader_badge = UI3.mini_badge("LEADER", UI3.icon("node_elite"), UI3Theme.color("leader"), "LeaderBadge")
+	_leader_badge.gui_input.connect(_on_forward_gui_input)
+	_leader_badge.visible = false
+	UI3Tooltip.bind(_leader_badge, TranslationServer.translate("Pack Alpha: while it lives, single-target hits on other enemies deal 50%. Kill it first."))
+	chips_row.add_child(_leader_badge)
 	var spacer := Control.new()
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -404,6 +410,16 @@ func _place_chip() -> void:
 ## CB-11 / CB-12 compat: committed incoming damage. Party plates draw nothing, so only stored.
 func set_incoming(amount: int) -> void:
 	_incoming = maxi(amount, 0)
+
+
+## Pack Alpha: shows the LEADER badge (glyph + word) under the name.
+func set_leader(on: bool) -> void:
+	if _leader_badge != null:
+		_leader_badge.visible = on
+
+
+func is_leader() -> bool:
+	return _leader_badge != null and _leader_badge.visible
 
 
 ## The "single read-model entry point": HP, shield, statuses.

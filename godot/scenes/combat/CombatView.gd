@@ -3462,6 +3462,8 @@ var hit_stops := 0
 
 func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> void:
 	_last_core_uid = uid
+	if core_id == "rule_pack_alpha" and _on_pack_alpha_fired(uid, amount, kind):
+		return
 	if kind == "mutation":
 		_append_log("[mutation] %s on %s" % [core_id, _unit_name(uid)])
 		_on_mutation_fired(core_id, uid)
@@ -3483,6 +3485,32 @@ func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> voi
 			_flush_core_floats.call_deferred()   # still one beat later, so same-frame Cores merge
 		else:
 			_after_impact(_flush_core_floats)
+
+
+## Pack Alpha (run rule): "block" = a single-target hit on a non-Leader was halved (one note per turn, on the hit enemy);
+## "dmg" = the Leader fell and the rest lost HP (one banner per fight). Returns true when handled here ("rule" = setup, ignored).
+var _alpha_note_turn := -1
+var _alpha_broken := false
+var alpha_notes: Array = []   ## test hook
+
+
+func _on_pack_alpha_fired(uid: int, amount: int, kind: String) -> bool:
+	if kind == "block":
+		_append_log("[core] Pack Alpha: -50%% on %s" % _unit_name(uid))
+		if _combat != null and _alpha_note_turn != _combat.turn:
+			_alpha_note_turn = _combat.turn
+			var t := TranslationServer.translate("−50% · hit the Leader")
+			alpha_notes.append(t)
+			_spawn_core_note(uid, [{"text": t, "token": "face_shield"}])
+		return true
+	if kind == "dmg":
+		if not _alpha_broken:
+			_alpha_broken = true
+			var t2 := TranslationServer.translate("Pack broken: −20% HP")
+			alpha_notes.append(t2)
+			_show_turn_banner(TranslationServer.translate("Leader down"), t2)
+		return true
+	return kind == "rule"
 
 
 func _flush_core_floats() -> void:
@@ -3766,6 +3794,7 @@ func _update_portrait(u: Unit) -> void:
 	_stage3d.set_alive(u.uid, u.hp > 0)
 	if u.side == "e":
 		_update_enemy_plate(p, u)
+		p.set_leader(bool(u.custom_state.get("alpha", false)) and u.hp > 0)
 
 	var is_selected := (u.uid == _selected_die_uid)
 	if not is_selected:
