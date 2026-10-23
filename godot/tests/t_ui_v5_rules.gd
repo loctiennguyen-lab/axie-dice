@@ -38,6 +38,7 @@ func _ready() -> void:
 	MetaState.runs_with_battle = 99
 	await _test_alpha()
 	await _test_stakes()
+	await _test_shell()
 	_guard.restore()
 	if _fails.is_empty():
 		print("t_ui_v5_rules: PASS — %d checks OK" % _checks)
@@ -110,3 +111,40 @@ func _test_stakes() -> void:
 	_check(w._stakes_pct() == 0, "no stakes without the rule")
 	w.queue_free()
 	await get_tree().process_frame
+
+
+func _shell_tune(on: bool) -> void:
+	var b: Dictionary = (ContentDB.combat_tune.get("shell", {}) as Dictionary).duplicate(true)
+	b["enabled"] = on
+	ContentDB.combat_tune["shell"] = b
+
+
+func _test_shell() -> void:
+	var backup: Dictionary = ContentDB.combat_tune.duplicate(true)
+	_shell_tune(false)
+	var off: Node = await make_view([], "elite", 4)
+	for e in off._combat.enemies:
+		off._update_portrait(e)
+		_check(not (off._portraits[e.uid] as UnitPortrait).has_shell(), "shell off: no bar")
+	off.queue_free()
+	await get_tree().process_frame
+	_shell_tune(true)
+	var v: Node = await make_view([], "elite", 4)
+	var boss = v._combat.enemies[0]
+	var sh := int(boss.custom_state.get("shell", 0))
+	_check(sh > 0, "setup: elite has a Shell (%d)" % sh)
+	v._update_portrait(boss)
+	var p: UnitPortrait = v._portraits[boss.uid]
+	_check(p.has_shell(), "shell on: bar shown on the Elite")
+	var txt := p.find_child("ShellText", true, false) as Label
+	_check(txt != null and txt.text == "%d / %d" % [sh, sh], "shell number '%s'" % (txt.text if txt != null else "?"))
+	_check(UI3Tooltip.text_of(p.find_child("ShellRow", true, false)).contains("50%"), "tooltip says outside a SET deals 50%")
+	EventBus.shell_changed.emit(boss.uid, sh - 5, sh, 5)
+	_check(txt.text == "%d / %d" % [sh - 5, sh], "shell_changed updates the number")
+	for e in v._combat.enemies:
+		if e != boss:
+			v._update_portrait(e)
+			_check(not (v._portraits[e.uid] as UnitPortrait).has_shell(), "escort has no Shell bar")
+	v.queue_free()
+	await get_tree().process_frame
+	ContentDB.combat_tune = backup

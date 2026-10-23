@@ -1665,6 +1665,7 @@ func _connect_event_bus() -> void:
 	EventBus.resonance_triggered.connect(_on_resonance_triggered)
 	EventBus.relic_pulsed.connect(_on_relic_pulsed)
 	EventBus.core_fired.connect(_on_core_fired)
+	EventBus.shell_changed.connect(_on_shell_changed)
 	AnchorAdapter.listen("anchor_awakened", _on_anchor_awakened)
 	ComboAdapter.connect_fired(_on_combo_fired)
 	EventBus.float_text.connect(_on_float_text)
@@ -3508,6 +3509,12 @@ var _alpha_broken := false
 var alpha_notes: Array = []   ## test hook
 
 
+func _on_shell_changed(uid: int, shell: int, shell_max: int, _absorbed: int) -> void:
+	var p: UnitPortrait = _portraits.get(uid)
+	if p != null:
+		p.set_shell(shell, shell_max)
+
+
 func _on_pack_alpha_fired(uid: int, amount: int, kind: String) -> bool:
 	if kind == "block":
 		_append_log("[core] Pack Alpha: -50%% on %s" % _unit_name(uid))
@@ -3809,6 +3816,7 @@ func _update_portrait(u: Unit) -> void:
 	if u.side == "e":
 		_update_enemy_plate(p, u)
 		p.set_leader(bool(u.custom_state.get("alpha", false)) and u.hp > 0)
+		p.set_shell(int(u.custom_state.get("shell", 0)), int(u.custom_state.get("shell_max", 0)) if u.hp > 0 else 0)
 
 	var is_selected := (u.uid == _selected_die_uid)
 	if not is_selected:

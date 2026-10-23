@@ -99,6 +99,9 @@ var _chip_icon: TextureRect
 var _chip_text: Label
 var _click_catcher: Button
 var _leader_badge: PanelContainer
+var _shell_row: Control
+var _shell_bar: HPBar
+var _shell_label: Label
 
 var _lit := false          # legal target / selected
 var _acting := false
@@ -214,6 +217,49 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	if is_boss:
 		_hp_bar.set_marks([0.66, 0.33])
 	left.add_child(_hp_bar)
+
+	# --- Resonance Shell (anti-spam B): glyph + bar + number, hidden until the engine reports a Shell ---
+	_shell_row = Control.new()
+	_shell_row.name = "ShellRow"
+	_shell_row.custom_minimum_size = Vector2(0, 16)
+	_shell_row.mouse_filter = Control.MOUSE_FILTER_STOP
+	_shell_row.gui_input.connect(_on_forward_gui_input)
+	_shell_row.visible = false
+	var sic := TextureRect.new()
+	sic.name = "Icon"
+	sic.texture = UI3.icon("face_shield")
+	sic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	sic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	sic.position = Vector2.ZERO
+	sic.size = Vector2(16, 16)
+	sic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_shell_row.add_child(sic)
+	_shell_bar = HPBar.new()
+	_shell_bar.name = "ShellBar"
+	_shell_bar.use_fixed_fill(UI3Theme.color("shell"))
+	_shell_bar.set_kind(HPBar.Kind.SHIELD, 8, 4, 16)
+	_shell_bar.use_fixed_fill(UI3Theme.color("shell"))
+	_shell_bar.anchor_right = 1.0
+	_shell_bar.offset_left = 22.0
+	_shell_bar.offset_right = -78.0
+	_shell_bar.offset_top = 4.0
+	_shell_bar.offset_bottom = 12.0
+	_shell_row.add_child(_shell_bar)
+	_shell_label = UI3.label("", "LabelDisplay")
+	_shell_label.name = "ShellText"
+	_shell_label.add_theme_font_size_override("font_size", 18)
+	_shell_label.add_theme_color_override("font_color", UI3Theme.color("shell"))
+	_shell_label.anchor_left = 1.0
+	_shell_label.anchor_right = 1.0
+	_shell_label.offset_left = -74.0
+	_shell_label.offset_right = 0.0
+	_shell_label.offset_top = -4.0
+	_shell_label.offset_bottom = 20.0
+	_shell_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_shell_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_shell_row.add_child(_shell_label)
+	UI3Tooltip.bind(_shell_row, TranslationServer.translate("Shell: dice outside a SET deal 50% to Shell. Break it to reach the HP."))
+	left.add_child(_shell_row)
 
 	if is_boss:
 		_phase_label = UI3.label("Phase 1 of 2", "LabelMuted")
@@ -416,6 +462,22 @@ func set_incoming(amount: int) -> void:
 func set_leader(on: bool) -> void:
 	if _leader_badge != null:
 		_leader_badge.visible = on
+
+
+## Resonance Shell: bar + "cur / max"; hidden when max <= 0 (feature off, or no Shell on this unit).
+func set_shell(cur: int, max_v: int) -> void:
+	if _shell_row == null:
+		return
+	_shell_row.visible = max_v > 0
+	if max_v <= 0:
+		return
+	_shell_bar.set_stats(maxi(cur, 0), max_v)
+	_shell_label.text = "%d / %d" % [maxi(cur, 0), max_v]
+	_shell_row.set_meta("shell_text", _shell_label.text)
+
+
+func has_shell() -> bool:
+	return _shell_row != null and _shell_row.visible
 
 
 func is_leader() -> bool:
