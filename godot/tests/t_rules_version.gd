@@ -236,7 +236,10 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Same actions give a different run. Worker SUPPORTED_RULE_VERSIONS gained -s.
 ## Moved 2026-10-25 (NOT bumped): RelicRegistry maps an exported `x.tres.remap` entry to `x.tres`. The rules are the same;
 ## the web build simply had not loaded any Core / Run Rule before (axiedice.fun, found 22/10). Local/editor runs are identical.
-const FINGERPRINT := "046ea8e4fa34cb5963a06c4f0df45b858c205e7aaa0e32502865c7a814596015"
+## BUMPED, 2026-10-26: `ActionLog.RULES_VERSION` -> `godot-2026-10-26-t`. v5 (int/v5): Anchors Kin / Embers / Big Hand, 11 Cores + 4 Run Rules
+## (Set Is King, Pilot Light off until sim), low-fire Core fixes, Resonant Shell on Elite/boss from stage 2, new combos in houses, Anchor tuning
+## round 3, High Stakes needs stage 2. Same actions give a different run. Worker SUPPORTED_RULE_VERSIONS gained -t.
+const FINGERPRINT := "b2896237e70f1a825a5682cb6e5172ff5e640b408ce390809dbfb86356bb5523"
 
 
 func _ready() -> void:

@@ -24,7 +24,7 @@
   "enabled": true,
   "name_en": "Gambler",
   "name_vi": "Con Bạc",
-  "rule_en": "A clean Gamble (2+ dice, none Cracked): every SET this turn +0.35 (max +0.60). Gamble Crack chance 15% (normally 30%).",
+  "rule_en": "A clean Gamble (2+ dice, none Cracked): every SET this turn +0.55 (max +0.60). Gamble Crack chance 10% (normally 30%).",
   "cost_en": "",
   "house_id": "h_gambler",
   "house_cores": [
@@ -45,7 +45,7 @@
   "min_stage": 3,
   "name_en": "Mana Mine",
   "name_vi": "Mỏ Mana",
-  "rule_en": "When the first roll of a turn makes a SET: +1 mana. Overcast costs only 1.",
+  "rule_en": "When the first roll of a turn makes a SET: +2 mana. Overcast costs only 1.",
   "cost_en": "",
   "house_id": "h_mana_mine",
   "house_cores": [
@@ -65,7 +65,7 @@
   "enabled": true,
   "name_en": "Kin",
   "name_vi": "Đồng Tộc",
-  "rule_en": "A SET with 3+ dice of the same class gets +0.40.",
+  "rule_en": "A SET with 3+ dice of the same class gets +0.30.",
   "cost_en": "A SET without 3+ dice of the same class gets -0.25.",
   "house_id": "h_kin",
   "house_cores": [
@@ -85,7 +85,7 @@
   "enabled": true,
   "name_en": "Embers",
   "name_vi": "Giữ Lửa",
-  "rule_en": "You may Hold 2 dice; a Held die used next turn gets +0.50.",
+  "rule_en": "You may Hold 2 dice; a Held die used next turn gets +1.50.",
   "cost_en": "Only Held dice carry over.",
   "house_id": "h_embers",
   "house_cores": [
@@ -105,7 +105,7 @@
   "enabled": true,
   "name_en": "Big Hand",
   "name_vi": "Bàn Tay Lớn",
-  "rule_en": "A SET of four or five gets +0.40.",
+  "rule_en": "A SET of four or five gets +0.60.",
   "cost_en": "A SET of three (the most common) gets no bonus.",
   "house_id": "h_big_hand",
   "house_cores": [
