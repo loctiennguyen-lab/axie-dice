@@ -108,6 +108,11 @@ rule("crow", "Quạ Đưa Tin", "Crow Herald", 1, "The fight before each Core pi
 rule("hard_shell", "Vỏ Cứng", "Hard Shell", 2, "Every enemy has Armor 2: single-target damage faces deal 2 less (min 1). Poison, pierce, thorns and AoE are not reduced. Shield, poison and debuff faces get +2.", knobs={"plating_global": 2, "side_face_bonus": 2}, requires_extra=["team_can_break"])
 rule("balance", "Thế Cân Bằng", "Balance", 2, "From the 3rd damage face each turn, damage faces deal 2 less (min 1). Every non-damage face you use gives +1 Mana. You cannot stack five attacks.", knobs={"dmg_use_soft_cap": 2, "dmg_overuse_penalty": 2, "nondmg_mana": 1})
 
+rule("pack_alpha", "Thủ Lĩnh Bầy", "Pack Alpha", 2, "In normal and elite fights the enemy with the most HP is the Pack Alpha (+25% HP). While it lives, other enemies take 50% less from single-target damage faces (min 1; AoE, poison, thorns and pierce are not reduced). When it falls, every other enemy loses 20% of its current HP. Not in boss fights.", knobs={"alpha_hp_mult": 1.25, "others_single_mult": 0.5, "alpha_death_pct": 0.2})
+rule("set_is_king", "Bộ Là Vua", "Set Is King", 2, "A die inside a SET (3+) gets +2 on its face; a die in no SET gets -2 (min 1). No free reroll.", rerollUp=-1, disabled=True, needs="sim", knobs={"set_dice_bonus": 2, "nonset_penalty": 2, "free_reroll": 0})
+rule("pilot_light", "Lửa Mồi", "Pilot Light", 1, "Turn 1 of each fight your damage faces deal 0, but you can Hold up to 4 dice, and each die Held on turn 1 gets +3 when used on turn 2. Normal and elite enemies have +10% HP. Not in boss fights.", disabled=True, needs="sim", knobs={"t1_dmg_mult": 0, "t1_stash_cap": 4, "held_bonus": 3, "enemy_hp_mult": 1.1})
+rule("high_stakes", "Ván Bạc", "High Stakes", 1, "Every paid reroll is a Gamble (Crack 20% per die, no Mana cost). A clean Gamble gives each rerolled Axie 3 Shield, and the first clean Gamble each turn gives +1 Mana. Free rerolls stay Safe.", knobs={"paid_all_gamble": True, "crack_chance": 0.2, "clean_mana": 1, "clean_mana_per_turn": 1, "clean_shield": 3})
+
 def q(s): return '"' + s.replace('\\', '\\\\').replace('"', '\\"') + '"'
 def psa(l): return "PackedStringArray(" + ", ".join(q(x) for x in l) + ")" if l else "PackedStringArray()"
 def dv(v):

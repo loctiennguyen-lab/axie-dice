@@ -297,3 +297,7 @@ Golden Egg "nở" (LF2): Egg triệu hồi giữa trận, tối đa 1 lần/lư�
 - Big Hand: c_hunters_reward, c_golden_thread, c_support_hand (3 Lõi mới), c_sixth_die (viên thứ sáu giúp ra BỘ), c_finisher (giữ một đường sát thương cho BỘ lớn). Bỏ c_cascade (theo duyệt), c_collector (quest, cần 4 loại mặt) và c_prism (cần 4 loại mặt, ngược Tay Hộ Pháp).
 - Chưa sim tỉ lệ thức tỉnh ≥33% (làm ở tích hợp). a_kin/a_embers/a_big_hand vẫn enabled:false (làn AN2 bật).
 - Lõi đã code: K1 c_bloodline_ward, K2 c_last_testament, K3 c_melting_pot, E1 c_smoldering, E2 c_cache_plate, E3 c_magma_seed (disabled), B1 c_hunters_reward, B2 c_golden_thread, B3 c_support_hand, G1 c_cracked_glass, G2 c_high_roller. Combo Volcano enabled:false chờ E3.
+
+## 11. Bật luật sau sim
+`rule_set_is_king` và `rule_pilot_light` đang tắt (`disabled=true`, `hook_key` rỗng trong .tres). Muốn bật: sửa `disabled=True, needs="sim"` trong `godot/tools/gen_cores.py` (xoá hai tham số đó ở dòng `rule(...)` của luật) rồi sinh lại .tres: `python3 godot/tools/gen_cores.py godot/resources/relics rule_set_is_king rule_pilot_light`. Không lật tay trong .tres, vì `hook_key` rỗng khi `disabled` và hook sẽ không chạy. Sau đó đổi RULES_VERSION, cập nhật số luật/weight trong `t_run_rule_catalog`.
+`rule_high_stakes` ở tích hợp cần thêm `requires` stage_min:2 (token từ làn NC); trong lúc chưa có, engine giữ Safe ở depth_stage 1.

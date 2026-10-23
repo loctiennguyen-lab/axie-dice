@@ -1819,6 +1819,20 @@ static var TABLE: Dictionary = {
 		"face_final": func(ctx: Dictionary): return CoreHooks.balance_value(ctx),
 		"on_face_used": func(ctx: Dictionary): CoreHooks.balance_used(ctx),
 	},
+	"rule_pack_alpha": {
+		"on_combat_start": func(ctx: Dictionary): CoreHooks.alpha_start(ctx),
+		"incoming_dmg": func(ctx: Dictionary): return CoreHooks.incoming(ctx, "rule_pack_alpha"),
+		"on_kill": func(ctx: Dictionary): CoreHooks.alpha_kill(ctx),
+	},
+	"rule_set_is_king": {"face_final": func(ctx: Dictionary): return CoreHooks.set_king_value(ctx)},
+	"rule_pilot_light": {
+		"on_combat_start": func(ctx: Dictionary): CoreHooks.pilot_start(ctx),
+		"stash_cap": func(ctx: Dictionary): return CoreHooks.pilot_cap(ctx),
+		"on_stash": func(ctx: Dictionary): CoreHooks.pilot_stash(ctx),
+		"on_face_used": func(ctx: Dictionary): CoreHooks.focus_spent(ctx["combat"], "focus_rule_pilot_light", ctx["unit"]),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "rule_pilot_light"),
+	},
+	"rule_high_stakes": {},   # engine half: CombatEngine.effective_rmode / reroll_dice call CoreHooks.stakes_clean
 	# data-only Run Rules: knobs live in RelicDef.rule_knobs, read by the lanes that own them
 	"rule_none": {},
 	"rule_crow": {},

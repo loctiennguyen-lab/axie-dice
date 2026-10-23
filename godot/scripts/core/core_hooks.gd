@@ -216,6 +216,8 @@ static func incoming(ctx: Dictionary, id: String = "") -> float:
 		if id == "c_fissure" and int(tgt.custom_state.get("fissure", -1)) >= int(combat.turn):
 			v = ceil(v * 1.25)
 			fire(id, tgt.uid, int(v - v0), "dmg")
+		if id == "rule_pack_alpha":
+			v = alpha_incoming(ctx, v)
 		return v
 	if tgt.is_token or combat.row_of(tgt) != 0:
 		return v
@@ -498,7 +500,8 @@ static func tide_spent(ctx: Dictionary) -> void:
 const FLAT_CAP := 10
 const FLAT_IDS := ["c_kindle", "c_steady_hold", "c_prime_chain", "c_finisher", "c_mana_pool", "c_three_dice", "c_field_medic",
 	"c_plague_spread", "c_hollow_core", "c_thorn_pact", "c_cascade", "c_gatekeeper", "c_golden_egg",
-	"rule_tundra", "rule_heavy_finish", "c_sacrifice", "c_concord", "rule_rising_tide", "c_last_testament", "c_support_hand", "c_high_roller"]
+	"rule_tundra", "rule_heavy_finish", "c_sacrifice", "c_concord", "rule_rising_tide", "c_last_testament", "c_support_hand", "c_high_roller",
+	"rule_set_is_king", "rule_pilot_light"]
 
 
 static func mirror_second(combat, u) -> bool:
@@ -524,6 +527,12 @@ static func bonus(combat, u, ft: String, id: String, part: String = "") -> int:
 			return 0 if (sec or ft != "dmg") else int(turn_state(combat, "cs_prime").get(str(u.uid), 0))
 		"c_finisher":
 			return 0 if (sec or not (ft == "dmg" or ft == "shield" or ft == "heal" or ft == "poison")) else finisher_bonus(combat, u)
+		"rule_set_is_king":
+			if sec or not val:
+				return 0
+			return int(rule_knob("rule_set_is_king", "set_dice_bonus", 2)) if in_set(combat, u) else -int(rule_knob("rule_set_is_king", "nonset_penalty", 2))
+		"rule_pilot_light":
+			return 0 if (sec or int(combat.turn) != 2) else focus_value(combat, "focus_rule_pilot_light", u, ft)
 		"rule_heavy_finish":
 			return 0 if (sec or not val or not is_finisher(combat, u)) else 3
 		"c_mana_pool":
@@ -1647,3 +1656,159 @@ static func nametag_kill(ctx: Dictionary) -> void:
 		return
 	combat_state(combat, "cs_nametag")["paid"] = true
 	gain_mana(combat, 1, "RIP " + String(e.custom_state["nick"]), "c_meme_nametag")
+
+
+## ---- Pack Alpha (design/proposals/cores-rules-v5.md R17, approved 23/10) --------------------------------------------
+## Start of a normal / elite fight with 2+ non-boss enemies: the one with the most HP (tie: smallest uid) becomes the
+## Alpha (custom_state.alpha, saved with the unit) and gets +alpha_hp_mult HP. No RNG.
+static func alpha_start(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	var kind := String(ctx.get("node_kind", ""))
+	if kind != "battle" and kind != "elite":
+		return
+	var pool: Array = []
+	for e in combat.enemies:
+		if e.is_boss:
+			return
+		if e.hp > 0:
+			pool.append(e)
+	if pool.size() < 2:
+		return
+	var best = pool[0]
+	for e in pool:
+		if e.max_hp > best.max_hp or (e.max_hp == best.max_hp and e.uid < best.uid):
+			best = e
+	var hp0: int = best.max_hp
+	best.max_hp = int(ceil(best.max_hp * float(rule_knob("rule_pack_alpha", "alpha_hp_mult", 1.25))))
+	best.hp = best.max_hp
+	best.custom_state["alpha"] = true
+	fire("rule_pack_alpha", best.uid, best.max_hp - hp0, "rule")
+
+
+static func alpha_unit(combat):
+	for e in combat.enemies:
+		if bool(e.custom_state.get("alpha", false)):
+			return e
+	return null
+
+
+## Other enemies take others_single_mult from single-target damage faces while the Alpha lives (min 1). AoE, pierce, poison and
+## thorns (no player source / not single) are untouched.
+static func alpha_incoming(ctx: Dictionary, v: float) -> float:
+	var combat = ctx["combat"]
+	var tgt = ctx["tgt"]
+	var src = ctx.get("src", null)
+	if not bool(ctx.get("attack", false)) or not bool(ctx.get("single", false)) or bool(ctx.get("pierce", false)):
+		return v
+	if src == null or src.side != "p" or bool(tgt.custom_state.get("alpha", false)):
+		return v
+	var a = alpha_unit(combat)
+	if a == null or a.hp <= 0:
+		return v
+	var nv := maxf(1.0, ceil(v * float(rule_knob("rule_pack_alpha", "others_single_mult", 0.5))))
+	if nv < v:
+		fire("rule_pack_alpha", tgt.uid, int(v - nv), "block")
+	return minf(v, nv)
+
+
+## The Alpha falls: every other living enemy loses alpha_death_pct of its current HP (never to 0).
+static func alpha_kill(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	var dead = ctx["tgt"]
+	if not bool(dead.custom_state.get("alpha", false)):
+		return
+	var pct := float(rule_knob("rule_pack_alpha", "alpha_death_pct", 0.2))
+	for e in combat.enemies:
+		if e == dead or e.hp <= 0 or e.is_boss:
+			continue
+		var loss := mini(RulesMath.round_half_up(e.hp * pct), e.hp - 1)
+		if loss <= 0:
+			continue
+		e.hp -= loss
+		EventBus.hp_changed.emit(e.uid, e.hp, e.max_hp, e.shield)
+		EventBus.float_text.emit(e.uid, "-%d" % loss, "dmg", 0)
+		fire("rule_pack_alpha", e.uid, loss, "dmg")
+
+
+## ---- Set Is King (R14): a die in a SET gets +set_dice_bonus, any other die -nonset_penalty (min 1). No free reroll = rerollUp -1.
+static func in_set(combat, u) -> bool:
+	for g in combat.bo:
+		if (g as Dictionary).get("uids", []).has(u.uid):
+			return true
+	return false
+
+
+static func set_king_value(ctx: Dictionary) -> int:
+	var v := int(ctx["value"])
+	var u = ctx["unit"]
+	var ft := String(ctx.get("face_type", ""))
+	if v <= 0 or u.side != "p" or u.is_token or not VALUE_TYPES.has(ft):
+		return v
+	var own := bonus(ctx["combat"], u, ft, "rule_set_is_king")
+	if own >= 0:
+		return flat(ctx, "rule_set_is_king")
+	var nv := maxi(1, v + own)
+	_fire_live(ctx["combat"], "rule_set_is_king", u.uid, v - nv, ft)
+	return nv
+
+
+## ---- Pilot Light (R15): turn 1 of a normal / elite fight your damage faces deal t1_dmg_mult (0), you may Hold t1_stash_cap dice and
+## each die Held on turn 1 gets +held_bonus when used on turn 2. Normal / elite enemies +enemy_hp_mult HP. Not in boss fights.
+## `combat_state("pilot").on` is set at combat start (saved with the fight).
+static func pilot_on(combat) -> bool:
+	return RelicHooks_has(combat, "rule_pilot_light") and bool(combat_state(combat, "pilot").get("on", false))
+
+
+static func pilot_start(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	var kind := String(ctx.get("node_kind", ""))
+	if kind != "battle" and kind != "elite":
+		return
+	for e in combat.enemies:
+		if e.is_boss:
+			return
+	combat_state(combat, "pilot")["on"] = true
+	scale_enemies(ctx, float(rule_knob("rule_pilot_light", "enemy_hp_mult", 1.1)), false, "rule_pilot_light")
+
+
+static func pilot_cap(ctx: Dictionary) -> int:
+	var v := int(ctx["value"])
+	if pilot_on(ctx["combat"]) and int(ctx["combat"].turn) <= 1:
+		return maxi(v, int(rule_knob("rule_pilot_light", "t1_stash_cap", 4)))
+	return v
+
+
+static func pilot_stash(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	if not pilot_on(combat) or int(combat.turn) > 1:
+		return
+	var u = ctx["unit"]
+	combat_state(combat, "focus_rule_pilot_light")[str(u.uid)] = {"v": int(rule_knob("rule_pilot_light", "held_bonus", 3)), "fi": int(ctx.get("fi", u.roll_face_index()))}
+
+
+## Damage pipeline: turn-1 player damage faces are scaled by t1_dmg_mult. Returns the new value.
+static func pilot_dmg(combat, src, ctx: Dictionary, v: float) -> float:
+	if src == null or src.side != "p" or not bool(ctx.get("attack", false)) or String(ctx.get("face_type", "dmg")) != "dmg":
+		return v
+	if int(combat.turn) > 1 or not pilot_on(combat):
+		return v
+	var nv: float = ceil(v * float(rule_knob("rule_pilot_light", "t1_dmg_mult", 0)))
+	if nv < v:
+		fire("rule_pilot_light", src.uid, int(v - nv), "dmg")
+	return nv
+
+
+## ---- High Stakes (R16): a Gamble with no Crack gives every rerolled Axie clean_shield Shield, and clean_mana Mana once per turn.
+static func stakes_clean(combat, settled: Array, cracked: Array) -> void:
+	if not cracked.is_empty() or settled.is_empty():
+		return
+	var sh := int(rule_knob("rule_high_stakes", "clean_shield", 3))
+	for uid in settled:
+		var u = combat.by_uid(int(uid))
+		if u != null and u.hp > 0 and sh > 0:
+			DamagePipeline.apply_shield(combat, u, sh)
+			fire("rule_high_stakes", u.uid, sh, "shield")
+	var st := turn_state(combat, "cs_stakes")
+	if int(st.get("mana_n", 0)) < int(rule_knob("rule_high_stakes", "clean_mana_per_turn", 1)):
+		st["mana_n"] = int(st.get("mana_n", 0)) + 1
+		gain_mana(combat, int(rule_knob("rule_high_stakes", "clean_mana", 1)), "", "rule_high_stakes")
