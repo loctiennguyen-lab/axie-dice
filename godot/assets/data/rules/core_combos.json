@@ -203,5 +203,131 @@
   "hide_if_rules": [
    "rule_dry_steppe"
   ]
+ },
+ {
+  "id": "combo_chorus_wall",
+  "name_en": "Chorus Wall",
+  "name_vi": "Bức Tường Hợp Xướng",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_bloodline_ward",
+   "c_thorn_shield"
+  ],
+  "full": "c_early_scales",
+  "hide_if_rules": [
+   "rule_upside_down"
+  ]
+ },
+ {
+  "id": "combo_funeral_pyre",
+  "name_en": "Funeral Pyre",
+  "name_vi": "Hoả Táng",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_last_testament",
+   "c_spore_burst"
+  ],
+  "full": "c_thorn_pact",
+  "hide_if_rules": []
+ },
+ {
+  "id": "combo_banked_fire",
+  "name_en": "Banked Fire",
+  "name_vi": "Lửa Gửi",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_cache_plate",
+   "c_smoldering"
+  ],
+  "full": "c_kindle",
+  "hide_if_rules": [
+   "rule_dry_steppe"
+  ]
+ },
+ {
+  "id": "combo_volcano",
+  "name_en": "Volcano",
+  "name_vi": "Núi Lửa",
+  "enabled": false,
+  "jackpot": false,
+  "pair": [
+   "c_steady_hold",
+   "c_magma_seed"
+  ],
+  "full": "c_finisher",
+  "hide_if_rules": [
+   "rule_tundra"
+  ]
+ },
+ {
+  "id": "combo_sewn_hand",
+  "name_en": "Sewn Hand",
+  "name_vi": "Khâu Bộ",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_golden_thread",
+   "c_hunters_reward"
+  ],
+  "full": "c_sixth_die",
+  "hide_if_rules": []
+ },
+ {
+  "id": "combo_hand_of_aid",
+  "name_en": "Hand of Aid",
+  "name_vi": "Hộ Pháp Hậu Phương",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_support_hand",
+   "c_backline_glow"
+  ],
+  "full": "c_sonic_shield",
+  "hide_if_rules": []
+ },
+ {
+  "id": "combo_glass_bet",
+  "name_en": "Glass Bet",
+  "name_vi": "Cược Vỡ",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_cracked_glass",
+   "c_hollow_core"
+  ],
+  "full": "c_mana_ward",
+  "hide_if_rules": [
+   "rule_cheap_mana",
+   "rule_tundra"
+  ]
+ },
+ {
+  "id": "combo_high_roller_table",
+  "name_en": "High Roller Table",
+  "name_vi": "Bàn Tay Chơi Lớn",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_high_roller",
+   "c_hunters_reward"
+  ],
+  "full": null,
+  "hide_if_rules": []
+ },
+ {
+  "id": "combo_hot_pot",
+  "name_en": "Hot Pot",
+  "name_vi": "Nồi Lẩu",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_melting_pot",
+   "c_prism"
+  ],
+  "full": "c_collector",
+  "hide_if_rules": []
  }
 ]

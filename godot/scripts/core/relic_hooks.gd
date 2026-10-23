@@ -1672,6 +1672,37 @@ static var TABLE: Dictionary = {
 		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_gatekeeper"),
 	},
 	"c_thorn_growth": {"on_dmg_taken": func(ctx: Dictionary): CoreHooks.thorn_growth_hit(ctx)},
+	"c_bloodline_ward": {"on_shield": func(ctx: Dictionary): CoreHooks.bloodline_shield(ctx)},
+	"c_last_testament": {
+		"on_dmg_taken": func(ctx: Dictionary): CoreHooks.last_testament_fall(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_last_testament"),
+	},
+	"c_melting_pot": {"set_add": func(ctx: Dictionary): return CoreHooks.melting_pot_set_add(ctx)},
+	"c_hunters_reward": {
+		"on_reroll_paid": func(ctx: Dictionary): CoreHooks.hunters_paid(ctx),
+		"on_roll_settled": func(ctx: Dictionary): CoreHooks.hunters_settled(ctx),
+	},
+	"c_support_hand": {"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_support_hand")},
+	"c_cracked_glass": {"on_face_used": func(ctx: Dictionary): CoreHooks.cracked_glass_used(ctx)},
+	"c_high_roller": {
+		"gamble_crack": func(ctx: Dictionary): return CoreHooks.high_roller_crack(ctx),
+		"on_roll_settled": func(ctx: Dictionary): CoreHooks.high_roller_settled(ctx),
+		"on_gamble": func(ctx: Dictionary): CoreHooks.high_roller_gamble(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_high_roller"),
+	},
+	"c_magma_seed": {
+		"stash_repeat": func(ctx: Dictionary): return true,
+		"on_stash": func(ctx: Dictionary): CoreHooks.magma_stash(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.magma_value(ctx),
+		"on_face_used": func(ctx: Dictionary): CoreHooks.magma_used(ctx),
+	},
+	"c_smoldering": {"on_turn_end": func(ctx: Dictionary): CoreHooks.smoldering_turn_end(ctx)},
+	"c_cache_plate": {"on_stash": func(ctx: Dictionary): CoreHooks.cache_plate_stash(ctx)},
+	"c_golden_thread": {
+		"wild_cost": func(ctx: Dictionary): return CoreHooks.golden_thread_cost(ctx),
+		"wild_per_battle": func(ctx: Dictionary): return int(ctx["value"]) + 1,
+		"set_add": func(ctx: Dictionary): return CoreHooks.golden_thread_set_add(ctx),
+	},
 	"c_thorn_shield": {"on_turn_end": func(ctx: Dictionary): CoreHooks.thorn_shield_turn_end(ctx)},
 	"c_thorn_rebound": {
 		"thorns_extra": func(ctx: Dictionary): return CoreHooks.rebound_extra(ctx),

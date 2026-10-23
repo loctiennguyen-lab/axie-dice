@@ -75,6 +75,19 @@ core("squad_up", "Hợp Đội", "Squad Up", 1, "pos", ["class_pair"], [], ["att
 core("wicked_tally", "Tích Ác", "Wicked Tally", 1, "dice", [], [], ["attack"], "Each time a finishing die kills an enemy it gets +1 for the run (max +6).", disabled=True, needs="cut 2.10")
 core("verdict", "Phán Quyết", "Verdict", 2, "rule", [], [], ["attack"], "Enemies under 20% HP die at once (not bosses). Finishing faces always Execute.", disabled=True, needs="cut 2.10")
 
+# ---- Cores v5 (design/proposals/cores-rules-v5.md section 10, 23/10)
+core("bloodline_ward", "Phòng Thủ Huyết Thống", "Bloodline Ward", 0, "pos", ["class_pair"], [], ["nonattack"], "When an Axie gains Shield from a shield face, each adjacent Axie of the same class gains half of it (rounded up).")
+core("smoldering", "Than Âm Ỉ", "Smoldering Coals", 0, "mana", [], ["rule:rule_dry_steppe"], ["nonattack"], "End of turn: each Held die gives +1 Mana (max +2 per turn).")
+core("cache_plate", "Giáp Cất", "Cache Plate", 1, "dice", ["face:shield"], [], ["nonattack"], "When you Hold a die showing a shield face, its Axie gains half that Shield now (rounded up, min 2, max 6, no M). Once per die per turn. The die keeps its full face for next turn.")
+core("golden_thread", "Sợi Chỉ Vàng", "Golden Thread", 1, "mana", ["stage_min:2"], [], ["nonattack"], "Wild Face costs 1 less Mana (min 1) and can be used 2 times per fight. A Set of four made with a Wild Face gets +0.20 M.")
+core("last_testament", "Di Chúc", "Last Testament", 2, "rule", ["class_pair"], [], ["nonattack"], "When an Axie falls, every living Axie of its class gets +2 on every face until the end of the fight (max +6). Eggs do not count.", first_run_hidden=True)
+core("melting_pot", "Nồi Lẩu Thập Cẩm", "Melting Pot", 1, "pos", ["classes_distinct:3"], ["anchor:a_kin", "owned:c_concord"], ["nonattack", "tradeoff"], "If your team has 3 or more classes and no two Axies share a class, every Set gets +0.25 M.")
+core("hunters_reward", "Tiền Săn", "Hunter's Reward", 0, "dice", [], [], ["nonattack"], "First time each turn a paid reroll makes a Set appear or grow: that reroll's Mana is refunded and every Axie in the Set gains 3 Shield.")
+core("support_hand", "Tay Hộ Pháp", "Support Hand", 1, "dice", ["face:shield|heal|mana"], [], ["nonattack"], "In a Set of three or more, each die showing a shield, heal or mana face gets +2 (counts toward the +10 flat cap).")
+core("cracked_glass", "Kính Nứt", "Cracked Glass", 1, "dice", [], [], ["nonattack", "convert_to_dmg"], "A Cracked die that you use also sprays shards: pierce damage to all enemies equal to half its face value (rounded up), up to 3 times per turn.")
+core("high_roller", "Tay Chơi Lớn", "High Roller", 2, "rule", ["anchor:a_gambler"], [], ["nonattack", "tradeoff"], "A Gamble of 3+ dice: if no die Cracks, every die in it gets +2 until end of turn. If one die Cracks, all of them Crack.", first_run_hidden=True)
+core("magma_seed", "Hạt Dung Nham", "Magma Seed", 2, "dice", [], ["rule:rule_tundra"], ["nonattack"], "A die Held two turns in a row erupts when used: its damage face hits ALL enemies for x1.25 (rounded up), no armor pierce. This Core lets a die be Held again.", first_run_hidden=True, disabled=True, keep_hook=True, needs="sim at integration")
+
 # Run rules: slug, vn, name, weight, desc, extra
 R = []
 def rule(slug, vn, name, weight, desc, **extra):
@@ -113,11 +126,12 @@ def emit(dirp, id_, name, desc, tier, axis, req, exc, tags, layer, idx, extra, i
     L.append("id = " + q(id_)); L.append("name = " + q(name)); L.append("description = " + q(desc))
     L.append("rarity = %d" % tier); L.append('archetype = ""'); L.append("mload = 0")
     L.append("sort_index = %d" % (200000 + tier * 1000 + idx))
-    L.append("hook_key = " + q("" if (extra.get("disabled") or id_ in NOHOOK) else id_)); L.append("tags = " + psa(tags)); L.append("layer = " + q(layer))
+    L.append("hook_key = " + q("" if ((extra.get("disabled") and not extra.get("keep_hook")) or id_ in NOHOOK) else id_)); L.append("tags = " + psa(tags)); L.append("layer = " + q(layer))
     L.append("core_axis = " + q("run_rule" if is_rule else axis))
     if req: L.append("requires = " + psa(req))
     if exc: L.append("excludes = " + psa(exc))
     ex = dict(extra)
+    ex.pop("keep_hook", None)
     if ex.pop("disabled", False): L.append("disabled = true"); L.append("hidden_from_pool = true")
     if ex.pop("first_run_hidden", False): L.append("first_run_hidden = true")
     if is_rule: L.append("run_rule = true"); L.append("weight = %d" % weight)

@@ -498,7 +498,7 @@ static func tide_spent(ctx: Dictionary) -> void:
 const FLAT_CAP := 10
 const FLAT_IDS := ["c_kindle", "c_steady_hold", "c_prime_chain", "c_finisher", "c_mana_pool", "c_three_dice", "c_field_medic",
 	"c_plague_spread", "c_hollow_core", "c_thorn_pact", "c_cascade", "c_gatekeeper", "c_golden_egg",
-	"rule_tundra", "rule_heavy_finish", "c_sacrifice", "c_concord", "rule_rising_tide"]
+	"rule_tundra", "rule_heavy_finish", "c_sacrifice", "c_concord", "rule_rising_tide", "c_last_testament", "c_support_hand", "c_high_roller"]
 
 
 static func mirror_second(combat, u) -> bool:
@@ -549,6 +549,12 @@ static func bonus(combat, u, ft: String, id: String, part: String = "") -> int:
 			return int(rule_knob("rule_rising_tide", "back_dmg", 2)) if (ft == "dmg" and combat.row_of(u) == 1 and String(combat_state(combat, "tide").get("water", "")) == "back") else 0
 		"c_concord":
 			return 2 if (not sec and val and part != "" and String(turn_state(combat, "cs_concord").get("part", "")) == part) else 0
+		"c_high_roller":
+			return int(turn_state(combat, "cs_hroll").get(str(u.uid), 0)) if val else 0
+		"c_last_testament":
+			return mini(int(CombatEngine.tune_knob("core", "last_testament_max", 6.0)), int(combat_state(combat, "lt").get(str(u.uid), 0))) if val else 0
+		"c_support_hand":
+			return int(CombatEngine.tune_knob("core", "support_hand_add", 2.0)) if (ft == "shield" or ft == "heal" or ft == "mana") and _set_size_of(combat, u) >= 3 else 0
 		"c_golden_egg":
 			return 3 if (ft == "dmg" and bool(combat_state(combat, "ge").get("on", false))) else 0
 	return 0
@@ -1090,6 +1096,239 @@ static func spore_fall(ctx: Dictionary) -> void:
 		if e.hp <= 0:
 			EventBus.unit_died.emit(e.uid)
 			DamagePipeline.on_enemy_death(combat, e, null)
+
+
+# --------------------------------------------------------------------------------------------
+# Cores v5 (design/proposals/cores-rules-v5.md section 10)
+# --------------------------------------------------------------------------------------------
+
+## K1 Bloodline Ward: Shield from a shield FACE also goes, halved (rounded up), to each adjacent Axie of the same class.
+static func bloodline_shield(ctx: Dictionary) -> void:
+	if not bool(ctx.get("face", false)):
+		return
+	var combat = ctx["combat"]
+	var tgt = ctx["tgt"]
+	if tgt.side != "p" or tgt.is_token or String(tgt.cls) == "":
+		return
+	var half := int(ceil(int(ctx["v"]) / 2.0))
+	combat.shield_from_face = false   # the spread is not a face: no chain
+	for n in RelicHooks.slot_neighbors(combat, tgt):
+		if n.hp > 0 and not n.is_token and n.cls == tgt.cls:
+			DamagePipeline.apply_shield(combat, n, half)
+			fire("c_bloodline_ward", n.uid, half, "shield")
+
+
+## E1 Smoldering Coals: end of turn, each Held die gives +1 Mana (max core.smoldering_cap, default 2).
+static func smoldering_turn_end(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	var n := 0
+	for u in living_axies(combat):
+		if u.held:
+			n += 1
+	gain_mana(combat, mini(n, int(CombatEngine.tune_knob("core", "smoldering_cap", 2.0))), "", "c_smoldering")
+
+
+## E2 Cache Plate: Holding a die that shows a shield face gives its Axie half the face's Shield (rounded up, min 2, max 6, no M),
+## at most once per die per turn (Steady Hold cannot farm it).
+static func cache_plate_stash(ctx: Dictionary) -> void:
+	var f: Dictionary = ctx["face"]
+	var u = ctx["unit"]
+	if String(f.get("type", "")) != "shield" or int(f.get("value", 0)) <= 0:
+		return
+	var st := turn_state(ctx["combat"], "cs_cache")
+	if st.has(str(u.uid)):
+		return
+	st[str(u.uid)] = true
+	var amt := clampi(int(ceil(int(f.get("value", 0)) / 2.0)), int(CombatEngine.tune_knob("core", "cache_min", 2.0)), int(CombatEngine.tune_knob("core", "cache_max", 6.0)))
+	DamagePipeline.apply_shield(ctx["combat"], u, amt)
+	fire("c_cache_plate", u.uid, amt, "shield")
+
+
+## B2 Golden Thread: Wild Face costs 1 less (min 1) and can be used 1 more time per fight (value hooks wild_cost / wild_per_battle).
+static func golden_thread_cost(ctx: Dictionary) -> int:
+	var v := int(ctx["value"])
+	return maxi(1, v - 1) if v > 0 else v
+
+
+## ... and a Set of four that a Wild Face made gets +core.golden_thread_add M (default 0.20). Hook set_add (percent).
+static func golden_thread_set_add(ctx: Dictionary) -> int:
+	var g: Dictionary = ctx["group"]
+	var combat = ctx["combat"]
+	var v := int(ctx["value"])
+	if int(g["size"]) != 4:
+		return v
+	for uid in (g["uids"] as Array):
+		var d = combat.by_uid(int(uid))
+		if d != null and d.wild_slot >= 0:
+			var add := roundi(CombatEngine.tune_knob("core", "golden_thread_add", 0.20) * 100.0)
+			_fire_live(combat, "c_golden_thread", int(uid), add, "rule")
+			return v + add
+	return v
+
+
+## Size of the Set (combat.bo snapshot) that die `u` belongs to, 0 when none.
+static func _set_size_of(combat, u) -> int:
+	for g in combat.bo:
+		if (g["uids"] as Array).has(u.uid):
+			return int(g["size"])
+	return 0
+
+
+## K2 Last Testament: when an Axie falls, every living Axie of its class gets +2 on every face until the end of the fight (max +6). Eggs do not count.
+static func last_testament_fall(ctx: Dictionary) -> void:
+	if not fell_now(ctx):
+		return
+	var combat = ctx["combat"]
+	var dead = ctx["tgt"]
+	if dead.is_token or String(dead.cls) == "":
+		return
+	var st := combat_state(combat, "lt")
+	var step := int(CombatEngine.tune_knob("core", "last_testament_step", 2.0))
+	var mx := int(CombatEngine.tune_knob("core", "last_testament_max", 6.0))
+	for u in living_axies(combat):
+		if u != dead and u.cls == dead.cls:
+			var before := int(st.get(str(u.uid), 0))
+			var n := mini(mx, before + step)
+			st[str(u.uid)] = n
+			fire("c_last_testament", u.uid, n - before, "rule")
+
+
+## K3 Melting Pot: a team with 3+ classes and no two Axies of one class gets +0.25 M on every Set (hook set_add, percent).
+static func melting_pot_set_add(ctx: Dictionary) -> int:
+	var seen := {}
+	var n := 0
+	for u in ctx["combat"].party:
+		if u.is_token or u.side != "p":
+			continue
+		n += 1
+		if String(u.cls) == "" or seen.has(u.cls):
+			return int(ctx["value"])
+		seen[u.cls] = true
+	if n < 3:
+		return int(ctx["value"])
+	var add := roundi(CombatEngine.tune_knob("core", "melting_pot_add", 0.25) * 100.0)
+	_fire_live(ctx["combat"], "c_melting_pot", 0, add, "rule")
+	return int(ctx["value"]) + add
+
+
+## B1 Hunter's Reward (1/2): remember the fee of the paid reroll that is about to settle.
+static func hunters_paid(ctx: Dictionary) -> void:
+	turn_state(ctx["combat"], "cs_hr")["paid"] = int(ctx.get("cost", 0))
+
+
+## B1 (2/2): the first paid reroll each turn that makes a Set appear or grow (best Set size up) refunds its fee and gives 3 Shield to the Set.
+static func hunters_settled(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	var st := turn_state(combat, "cs_hr")
+	var paid := int(st.get("paid", 0))
+	st["paid"] = 0
+	if paid <= 0 or bool(st.get("done", false)):
+		return
+	var old_best := 0
+	for g in combat.bo:
+		old_best = maxi(old_best, int(g["size"]))
+	var best: Dictionary = {}
+	for g in combat.recompute_bo():
+		if best.is_empty() or int(g["size"]) > int(best["size"]):
+			best = g
+	if best.is_empty() or int(best["size"]) <= old_best:
+		return
+	st["done"] = true
+	gain_mana(combat, paid, "", "c_hunters_reward")
+	var sh := int(CombatEngine.tune_knob("core", "hunters_shield", 3.0))
+	for uid in (best["uids"] as Array):
+		var u = combat.by_uid(int(uid))
+		if u != null and u.hp > 0:
+			DamagePipeline.apply_shield(combat, u, sh)
+			fire("c_hunters_reward", u.uid, sh, "shield")
+
+
+## G1 Cracked Glass: a Cracked die that is used also sprays shards: 50% of its printed face value (rounded up, min 1) pierce damage
+## to every enemy, at most 3 times a turn. Gamble costs no Mana by itself, so this is a pure bonus on a failed Gamble.
+static func cracked_glass_used(ctx: Dictionary) -> void:
+	if String(ctx.get("side", "")) != "p" or int(ctx.get("depth", 0)) != 0:
+		return
+	var u = ctx["unit"]
+	var combat = ctx["combat"]
+	if not u.cracked:
+		return
+	var v := int(ceil(int((ctx["face"] as Dictionary).get("value", 0)) * float(CombatEngine.tune_knob("core", "cracked_glass_pct", 0.5))))
+	if v <= 0:
+		return
+	var st := turn_state(combat, "cs_glass")
+	if int(st.get("n", 0)) >= int(CombatEngine.tune_knob("core", "cracked_glass_max", 3.0)):
+		return
+	st["n"] = int(st.get("n", 0)) + 1
+	for e in combat.alive_enemies().duplicate():
+		_hit_enemy(combat, e, v, "c_cracked_glass")
+
+
+## G2 High Roller (1/3): a Gamble of 3+ dice where one die Cracks cracks them all (value hook gamble_crack, returns uids).
+static func high_roller_crack(ctx: Dictionary) -> Array:
+	var cur: Array = ctx["value"]
+	var settled: Array = ctx["settled"]
+	if int(ctx["n"]) < int(CombatEngine.tune_knob("core", "high_roller_min", 3.0)) or cur.is_empty():
+		return cur
+	var all: Array = []
+	for x in settled:
+		all.append(int(x))
+	fire("c_high_roller", int(all[0]), all.size() - cur.size(), "rule")
+	return all
+
+
+## G2 (2/3): a rerolled die loses an old +2 (the roll it was earned on is gone).
+static func high_roller_settled(ctx: Dictionary) -> void:
+	var st := turn_state(ctx["combat"], "cs_hroll")
+	for uid in (ctx.get("rerolled_uids", []) as Array):
+		st.erase(str(uid))
+
+
+## G2 (3/3): a clean Gamble of 3+ dice gives every die in it +2 until the end of the turn.
+static func high_roller_gamble(ctx: Dictionary) -> void:
+	if int(ctx["n"]) < int(CombatEngine.tune_knob("core", "high_roller_min", 3.0)) or not (ctx["cracked"] as Array).is_empty():
+		return
+	var combat = ctx["combat"]
+	var st := turn_state(combat, "cs_hroll")
+	var add := int(CombatEngine.tune_knob("core", "high_roller_add", 2.0))
+	for uid in (ctx.get("uids", []) as Array):
+		st[str(uid)] = add
+		fire("c_high_roller", int(uid), add, "rule")
+
+
+## E3 Magma Seed (DISABLED until simulated): a die Held two turns in a row (counter in Unit.custom_state["magma_n"], saved with the Unit)
+## and then used erupts: its damage face hits ALL enemies for x1.25 (rounded up), no armor pierce. The Core itself lets a die be Held again.
+static func magma_ready(u) -> bool:
+	return u.side == "p" and u.stash_carry and int(u.custom_state.get("magma_n", 0)) >= 2
+
+
+static func magma_stash(ctx: Dictionary) -> void:
+	var u = ctx["unit"]
+	u.custom_state["magma_n"] = (int(u.custom_state.get("magma_n", 0)) + 1) if u.stash_carry else 1
+
+
+static func magma_value(ctx: Dictionary) -> int:
+	var v := int(ctx["value"])
+	if String(ctx.get("face_type", "")) != "dmg" or not magma_ready(ctx["unit"]):
+		return v
+	var up := int(ceil(v * float(CombatEngine.tune_knob("core", "magma_mult", 1.25))))
+	_fire_live(ctx["combat"], "c_magma_seed", ctx["unit"].uid, up - v, "dmg")
+	return up
+
+
+static func magma_used(ctx: Dictionary) -> void:
+	var u = ctx["unit"]
+	var ready: bool = magma_ready(u) and not mute > 0
+	var combat = ctx["combat"]
+	var v := 0
+	if ready and String((ctx["face"] as Dictionary).get("type", "")) == "dmg" and not _has_kw(ctx["face"], "aoe"):
+		v = combat._face_value(u, int(ctx["fi"]))   # while the counter is still set, so it carries the x1.25
+	u.custom_state.erase("magma_n")
+	if v <= 0:
+		return
+	for e in combat.alive_enemies().duplicate():
+		if e.uid != int(ctx.get("target_uid", -1)):
+			var d := int(DamagePipeline.resolve({"combat": combat, "src": u, "tgt": e, "value": v, "pierce": false, "attack": true, "face_type": "dmg"}))
+			fire("c_magma_seed", e.uid, d, "dmg")
 
 
 # --------------------------------------------------------------------------------------------

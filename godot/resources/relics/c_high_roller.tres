@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_high_roller"
+name = "High Roller"
+description = "A Gamble of 3+ dice: if no die Cracks, every die in it gets +2 until end of turn. If one die Cracks, all of them Crack."
+rarity = 2
+archetype = ""
+mload = 0
+sort_index = 202065
+hook_key = "c_high_roller"
+tags = PackedStringArray("nonattack", "tradeoff")
+layer = "engine"
+core_axis = "rule"
+requires = PackedStringArray("anchor:a_gambler")
+first_run_hidden = true

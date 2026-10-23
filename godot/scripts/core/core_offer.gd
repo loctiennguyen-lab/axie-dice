@@ -12,6 +12,7 @@ extends RefCounted
 ##   class_pair            2+ Axie of one class          face:<x>        some party face has type or keyword x
 ##   back_face:<x|y>       a back-row Axie has such a face   faces_distinct:<n>  >= n distinct face types/keywords
 ##   front_hero            the party has a front-row Axie    egg_source          party/owned can make Eggs
+##   classes_distinct:<n>  roster has >= n classes   stage_min:<n>  depth stage >= n   anchor:<id>  run Anchor is id
 ##   owned:<id>            id owned                      owned_axis:<axis>   a Core of that axis owned
 ##   owned_tag:<tag>       an owned def carries the tag      rule:<id>           that Run Rule is held
 ## An unknown token is FALSE (fail closed): a requires with a typo hides the Core, an excludes with a typo
@@ -174,6 +175,17 @@ static func token_ok(token: String, ctx: Dictionary) -> bool:
 					if wanted.has(lbl):
 						return true
 			return false
+		"classes_distinct":   # roster has >= n different classes (Melting Pot)
+			var cl: Dictionary = {}
+			for e in roster:
+				var c2 := String(_hero(e).get("cls", ""))
+				if c2 != "":
+					cl[c2] = true
+			return cl.size() >= int(arg)
+		"stage_min":   # depth stage >= n (ctx.depth_stage, default 3 so old ctx stay permissive)
+			return int(ctx.get("depth_stage", 3)) >= int(arg)
+		"anchor":   # the run's Anchor is <id>
+			return String(ctx.get("anchor_id", "")) == arg
 		"faces_distinct":
 			var all: Dictionary = {}
 			for e in roster:

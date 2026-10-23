@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_melting_pot"
+name = "Melting Pot"
+description = "If your team has 3 or more classes and no two Axies share a class, every Set gets +0.25 M."
+rarity = 1
+archetype = ""
+mload = 0
+sort_index = 201061
+hook_key = "c_melting_pot"
+tags = PackedStringArray("nonattack", "tradeoff")
+layer = "positional"
+core_axis = "pos"
+requires = PackedStringArray("classes_distinct:3")
+excludes = PackedStringArray("anchor:a_kin", "owned:c_concord")

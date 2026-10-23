@@ -107,6 +107,7 @@ var reroll_k: int = 0
 var bo: Array = []
 ## Depth v4 3.8: 1..3, default 3. Stage < 2 refuses Lieu / wild_face; stage < 3 refuses Overcast and switches off part_add.
 var depth_stage: int = 3
+var shield_from_face: bool = false   ## transient, never saved: true only while a shield face applies its Shield
 ## Depth v4 3.5 (N1): Lieu/An toan rerolls chosen this turn. ONLY these count against reroll.max_total; free, relic, Aid never do.
 var reroll_paid_k: int = 0
 ## Depth v4 3.6 (MD 22/10): Mat Tam uses this FIGHT (cap wild.per_battle). In the undo snapshot and the save; reset in setup_new only.
@@ -980,8 +981,15 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false, rmode: int
 			if hit and cu != null and settled.has(cu.uid):
 				cu.cracked = true
 				cracked_now.append(cu.uid)
+		# Cores v5 (High Roller): hook may widen the Crack set (value = uids, no rng); newly cracked dice are flagged here.
+		cracked_now = RelicHooks.run_value_hook(self, "gamble_crack", {"combat": self, "settled": settled.duplicate(), "n": settled.size()}, cracked_now)
+		for cid in cracked_now:
+			var ccu := by_uid(int(cid))
+			if ccu != null:
+				ccu.cracked = true
 		_mut_gamble(cracked_now)
 		_anchor_after_gamble(settled.size(), cracked_now, use_seed)
+		RelicHooks.fire(self, "on_gamble", {"combat": self, "n": settled.size(), "cracked": cracked_now.duplicate(), "uids": settled.duplicate()})
 	_snap_bo()
 	# JS clears the undo stack on reroll ONLY when the party lacks `safeReroll`
 	# (engine.js:502). Clearing unconditionally quietly disabled that relic's whole point.
@@ -1467,12 +1475,12 @@ func stash(unit_uid: int) -> bool:
 # ---- Depth v4 3.6 MAT TAM ----------------------------------------------------------------------------------
 func wild_cost() -> int:
 	if anchor_id == "a_mana_mine":
-		return maxi(0, int(tune_knob("anchor", "mine_wild_cost", 3.0)))   # Mana Mine price
-	return maxi(0, int(tune_knob("wild", "cost", 2.0)))
+		return maxi(0, int(RelicHooks.run_value_hook(self, "wild_cost", {"combat": self}, int(tune_knob("anchor", "mine_wild_cost", 3.0)))))   # Mana Mine price
+	return maxi(0, int(RelicHooks.run_value_hook(self, "wild_cost", {"combat": self}, int(tune_knob("wild", "cost", 2.0)))))
 
 
 func wild_per_battle() -> int:
-	return maxi(0, int(tune_knob("wild", "per_battle", 1.0)))
+	return maxi(0, int(RelicHooks.run_value_hook(self, "wild_per_battle", {"combat": self}, int(tune_knob("wild", "per_battle", 1.0)))))
 
 
 ## "" when `uid` may take Mat Tam part `slot` now, else a short code: phase, slot, stage, no_die, limit, used, held, cracked, cantrip,
@@ -1533,6 +1541,8 @@ func wild_face(unit_uid: int, slot: int) -> bool:
 	var u := by_uid(unit_uid)
 	_push_undo()
 	mana -= wild_cost()
+	if CoreHooks.RelicHooks_has(self, "c_golden_thread"):
+		CoreHooks.fire("c_golden_thread", unit_uid, 1, "mana")   # the Mana it saved
 	wild_used += 1
 	u.wild_slot = slot
 	_snap_bo()
@@ -1845,14 +1855,14 @@ static func _mul_up(v: int, m100: int) -> int:
 
 
 ## M bag of a die in percent (100 = x1.00): 100 + its Set add (from the snapshot) + Overcast add, clamped to [100, bo.m_cap].
-## Core adds (design 10) are not done yet.
+## Core adds come from hook `set_add` (_core_set_add100).
 func m100_for(u: Unit) -> int:
 	if u.side != "p":
 		return 100
 	var add := 0
 	for g in bo:
 		if (g["uids"] as Array).has(u.uid):
-			add += int(g["m100"]) - 100 + _anchor_set_add100() + _mut_embers_add100(u)
+			add += int(g["m100"]) - 100 + _anchor_set_add100() + _mut_embers_add100(u) + _core_set_add100(g)
 			break
 	if u.overcast:
 		add += roundi(overcast_add() * 100.0)
@@ -1864,7 +1874,12 @@ func m100_for(u: Unit) -> int:
 ## Group M x100 including the Anchor's Set add (Volley price / Gambler bonus), clamped like m100_for. For previews/UI; excludes the
 ## per-die parts (Overcast, Last Strike) that depend on which die is asked about.
 func bo_group_m100(g: Dictionary) -> int:
-	return clampi(int(g["m100"]) + _anchor_set_add100(), 100, bo_cap100())
+	return clampi(int(g["m100"]) + _anchor_set_add100() + _core_set_add100(g), 100, bo_cap100())
+
+
+## Core adds to a Set's M, in percent (hook `set_add`, value 0; ctx: combat, group g {part,size,uids,...}). Cores v5 (Melting Pot, Golden Thread).
+func _core_set_add100(g: Dictionary) -> int:
+	return int(RelicHooks.run_value_hook(self, "set_add", {"combat": self, "group": g}, 0))
 
 
 ## ---- Anchor base rules + awakenings (production/anchor-2b-brief.md) ---------------------------------------------
@@ -2401,7 +2416,9 @@ func _do_face(u: Unit, target_uid: int, f: Dictionary, fi: int, is_echo: bool) -
 			var sv := v
 			if u.side == "p":
 				sv = _mut_spiked(u, t, v)
+			shield_from_face = u.side == "p"   # transient: Shield from a shield FACE (Bloodline Ward reads it in on_shield)
 			DamagePipeline.apply_shield(self, t, sv)
+			shield_from_face = false
 			if kw_pure.size() > 0:
 				StatusEngine.add_status(self, t, kw_pure, u)
 			if _has_kw(f, "bastion"):

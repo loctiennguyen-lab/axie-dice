@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_magma_seed"
+name = "Magma Seed"
+description = "A die Held two turns in a row erupts when used: its damage face hits ALL enemies for x1.25 (rounded up), no armor pierce. This Core lets a die be Held again."
+rarity = 2
+archetype = ""
+mload = 0
+sort_index = 202066
+hook_key = "c_magma_seed"
+tags = PackedStringArray("nonattack")
+layer = "dice"
+core_axis = "dice"
+excludes = PackedStringArray("rule:rule_tundra")
+disabled = true
+hidden_from_pool = true
+first_run_hidden = true
+needs_hook = "sim at integration"

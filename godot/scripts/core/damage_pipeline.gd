@@ -252,7 +252,7 @@ static func apply_shield(combat, tgt: Unit, value: int) -> void:
 	if tgt.side == "p" and tgt.cls == "plant" and tgt.shield >= int(RelicHooks.field(combat, "bulwark_at", 10.0)):
 		tgt.status["thorns"] = StatusEngine.clamp_thorns(max(int(tgt.status.get("thorns", 0)), int(RelicHooks.field(combat, "bulwark_thorns", 2.0))))
 	if tgt.side == "p":
-		RelicHooks.fire(combat, "on_shield", {"v": v, "tgt": tgt, "combat": combat})
+		RelicHooks.fire(combat, "on_shield", {"v": v, "tgt": tgt, "combat": combat, "face": ("shield_from_face" in combat and bool(combat.shield_from_face))})
 
 
 static func on_enemy_death(combat, e: Unit, killer: Unit = null) -> void:

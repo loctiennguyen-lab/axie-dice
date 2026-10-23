@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_golden_thread"
+name = "Golden Thread"
+description = "Wild Face costs 1 less Mana (min 1) and can be used 2 times per fight. A Set of four made with a Wild Face gets +0.20 M."
+rarity = 1
+archetype = ""
+mload = 0
+sort_index = 201059
+hook_key = "c_golden_thread"
+tags = PackedStringArray("nonattack")
+layer = "economy"
+core_axis = "mana"
+requires = PackedStringArray("stage_min:2")
