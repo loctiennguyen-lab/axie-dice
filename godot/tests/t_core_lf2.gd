@@ -10,6 +10,7 @@ func _ready() -> void:
 	t_fissure_gate()
 	t_open_ranks_gate()
 	t_tidecaller()
+	t_steady_hold()
 	print("=== t_core_lf2: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	if _fails.is_empty():
 		print("t_core_lf2: PASS — %d checks OK" % _checks)
@@ -79,3 +80,25 @@ func t_tidecaller() -> void:
 	_ok(t2.enemies[0].hp == hp0, "tidecaller: 1 mana alone does nothing")
 	RelicHooks.fire(t2, "on_reroll_paid", {"combat": t2, "cost": 1, "k": 2})
 	_ok(t2.enemies[0].hp < hp0, "tidecaller: 1+1 mana triggers")
+
+
+func t_steady_hold() -> void:
+	_ok("max +3" in String(RelicRegistry.get_def("c_steady_hold").description), "steady_hold: rule text mentions the ramp")
+	var b := _combat([])
+	var c := _combat(["c_steady_hold"])
+	var u: Unit = c.party[0]
+	var fi := u.roll_face_index()
+	var st := CoreHooks.combat_state(c, "focus_c_steady_hold")
+	RelicHooks.fire(c, "on_stash", {"combat": c, "unit": u, "face": u.current_face(), "fi": fi})
+	_ok(int(st[str(u.uid)]["v"]) == 1, "steady_hold: first held turn -> +1")
+	u.stash_carry = true
+	for want in [2, 3, 3]:
+		RelicHooks.fire(c, "on_stash", {"combat": c, "unit": u, "face": u.current_face(), "fi": fi})
+		_ok(int(st[str(u.uid)]["v"]) == want, "steady_hold: held again -> +%d (max 3)" % want)
+	_ok(CoreHooks.focus_value(c, "focus_c_steady_hold", u, "dmg") == 3, "steady_hold: focus value 3 on a value face")
+	CoreHooks.focus_spent(c, "focus_c_steady_hold", u)
+	_ok(CoreHooks.focus_value(c, "focus_c_steady_hold", u, "dmg") == 0, "steady_hold: reset after use")
+	u.stash_carry = false
+	RelicHooks.fire(c, "on_stash", {"combat": c, "unit": u, "face": u.current_face(), "fi": fi})
+	_ok(int(st[str(u.uid)]["v"]) == 1, "steady_hold: a fresh hold restarts at +1")
+	_ok(b.stash_cap() == 1 and c.stash_cap() == 2, "steady_hold: cap still 2")

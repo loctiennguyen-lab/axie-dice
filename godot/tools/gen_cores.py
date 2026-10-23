@@ -18,7 +18,7 @@ core("elder_trunk", "Thân Cổ Thụ", "Elder Trunk", 0, "stat", [], [], ["nona
 core("prime_chain", "Chuỗi Mồi", "Prime Chain", 0, "dice", [], [], ["nonattack", "convert_to_dmg"], "Using a shield or mana face primes the neighbouring Axies: their next damage face this turn deals +3.")
 core("finisher", "Kết Cục", "Final Blow", 0, "dice", [], [], ["nonattack"], "The last die you use each turn gets +1 for every die used before it (max +4).")
 core("prism", "Đa Sắc", "Prism", 1, "dice", ["faces_distinct:4"], [], ["nonattack"], "End of turn: if you used 4 or more different face types, the whole team gains 3 Shield and +2 Mana.")
-core("steady_hold", "Giữ Vững", "Steady Hold", 1, "dice", [], ["rule:rule_tundra"], ["nonattack"], "You can Hold 2 dice per turn, and the same die can be held two turns in a row.")
+core("steady_hold", "Giữ Vững", "Steady Hold", 1, "dice", [], ["rule:rule_tundra"], ["nonattack"], "You can Hold 2 dice per turn, and the same die can be held two turns in a row. A Held die gets +1 for every turn it has been held (max +3), lost once it is used.")
 core("kindle", "Cất Lửa", "Kindle", 1, "dice", [], [], ["nonattack"], "A Held die has Focus: used next turn it deals +4 (+8 if held two turns in a row).")
 core("sonic_shield", "Sóng Khiên", "Shield Wave", 1, "dice", ["face:shield"], [], ["nonattack", "convert_to_dmg"], "Shield and heal faces also deal damage equal to half their value (rounded up) to the enemy targeting that Axie.")
 core("fissure", "Vết Nứt", "Fissure", 1, "dice", ["face:poison|weaken|vulnerable|blind|freeze|stun"], [], ["nonattack", "convert_to_dmg"], "Poison and debuff faces that hit make the enemy take +25% from all damage until the end of next turn and strip its Armor.")

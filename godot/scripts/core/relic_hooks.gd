@@ -1609,6 +1609,9 @@ static var TABLE: Dictionary = {
 	"c_steady_hold": {
 		"stash_cap": func(ctx: Dictionary): return CoreHooks.steady_hold_cap(ctx),
 		"stash_repeat": func(ctx: Dictionary): return true,
+		"on_stash": func(ctx: Dictionary): CoreHooks.steady_hold_stash(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_steady_hold"),
+		"on_face_used": func(ctx: Dictionary): CoreHooks.focus_spent(ctx["combat"], "focus_c_steady_hold", ctx["unit"]),
 	},
 	"c_kindle": {
 		"on_stash": func(ctx: Dictionary): CoreHooks.kindle_stash(ctx),

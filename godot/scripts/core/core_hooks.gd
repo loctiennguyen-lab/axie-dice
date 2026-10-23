@@ -343,6 +343,16 @@ static func steady_hold_cap(ctx: Dictionary) -> int:
 	return int(ctx["value"]) + 1
 
 
+## Giu Vung (LF2, R8): a Held die gains +1 per turn it has been held (max +3, tune core.steady_hold_max), reset when used.
+## Same storage as Kindle's Focus, own key; `n` counts consecutive held turns.
+static func steady_hold_stash(ctx: Dictionary) -> void:
+	var u = ctx["unit"]
+	var st := combat_state(ctx["combat"], "focus_c_steady_hold")
+	var prev := int((st.get(str(u.uid), {}) as Dictionary).get("n", 0)) if u.stash_carry else 0
+	var n := prev + 1
+	st[str(u.uid)] = {"n": n, "v": mini(n, int(CombatEngine.tune_knob("core", "steady_hold_max", 3.0))), "fi": int(ctx.get("fi", u.roll_face_index()))}
+
+
 ## Cat Lua: a Held die gets Focus. Value = 4 per consecutive held turn (max 8). Stored per die with the
 ## face index it was held on, applied by kindle_value() while that die is carried over.
 static func kindle_stash(ctx: Dictionary) -> void:
@@ -483,7 +493,7 @@ static func tide_spent(ctx: Dictionary) -> void:
 # --------------------------------------------------------------------------------------------
 
 const FLAT_CAP := 10
-const FLAT_IDS := ["c_kindle", "c_prime_chain", "c_finisher", "c_mana_pool", "c_three_dice", "c_field_medic",
+const FLAT_IDS := ["c_kindle", "c_steady_hold", "c_prime_chain", "c_finisher", "c_mana_pool", "c_three_dice", "c_field_medic",
 	"c_plague_spread", "c_hollow_core", "c_thorn_pact", "c_cascade", "c_gatekeeper", "c_golden_egg",
 	"rule_tundra", "rule_heavy_finish", "c_sacrifice", "c_concord", "rule_rising_tide"]
 
@@ -503,6 +513,8 @@ static func bonus(combat, u, ft: String, id: String, part: String = "") -> int:
 			return 0 if sec else focus_value(combat, "focus_c_kindle", u, ft)
 		"c_three_dice":
 			return 0 if sec else focus_value(combat, "focus_c_three_dice", u, ft)
+		"c_steady_hold":
+			return 0 if sec else focus_value(combat, "focus_c_steady_hold", u, ft)
 		"rule_tundra":
 			return 0 if sec else focus_value(combat, "focus_rule_tundra", u, ft)
 		"c_prime_chain":
