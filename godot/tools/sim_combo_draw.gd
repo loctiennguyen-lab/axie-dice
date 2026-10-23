@@ -24,7 +24,7 @@ func _ready() -> void:
 	var seed0 := int(_arg("seed", "1"))
 	var out_path := _arg("out", "")
 	var combos := CoreCombos.all([])
-	var rep := "# Combo draw sim (gacha lane GD)\n\n%d Short runs per policy, seed base %d, real RunState + CoreOffer + tier chain, 4 milestone Core picks + Run Rule card, no fights. Quest bonus / shop / event Cores are not simulated (they only add draws, so these are lower bounds). Rerolls: 2 base + combo bonus.\n\n" % [runs, seed0]
+	var rep := "# Combo draw sim (gacha lane GD)\n\n%d Short runs per policy, seed base %d, real RunState + CoreOffer + tier chain, 4 milestone Core picks + 2 extra picks (elite win, mid node) + Run Rule card, no fights. Quest bonus / shop / event Cores are not simulated (they only add draws, so these are lower bounds). Rerolls: 2 base + combo bonus.\n\n" % [runs, seed0]
 	for policy in ["random", "hunt"]:
 		var st := _run_policy(policy, runs, seed0)
 		rep += _fmt(policy, runs, st, combos)
@@ -56,13 +56,23 @@ func _run_policy(policy: String, runs: int, seed0: int) -> Dictionary:
 		RunState.start_new_run_seeded(seed, {"team_keys": TEAMS[i % TEAMS.size()], "mode": "short", "ascension": 0, "ranked": false,
 			"bonuses": {}, "loadout": {"rules_on": true}})
 		var guard := 0
-		while guard < 12:
+		var extra_i := 0
+		RunState._node_seed = seed ^ 0x6E0DE   # extras (elite win / mid-run node) draw from the node seed in the real flow
+		while guard < 16:
 			guard += 1
 			if RunState.pending_rewards.is_empty():
 				if not RunState._open_core_offer():
 					if RunState.core_pick_index >= CoreOffer.picks_total("short"):
-						break
-					continue
+						# the 2 extra picks of a Short run (elite win + mid node) are real offers too: 4 milestones + 2 = 6
+						if extra_i < RunState.core_extra_tiers.size() and extra_i < 2:
+							RunState._queue_core_pick(RunState.core_extra_tiers[extra_i])
+							extra_i += 1
+							if not RunState._open_bonus_offer():
+								continue
+						else:
+							break
+					else:
+						continue
 			var first: Dictionary = RunState.pending_rewards[0]
 			if bool(first.get("rule", false)):
 				RunState.apply_chosen_reward(RunState.pending_rewards[rng.next_int(RunState.pending_rewards.size())])

@@ -165,13 +165,13 @@ func t_kindle_prime_prism_tide() -> void:
 	var hp0: Array = []
 	for e in t.enemies:
 		hp0.append(e.hp)
-	RelicHooks.fire(t, "on_reroll_paid", {"combat": t, "cost": 2, "k": 1})
-	_ok(t.enemies[0].hp == hp0[0], "tidecaller: 2 mana spent is not enough")
+	RelicHooks.fire(t, "on_reroll_paid", {"combat": t, "cost": 1, "k": 1})
+	_ok(t.enemies[0].hp == hp0[0], "tidecaller: 1 mana spent is not enough")
 	RelicHooks.fire(t, "on_reroll_paid", {"combat": t, "cost": 1, "k": 2})
 	var ok := true
 	for i in t.enemies.size():
 		ok = ok and t.enemies[i].hp == hp0[i] - 2
-	_ok(ok, "tidecaller: 3 mana spent -> 2 dmg to all enemies")
+	_ok(ok, "tidecaller: 2 mana spent -> 2 dmg to all enemies")
 
 
 func t_flat_cap() -> void:

@@ -15,4 +15,4 @@ hook_key = "c_fissure"
 tags = PackedStringArray("nonattack", "convert_to_dmg")
 layer = "dice"
 core_axis = "dice"
-requires = PackedStringArray("face:poison|debuff")
+requires = PackedStringArray("face:poison|weaken|vulnerable|blind|freeze|stun")

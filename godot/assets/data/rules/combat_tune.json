@@ -29,7 +29,8 @@
   "cap": 0
  },
  "core": {
-  "mult_cap": 8
+  "mult_cap": 8,
+  "steady_hold_max": 3
  },
  "wild": {
   "cost": 2,

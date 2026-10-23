@@ -343,6 +343,16 @@ static func steady_hold_cap(ctx: Dictionary) -> int:
 	return int(ctx["value"]) + 1
 
 
+## Giu Vung (LF2, R8): a Held die gains +1 per turn it has been held (max +3, tune core.steady_hold_max), reset when used.
+## Same storage as Kindle's Focus, own key; `n` counts consecutive held turns.
+static func steady_hold_stash(ctx: Dictionary) -> void:
+	var u = ctx["unit"]
+	var st := combat_state(ctx["combat"], "focus_c_steady_hold")
+	var prev := int((st.get(str(u.uid), {}) as Dictionary).get("n", 0)) if u.stash_carry else 0
+	var n := prev + 1
+	st[str(u.uid)] = {"n": n, "v": mini(n, int(CombatEngine.tune_knob("core", "steady_hold_max", 3.0))), "fi": int(ctx.get("fi", u.roll_face_index()))}
+
+
 ## Cat Lua: a Held die gets Focus. Value = 4 per consecutive held turn (max 8). Stored per die with the
 ## face index it was held on, applied by kindle_value() while that die is carried over.
 static func kindle_stash(ctx: Dictionary) -> void:
@@ -460,7 +470,10 @@ static func mana_pool_turn_end(ctx: Dictionary) -> void:
 	gain_mana(combat, mini(3, int(combat.mana) / 3), "", "c_mana_pool")
 
 
-## Ngon Trieu: every 3 Mana spent (reroll or active) deals 2 damage to all enemies.
+## Ngon Trieu: every 2 Mana spent (reroll or active) deals 2 damage to all enemies.
+const TIDE_STEP := 2   # Mana spent per Rising Wave pulse (text in c_tidecaller.tres / gen_cores.py must say the same)
+
+
 static func tide_spent(ctx: Dictionary) -> void:
 	var combat = ctx["combat"]
 	var cost := int(ctx.get("cost", 0))
@@ -468,8 +481,8 @@ static func tide_spent(ctx: Dictionary) -> void:
 		return
 	var st := combat_state(combat, "tide_acc")
 	var acc := int(st.get("n", 0)) + cost
-	while acc >= 3:
-		acc -= 3
+	while acc >= TIDE_STEP:
+		acc -= TIDE_STEP
 		for e in combat.alive_enemies().duplicate():
 			fire("c_tidecaller", e.uid, int(DamagePipeline.resolve({"combat": combat, "src": null, "tgt": e, "value": 2, "attack": false})), "dmg")
 	st["n"] = acc
@@ -483,7 +496,7 @@ static func tide_spent(ctx: Dictionary) -> void:
 # --------------------------------------------------------------------------------------------
 
 const FLAT_CAP := 10
-const FLAT_IDS := ["c_kindle", "c_prime_chain", "c_finisher", "c_mana_pool", "c_three_dice", "c_field_medic",
+const FLAT_IDS := ["c_kindle", "c_steady_hold", "c_prime_chain", "c_finisher", "c_mana_pool", "c_three_dice", "c_field_medic",
 	"c_plague_spread", "c_hollow_core", "c_thorn_pact", "c_cascade", "c_gatekeeper", "c_golden_egg",
 	"rule_tundra", "rule_heavy_finish", "c_sacrifice", "c_concord", "rule_rising_tide"]
 
@@ -503,6 +516,8 @@ static func bonus(combat, u, ft: String, id: String, part: String = "") -> int:
 			return 0 if sec else focus_value(combat, "focus_c_kindle", u, ft)
 		"c_three_dice":
 			return 0 if sec else focus_value(combat, "focus_c_three_dice", u, ft)
+		"c_steady_hold":
+			return 0 if sec else focus_value(combat, "focus_c_steady_hold", u, ft)
 		"rule_tundra":
 			return 0 if sec else focus_value(combat, "focus_rule_tundra", u, ft)
 		"c_prime_chain":
@@ -991,7 +1006,20 @@ static func golden_egg_fall(ctx: Dictionary) -> void:
 	var t = ctx["tgt"]
 	if not (t.is_token and t.key == "egg") or not fell_now(ctx):
 		return
-	var combat = ctx["combat"]
+	golden_egg_trigger(ctx["combat"])
+
+
+## An Egg hatching pays at most once per turn (anti-farm); an Egg dying always pays.
+static func golden_egg_hatch(ctx: Dictionary) -> void:
+	var st := turn_state(ctx["combat"], "cs_ge_hatch")
+	if bool(st.get("done", false)):
+		return
+	st["done"] = true
+	golden_egg_trigger(ctx["combat"])
+
+
+## Golden Egg payout, shared by an Egg dying and an Egg hatching (summon face / Broodmother).
+static func golden_egg_trigger(combat) -> void:
 	gain_mana(combat, 3, "", "c_golden_egg")
 	var w = null
 	for u in living_axies(combat):

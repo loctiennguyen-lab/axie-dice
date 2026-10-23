@@ -115,3 +115,43 @@ Làm theo thứ tự, mỗi bước dừng đọc kết quả.
 | c_mana_ward | c | 87.5% | cần mana >=2 cuối lượt; bot chi hết mana | không |
 | c_deep_current | b/c | 87.5% | cần mana dư cuối trận thắng; bot chi hết | không |
 | c_thorn_rebound | b | 75% | cần có Axie có Thorns và bị đánh | không (nếu muốn: gate offer theo nguồn Thorns) |
+
+## Sửa 23/10
+Branch `depth/lowfire2`. Đã làm R2, R4, R5(b), R8, tidecaller 3 -> 2. S1-S2 đã có sẵn trong `sim_balance.gd` (`_corehold`, `HOLD_CORES`), không làm lại. R1 có từ trước. Chưa bump RULES_VERSION (làm ở tích hợp). Test mới: `t_core_lf2` (27 check). `t_core_behaviour` sửa 1 check tidecaller cho ngưỡng 2.
+
+Đã đổi:
+- c_fissure: requires `face:poison|weaken|vulnerable|blind|freeze|stun`. Chữ luật giữ nguyên (đã đúng).
+- c_open_ranks: bỏ requires `owned_tag:front`. `c_backline_glow`, `c_descend` thêm excludes `owned:c_open_ranks`.
+- c_golden_egg: (a) KHÔNG đổi, `c_spore_burst` không tạo Egg (chỉ nổ nửa khi Egg chết), nên không gắn tag `egg`. (b) thêm nguồn thứ hai: Egg "nở" = Egg mới vào đội giữa trận bằng summon face (2 chỗ trong combat_engine) hoặc r_broodmother, hook mới `on_egg_hatched`. Egg đầu trận của c_nest KHÔNG tính. Hiệu ứng y như khi Egg chết (+3 Mana, 4 Shield, dmg kế +3). Chữ: "When an Egg dies or hatches: ...".
+- c_steady_hold: viên Hold được +1 mỗi lượt giữ liên tiếp, tối đa +3 (knob `core.steady_hold_max`), reset khi dùng; tính vào trần flat +10. Chữ luật thêm câu mới.
+- c_tidecaller: "Every 2 Mana you spend deals 2 damage to all enemies."
+
+Đo `sim_combo_draw`, 3000 run Short, seed 1, 4 lượt chọn mốc + thẻ Run Rule (sim chỉ có 4 lượt Core, không phải 6), % run có thẻ hiện >=1 lần:
+
+| Lõi | random trước | random sau | hunt trước | hunt sau |
+|---|---|---|---|---|
+| c_open_ranks | 2.4 | 7.1 | 1.0 | 6.6 |
+| c_fissure | 10.0 | 10.0 | 11.9 | 11.9 |
+| c_golden_egg | 4.5 | 4.5 | 5.1 | 5.1 |
+| c_steady_hold | 1.2 | 1.2 | 1.2 | 1.2 |
+| c_tidecaller | 42.7 | (không đổi) | 37.9 | (không đổi) |
+| c_backline_glow | 85.7 | 85.6 | 85.5 | 85.0 |
+| c_descend | 25.5 | không đổi | 21.3 | 21.2 |
+
+Chưa đạt ≥10%: c_open_ranks (7%), c_golden_egg (4.5%), c_steady_hold (1.2%), và nhiều Lõi khác ngoài phạm vi (concord 1.4, thorn_rebound 0.5...). Fissure không đổi vì đội mặc định đã có debuff/poison. Steady_hold thấp vì nằm trong ô dice (nhiều Lõi) và trọng số trục không đủ; muốn lên 10% cần trường trọng số Lõi (R6) hoặc đưa Lõi sang ô khác, chờ Liam quyết. Sửa luật không đổi % xuất hiện của Fissure/Golden Egg/Steady Hold, chỉ đổi độ dùng được khi đã có.
+
+### Sửa 23/10 (b): đo lại đủ 6 lượt chọn, Golden Egg chống farm
+- Golden Egg: Egg nở chỉ trả tối đa 1 lần mỗi lượt (Egg chết vẫn trả mỗi con). Chữ luật: "When an Egg dies, or hatches (once per turn): ...". Test qua `use_die` với summon face thật (`t_core_lf2`, 31 check).
+- `sim_combo_draw` nay chơi cả 2 lượt chọn thêm của Short (thắng Elite + nút giữa) = 6 lượt, như run thật. Đo 6000 run, seed 1. Trước = resource trước R2/R4 (cùng sim 6 lượt), sau = hiện tại. % run thấy thẻ >=1 lần (random / hunt):
+
+| Lõi | trước | sau |
+|---|---|---|
+| c_open_ranks | 8.8 / 5.2 | 23.5 / 23.4 |
+| c_golden_egg | 11.4 / 13.9 | 11.5 / 14.0 |
+| c_steady_hold | 22.7 / 23.0 | 22.7 / 23.1 |
+| c_fissure | 16.4 / 17.0 | 16.4 / 17.1 |
+| c_concord | 10.7 / 11.2 | 10.7 / 11.2 |
+| c_toxic_still | 10.1 / 10.2 | 10.1 / 10.1 |
+| c_thorn_rebound | 20.7 / 26.0 | 20.8 / 26.0 |
+
+Với 6 lượt, mọi Lõi trong pool (52) đều >=10% ở cả random và hunt; thấp nhất c_toxic_still 10.1 (sai số ~±0.8). Bảng 4 lượt ở trên là đo thiếu 2 lượt nên số thấp. R6 (trọng số Lõi) không cần để đạt 10%, nên KHÔNG làm. Nếu muốn có biên an toàn cho toxic_still / concord thì làm R6 sau.

@@ -429,6 +429,7 @@ static var TABLE: Dictionary = {
 			egg.mark_used()
 			combat.party.append(egg)
 			EventBus.unit_spawned.emit(egg.uid)
+			RelicHooks.fire(combat, "on_egg_hatched", {"combat": combat, "egg": egg})
 			return,
 		# `egg_dmg` is the once-per-egg guard. Without it on_turn_start would add +1 every
 		# turn and an egg that survived ten turns would hit for ten more.
@@ -1609,6 +1610,9 @@ static var TABLE: Dictionary = {
 	"c_steady_hold": {
 		"stash_cap": func(ctx: Dictionary): return CoreHooks.steady_hold_cap(ctx),
 		"stash_repeat": func(ctx: Dictionary): return true,
+		"on_stash": func(ctx: Dictionary): CoreHooks.steady_hold_stash(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_steady_hold"),
+		"on_face_used": func(ctx: Dictionary): CoreHooks.focus_spent(ctx["combat"], "focus_c_steady_hold", ctx["unit"]),
 	},
 	"c_kindle": {
 		"on_stash": func(ctx: Dictionary): CoreHooks.kindle_stash(ctx),
@@ -1737,6 +1741,7 @@ static var TABLE: Dictionary = {
 	"c_chimera_hunt": {"on_kill": func(ctx: Dictionary): CoreHooks.chimera_kill(ctx)},
 	"c_golden_egg": {
 		"on_dmg_taken": func(ctx: Dictionary): CoreHooks.golden_egg_fall(ctx),
+		"on_egg_hatched": func(ctx: Dictionary): CoreHooks.golden_egg_hatch(ctx),
 		"on_face_used": func(ctx: Dictionary): CoreHooks.golden_egg_used(ctx),
 		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_golden_egg"),
 	},
