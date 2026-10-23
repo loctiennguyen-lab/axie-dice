@@ -1,5 +1,24 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (23/10 tối) — V5 ĐÃ VÀO GODOT-PORT (78346be), RULES -t, DEPLOY (xem cuối mục)
+Liam giao 5 việc (23/10): (1) thêm Lõi + Luật run mới, (2) spam < 10%, (3) sửa Lõi ít kích hoạt, (4) thêm Anchor cho đa dạng, (5) polish để cuối.
+Đã làm (mỗi phần review độc lập + QA luồng thật):
+- 11 Lõi mới + 9 combo (design/proposals/cores-rules-v5.md mục 10 = bản Liam duyệt; c_magma_seed tắt chờ sim); 4 Luật run: Pack Alpha, High Stakes
+  (stage ≥2) bật; Set Is King, Pilot Light tắt chờ sim (mục 11: bật bằng gen_cores.py rồi sinh lại .tres).
+- Lõi ít kích hoạt: Fissure, Open Ranks, Tidecaller (2 mana), Steady Hold (+1/lượt giữ, max +3), Golden Egg (nở, 1/lượt); 52/52 Lõi ≥10% run (sim 6 lượt).
+- 6 Anchor: thêm Kin, Embers, Big Hand (luật + thức tỉnh Unison/Passed Flame/Sixth Hand + UI chip EMBER/FREE/BONUS, sigil nhà mới).
+  Lõi nhà đổi theo duyệt. Kin + Concord: Concord không chào dưới Kin.
+- Chống spam: Vỏ Cộng Hưởng (Elite/boss có Vỏ = 25% max HP, viên ngoài BỘ chỉ 50% lên Vỏ), từ stage 2; UI: nhãn SHELL, coach C8 lần đầu,
+  float "Outside a SET". Mana Quá Tải và Chuỗi Xen có code nhưng tắt (design/proposals/anti-spam-v5.md).
+- Lỗi thật tìm được: fell_now dùng chung một cờ (combo Hoả Táng không cộng), 9 combo mới chưa vào nhà, Tidecaller trừ 3 thay vì 2,
+  plate Thủ Lĩnh làm cắt cột intent ở 1280.
+Sim (production/qa/sim/sim-v5.md): expert tự chọn 20.6, stage 2 ~21, random 12.5, spam 7.0, thức tỉnh 36-54% mỗi Anchor.
+CHƯA ĐẠT: chênh giữa Anchor ~12 điểm (Kin 19, Volley 17, Gambler 13, Mana Mine 12, Big Hand 12, Embers 7) sau 3 vòng; Liam chốt deploy cả 6 rồi chơi.
+Theo dõi: Embers yếu nhất; bot sim chưa chơi tốt Embers/Big Hand; comment cũ combat_engine.gd:1071 (file luật, sửa ở lần bump sau).
+Deploy 23/10: godot-port 78346be, Worker 31ad483d (RULES -t), pck md5 919d6f31 khớp. Kiểm trên tài khoản Liam (Liam cho phép): run mới →
+Luật run (offer ra Quick Beat / Crow Herald, chọn Crow Herald) → màn Anchor chào Kin / Gambler / Big Hand đúng chữ vòng 3. Dừng ở đó cho Liam chọn.
+Worktree hôm nay (dọn sau): IV (int/v5), IVs, IVa1, IVa2, IVb1, IVb2, LF2, NC, NR, AN2, SP, SA.
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (22/10 chiều) — ANCHOR MVP ĐÃ DEPLOY (godot-port 83d73bc, RULES -s, Worker 7aaffe19, pck md5 917649e0)
 Liam chốt thêm hôm nay: (1) Anchor mở cho run ONLINE thường (web chạy online: epoch_source=remote) — `pick_anchor [index]` vào action log +
 ALLOWED_FNS 3 chỗ, Worker chặn ranked/daily/mission và stage 1; (2) Anchor mở từ STAGE 2 (tài khoản Liam trên D1: runs_completed=1 = stage 2);
@@ -676,4 +695,4 @@ Request cho Claude Design: `design/requests/cosmetics-art-request-01.md` (55 mó
 - Server tĩnh xem bản giao Claude Design: cấu hình `cosmetics-01` trong `.claude/launch.json` (cổng 8766).
 
 ---
-**Session mới: đọc mục "⇢ BẮT ĐẦU TỪ ĐÂY" ở đầu file này, rồi mở `production/session-state/pending-decisions.md` (23 câu chờ Liam).**
+**Session mới: đọc mục "⇢ BẮT ĐẦU TỪ ĐÂY" ở đầu file này, `production/session-state/pending-decisions.md` KHÔNG còn câu chờ (23 câu trả lời 12/10, 7 câu 20/10); chỉ còn mục D cũ.**
