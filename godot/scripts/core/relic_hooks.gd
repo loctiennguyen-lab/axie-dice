@@ -1690,6 +1690,12 @@ static var TABLE: Dictionary = {
 		"on_gamble": func(ctx: Dictionary): CoreHooks.high_roller_gamble(ctx),
 		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_high_roller"),
 	},
+	"c_magma_seed": {
+		"stash_repeat": func(ctx: Dictionary): return true,
+		"on_stash": func(ctx: Dictionary): CoreHooks.magma_stash(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.magma_value(ctx),
+		"on_face_used": func(ctx: Dictionary): CoreHooks.magma_used(ctx),
+	},
 	"c_smoldering": {"on_turn_end": func(ctx: Dictionary): CoreHooks.smoldering_turn_end(ctx)},
 	"c_cache_plate": {"on_stash": func(ctx: Dictionary): CoreHooks.cache_plate_stash(ctx)},
 	"c_golden_thread": {

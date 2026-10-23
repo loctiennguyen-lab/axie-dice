@@ -86,6 +86,7 @@ core("hunters_reward", "Tiền Săn", "Hunter's Reward", 0, "dice", [], [], ["no
 core("support_hand", "Tay Hộ Pháp", "Support Hand", 1, "dice", ["face:shield|heal|mana"], [], ["nonattack"], "In a Set of three or more, each die showing a shield, heal or mana face gets +2 (counts toward the +10 flat cap).")
 core("cracked_glass", "Kính Nứt", "Cracked Glass", 1, "dice", [], [], ["nonattack", "convert_to_dmg"], "A Cracked die that you use also sprays shards: pierce damage to all enemies equal to half its face value (rounded up), up to 3 times per turn.")
 core("high_roller", "Tay Chơi Lớn", "High Roller", 2, "rule", ["anchor:a_gambler"], [], ["nonattack", "tradeoff"], "A Gamble of 3+ dice: if no die Cracks, every die in it gets +2 until end of turn. If one die Cracks, all of them Crack.", first_run_hidden=True)
+core("magma_seed", "Hạt Dung Nham", "Magma Seed", 2, "dice", [], ["rule:rule_tundra"], ["nonattack"], "A die Held two turns in a row erupts when used: its damage face hits ALL enemies for x1.25 (rounded up), no armor pierce. This Core lets a die be Held again.", first_run_hidden=True, disabled=True, keep_hook=True, needs="sim at integration")
 
 # Run rules: slug, vn, name, weight, desc, extra
 R = []
@@ -125,11 +126,12 @@ def emit(dirp, id_, name, desc, tier, axis, req, exc, tags, layer, idx, extra, i
     L.append("id = " + q(id_)); L.append("name = " + q(name)); L.append("description = " + q(desc))
     L.append("rarity = %d" % tier); L.append('archetype = ""'); L.append("mload = 0")
     L.append("sort_index = %d" % (200000 + tier * 1000 + idx))
-    L.append("hook_key = " + q("" if (extra.get("disabled") or id_ in NOHOOK) else id_)); L.append("tags = " + psa(tags)); L.append("layer = " + q(layer))
+    L.append("hook_key = " + q("" if ((extra.get("disabled") and not extra.get("keep_hook")) or id_ in NOHOOK) else id_)); L.append("tags = " + psa(tags)); L.append("layer = " + q(layer))
     L.append("core_axis = " + q("run_rule" if is_rule else axis))
     if req: L.append("requires = " + psa(req))
     if exc: L.append("excludes = " + psa(exc))
     ex = dict(extra)
+    ex.pop("keep_hook", None)
     if ex.pop("disabled", False): L.append("disabled = true"); L.append("hidden_from_pool = true")
     if ex.pop("first_run_hidden", False): L.append("first_run_hidden = true")
     if is_rule: L.append("run_rule = true"); L.append("weight = %d" % weight)

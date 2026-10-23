@@ -1283,6 +1283,42 @@ static func high_roller_gamble(ctx: Dictionary) -> void:
 		fire("c_high_roller", int(uid), add, "rule")
 
 
+## E3 Magma Seed (DISABLED until simulated): a die Held two turns in a row (counter in Unit.custom_state["magma_n"], saved with the Unit)
+## and then used erupts: its damage face hits ALL enemies for x1.25 (rounded up), no armor pierce. The Core itself lets a die be Held again.
+static func magma_ready(u) -> bool:
+	return u.side == "p" and u.stash_carry and int(u.custom_state.get("magma_n", 0)) >= 2
+
+
+static func magma_stash(ctx: Dictionary) -> void:
+	var u = ctx["unit"]
+	u.custom_state["magma_n"] = (int(u.custom_state.get("magma_n", 0)) + 1) if u.stash_carry else 1
+
+
+static func magma_value(ctx: Dictionary) -> int:
+	var v := int(ctx["value"])
+	if String(ctx.get("face_type", "")) != "dmg" or not magma_ready(ctx["unit"]):
+		return v
+	var up := int(ceil(v * float(CombatEngine.tune_knob("core", "magma_mult", 1.25))))
+	_fire_live(ctx["combat"], "c_magma_seed", ctx["unit"].uid, up - v, "dmg")
+	return up
+
+
+static func magma_used(ctx: Dictionary) -> void:
+	var u = ctx["unit"]
+	var ready: bool = magma_ready(u) and not mute > 0
+	var combat = ctx["combat"]
+	var v := 0
+	if ready and String((ctx["face"] as Dictionary).get("type", "")) == "dmg" and not _has_kw(ctx["face"], "aoe"):
+		v = combat._face_value(u, int(ctx["fi"]))   # while the counter is still set, so it carries the x1.25
+	u.custom_state.erase("magma_n")
+	if v <= 0:
+		return
+	for e in combat.alive_enemies().duplicate():
+		if e.uid != int(ctx.get("target_uid", -1)):
+			var d := int(DamagePipeline.resolve({"combat": combat, "src": u, "tgt": e, "value": v, "pierce": false, "attack": true, "face_type": "dmg"}))
+			fire("c_magma_seed", e.uid, d, "dmg")
+
+
 # --------------------------------------------------------------------------------------------
 # quests: progress lives in combat.relic_run_out["<core id>"] = {n, boss, steps_done, done}; lane B pays rewards
 # --------------------------------------------------------------------------------------------

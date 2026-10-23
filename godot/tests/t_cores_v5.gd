@@ -19,6 +19,7 @@ func _ready() -> void:
 	t_b3()
 	t_g1()
 	t_g2()
+	t_e3()
 	if _fails.is_empty():
 		print("t_cores_v5: PASS - %d checks OK" % _checks)
 		get_tree().quit(0)
@@ -337,3 +338,44 @@ func t_g2() -> void:
 	_ok(not CoreOffer.is_valid(def, rc), "G2: not offered without the Gambler Anchor")
 	rc["anchor_id"] = "a_gambler"
 	_ok(CoreOffer.is_valid(def, rc), "G2: offered with the Gambler Anchor")
+
+
+func t_e3() -> void:
+	var def = RelicRegistry.get_def("c_magma_seed")
+	_ok(def != null and def.disabled, "E3: shipped disabled until the sim")
+	var c := _combat(["c_magma_seed"])
+	var u: Unit = c.party[0]
+	u.die[0] = _face("dmg", 8)
+	u.set_roll(0, false)
+	_ok(c.stash(u.uid), "E3: first Hold")
+	_ok(int(u.custom_state.get("magma_n", 0)) == 1, "E3: counter 1")
+	u.held = false
+	u.stash_carry = true   # next turn: the die came back
+	_ok(c.stash(u.uid), "E3: held again (the Core allows it)")
+	_ok(int(u.custom_state.get("magma_n", 0)) == 2, "E3: counter 2 after two turns in a row")
+	u.held = false
+	u.stash_carry = true
+	var hp0: Array = []
+	for e in c.enemies:
+		hp0.append(e.hp)
+	c.use_die(u.uid, c.enemies[0].uid)
+	_ok(c.enemies[0].hp == hp0[0] - 10, "E3: x1.25 of 8 = 10 on the target, got %d" % (hp0[0] - c.enemies[0].hp))
+	var all_hit := true
+	for k in c.enemies.size():
+		if c.enemies[k].hp != hp0[k] - 10:
+			all_hit = false
+	_ok(all_hit, "E3: every enemy takes the hit")
+	_ok(not u.custom_state.has("magma_n"), "E3: counter cleared after use")
+	var c2 := _combat(["c_magma_seed"])
+	var u2: Unit = c2.party[0]
+	u2.die[0] = _face("dmg", 8)
+	u2.set_roll(0, false)
+	c2.stash(u2.uid)
+	u2.held = false
+	u2.stash_carry = true
+	var h2: Array = []
+	for e in c2.enemies:
+		h2.append(e.hp)
+	c2.use_die(u2.uid, c2.enemies[0].uid)
+	_ok(c2.enemies[0].hp == h2[0] - 8, "E3: only one Hold turn: plain 8")
+	_ok(c2.enemies.size() < 2 or c2.enemies[1].hp == h2[1], "E3: only one Hold turn: no sweep")
