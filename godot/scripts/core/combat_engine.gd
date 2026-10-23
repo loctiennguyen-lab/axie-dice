@@ -2029,7 +2029,7 @@ func _anchor_sixth_hand() -> void:
 	_rng = Rng.new(combat_seed ^ (turn * 7919) ^ 0x5A17)
 	var src: Unit = pool[_rng.next_int(pool.size())]
 	var ph := _make_phantom(src, "6TH HAND")
-	_resolve_cantrips()   # a cantrip face on the bonus die also draws from the own stream
+	_resolve_cantrips()   # phantoms are sidelined (alive_party skips them), so a cantrip on the bonus die does not run; kept so the main rng stays untouched if that changes
 	_rng = keep
 	CoreHooks.fire(anchor_id, ph.uid, 1, "awaken")
 

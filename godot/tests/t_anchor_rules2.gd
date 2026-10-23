@@ -101,6 +101,12 @@ func run() -> void:
 	if cd != null and not kc.bo.is_empty():
 		eq(kc.m100_for(kc.party[0]), kc.bo_group_m100(kc.bo[0]), "Kin+Concord: preview = member M")
 		eq(kc.m100_for(kc.party[0]), 100 + int((kc.bo[0] as Dictionary)["m100"]) - 100, "Kin+Concord: no -0.25 penalty")
+		var kn := _eng("a_kin")
+		BoTestBase.force(kn, [1, 1, 1, 2, 3], all5)
+		for i in 5:
+			(kn.party[i] as Unit).cls = ["plant", "beast", "aqua", "reptile", "bug"][i]
+		eq(kn.m100_for(kn.party[0]), 130 - 25, "same SET without Concord: the -0.25 applies")
+		eq(kc.m100_for(kc.party[0]) - kn.m100_for(kn.party[0]), 25, "Concord waives exactly the -0.25")
 	var cx := CoreTestUtil.ctx([], [], ["plant1", "beast1", "aqua1", "reptile1", "bug1"], 3)
 	var base_ok := CoreOffer.is_valid(cd, cx)
 	cx["anchor_id"] = "a_kin"
