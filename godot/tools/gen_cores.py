@@ -80,6 +80,10 @@ core("bloodline_ward", "Phòng Thủ Huyết Thống", "Bloodline Ward", 0, "pos
 core("smoldering", "Than Âm Ỉ", "Smoldering Coals", 0, "mana", [], ["rule:rule_dry_steppe"], ["nonattack"], "End of turn: each Held die gives +1 Mana (max +2 per turn).")
 core("cache_plate", "Giáp Cất", "Cache Plate", 1, "dice", ["face:shield"], [], ["nonattack"], "When you Hold a die showing a shield face, its Axie gains half that Shield now (rounded up, min 2, max 6, no M). Once per die per turn. The die keeps its full face for next turn.")
 core("golden_thread", "Sợi Chỉ Vàng", "Golden Thread", 1, "mana", ["stage_min:2"], [], ["nonattack"], "Wild Face costs 1 less Mana (min 1) and can be used 2 times per fight. A Set of four made with a Wild Face gets +0.20 M.")
+core("last_testament", "Di Chúc", "Last Testament", 2, "rule", ["class_pair"], [], ["nonattack"], "When an Axie falls, every living Axie of its class gets +2 on every face until the end of the fight (max +6). Eggs do not count.", first_run_hidden=True)
+core("melting_pot", "Nồi Lẩu Thập Cẩm", "Melting Pot", 1, "pos", ["classes_distinct:3"], ["anchor:a_kin", "owned:c_concord"], ["nonattack", "tradeoff"], "If your team has 3 or more classes and no two Axies share a class, every Set gets +0.25 M.")
+core("hunters_reward", "Tiền Săn", "Hunter's Reward", 0, "dice", [], [], ["nonattack"], "First time each turn a paid reroll makes a Set appear or grow: that reroll's Mana is refunded and every Axie in the Set gains 3 Shield.")
+core("support_hand", "Tay Hộ Pháp", "Support Hand", 1, "dice", ["face:shield|heal|mana"], [], ["nonattack"], "In a Set of three or more, each die showing a shield, heal or mana face gets +2 (counts toward the +10 flat cap).")
 
 # Run rules: slug, vn, name, weight, desc, extra
 R = []

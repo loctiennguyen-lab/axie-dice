@@ -107,6 +107,12 @@ func _hit_front(c: CombatEngine, v: int = 6) -> void:
 	DamagePipeline.resolve({"combat": c, "src": c.enemies[0], "tgt": c.party[0], "value": v, "attack": true, "single": true, "face_type": "dmg"})
 
 
+## Sets every Axie's class: "" = a different class per slot.
+func _cls(c: CombatEngine, cls: String) -> void:
+	for k in 5:
+		c.party[k].cls = cls if cls != "" else "c%d" % k
+
+
 func _build_table() -> void:
 	# build / start-of-combat effects: constructing the fight is the scenario
 	for id in ["c_early_scales", "c_dewdrop", "c_elder_trunk", "c_dry_well", "c_field_medic", "c_living_wall", "c_nest",
@@ -149,10 +155,14 @@ func _build_table() -> void:
 	_scen["c_thorn_growth"] = func(i): _thorn_growth(i)
 	_scen["c_thorn_pact"] = func(i): var c := _combat([i]); RelicHooks.fire(c, "on_roll_settled", {"combat": c, "rerolled_uids": [c.party[0].uid]})
 	_scen["c_thorn_rebound"] = func(i): var c := _combat([i]); c.party[2].status["thorns"] = 5; _hit_on(c, c.party[2])
-	_scen["c_bloodline_ward"] = func(i): var c := _combat([i]); for k in 5: c.party[k].cls = "plant"; _play(c, c.party[2], _face("shield", 5))
+	_scen["c_bloodline_ward"] = func(i): var c := _combat([i]); _cls(c, "plant"); _play(c, c.party[2], _face("shield", 5))
 	_scen["c_smoldering"] = func(i): var c := _combat([i]); c.party[0].held = true; RelicHooks.fire(c, "on_turn_end", {"combat": c})
 	_scen["c_cache_plate"] = func(i): var c := _combat([i]); c.party[0].die[0] = _face("shield", 6); c.party[0].set_roll(0, false); c.stash(c.party[0].uid)
 	_scen["c_golden_thread"] = func(i): var c := _combat([i]); _roll_faces(c, [0, 0, 0, 1, 2]); c._snap_bo(); c.mana = 5; c.wild_face(c.party[3].uid, 0)
+	_scen["c_last_testament"] = func(i): var c := _combat([i]); _cls(c, "plant"); c.party[0].hp = 0; RelicHooks.fire(c, "on_dmg_taken", {"combat": c, "tgt": c.party[0], "src": c.enemies[0], "dealt": 3})
+	_scen["c_melting_pot"] = func(i): var c := _combat([i]); _cls(c, ""); _roll_faces(c, [0, 0, 0, 1, 2]); c._snap_bo(); _play(c, c.party[0], _face("dmg", 5))
+	_scen["c_hunters_reward"] = func(i): var c := _combat([i]); _roll_faces(c, [0, 0, 1, 2, 3]); c._snap_bo(); RelicHooks.fire(c, "on_reroll_paid", {"combat": c, "cost": 2}); c.party[2].set_roll(0, false); RelicHooks.fire(c, "on_roll_settled", {"combat": c, "rerolled_uids": []})
+	_scen["c_support_hand"] = func(i): var c := _combat([i]); _roll_faces(c, [0, 0, 0, 1, 2]); c._snap_bo(); _play(c, c.party[0], _face("shield", 4))
 	_scen["c_thorn_shield"] = func(i): var c := _combat([i]); c.party[1].shield = 7; RelicHooks.fire(c, "on_turn_end", {"combat": c})
 	_scen["c_three_dice"] = func(i): var c := _combat([i]); RelicHooks.fire(c, "on_turn_end", {"combat": c})
 	_scen["c_tidecaller"] = func(i): var c := _combat([i]); RelicHooks.fire(c, "on_reroll_paid", {"combat": c, "cost": 3, "k": 1})

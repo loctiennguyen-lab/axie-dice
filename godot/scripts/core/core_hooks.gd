@@ -495,7 +495,7 @@ static func tide_spent(ctx: Dictionary) -> void:
 const FLAT_CAP := 10
 const FLAT_IDS := ["c_kindle", "c_steady_hold", "c_prime_chain", "c_finisher", "c_mana_pool", "c_three_dice", "c_field_medic",
 	"c_plague_spread", "c_hollow_core", "c_thorn_pact", "c_cascade", "c_gatekeeper", "c_golden_egg",
-	"rule_tundra", "rule_heavy_finish", "c_sacrifice", "c_concord", "rule_rising_tide"]
+	"rule_tundra", "rule_heavy_finish", "c_sacrifice", "c_concord", "rule_rising_tide", "c_last_testament", "c_support_hand"]
 
 
 static func mirror_second(combat, u) -> bool:
@@ -546,6 +546,10 @@ static func bonus(combat, u, ft: String, id: String, part: String = "") -> int:
 			return int(rule_knob("rule_rising_tide", "back_dmg", 2)) if (ft == "dmg" and combat.row_of(u) == 1 and String(combat_state(combat, "tide").get("water", "")) == "back") else 0
 		"c_concord":
 			return 2 if (not sec and val and part != "" and String(turn_state(combat, "cs_concord").get("part", "")) == part) else 0
+		"c_last_testament":
+			return mini(int(CombatEngine.tune_knob("core", "last_testament_max", 6.0)), int(combat_state(combat, "lt").get(str(u.uid), 0))) if val else 0
+		"c_support_hand":
+			return int(CombatEngine.tune_knob("core", "support_hand_add", 2.0)) if (ft == "shield" or ft == "heal" or ft == "mana") and _set_size_of(combat, u) >= 3 else 0
 		"c_golden_egg":
 			return 3 if (ft == "dmg" and bool(combat_state(combat, "ge").get("on", false))) else 0
 	return 0
@@ -1143,8 +1147,86 @@ static func golden_thread_set_add(ctx: Dictionary) -> int:
 		var d = combat.by_uid(int(uid))
 		if d != null and d.wild_slot >= 0:
 			var add := roundi(CombatEngine.tune_knob("core", "golden_thread_add", 0.20) * 100.0)
+			_fire_live(combat, "c_golden_thread", int(uid), add, "rule")
 			return v + add
 	return v
+
+
+## Size of the Set (combat.bo snapshot) that die `u` belongs to, 0 when none.
+static func _set_size_of(combat, u) -> int:
+	for g in combat.bo:
+		if (g["uids"] as Array).has(u.uid):
+			return int(g["size"])
+	return 0
+
+
+## K2 Last Testament: when an Axie falls, every living Axie of its class gets +2 on every face until the end of the fight (max +6). Eggs do not count.
+static func last_testament_fall(ctx: Dictionary) -> void:
+	if not fell_now(ctx):
+		return
+	var combat = ctx["combat"]
+	var dead = ctx["tgt"]
+	if dead.is_token or String(dead.cls) == "":
+		return
+	var st := combat_state(combat, "lt")
+	var step := int(CombatEngine.tune_knob("core", "last_testament_step", 2.0))
+	var mx := int(CombatEngine.tune_knob("core", "last_testament_max", 6.0))
+	for u in living_axies(combat):
+		if u != dead and u.cls == dead.cls:
+			var before := int(st.get(str(u.uid), 0))
+			var n := mini(mx, before + step)
+			st[str(u.uid)] = n
+			fire("c_last_testament", u.uid, n - before, "rule")
+
+
+## K3 Melting Pot: a team with 3+ classes and no two Axies of one class gets +0.25 M on every Set (hook set_add, percent).
+static func melting_pot_set_add(ctx: Dictionary) -> int:
+	var seen := {}
+	var n := 0
+	for u in ctx["combat"].party:
+		if u.is_token or u.side != "p":
+			continue
+		n += 1
+		if String(u.cls) == "" or seen.has(u.cls):
+			return int(ctx["value"])
+		seen[u.cls] = true
+	if n < 3:
+		return int(ctx["value"])
+	var add := roundi(CombatEngine.tune_knob("core", "melting_pot_add", 0.25) * 100.0)
+	_fire_live(ctx["combat"], "c_melting_pot", 0, add, "rule")
+	return int(ctx["value"]) + add
+
+
+## B1 Hunter's Reward (1/2): remember the fee of the paid reroll that is about to settle.
+static func hunters_paid(ctx: Dictionary) -> void:
+	turn_state(ctx["combat"], "cs_hr")["paid"] = int(ctx.get("cost", 0))
+
+
+## B1 (2/2): the first paid reroll each turn that makes a Set appear or grow (best Set size up) refunds its fee and gives 3 Shield to the Set.
+static func hunters_settled(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	var st := turn_state(combat, "cs_hr")
+	var paid := int(st.get("paid", 0))
+	st["paid"] = 0
+	if paid <= 0 or bool(st.get("done", false)):
+		return
+	var old_best := 0
+	for g in combat.bo:
+		old_best = maxi(old_best, int(g["size"]))
+	var best: Dictionary = {}
+	for g in combat.recompute_bo():
+		if best.is_empty() or int(g["size"]) > int(best["size"]):
+			best = g
+	if best.is_empty() or int(best["size"]) <= old_best:
+		return
+	st["done"] = true
+	gain_mana(combat, paid, "", "c_hunters_reward")
+	var sh := int(CombatEngine.tune_knob("core", "hunters_shield", 3.0))
+	for uid in (best["uids"] as Array):
+		var u = combat.by_uid(int(uid))
+		if u != null and u.hp > 0:
+			DamagePipeline.apply_shield(combat, u, sh)
+			fire("c_hunters_reward", u.uid, sh, "shield")
 
 
 # --------------------------------------------------------------------------------------------

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_last_testament"
+name = "Last Testament"
+description = "When an Axie falls, every living Axie of its class gets +2 on every face until the end of the fight (max +6). Eggs do not count."
+rarity = 2
+archetype = ""
+mload = 0
+sort_index = 202060
+hook_key = "c_last_testament"
+tags = PackedStringArray("nonattack")
+layer = "engine"
+core_axis = "rule"
+requires = PackedStringArray("class_pair")
+first_run_hidden = true

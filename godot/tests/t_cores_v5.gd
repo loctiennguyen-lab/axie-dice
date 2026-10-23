@@ -13,6 +13,10 @@ func _ready() -> void:
 	t_e1()
 	t_e2()
 	t_b2()
+	t_k2()
+	t_k3()
+	t_b1()
+	t_b3()
 	if _fails.is_empty():
 		print("t_cores_v5: PASS - %d checks OK" % _checks)
 		get_tree().quit(0)
@@ -167,3 +171,98 @@ func t_b2() -> void:
 	var def = RelicRegistry.get_def("c_golden_thread")
 	_ok(not CoreOffer.is_valid(def, {"owned_ids": [], "roster": CoreTestUtil.roster(), "seen": [], "depth_stage": 1}), "B2: not offered at stage 1")
 	_ok(CoreOffer.is_valid(def, {"owned_ids": [], "roster": CoreTestUtil.roster(), "seen": [], "depth_stage": 2}), "B2: offered at stage 2")
+
+
+func _fell(c: CombatEngine, u: Unit) -> void:
+	u.hp = 0
+	RelicHooks.fire(c, "on_dmg_taken", {"combat": c, "tgt": u, "src": c.enemies[0], "dealt": 3})
+
+
+func t_k2() -> void:
+	var c := _combat(["c_last_testament"])
+	for k in 5:
+		c.party[k].cls = "plant" if k < 3 else "beast"
+	_fell(c, c.party[0])
+	_ok(CoreHooks.flat_total(c, c.party[1], "dmg") == 2, "K2: same-class Axie +2 after a fall")
+	_ok(CoreHooks.flat_total(c, c.party[3], "dmg") == 0, "K2: other class gets nothing")
+	_fell(c, c.party[0])   # same Axie again: fell_now blocks it
+	_ok(CoreHooks.flat_total(c, c.party[1], "dmg") == 2, "K2: the same fall counts once")
+	var c2 := _combat(["c_last_testament"])
+	for k in 5:
+		c2.party[k].cls = "plant"
+	for k in 4:
+		_fell(c2, c2.party[k])
+	_ok(CoreHooks.flat_total(c2, c2.party[4], "dmg") == 6, "K2: capped at +6")
+	_ok(_fired("c_last_testament") > 0, "K2: fired")
+
+
+func t_k3() -> void:
+	var c := _combat(["c_melting_pot"])
+	var cl := ["plant", "beast", "aqua", "reptile", "bird"]
+	for k in 5:
+		c.party[k].cls = cl[k]
+	var g := {"part": 0, "size": 3, "uids": [c.party[0].uid, c.party[1].uid, c.party[2].uid], "hi": false, "m100": 130}
+	_ok(c.bo_group_m100(g) == 155, "K3: all-different classes +0.25")
+	c.party[4].cls = "plant"
+	_ok(c.bo_group_m100(g) == 130, "K3: two Axies of one class: no bonus")
+	var c2 := _combat(["c_melting_pot"])
+	for k in 5:
+		c2.party[k].cls = cl[k]
+	c2.party[3].is_token = true
+	c2.party[4].is_token = true
+	_ok(c2.bo_group_m100(g) == 155, "K3: Eggs are ignored (3 real classes)")
+	var c3 := _combat(["c_melting_pot"])
+	for k in 5:
+		c3.party[k].is_token = k >= 2
+	_ok(c3.bo_group_m100(g) == 130, "K3: under 3 Axies: no bonus")
+	var def = RelicRegistry.get_def("c_melting_pot")
+	_ok(not CoreOffer.is_valid(def, {"owned_ids": [], "roster": CoreTestUtil.roster(["plant1", "plant1", "aqua1"]), "seen": []}), "K3: not offered with 2 classes")
+
+
+func t_b1() -> void:
+	var c := _combat(["c_hunters_reward"])
+	for u in c.party:
+		u.shield = 0
+		u.cls = "x"
+	for k in 5:
+		c.party[k].held = false
+		c.party[k].set_roll(0 if k < 2 else k, false)
+	c._snap_bo()
+	c.mana = 5
+	RelicHooks.fire(c, "on_reroll_paid", {"combat": c, "cost": 2, "k": 1, "rmode": 1})
+	c.party[2].set_roll(0, false)   # the reroll made a Set of three
+	RelicHooks.fire(c, "on_roll_settled", {"combat": c, "rerolled_uids": [c.party[2].uid]})
+	_ok(c.mana == 7, "B1: fee refunded, got %d" % c.mana)
+	_ok(c.party[0].shield == 3 and c.party[2].shield == 3 and c.party[4].shield == 0, "B1: 3 Shield to the Set only")
+	c._snap_bo()
+	RelicHooks.fire(c, "on_reroll_paid", {"combat": c, "cost": 2, "k": 2, "rmode": 1})
+	c.party[3].set_roll(0, false)   # Set of four, but second time this turn
+	RelicHooks.fire(c, "on_roll_settled", {"combat": c, "rerolled_uids": [c.party[3].uid]})
+	_ok(c.mana == 7, "B1: once per turn")
+	var c2 := _combat(["c_hunters_reward"])
+	for k in 5:
+		c2.party[k].set_roll(k, false)
+	c2._snap_bo()
+	c2.mana = 5
+	RelicHooks.fire(c2, "on_reroll_paid", {"combat": c2, "cost": 2, "k": 1, "rmode": 1})
+	RelicHooks.fire(c2, "on_roll_settled", {"combat": c2, "rerolled_uids": [c2.party[1].uid]})
+	_ok(c2.mana == 5, "B1: no Set made, no refund")
+	var c3 := _combat(["c_hunters_reward"])
+	for k in 5:
+		c3.party[k].set_roll(0 if k < 2 else k, false)
+	c3._snap_bo()
+	c3.mana = 5
+	c3.party[2].set_roll(0, false)
+	RelicHooks.fire(c3, "on_roll_settled", {"combat": c3, "rerolled_uids": []})
+	_ok(c3.mana == 5, "B1: a free reroll (no fee) refunds nothing")
+
+
+func t_b3() -> void:
+	var c := _combat(["c_support_hand"])
+	for k in 5:
+		c.party[k].set_roll(0 if k < 3 else k, false)
+	c._snap_bo()
+	_ok(CoreHooks.flat_total(c, c.party[0], "shield") == 2, "B3: shield face in a Set of 3 +2")
+	_ok(CoreHooks.flat_total(c, c.party[0], "heal") == 2 and CoreHooks.flat_total(c, c.party[0], "mana") == 2, "B3: heal and mana too")
+	_ok(CoreHooks.flat_total(c, c.party[0], "dmg") == 0, "B3: damage face gets nothing")
+	_ok(CoreHooks.flat_total(c, c.party[4], "shield") == 0, "B3: a die outside the Set gets nothing")
