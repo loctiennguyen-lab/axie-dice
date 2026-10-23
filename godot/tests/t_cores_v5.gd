@@ -21,6 +21,7 @@ func _ready() -> void:
 	t_g2()
 	t_e3()
 	t_combos()
+	t_house()
 	if _fails.is_empty():
 		print("t_cores_v5: PASS - %d checks OK" % _checks)
 		get_tree().quit(0)
@@ -394,3 +395,14 @@ func t_combos() -> void:
 	for r in CoreCombos.all([]):
 		for id in CoreCombos.members(r):
 			_ok(id != "c_burnout", "combo: %s has no Burnout" % r["id"])
+
+
+func t_house() -> void:
+	for a in ["a_kin", "a_embers", "a_big_hand"]:
+		var hc: Array = Anchors.get_def(a).get("house_cores", [])
+		_ok(hc.size() == 5, "%s has exactly 5 house Cores" % a)
+		for id in hc:
+			var d = RelicRegistry.get_def(String(id))
+			_ok(d != null and not d.disabled, "%s house Core %s exists and is enabled" % [a, id])
+	_ok((Anchors.get_def("a_kin")["house_cores"] as Array).has("c_bloodline_ward") and not (Anchors.get_def("a_kin")["house_cores"] as Array).has("c_squad_up"), "Kin: Bloodline Ward in, Squad Up out")
+	_ok(not (Anchors.get_def("a_big_hand")["house_cores"] as Array).has("c_cascade"), "Big Hand: Cascade out")
