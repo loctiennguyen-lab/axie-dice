@@ -1683,6 +1683,13 @@ static var TABLE: Dictionary = {
 		"on_roll_settled": func(ctx: Dictionary): CoreHooks.hunters_settled(ctx),
 	},
 	"c_support_hand": {"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_support_hand")},
+	"c_cracked_glass": {"on_face_used": func(ctx: Dictionary): CoreHooks.cracked_glass_used(ctx)},
+	"c_high_roller": {
+		"gamble_crack": func(ctx: Dictionary): return CoreHooks.high_roller_crack(ctx),
+		"on_roll_settled": func(ctx: Dictionary): CoreHooks.high_roller_settled(ctx),
+		"on_gamble": func(ctx: Dictionary): CoreHooks.high_roller_gamble(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_high_roller"),
+	},
 	"c_smoldering": {"on_turn_end": func(ctx: Dictionary): CoreHooks.smoldering_turn_end(ctx)},
 	"c_cache_plate": {"on_stash": func(ctx: Dictionary): CoreHooks.cache_plate_stash(ctx)},
 	"c_golden_thread": {

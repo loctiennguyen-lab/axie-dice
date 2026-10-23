@@ -495,7 +495,7 @@ static func tide_spent(ctx: Dictionary) -> void:
 const FLAT_CAP := 10
 const FLAT_IDS := ["c_kindle", "c_steady_hold", "c_prime_chain", "c_finisher", "c_mana_pool", "c_three_dice", "c_field_medic",
 	"c_plague_spread", "c_hollow_core", "c_thorn_pact", "c_cascade", "c_gatekeeper", "c_golden_egg",
-	"rule_tundra", "rule_heavy_finish", "c_sacrifice", "c_concord", "rule_rising_tide", "c_last_testament", "c_support_hand"]
+	"rule_tundra", "rule_heavy_finish", "c_sacrifice", "c_concord", "rule_rising_tide", "c_last_testament", "c_support_hand", "c_high_roller"]
 
 
 static func mirror_second(combat, u) -> bool:
@@ -546,6 +546,8 @@ static func bonus(combat, u, ft: String, id: String, part: String = "") -> int:
 			return int(rule_knob("rule_rising_tide", "back_dmg", 2)) if (ft == "dmg" and combat.row_of(u) == 1 and String(combat_state(combat, "tide").get("water", "")) == "back") else 0
 		"c_concord":
 			return 2 if (not sec and val and part != "" and String(turn_state(combat, "cs_concord").get("part", "")) == part) else 0
+		"c_high_roller":
+			return int(turn_state(combat, "cs_hroll").get(str(u.uid), 0)) if val else 0
 		"c_last_testament":
 			return mini(int(CombatEngine.tune_knob("core", "last_testament_max", 6.0)), int(combat_state(combat, "lt").get(str(u.uid), 0))) if val else 0
 		"c_support_hand":
@@ -1227,6 +1229,58 @@ static func hunters_settled(ctx: Dictionary) -> void:
 		if u != null and u.hp > 0:
 			DamagePipeline.apply_shield(combat, u, sh)
 			fire("c_hunters_reward", u.uid, sh, "shield")
+
+
+## G1 Cracked Glass: a Cracked die that is used also sprays shards: 50% of its printed face value (rounded up, min 1) pierce damage
+## to every enemy, at most 3 times a turn. Gamble costs no Mana by itself, so this is a pure bonus on a failed Gamble.
+static func cracked_glass_used(ctx: Dictionary) -> void:
+	if String(ctx.get("side", "")) != "p" or int(ctx.get("depth", 0)) != 0:
+		return
+	var u = ctx["unit"]
+	var combat = ctx["combat"]
+	if not u.cracked:
+		return
+	var v := int(ceil(int((ctx["face"] as Dictionary).get("value", 0)) * float(CombatEngine.tune_knob("core", "cracked_glass_pct", 0.5))))
+	if v <= 0:
+		return
+	var st := turn_state(combat, "cs_glass")
+	if int(st.get("n", 0)) >= int(CombatEngine.tune_knob("core", "cracked_glass_max", 3.0)):
+		return
+	st["n"] = int(st.get("n", 0)) + 1
+	for e in combat.alive_enemies().duplicate():
+		_hit_enemy(combat, e, v, "c_cracked_glass")
+
+
+## G2 High Roller (1/3): a Gamble of 3+ dice where one die Cracks cracks them all (value hook gamble_crack, returns uids).
+static func high_roller_crack(ctx: Dictionary) -> Array:
+	var cur: Array = ctx["value"]
+	var settled: Array = ctx["settled"]
+	if int(ctx["n"]) < int(CombatEngine.tune_knob("core", "high_roller_min", 3.0)) or cur.is_empty():
+		return cur
+	var all: Array = []
+	for x in settled:
+		all.append(int(x))
+	fire("c_high_roller", int(all[0]), all.size() - cur.size(), "rule")
+	return all
+
+
+## G2 (2/3): a rerolled die loses an old +2 (the roll it was earned on is gone).
+static func high_roller_settled(ctx: Dictionary) -> void:
+	var st := turn_state(ctx["combat"], "cs_hroll")
+	for uid in (ctx.get("rerolled_uids", []) as Array):
+		st.erase(str(uid))
+
+
+## G2 (3/3): a clean Gamble of 3+ dice gives every die in it +2 until the end of the turn.
+static func high_roller_gamble(ctx: Dictionary) -> void:
+	if int(ctx["n"]) < int(CombatEngine.tune_knob("core", "high_roller_min", 3.0)) or not (ctx["cracked"] as Array).is_empty():
+		return
+	var combat = ctx["combat"]
+	var st := turn_state(combat, "cs_hroll")
+	var add := int(CombatEngine.tune_knob("core", "high_roller_add", 2.0))
+	for uid in (ctx.get("uids", []) as Array):
+		st[str(uid)] = add
+		fire("c_high_roller", int(uid), add, "rule")
 
 
 # --------------------------------------------------------------------------------------------

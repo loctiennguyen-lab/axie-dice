@@ -84,6 +84,8 @@ core("last_testament", "Di Chúc", "Last Testament", 2, "rule", ["class_pair"], 
 core("melting_pot", "Nồi Lẩu Thập Cẩm", "Melting Pot", 1, "pos", ["classes_distinct:3"], ["anchor:a_kin", "owned:c_concord"], ["nonattack", "tradeoff"], "If your team has 3 or more classes and no two Axies share a class, every Set gets +0.25 M.")
 core("hunters_reward", "Tiền Săn", "Hunter's Reward", 0, "dice", [], [], ["nonattack"], "First time each turn a paid reroll makes a Set appear or grow: that reroll's Mana is refunded and every Axie in the Set gains 3 Shield.")
 core("support_hand", "Tay Hộ Pháp", "Support Hand", 1, "dice", ["face:shield|heal|mana"], [], ["nonattack"], "In a Set of three or more, each die showing a shield, heal or mana face gets +2 (counts toward the +10 flat cap).")
+core("cracked_glass", "Kính Nứt", "Cracked Glass", 1, "dice", [], [], ["nonattack", "convert_to_dmg"], "A Cracked die that you use also sprays shards: pierce damage to all enemies equal to half its face value (rounded up), up to 3 times per turn.")
+core("high_roller", "Tay Chơi Lớn", "High Roller", 2, "rule", ["anchor:a_gambler"], [], ["nonattack", "tradeoff"], "A Gamble of 3+ dice: if no die Cracks, every die in it gets +2 until end of turn. If one die Cracks, all of them Crack.", first_run_hidden=True)
 
 # Run rules: slug, vn, name, weight, desc, extra
 R = []

@@ -17,6 +17,8 @@ func _ready() -> void:
 	t_k3()
 	t_b1()
 	t_b3()
+	t_g1()
+	t_g2()
 	if _fails.is_empty():
 		print("t_cores_v5: PASS - %d checks OK" % _checks)
 		get_tree().quit(0)
@@ -266,3 +268,72 @@ func t_b3() -> void:
 	_ok(CoreHooks.flat_total(c, c.party[0], "heal") == 2 and CoreHooks.flat_total(c, c.party[0], "mana") == 2, "B3: heal and mana too")
 	_ok(CoreHooks.flat_total(c, c.party[0], "dmg") == 0, "B3: damage face gets nothing")
 	_ok(CoreHooks.flat_total(c, c.party[4], "shield") == 0, "B3: a die outside the Set gets nothing")
+
+
+func t_g1() -> void:
+	var c := _combat(["c_cracked_glass"])
+	var last: Unit = c.enemies[c.enemies.size() - 1]
+	var h0: int = last.hp
+	c.party[0].cracked = true
+	_play(c, c.party[0], _face("dmg", 8))
+	_ok(last.hp == h0 - 4 or c.enemies.size() == 1, "G1: shards hit every enemy for 50%% of the face (4), hp %d -> %d" % [h0, last.hp])
+	_ok(_fired("c_cracked_glass") > 0, "G1: fired")
+	var c2 := _combat(["c_cracked_glass"])
+	var l2: Unit = c2.enemies[c2.enemies.size() - 1]
+	var h2: int = l2.hp
+	_play(c2, c2.party[0], _face("dmg", 8))
+	_ok(l2.hp == h2 or c2.enemies.size() == 1, "G1: an intact die sprays nothing")
+	_ok(_fired("c_cracked_glass") == 0, "G1: silent without a Crack")
+	var c3 := _combat(["c_cracked_glass"])
+	for k in 5:
+		c3.party[k].cracked = true
+		_play(c3, c3.party[k], _face("shield", 8))
+	_ok(_fired("c_cracked_glass") > 0, "G1: shield face also sprays")
+	var n := 0
+	for e in _log:
+		if e[0] == "c_cracked_glass" and e[1] == c3.enemies[0].uid:
+			n += 1
+	_ok(n == 3, "G1: at most 3 sprays a turn, got %d" % n)
+
+
+func t_g2() -> void:
+	var c := _combat(["c_high_roller"], 3, "a_gambler")
+	var ids: Array = [c.party[0].uid, c.party[1].uid, c.party[2].uid]
+	var out: Array = RelicHooks.run_value_hook(c, "gamble_crack", {"combat": c, "settled": ids, "n": 3}, [c.party[1].uid])
+	_ok(out.size() == 3, "G2: one Crack in a Gamble of 3 cracks all")
+	out = RelicHooks.run_value_hook(c, "gamble_crack", {"combat": c, "settled": ids.slice(0, 2), "n": 2}, [c.party[1].uid])
+	_ok(out.size() == 1, "G2: a Gamble of 2 is unchanged")
+	out = RelicHooks.run_value_hook(c, "gamble_crack", {"combat": c, "settled": ids, "n": 3}, [])
+	_ok(out.is_empty(), "G2: no Crack stays clean")
+	RelicHooks.fire(c, "on_gamble", {"combat": c, "n": 3, "cracked": [], "uids": ids})
+	_ok(CoreHooks.flat_total(c, c.party[0], "dmg") == 2 and CoreHooks.flat_total(c, c.party[3], "dmg") == 0, "G2: clean Gamble of 3: +2 to the dice in it only")
+	RelicHooks.fire(c, "on_roll_settled", {"combat": c, "rerolled_uids": [c.party[0].uid]})
+	_ok(CoreHooks.flat_total(c, c.party[0], "dmg") == 0, "G2: a rerolled die loses the +2")
+	var c2 := _combat(["c_high_roller"], 3, "a_gambler")
+	RelicHooks.fire(c2, "on_gamble", {"combat": c2, "n": 3, "cracked": [c2.party[0].uid], "uids": ids})
+	_ok(CoreHooks.flat_total(c2, c2.party[1], "dmg") == 0, "G2: no +2 when a die Cracked")
+	# end to end through reroll_dice with the Crack chance forced
+	var tune: Dictionary = ContentDB.combat_tune
+	var old = (tune.get("crack", {}) as Dictionary).duplicate()
+	(tune["crack"] as Dictionary)["pct"] = 0
+	var c3 := _combat(["c_high_roller"], 3, "a_gambler")
+	c3.rerolls = 0
+	c3.mana = 9
+	var u3: Array = [c3.party[0].uid, c3.party[1].uid, c3.party[2].uid]
+	var anchor_crack := int(CombatEngine.tune_knob("anchor", "gambler_crack_pct", 40.0))
+	(tune["anchor"] as Dictionary)["gambler_crack_pct"] = 0
+	var ok3 := c3.reroll_dice(u3, 7, false, 0)
+	_ok(ok3 and not c3.party[0].cracked and CoreHooks.flat_total(c3, c3.party[0], "dmg") == 2, "G2: real clean Gamble of 3 gives +2")
+	(tune["anchor"] as Dictionary)["gambler_crack_pct"] = 100
+	var c4 := _combat(["c_high_roller"], 3, "a_gambler")
+	c4.rerolls = 0
+	c4.mana = 9
+	var ok4 := c4.reroll_dice([c4.party[0].uid, c4.party[1].uid, c4.party[2].uid], 7, false, 0)
+	_ok(ok4 and c4.party[0].cracked and c4.party[1].cracked and c4.party[2].cracked, "G2: real Gamble cracks all")
+	(tune["anchor"] as Dictionary)["gambler_crack_pct"] = anchor_crack
+	tune["crack"] = old
+	var def = RelicRegistry.get_def("c_high_roller")
+	var rc := {"owned_ids": [], "roster": CoreTestUtil.roster(), "seen": [], "depth_stage": 3}
+	_ok(not CoreOffer.is_valid(def, rc), "G2: not offered without the Gambler Anchor")
+	rc["anchor_id"] = "a_gambler"
+	_ok(CoreOffer.is_valid(def, rc), "G2: offered with the Gambler Anchor")

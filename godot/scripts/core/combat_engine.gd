@@ -981,8 +981,15 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false, rmode: int
 			if hit and cu != null and settled.has(cu.uid):
 				cu.cracked = true
 				cracked_now.append(cu.uid)
+		# Cores v5 (High Roller): hook may widen the Crack set (value = uids, no rng); newly cracked dice are flagged here.
+		cracked_now = RelicHooks.run_value_hook(self, "gamble_crack", {"combat": self, "settled": settled.duplicate(), "n": settled.size()}, cracked_now)
+		for cid in cracked_now:
+			var ccu := by_uid(int(cid))
+			if ccu != null:
+				ccu.cracked = true
 		_mut_gamble(cracked_now)
 		_anchor_after_gamble(settled.size(), cracked_now, use_seed)
+		RelicHooks.fire(self, "on_gamble", {"combat": self, "n": settled.size(), "cracked": cracked_now.duplicate(), "uids": settled.duplicate()})
 	_snap_bo()
 	# JS clears the undo stack on reroll ONLY when the party lacks `safeReroll`
 	# (engine.js:502). Clearing unconditionally quietly disabled that relic's whole point.

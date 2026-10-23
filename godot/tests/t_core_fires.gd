@@ -163,6 +163,8 @@ func _build_table() -> void:
 	_scen["c_melting_pot"] = func(i): var c := _combat([i]); _cls(c, ""); _roll_faces(c, [0, 0, 0, 1, 2]); c._snap_bo(); _play(c, c.party[0], _face("dmg", 5))
 	_scen["c_hunters_reward"] = func(i): var c := _combat([i]); _roll_faces(c, [0, 0, 1, 2, 3]); c._snap_bo(); RelicHooks.fire(c, "on_reroll_paid", {"combat": c, "cost": 2}); c.party[2].set_roll(0, false); RelicHooks.fire(c, "on_roll_settled", {"combat": c, "rerolled_uids": []})
 	_scen["c_support_hand"] = func(i): var c := _combat([i]); _roll_faces(c, [0, 0, 0, 1, 2]); c._snap_bo(); _play(c, c.party[0], _face("shield", 4))
+	_scen["c_cracked_glass"] = func(i): var c := _combat([i]); c.party[0].cracked = true; _play(c, c.party[0], _face("dmg", 8))
+	_scen["c_high_roller"] = func(i): var c := _combat([i]); RelicHooks.fire(c, "on_gamble", {"combat": c, "n": 3, "cracked": [], "uids": [c.party[0].uid, c.party[1].uid, c.party[2].uid]})
 	_scen["c_thorn_shield"] = func(i): var c := _combat([i]); c.party[1].shield = 7; RelicHooks.fire(c, "on_turn_end", {"combat": c})
 	_scen["c_three_dice"] = func(i): var c := _combat([i]); RelicHooks.fire(c, "on_turn_end", {"combat": c})
 	_scen["c_tidecaller"] = func(i): var c := _combat([i]); RelicHooks.fire(c, "on_reroll_paid", {"combat": c, "cost": 3, "k": 1})

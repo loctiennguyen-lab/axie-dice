@@ -57,7 +57,7 @@ func _ready() -> void:
 	_ok(nonattack >= 24, "2.10: non-attack face Cores >= 24, got %d" % nonattack)
 	_ok(convert >= 6, "2.10: Cores turning support faces into damage >= 6, got %d" % convert)
 	_ok(trade >= 3, "2.10: trade-off Cores >= 3, got %d" % trade)
-	_ok(enabled + waiting + cut == 64, "64 Cores in the catalog, got %d" % (enabled + waiting + cut))
+	_ok(enabled + waiting + cut == 66, "66 Cores in the catalog, got %d" % (enabled + waiting + cut))
 	print("=== t_core_catalog: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	if _fails.is_empty():
 		print("t_core_catalog: PASS — %d checks OK" % _checks)
