@@ -1132,10 +1132,13 @@ func _update_hud() -> void:
 	var undo_sub := "nothing to undo"
 	if undo_n > 0:
 		undo_sub = "%d die%s used this turn" % [undo_n, "" if undo_n == 1 else "s"]
-	var rr_cost := _combat.reroll_mana_cost()
+	var stakes := _stakes_pct()
+	var rr_cost := _combat.reroll_mana_cost(false, 0 if stakes > 0 else 1)   # High Stakes: the paid reroll is a free Gamble
 	var rr_paid_ok := _combat.rerolls <= 0 and _combat.reroll_is_payable() and _combat.mana >= rr_cost
 	var rr_tip := "Reroll unused dice (%s)" % KeyBindings.text(KeyBindings.COMBAT_REROLL)
-	if _combat.rerolls <= 0:
+	if _combat.rerolls <= 0 and stakes > 0 and _combat.reroll_is_payable():
+		rr_tip = TranslationServer.translate("High Stakes: every paid reroll is a Gamble. Each die has a %d%% chance to Crack. A clean Gamble gives +3 Shield and the first one each turn +1 mana.") % stakes
+	elif _combat.rerolls <= 0:
 		rr_tip = ("Need %d MP to reroll (you have %d). Free rerolls are used." % [rr_cost, _combat.mana]) \
 			if _combat.reroll_is_payable() and _combat.mana < rr_cost else \
 			("Free rerolls are used. The next one costs %d mana." % rr_cost) if _combat.reroll_is_payable() \
@@ -1155,7 +1158,7 @@ func _update_hud() -> void:
 			hold_tip = "This die cannot be held (spent, frozen, a cantrip, or held last turn)."
 	_hud_frame.update_right(
 		{"enabled": executing and undo_n > 0, "sub": undo_sub},
-		{"n": _combat.rerolls, "max": _combat.max_rerolls, "cost": rr_cost, "tip": rr_tip,
+		{"n": _combat.rerolls, "max": _combat.max_rerolls, "cost": rr_cost, "tip": rr_tip, "stakes": stakes,
 		 "capped": _combat.rerolls <= 0 and not _combat.reroll_is_payable(),
 		 "enabled": executing and (_combat.rerolls > 0 or rr_paid_ok)},
 		{"sub": "E %s %d dice unused" % [HudKit.dot(), unused],
@@ -1662,6 +1665,8 @@ func _connect_event_bus() -> void:
 	EventBus.resonance_triggered.connect(_on_resonance_triggered)
 	EventBus.relic_pulsed.connect(_on_relic_pulsed)
 	EventBus.core_fired.connect(_on_core_fired)
+	EventBus.shell_changed.connect(_on_shell_changed)
+	EventBus.face_used.connect(_track_face_for_shell)
 	AnchorAdapter.listen("anchor_awakened", _on_anchor_awakened)
 	ComboAdapter.connect_fired(_on_combo_fired)
 	EventBus.float_text.connect(_on_float_text)
@@ -1817,7 +1822,7 @@ func _update_dice_tray() -> void:
 		for fi in u.die.size():
 			faces.append({"type": String((u.die[fi] as Dictionary).get("type", "")),
 				"value": _live_face_value(u, fi)})
-		TrayColumn.update(content, {
+		var card := {
 			"name": "%s%s" % [u.n, _TIER_SUFFIX.get(u.tier, "")],
 			"class_icon": _class_portrait(u.cls), "hp": u.hp, "max_hp": u.max_hp,
 			"shield": u.shield, "status": u.status, "incoming": _incoming_damage_for(u),
@@ -1826,7 +1831,9 @@ func _update_dice_tray() -> void:
 			"faces": faces, "rolled": u.roll_face_index() if u.has_rolled() else -1,
 			"alive": u.hp > 0, "spent": used_this_turn, "selected": is_sel, "held": u.held, "overcast": u.overcast, "row": _combat.row_of(u),
 			"legal_target": as_target and _selected_ally_target_ok(u),
-			"tip": _tray_tooltip(u)}.merged(_v4_card_data(u), true))
+			"tip": _tray_tooltip(u)}.merged(_v4_card_data(u), true)
+		TrayColumn.update(content, card)
+		_update_bonus_chip(content, u, btn, String(card["tip"]))
 		TrayColumn.set_lifted(self, content, is_sel, disable_juice_for_tests)
 		if _maybe_play_roll_juice(u, btn):
 			fresh.append({"slot": i, "u": u})
@@ -1834,6 +1841,61 @@ func _update_dice_tray() -> void:
 		if _dice_pending.has(u.uid):
 			btn.modulate.a = 0.0   # the die is still in the air; its card shows on arrival
 	_start_dice_throw(fresh)
+
+
+## Anchor dice marks on a tray card, written out on the chip (no hover needed): "BONUS" (phantom die: use it this turn, never part of
+## the SET), "EMBER +0.5" (a carried Held die of Embers; value read from the engine knob) and "FREE · 0 mana" (Passed Flame can take it
+## as a Temp Face). Returns {} when the die has no mark, else {text, tip, house} (house "" = neutral chip, no glyph).
+func _anchor_die_mark(u: Unit) -> Dictionary:
+	if u.hp <= 0 or _combat == null:
+		return {}
+	if u.custom_state.has("phantom"):
+		# The engine does not tag the phantom's source. Big Hand only when it is clearly Sixth Hand (awakened, no Sixth Die Core owned).
+		var hand: bool = _combat.anchor_id == "a_big_hand" and _combat.anchor_awakened and not RunState.owned_relic_ids.has("c_sixth_die")
+		return {"text": TranslationServer.translate("BONUS"), "house": "h_big_hand" if hand else "",
+			"tip": TranslationServer.translate("Bonus die: use it this turn. It is not part of your SET.")}
+	if _combat.anchor_id == "a_embers" and u.stash_carry:
+		var house := AnchorAdapter.house_id("a_embers")
+		if bool(_combat.call("_pf_ready", u)):
+			return {"text": TranslationServer.translate("FREE · 0 mana"), "house": house,
+				"tip": TranslationServer.translate("Passed Flame: this carried die joins any SET as a Temp Face, free of mana.")}
+		var add := float(_combat.call("_anchor_embers_add100", u)) / 100.0
+		var amt := String.num(add, 2).rstrip("0").rstrip(".")
+		return {"text": TranslationServer.translate("EMBER +%s") % amt, "house": house,
+			"tip": TranslationServer.translate("Carried Held die: +%s when used.") % String.num(add, 2)}
+	return {}
+
+
+func _update_bonus_chip(content: Dictionary, u: Unit, btn: Button, base_tip: String) -> void:
+	var mark := _anchor_die_mark(u)
+	var body: Control = content["body"]
+	var chip: Control = content.get("anchor_chip", null)
+	if mark.is_empty():
+		if chip != null:
+			chip.visible = false
+		return
+	var text := String(mark["text"])
+	var house := String(mark["house"])
+	var key := text + "|" + house
+	if chip != null and String(chip.get_meta("chip_key", "")) != key:
+		chip.queue_free()
+		chip = null
+	if chip == null:
+		var tex: Texture2D = null   # no glyph: the word is the mark (a glyph would not fit the card width); the house shows as the border colour
+		var col := AnchorAdapter.house_color(house) if house != "" else UI3Theme.color("text_muted")
+		chip = UI3.icon_chip(text, tex, col, "AnchorDieChip")
+		chip.mouse_filter = Control.MOUSE_FILTER_PASS   # PASS so the chip tooltip can show; clicks still reach the card
+		chip.set_meta("chip_key", key)
+		chip.set_meta("chip_text", text)
+		# Above the card, one line, no glyph so it fits a 152 px card. HOLD / OVERCAST / ? chips hang at
+		# y -8 (32 high) and the REROLL chip at -32 (reroll mode only), so this row sits over them (y = -(height) - 8).
+		body.add_child(chip)
+		chip.z_index = 5   # over the FRONT / BACK row captions and their line
+		chip.position = Vector2(4.0, -chip.get_combined_minimum_size().y - 8.0)
+		content["anchor_chip"] = chip
+	chip.visible = true
+	UI3Tooltip.bind(chip, String(mark["tip"]))
+	UI3Tooltip.bind(btn, "%s\n%s" % [base_tip, String(mark["tip"])])
 
 
 ## True when the selected die's face may be used on `target` (an ally column). Heal / shield
@@ -2861,7 +2923,7 @@ func _enter_rr_mode() -> void:
 	_rr_sel = (pin["uids"] as Array).duplicate() if not pin.is_empty() else _auto_reroll_uids()
 	_rebuild_all()
 	if _rr_bar != null:
-		(_rr_bar.safe_button if not _rr_bar.safe_button.disabled else _rr_bar.gamble_button).grab_focus()
+		(_rr_bar.safe_button if (_rr_bar.safe_button.visible and not _rr_bar.safe_button.disabled) else _rr_bar.gamble_button).grab_focus()
 
 
 func _exit_rr_mode(rebuild := true) -> void:
@@ -2908,6 +2970,13 @@ func _rr_die_why(u: Unit) -> String:
 	return ""
 
 
+## High Stakes (stage >= 2): the crack chance in percent of the forced Gamble, else 0.
+func _stakes_pct() -> int:
+	if _combat == null or _combat.depth_stage < 2 or not CoreHooks.RelicHooks_has(_combat, "rule_high_stakes"):
+		return 0
+	return roundi(float(CoreHooks.rule_knob("rule_high_stakes", "crack_chance", 0.2)) * 100.0)
+
+
 func _update_rr_bar() -> void:
 	var hud := _hud_frame
 	if hud == null or _combat == null:
@@ -2926,7 +2995,8 @@ func _update_rr_bar() -> void:
 	for b in [hud.undo_button, hud.reroll_button, hud.hold_button, hud.overcast_button, hud.wild_button]:
 		(b as Control).visible = false   # 5.1b: only the tray and the pick bar while picking
 	var n := _rr_sel.size()
-	var pct := CombatEngine.tune_knob("crack", "pct", 30.0)
+	var stakes := _stakes_pct()
+	var pct := float(stakes) if stakes > 0 else CombatEngine.tune_knob("crack", "pct", 30.0)
 	var gref := _combat.reroll_refusal(_rr_sel, false, 0)
 	var sref := _combat.reroll_refusal(_rr_sel, false, 1)
 	var cost := _combat.reroll_mana_cost(false, 1)
@@ -2940,14 +3010,17 @@ func _update_rr_bar() -> void:
 		line = V4Ui.gamble_line(n, pct)
 	else:
 		line = V4Ui.refusal_text(gref, cost, _combat.mana)
-	if sref != "" and sref != gref and pin.is_empty():
+	if stakes > 0 and pin.is_empty():
+		line = TranslationServer.translate("High Stakes: Gamble · Crack %d%% per die. Crack = half value this turn.") % stakes \
+			+ ("\n" + V4Ui.refusal_text(gref, cost, _combat.mana) if gref != "" else "")
+	elif sref != "" and sref != gref and pin.is_empty():
 		line += "\n" + V4Ui.refusal_text(sref, cost, _combat.mana)
 	_rr_bar.update({
 		"gamble_ok": gref == "", "gamble_text": TranslationServer.translate("Gamble · free"),
 		"gamble_tip": TranslationServer.translate("Each rerolled die has a %d%% chance to Crack (half value, out of the Set, until next turn).") % int(pct) if gref == "" else V4Ui.refusal_text(gref, cost, _combat.mana),
 		"safe_ok": sref == "", "safe_text": TranslationServer.translate("Safe · %d MP") % cost,
 		"safe_tip": TranslationServer.translate("No risk. Costs mana.") if sref == "" else V4Ui.refusal_text(sref, cost, _combat.mana),
-		"line": line, "show_gamble": true})
+		"line": line, "show_gamble": true, "show_safe": stakes <= 0})
 	_rr_bar.place(get_viewport_rect().size.x - 24.0, hud.reroll_button.position.y)
 
 
@@ -3405,6 +3478,8 @@ var hit_stops := 0
 
 func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> void:
 	_last_core_uid = uid
+	if core_id == "rule_pack_alpha" and _on_pack_alpha_fired(uid, amount, kind):
+		return
 	if kind == "mutation":
 		_append_log("[mutation] %s on %s" % [core_id, _unit_name(uid)])
 		_on_mutation_fired(core_id, uid)
@@ -3412,7 +3487,7 @@ func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> voi
 	var def = RelicRegistry.get_def(core_id)
 	var nm := UI3.title_case(UI3.player_text(String(def.name))) if def != null else core_id
 	if def == null and not Anchors.get_def(core_id).is_empty():
-		nm = AnchorAdapter.name_of(core_id)
+		nm = AnchorFx.awaken_line(core_id, amount) if kind == "awaken" else AnchorAdapter.name_of(core_id)
 	_append_log("[core] %s on %s" % [CoreFeedback.float_line(nm, amount, kind), _unit_name(uid)])
 	var armed := not _core_batch.is_empty()
 	var group: Dictionary = _core_batch.get(uid, {})
@@ -3426,6 +3501,61 @@ func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> voi
 			_flush_core_floats.call_deferred()   # still one beat later, so same-frame Cores merge
 		else:
 			_after_impact(_flush_core_floats)
+
+
+## Pack Alpha (run rule): "block" = a single-target hit on a non-Leader was halved (one note per turn, on the hit enemy);
+## "dmg" = the Leader fell and the rest lost HP (one banner per fight). Returns true when handled here ("rule" = setup, ignored).
+var _alpha_note_turn := -1
+var _alpha_broken := false
+var alpha_notes: Array = []   ## test hook
+
+
+var _last_face_uid := -1
+var _last_face_type := ""
+var _shell_note_turn := -1
+var shell_notes: Array = []   ## test hook
+
+
+## Remembers who used which face last: face_used fires just before the damage resolves, so a shell hit knows its source.
+func _track_face_for_shell(uid: int, _side: String, _target: int, _aoe: bool, _part: String, _name: String, ftype: String) -> void:
+	_last_face_uid = uid
+	_last_face_type = ftype
+
+
+func _on_shell_changed(uid: int, shell: int, shell_max: int, absorbed: int) -> void:
+	var p: UnitPortrait = _portraits.get(uid)
+	if p != null:
+		p.set_shell(shell, shell_max)
+	if absorbed > 0 and _combat != null and _shell_note_turn != _combat.turn:
+		var src: Unit = _combat.by_uid(_last_face_uid)
+		if src != null and _combat.shell_off_set(src, true, _last_face_type, false):
+			_shell_note_turn = _combat.turn
+			var t := TranslationServer.translate("Outside a SET: 50% to Shell")
+			shell_notes.append(t)
+			_spawn_core_note(uid, [{"text": t, "token": "shell"}])
+
+
+func _on_pack_alpha_fired(uid: int, amount: int, kind: String) -> bool:
+	if kind == "block":
+		_append_log("[core] Pack Alpha: -50%% on %s" % _unit_name(uid))
+		if _combat != null and _alpha_note_turn != _combat.turn:
+			_alpha_note_turn = _combat.turn
+			var lead := ""
+			for e in _combat.enemies:
+				if bool(e.custom_state.get("alpha", false)):
+					lead = _unit_name(e.uid)
+			var t := TranslationServer.translate("−50% · hit the Leader") + ((": " + lead) if lead != "" else "")
+			alpha_notes.append(t)
+			_spawn_core_note(uid, [{"text": t, "token": "face_shield"}])
+		return true
+	if kind == "dmg":
+		if not _alpha_broken:
+			_alpha_broken = true
+			var t2 := TranslationServer.translate("Pack broken: −20% HP")
+			alpha_notes.append(t2)
+			_show_turn_banner(TranslationServer.translate("Leader down"), t2)
+		return true
+	return kind == "rule"
 
 
 func _flush_core_floats() -> void:
@@ -3709,6 +3839,8 @@ func _update_portrait(u: Unit) -> void:
 	_stage3d.set_alive(u.uid, u.hp > 0)
 	if u.side == "e":
 		_update_enemy_plate(p, u)
+		p.set_leader(bool(u.custom_state.get("alpha", false)) and u.hp > 0)
+		p.set_shell(int(u.custom_state.get("shell", 0)), int(u.custom_state.get("shell_max", 0)) if u.hp > 0 else 0)
 
 	var is_selected := (u.uid == _selected_die_uid)
 	if not is_selected:
@@ -4467,13 +4599,11 @@ func _card_rects() -> Dictionary:
 	return rects
 
 
-## Real M of a Set group for the label: m100_for on a live die of the group, so it matches the number on each die.
+## Real M of a Set group for the label: the engine's group value (Anchor add + cap). Per-die extras (a carried Embers die, Overcast)
+## stay on the die's own number via m100_for, so one die never decides the whole SET's label.
 func _bo_group_m100(g: Dictionary) -> int:
 	if _combat != null:
-		for uid in (g["uids"] as Array):
-			var u: Unit = _combat.by_uid(int(uid))
-			if u != null:
-				return _combat.m100_for(u)
+		return _combat.bo_group_m100(g)
 	return int(g["m100"])
 
 
@@ -4672,7 +4802,11 @@ func _update_coach() -> void:
 			pair = true
 		if int(parts[k]) == 3:
 			set3 = true
-	var id := V4Coach.next_id({"stage": _combat.depth_stage, "rolled": rolled, "pair": pair, "set3": set3, "bo": not _combat.bo.is_empty(),
+	var has_shell := false
+	for e in _combat.enemies:
+		if e.hp > 0 and int(e.custom_state.get("shell", 0)) > 0:
+			has_shell = true
+	var id := V4Coach.next_id({"shell": has_shell, "stage": _combat.depth_stage, "rolled": rolled, "pair": pair, "set3": set3, "bo": not _combat.bo.is_empty(),
 		"free_left": _combat.rerolls, "payable": _combat.reroll_is_payable(), "mana": _combat.mana,
 		"reroll_cost": _combat.reroll_mana_cost(false, 1), "wild_cost": _combat.wild_cost(), "oc_cost": _combat.overcast_cost()})
 	if id == "":

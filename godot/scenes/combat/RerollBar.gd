@@ -95,8 +95,9 @@ func update(d: Dictionary) -> void:
 	(gamble_button.get_meta("glyph") as ActionGlyph).dim = gamble_button.disabled
 	(safe_button.get_meta("glyph") as ActionGlyph).dim = safe_button.disabled
 	gamble_button.visible = bool(d.get("show_gamble", true))
-	if not gamble_button.visible:
-		safe_button.position.x = BTN_W + GAP
+	safe_button.visible = bool(d.get("show_safe", true))
+	safe_button.position.x = BTN_W + GAP if gamble_button.visible else 0.0
+	gamble_button.position.x = (BTN_W + GAP) if not safe_button.visible else 0.0   # a lone button sits at the right edge
 
 
 ## Right-aligns the bar to x_right with its button row on `row_y`.

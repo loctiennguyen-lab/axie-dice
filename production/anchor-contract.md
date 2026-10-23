@@ -64,3 +64,12 @@ Chưa có hiệu ứng đột biến/thức tỉnh (bước 2b): `mutation_on` v
 - `RunVerifier`: ranked mà header/loadout/action có Anchor -> `anchor_ranked`. `pick_anchor` sai (index ngoài -1..2, chọn lần hai, sau offer Lõi đầu, stage < 2) -> `action_rejected`. Verifier vẫn chỉ nhận ranked như cũ; thêm tham số `allow_unranked` (mặc định false, server không bật) để replay run normal có Anchor (dùng trong `t_replay`).
 - Worker: `pick_anchor` bị từ chối nếu `meta.mode !== 'normal'`, hoặc `meta.depth_stage` có và < 2, hoặc args không phải đúng một số nguyên -1..2.
 - Chưa làm: bump RULES_VERSION (header loadout và allowlist đổi), làm ở nhánh tích hợp.
+
+
+## Anchor more (AN2, 23/10): Kin, Embers, Big Hand
+- Bật cả 6 Anchor. `min_stage` mặc định 2 cho 3 cái mới (Hold và Wild mở từ stage 2; chỉ Mana Mine chờ Overcast stage 3).
+- Knob `combat_tune.json` mục `anchor`: kin_class_n, kin_set_add, kin_miss_pen, unison_max, embers_hold_n, embers_add, big_set45_add, sixth_hand_min_set. Mọi hệ số đi qua `m100_for` (cap `bo.m_cap`).
+- Kin + Concord: Concord chỉ cho 1 viên mỗi class vào BỘ nên Kin không thể đủ 3. `c_concord` không được offer khi Anchor là `a_kin` (`CoreOffer.is_valid`, ctx `anchor_id`); nếu đã có Concord từ trước thì Kin bỏ phạt -0.25 (không có +0.40).
+- Big Hand: BỘ ba mất thưởng của chính BỘ (M = 1.00) nhưng vẫn nhận thưởng nhà h_embers (Last Strike) nếu có, vì mutation cộng riêng trong `m100_for`.
+- Sixth Hand: viên thưởng là phantom nên không vào BỘ; xúc xắc của nó dùng RNG riêng (combat_seed, turn), không động con trỏ RNG chính. Phantom là sidelined nên cantrip trên nó không tự chạy (giống Sixth Die).
+- Passed Flame: viên mang sang dùng Wild miễn phí, 1 lần/lượt, không tính giới hạn Wild của trận.

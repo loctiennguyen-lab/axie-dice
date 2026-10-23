@@ -15,5 +15,4 @@ hook_key = "c_open_ranks"
 tags = PackedStringArray("nonattack", "front")
 layer = "positional"
 core_axis = "pos"
-requires = PackedStringArray("owned_tag:front")
 excludes = PackedStringArray("owned:c_living_wall", "owned:c_backline_glow", "owned:c_descend", "rule:rule_rising_tide", "rule:rule_upside_down")

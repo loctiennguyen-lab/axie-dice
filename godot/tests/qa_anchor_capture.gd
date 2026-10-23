@@ -24,6 +24,7 @@ func _ready() -> void:
 	UI3Gacha.instant_override = 1
 	var r: Dictionary = await RunState.begin_run({"team_keys": ["plant1", "beast1", "aqua1", "reptile1", "bug1"], "mode": "short",
 		"ascension": 0, "kind": "normal", "ranked": false, "depth_stage": 3, "anchor": true, "rules_on": false})
+	RunState.anchor_offer = ["a_kin", "a_embers", "a_big_hand"]   # newer Anchors; remove this line for a random offer
 	rm = load("res://scenes/run_map/RunMap.tscn").instantiate()
 	add_child(rm)
 	await _wait(1.5)

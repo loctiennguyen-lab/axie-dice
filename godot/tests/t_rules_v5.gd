@@ -1,0 +1,272 @@
+extends Node
+## Run Rules v5 (design/proposals/cores-rules-v5.md section 10): Pack Alpha, Set Is King, Pilot Light, High Stakes.
+
+const ROSTER := ["plant1", "beast1", "aqua1", "reptile1", "bird1"]
+var _guard := SaveGuard.new()
+var _fails: Array[String] = []
+var _checks := 0
+
+
+func _ready() -> void:
+	_guard.capture()
+	await get_tree().process_frame
+	t_pack_alpha()
+	t_set_king()
+	t_pilot()
+	t_high_stakes()
+	t_set_king_copycat()
+	print("=== t_rules_v5: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
+	for f in _fails:
+		print("t_rules_v5: FAIL - %s" % f)
+	if _fails.is_empty():
+		print("t_rules_v5: PASS - %d checks OK" % _checks)
+	_guard.restore()
+	get_tree().quit(0 if _fails.is_empty() else 1)
+
+
+func _enable(id: String) -> void:
+	var d = RelicRegistry.get_def(id)
+	d.disabled = false
+	d.hook_key = id
+
+
+func _val_face(c: CombatEngine, u: Unit, ft: String) -> int:
+	for fi in u.die.size():
+		if String(u.die[fi].get("type", "")) == ft and int(u.die[fi].get("value", 0)) > 0:
+			return fi
+	return -1
+
+
+func _ok(c: bool, m: String) -> void:
+	_checks += 1
+	if not c:
+		_fails.append(m)
+
+
+func _combat(relics: Array, extra: Dictionary = {}) -> CombatEngine:
+	var roster: Array = []
+	for i in ROSTER.size():
+		roster.append({"persistent_id": i + 1, "hero_key": ROSTER[i], "tier": 1,
+			"max_hp": ContentDB.heroes[ROSTER[i]]["max_hp"], "muts": [], "growth": {}, "bonus_hp": 0})
+	var setup := {"node_id": "t_v5", "kind": "battle", "pw": 6, "ascension": 0, "roster_snapshot": roster,
+		"relic_ids": relics, "combat_seed": 4242, "bonus_reroll": 0}
+	setup.merge(extra, true)
+	var c := CombatEngine.new()
+	c.setup_new(setup)
+	return c
+
+
+func _hit(c: CombatEngine, src: Unit, tgt: Unit, v: int, single: bool, pierce: bool) -> int:
+	var hp0: int = tgt.hp
+	tgt.shield = 0
+	DamagePipeline.resolve({"combat": c, "src": src, "tgt": tgt, "value": v, "single": single, "pierce": pierce, "attack": true, "face_type": "dmg"})
+	return hp0 - tgt.hp
+
+
+func t_pack_alpha() -> void:
+	var base := _combat([])
+	var c := _combat(["rule_pack_alpha"])
+	_ok(c.enemies.size() >= 2, "pack alpha: fight has 2+ enemies (%d)" % c.enemies.size())
+	var best: Unit = base.enemies[0]
+	for e in base.enemies:
+		if e.max_hp > best.max_hp:
+			best = e
+	var al = CoreHooks.alpha_unit(c)
+	_ok(al != null, "alpha marked")
+	_ok(CoreHooks.alpha_unit(base) == null, "no rule: no alpha")
+	if al == null:
+		return
+	_ok(al.uid == best.uid, "alpha = highest HP, tie smallest uid")
+	_ok(al.max_hp == int(ceil(best.max_hp * 1.25)), "alpha HP x1.25: %d vs %d" % [al.max_hp, best.max_hp])
+	var other: Unit = null
+	for e in c.enemies:
+		if e != al:
+			other = e
+			break
+	var src: Unit = c.party[0]
+	other.max_hp = 100
+	other.hp = 100
+	_ok(_hit(c, src, other, 10, true, false) == 5, "others take -50% single")
+	other.hp = 100
+	_ok(_hit(c, src, other, 1, true, false) == 1, "min 1")
+	other.hp = 100
+	_ok(_hit(c, src, other, 10, false, false) == 10, "AoE not reduced")
+	other.hp = 100
+	_ok(_hit(c, src, other, 10, true, true) == 10, "pierce not reduced")
+	al.max_hp = 100
+	al.hp = 100
+	var pl := CombatTraits.plating_of(c, al)
+	_ok(_hit(c, src, al, 10, true, false) == maxi(1, 10 - pl), "alpha itself not reduced (plating %d)" % pl)
+	# save/load keeps the mark
+	var c2 := CombatEngine.new()
+	c2.from_data(c.to_data())
+	_ok(CoreHooks.alpha_unit(c2) != null and CoreHooks.alpha_unit(c2).uid == al.uid, "alpha survives save/load")
+	# alpha falls: others lose 20% of current HP
+	other.hp = 50
+	al.hp = 1
+	var hp_before: Array = []
+	for e in c.enemies:
+		hp_before.append(e.hp)
+	_hit(c, src, al, 5, true, true)
+	_ok(al.hp <= 0, "alpha dead")
+	_ok(other.hp == 40, "others lose 20%% current HP: %d" % other.hp)
+	# after alpha died, others are no longer reduced
+	other.hp = 100
+	_ok(_hit(c, src, other, 10, true, false) == 10, "alpha dead: no reduction")
+	# boss: not applied
+	var b := _combat(["rule_pack_alpha"], {"kind": "boss"})
+	_ok(CoreHooks.alpha_unit(b) == null, "boss fight: no alpha")
+
+
+func t_set_king() -> void:
+	_enable("rule_set_is_king")
+	var base := _combat([])
+	var c := _combat(["rule_set_is_king"])
+	_ok(c.rerolls == base.rerolls - 1 and c.max_rerolls == base.max_rerolls - 1, "set king: no free reroll (%d vs %d)" % [c.rerolls, base.rerolls])
+	var tested := 0
+	for i in c.party.size():
+		var u: Unit = c.party[i]
+		var b: Unit = base.party[i]
+		var fi := _val_face(c, u, "dmg")
+		if fi < 0:
+			continue
+		var v0 := base._face_value(b, fi)
+		if v0 < 3:
+			continue
+		tested += 1
+		c.bo = []
+		_ok(c._face_value(u, fi) == maxi(1, v0 - 2), "%s lone die -2: %d -> %d" % [u.key, v0, c._face_value(u, fi)])
+		c.bo = [{"part": 0, "size": 3, "uids": [u.uid, 99, 98], "hi": false, "m100": 100}]
+		_ok(c._face_value(u, fi) == v0 + 2, "%s set die +2: %d -> %d" % [u.key, v0, c._face_value(u, fi)])
+		_ok(base._face_value(b, fi) == v0, "no rule: unchanged")
+		var c2 := CombatEngine.new()
+		c2.from_data(c.to_data())
+		_ok(c2._face_value(c2.party[i], fi) == v0 + 2, "save/load keeps set bonus")
+		c.bo = []
+	_ok(tested > 0, "set king: tested at least one die")
+	_ok(CoreHooks.in_set(c, c.party[0]) == false, "in_set false without sets")
+
+
+func t_pilot() -> void:
+	_enable("rule_pilot_light")
+	var base := _combat([])
+	var c := _combat(["rule_pilot_light"])
+	for i in c.enemies.size():
+		_ok(c.enemies[i].max_hp == int(ceil(base.enemies[i].max_hp * 1.1)), "pilot: enemy %d HP x1.1" % i)
+	_ok(c.stash_cap() == 4 and base.stash_cap() == 1, "pilot: stash cap 4 on turn 1 (base %d)" % base.stash_cap())
+	var src: Unit = c.party[0]
+	var tgt: Unit = c.enemies[0]
+	tgt.max_hp = 100
+	tgt.hp = 100
+	_ok(_hit(c, src, tgt, 10, false, true) == 0, "pilot: turn 1 dmg face deals 0")
+	tgt.hp = 100
+	var bsrc: Unit = base.party[0]
+	var bt: Unit = base.enemies[0]
+	bt.max_hp = 100
+	bt.hp = 100
+	_ok(_hit(base, bsrc, bt, 10, false, true) == 10, "no rule: turn 1 deals 10")
+	# hold two dice on turn 1
+	var held: Array = []
+	for u in c.party:
+		if held.size() < 2 and c.can_stash(u.uid):
+			_ok(c.stash(u.uid), "stash %s" % u.key)
+			held.append(u)
+	_ok(held.size() == 2 and c.stash_count() == 2, "pilot: held 2 dice on turn 1")
+	var h: Unit = held[0]
+	var fi: int = h.roll_face_index()
+	var ft := String(h.die[fi].get("type", ""))
+	var v1 := c._face_value(h, fi)
+	c.turn = 2
+	h.stash_carry = true
+	var v2 := c._face_value(h, fi)
+	var bv := base._face_value(base.party[c.party.find(h)], fi)
+	if CoreHooks.VALUE_TYPES.has(ft) and bv > 0:
+		_ok(v2 == bv + 3, "pilot: held die +3 on turn 2: %d vs %d" % [v2, bv])
+	_hit(c, src, tgt, 10, false, true)
+	tgt.hp = 100
+	_ok(_hit(c, src, tgt, 10, false, true) == 10, "pilot: turn 2 dmg normal")
+	var c2 := CombatEngine.new()
+	c2.from_data(c.to_data())
+	# held on turn 1 but used on turn 3: no +3
+	c.turn = 3
+	_ok(c._face_value(h, fi) == bv, "pilot: no +3 when used on turn 3")
+	c.turn = 2
+	_ok(CoreHooks.pilot_on(c2) and c2.party[c.party.find(h)].stash_carry, "pilot: state survives save/load")
+	var b := _combat(["rule_pilot_light"], {"kind": "boss"})
+	_ok(not CoreHooks.pilot_on(b), "pilot: off in boss fight")
+	_ok(b.enemies[0].max_hp == base.enemies[0].max_hp or b.enemies[0].is_boss, "pilot: boss fight HP unchanged")
+	_ok(b.stash_cap() == 1, "pilot: boss fight stash cap unchanged")
+
+
+func t_high_stakes() -> void:
+	var cracks := 0
+	var cleans := 0
+	var tested_second := false
+	for sd in range(1, 61):
+		var c := _combat(["rule_high_stakes"])
+		var base := _combat([])
+		var u: Unit = c.party[1]
+		c.rerolls = 0
+		c.mana = 5
+		base.rerolls = 0
+		base.mana = 5
+		var sh0: int = u.shield
+		_ok(c.effective_rmode(false, 1) == 0 and base.effective_rmode(false, 1) == 1, "stakes: paid reroll is Gamble only with the rule")
+		_ok(c.reroll_dice([u.uid], sd), "stakes: reroll ok")
+		_ok(int(c.reroll_lock[c.reroll_k]["rmode"]) == 0, "stakes: lock rmode 0")
+		if u.cracked:
+			cracks += 1
+			_ok(u.shield == sh0 and c.mana == 5, "stakes: cracked Gamble gives nothing")
+			continue
+		cleans += 1
+		_ok(u.shield == sh0 + 3 and c.mana >= 6, "stakes: clean Gamble +3 shield +1 mana (%d, %d)" % [u.shield - sh0, c.mana])
+		if not tested_second:
+			# second clean Gamble in the same turn: no more mana (after a save/load too)
+			var c2 := CombatEngine.new()
+			c2.from_data(c.to_data())
+			for k in range(100, 160):
+				var d: CombatEngine = c2
+				d.mana = 6
+				var u2: Unit = d.party[2]
+				if d.reroll_dice([u2.uid], k) and not u2.cracked:
+					_ok(int(CoreHooks.turn_state(d, "cs_stakes").get("mana_n", 0)) == 1, "stakes: mana refund only once per turn")
+					tested_second = true
+					break
+	_ok(cracks > 0 and cleans > 0, "stakes: both outcomes seen (%d cracks, %d clean)" % [cracks, cleans])
+	_ok(cracks < 25, "stakes: ~20%% crack rate (%d/60)" % cracks)
+	_ok(tested_second, "stakes: second-gamble case tested")
+	# stage 1: no Gamble exists, so paid rerolls stay Safe
+	var s1 := _combat(["rule_high_stakes"], {"depth_stage": 1})
+	s1.rerolls = 0
+	s1.mana = 5
+	_ok(s1.effective_rmode(false, 1) == 1, "stakes: stage 1 stays Safe")
+	_ok(s1.can_reroll([s1.party[1].uid]), "stakes: stage 1 paid reroll still allowed")
+	# free reroll stays Safe, no refund
+	var f := _combat(["rule_high_stakes"])
+	f.mana = 5
+	var fr := f.rerolls
+	_ok(fr > 0 and f.effective_rmode(false, 1) == 1, "stakes: free reroll is Safe")
+	f.reroll_dice([f.party[0].uid], 7)
+	_ok(f.mana == 5, "stakes: free Safe reroll: no mana change")
+
+
+## Recorded behaviour: a Copycat copy does not count toward Sets (combat._bo_dice), so under Set Is King it is a lone die: -2 (min 1).
+func t_set_king_copycat() -> void:
+	var c := _combat(["rule_set_is_king"])
+	var base := _combat([])
+	for i in c.party.size():
+		var u: Unit = c.party[i]
+		var fi := _val_face(c, u, "dmg")
+		if fi < 0:
+			continue
+		var v0 := base._face_value(base.party[i], fi)
+		if v0 < 3:
+			continue
+		u.custom_state["copycat_turn"] = c.turn
+		c.bo = [{"part": 0, "size": 3, "uids": [u.uid, 98, 99], "hi": false, "m100": 100}]
+		_ok(c._face_value(u, fi) == v0 + 2, "copycat: still +2 if a stale Set lists it (bo is rebuilt without it on the next snap)")
+		c.bo = []
+		_ok(not c._bo_dice().has(u), "copycat copy is not a Set die")
+		_ok(c._face_value(u, fi) == maxi(1, v0 - 2), "copycat copy under Set Is King: -2 like a lone die")
+		return
+	_ok(false, "copycat: no usable die")

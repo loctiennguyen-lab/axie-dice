@@ -98,6 +98,10 @@ var _chip_style: StyleBoxFlat
 var _chip_icon: TextureRect
 var _chip_text: Label
 var _click_catcher: Button
+var _leader_badge: PanelContainer
+var _shell_row: Control
+var _shell_bar: HPBar
+var _shell_label: Label
 
 var _lit := false          # legal target / selected
 var _acting := false
@@ -214,6 +218,50 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 		_hp_bar.set_marks([0.66, 0.33])
 	left.add_child(_hp_bar)
 
+	# --- Resonance Shell (anti-spam B): glyph + bar + number, hidden until the engine reports a Shell ---
+	_shell_row = Control.new()
+	_shell_row.name = "ShellRow"
+	_shell_row.custom_minimum_size = Vector2(0, 16)
+	_shell_row.mouse_filter = Control.MOUSE_FILTER_STOP
+	_shell_row.gui_input.connect(_on_forward_gui_input)
+	_shell_row.visible = false
+	var sic := TextureRect.new()
+	sic.name = "Icon"
+	sic.texture = UI3.icon("face_shield")
+	sic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	sic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	sic.position = Vector2.ZERO
+	sic.size = Vector2(16, 16)
+	sic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_shell_row.add_child(sic)
+	_shell_bar = HPBar.new()
+	_shell_bar.name = "ShellBar"
+	_shell_bar.use_fixed_fill(UI3Theme.color("shell"))
+	_shell_bar.set_kind(HPBar.Kind.SHIELD, 8, 4, 16)
+	_shell_bar.use_fixed_fill(UI3Theme.color("shell"))
+	_shell_bar.custom_minimum_size.x = 0.0   # HPBar defaults to 96 wide: it would sit under the label
+	_shell_bar.anchor_right = 1.0
+	_shell_bar.offset_left = 22.0
+	_shell_bar.offset_right = -138.0
+	_shell_bar.offset_top = 4.0
+	_shell_bar.offset_bottom = 12.0
+	_shell_row.add_child(_shell_bar)
+	_shell_label = UI3.label("", "LabelDisplay")
+	_shell_label.name = "ShellText"
+	_shell_label.add_theme_font_size_override("font_size", 18)
+	_shell_label.add_theme_color_override("font_color", UI3Theme.color("shell"))
+	_shell_label.anchor_left = 1.0
+	_shell_label.anchor_right = 1.0
+	_shell_label.offset_left = -134.0
+	_shell_label.offset_right = 0.0
+	_shell_label.offset_top = -4.0
+	_shell_label.offset_bottom = 20.0
+	_shell_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_shell_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_shell_row.add_child(_shell_label)
+	UI3Tooltip.bind(_shell_row, TranslationServer.translate("Shell: dice outside a SET deal 50% to Shell. Break it to reach the HP."))
+	left.add_child(_shell_row)
+
 	if is_boss:
 		_phase_label = UI3.label("Phase 1 of 2", "LabelMuted")
 		_phase_label.visible = false   # set_phase() shows it for multi-phase bosses
@@ -223,15 +271,23 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	var chips_row := HBoxContainer.new()
 	chips_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	chips_row.custom_minimum_size = Vector2(0, UI3.CHIP_H)
+	chips_row.clip_contents = true
 	chips_row.add_theme_constant_override("separation", 4)
 	left.add_child(chips_row)
 	chips_row.add_child(_tag_chip)   # ELITE / BOSS tag sits under the name so a long name keeps its full width
+	_leader_badge = UI3.mini_badge("LEADER", UI3.icon("node_elite"), UI3Theme.color("leader"), "LeaderBadge")
+	_leader_badge.gui_input.connect(_on_forward_gui_input)
+	_leader_badge.visible = false
+	UI3Tooltip.bind(_leader_badge, TranslationServer.translate("Pack Alpha: while it lives, single-target hits on other enemies deal 50%. Kill it first."))
+	chips_row.add_child(_leader_badge)
 	var spacer := Control.new()
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	chips_row.add_child(spacer)
 	_target_label = UI3.label("", "LabelMuted")
 	_target_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_target_label.clip_text = true   # min width 0: a long "→ Name" never widens the plate (the intent column stays on screen)
+	_target_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	chips_row.add_child(_target_label)
 
 	# --- intent block (IntentBadge: wood-2, left border in the kind colour) ---
@@ -404,6 +460,35 @@ func _place_chip() -> void:
 ## CB-11 / CB-12 compat: committed incoming damage. Party plates draw nothing, so only stored.
 func set_incoming(amount: int) -> void:
 	_incoming = maxi(amount, 0)
+
+
+## Pack Alpha: shows the LEADER badge (glyph + word) under the name.
+func set_leader(on: bool) -> void:
+	if _leader_badge != null:
+		_leader_badge.visible = on
+		# LEADER replaces the ELITE chip (the fight already says Elite): ELITE + LEADER + "-> name" does not fit the plate.
+		if _tag_chip != null:
+			_tag_chip.visible = (not on) and _tag_label.text != ""
+
+
+## Resonance Shell: bar + "cur / max"; hidden when max <= 0 (feature off, or no Shell on this unit).
+func set_shell(cur: int, max_v: int) -> void:
+	if _shell_row == null:
+		return
+	_shell_row.visible = max_v > 0
+	if max_v <= 0:
+		return
+	_shell_bar.set_stats(maxi(cur, 0), max_v)
+	_shell_label.text = "SHELL %d/%d" % [maxi(cur, 0), max_v]
+	_shell_row.set_meta("shell_text", _shell_label.text)
+
+
+func has_shell() -> bool:
+	return _shell_row != null and _shell_row.visible
+
+
+func is_leader() -> bool:
+	return _leader_badge != null and _leader_badge.visible
 
 
 ## The "single read-model entry point": HP, shield, statuses.

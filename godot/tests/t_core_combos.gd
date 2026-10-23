@@ -1,5 +1,5 @@
 extends Node
-## Gacha lane GD: CoreCombos (core_combos.json, 14 combos). Pure checks, no run.
+## Gacha lane GD: CoreCombos (core_combos.json, 23 combos, 22 enabled: Volcano waits for Magma Seed). Pure checks, no run.
 var _failures: Array[String] = []
 var _checks := 0
 
@@ -13,7 +13,7 @@ func _assert(c: bool, m: String) -> void:
 func _ready() -> void:
 	CoreCombos.reload()
 	var rows: Array = CoreCombos.all([])
-	_assert(rows.size() == 14, "14 combos enabled with no rule, got %d" % rows.size())
+	_assert(rows.size() == 22, "22 combos enabled with no rule, got %d" % rows.size())
 	# data sanity: every member is a real, enabled Core; ids unique; at most one jackpot-style set of 3
 	var ids := {}
 	for r in rows:
@@ -21,7 +21,7 @@ func _ready() -> void:
 		ids[r["id"]] = true
 		_assert(String(r["name_en"]) != "" and String(r["name_vi"]) != "", "%s has names" % r["id"])
 		var m := CoreCombos.members(r)
-		_assert(m.size() == 3, "%s has 3 members" % r["id"])
+		_assert(m.size() == 3 or (m.size() == 2 and r.get("full") == null), "%s has 3 members (2 when full is null)" % r["id"])
 		for id in m:
 			var d = RelicRegistry.get_def(String(id))
 			_assert(d != null and not d.disabled and d.core_axis != "", "%s member %s is an enabled Core" % [r["id"], id])
@@ -82,16 +82,16 @@ func _ready() -> void:
 	_assert(not CoreCombos.all(["rule_upside_down"]).any(func(r): return r["id"] == "combo_turtle_fort"), "all() drops it")
 	_assert(CoreCombos.card_completes(["c_living_wall", "rule_upside_down"], "c_thorn_shield").is_empty(), "no label while hidden")
 	_assert(CoreCombos.matches(["c_living_wall", "rule_upside_down"], "c_thorn_shield").is_empty(), "no chip while hidden")
-	var hides := {"rule_upside_down": ["combo_turtle_fort", "combo_ancient_turtle", "combo_molt"],
-		"rule_dry_steppe": ["combo_rising_tide", "combo_slow_burn", "combo_endless_mana"],
-		"rule_cheap_mana": ["combo_lake_fishing", "combo_bramble_hide"], "rule_tundra": ["combo_lake_fishing", "combo_bramble_hide"]}
+	var hides := {"rule_upside_down": ["combo_turtle_fort", "combo_ancient_turtle", "combo_molt", "combo_chorus_wall"],
+		"rule_dry_steppe": ["combo_rising_tide", "combo_slow_burn", "combo_endless_mana", "combo_banked_fire"],
+		"rule_cheap_mana": ["combo_lake_fishing", "combo_bramble_hide", "combo_glass_bet", "combo_funeral_pyre"], "rule_tundra": ["combo_lake_fishing", "combo_bramble_hide", "combo_glass_bet", "combo_funeral_pyre"]}
 	for rid in hides:
 		var vis := CoreCombos.all([rid])
 		for e in (hides[rid] as Array):
 			_assert(not vis.any(func(r): return r["id"] == e), "%s hidden by %s" % [e, rid])
-		_assert(vis.size() == 14 - (hides[rid] as Array).size() - (1 if rid == "rule_balance" else 0), "%s hides exactly its list, left %d" % [rid, vis.size()])
-	_assert(CoreCombos.all(["rule_heavy_finish"]).size() == 14, "a neutral rule hides nothing")
-	_assert(CoreCombos.all(["rule_balance"]).size() == 13, "Cascade excludes rule_balance: jackpot hidden")
+		_assert(vis.size() == 22 - (hides[rid] as Array).size() - (1 if rid == "rule_balance" else 0), "%s hides exactly its list, left %d" % [rid, vis.size()])
+	_assert(CoreCombos.all(["rule_heavy_finish"]).size() == 22, "a neutral rule hides nothing")
+	_assert(CoreCombos.all(["rule_balance"]).size() == 21, "Cascade excludes rule_balance: jackpot hidden")
 
 	# Quest Core that finished still counts: caller passes it in `owned` (RunState.combo_owned_ids)
 	var q := CoreCombos.state(["c_sixth_die", "c_collector"])
@@ -100,15 +100,15 @@ func _ready() -> void:
 	RunState.owned_relic_ids = ["c_sixth_die"]
 	RunState.core_quest_done = ["c_collector"]
 	_assert(CoreCombos.state(RunState.combo_owned_ids()).get("combo_dice_rainbow", "") == "pair", "finished quest Core still in combo_owned_ids()")
-	_assert(CoreCombos.all().size() == 14, "all() with no arg reads RunState")
+	_assert(CoreCombos.all().size() == 22, "all() with no arg reads RunState")
 	RunState.reset()
 
 	# disabled / enabled:false flag hides
 	var saved: Array = CoreCombos._rows.duplicate(true)
 	CoreCombos._rows[0]["enabled"] = false
-	_assert(CoreCombos.all([]).size() == 13, "enabled:false hides a combo")
+	_assert(CoreCombos.all([]).size() == 21, "enabled:false hides a combo")
 	CoreCombos.reload()
-	_assert(saved.size() == 14, "json reload still 14")
+	_assert(saved.size() == 23, "json reload still 23")
 	_done()
 
 

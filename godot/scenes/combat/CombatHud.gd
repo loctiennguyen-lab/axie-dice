@@ -708,6 +708,9 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary, hold: D
 		reroll_button.text = "Reroll %d MP" % cost if not reroll_button.disabled else "Need %d MP" % cost
 	else:
 		reroll_button.text = "No rerolls"
+	var stakes := int(reroll.get("stakes", 0))
+	if stakes > 0 and n <= 0 and cost <= 0 and not bool(reroll.get("capped", false)):
+		reroll_button.text = "Gamble · Crack %d%%" % stakes   # High Stakes forces every paid reroll to be a Gamble
 	reroll_button.tooltip_text = String(reroll.get("tip", "Reroll unused dice (%s)" % KeyBindings.text(KeyBindings.COMBAT_REROLL)))
 	var need_mp := n <= 0 and cost > 0 and not bool(reroll.get("capped", false)) and reroll_button.disabled
 	_overcast_wanted = bool(overcast.get("show", false))

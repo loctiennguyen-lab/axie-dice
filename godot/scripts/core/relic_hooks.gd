@@ -429,6 +429,7 @@ static var TABLE: Dictionary = {
 			egg.mark_used()
 			combat.party.append(egg)
 			EventBus.unit_spawned.emit(egg.uid)
+			RelicHooks.fire(combat, "on_egg_hatched", {"combat": combat, "egg": egg})
 			return,
 		# `egg_dmg` is the once-per-egg guard. Without it on_turn_start would add +1 every
 		# turn and an egg that survived ten turns would hit for ten more.
@@ -1609,6 +1610,9 @@ static var TABLE: Dictionary = {
 	"c_steady_hold": {
 		"stash_cap": func(ctx: Dictionary): return CoreHooks.steady_hold_cap(ctx),
 		"stash_repeat": func(ctx: Dictionary): return true,
+		"on_stash": func(ctx: Dictionary): CoreHooks.steady_hold_stash(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_steady_hold"),
+		"on_face_used": func(ctx: Dictionary): CoreHooks.focus_spent(ctx["combat"], "focus_c_steady_hold", ctx["unit"]),
 	},
 	"c_kindle": {
 		"on_stash": func(ctx: Dictionary): CoreHooks.kindle_stash(ctx),
@@ -1668,6 +1672,37 @@ static var TABLE: Dictionary = {
 		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_gatekeeper"),
 	},
 	"c_thorn_growth": {"on_dmg_taken": func(ctx: Dictionary): CoreHooks.thorn_growth_hit(ctx)},
+	"c_bloodline_ward": {"on_shield": func(ctx: Dictionary): CoreHooks.bloodline_shield(ctx)},
+	"c_last_testament": {
+		"on_dmg_taken": func(ctx: Dictionary): CoreHooks.last_testament_fall(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_last_testament"),
+	},
+	"c_melting_pot": {"set_add": func(ctx: Dictionary): return CoreHooks.melting_pot_set_add(ctx)},
+	"c_hunters_reward": {
+		"on_reroll_paid": func(ctx: Dictionary): CoreHooks.hunters_paid(ctx),
+		"on_roll_settled": func(ctx: Dictionary): CoreHooks.hunters_settled(ctx),
+	},
+	"c_support_hand": {"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_support_hand")},
+	"c_cracked_glass": {"on_face_used": func(ctx: Dictionary): CoreHooks.cracked_glass_used(ctx)},
+	"c_high_roller": {
+		"gamble_crack": func(ctx: Dictionary): return CoreHooks.high_roller_crack(ctx),
+		"on_roll_settled": func(ctx: Dictionary): CoreHooks.high_roller_settled(ctx),
+		"on_gamble": func(ctx: Dictionary): CoreHooks.high_roller_gamble(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_high_roller"),
+	},
+	"c_magma_seed": {
+		"stash_repeat": func(ctx: Dictionary): return true,
+		"on_stash": func(ctx: Dictionary): CoreHooks.magma_stash(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.magma_value(ctx),
+		"on_face_used": func(ctx: Dictionary): CoreHooks.magma_used(ctx),
+	},
+	"c_smoldering": {"on_turn_end": func(ctx: Dictionary): CoreHooks.smoldering_turn_end(ctx)},
+	"c_cache_plate": {"on_stash": func(ctx: Dictionary): CoreHooks.cache_plate_stash(ctx)},
+	"c_golden_thread": {
+		"wild_cost": func(ctx: Dictionary): return CoreHooks.golden_thread_cost(ctx),
+		"wild_per_battle": func(ctx: Dictionary): return int(ctx["value"]) + 1,
+		"set_add": func(ctx: Dictionary): return CoreHooks.golden_thread_set_add(ctx),
+	},
 	"c_thorn_shield": {"on_turn_end": func(ctx: Dictionary): CoreHooks.thorn_shield_turn_end(ctx)},
 	"c_thorn_rebound": {
 		"thorns_extra": func(ctx: Dictionary): return CoreHooks.rebound_extra(ctx),
@@ -1737,6 +1772,7 @@ static var TABLE: Dictionary = {
 	"c_chimera_hunt": {"on_kill": func(ctx: Dictionary): CoreHooks.chimera_kill(ctx)},
 	"c_golden_egg": {
 		"on_dmg_taken": func(ctx: Dictionary): CoreHooks.golden_egg_fall(ctx),
+		"on_egg_hatched": func(ctx: Dictionary): CoreHooks.golden_egg_hatch(ctx),
 		"on_face_used": func(ctx: Dictionary): CoreHooks.golden_egg_used(ctx),
 		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_golden_egg"),
 	},
@@ -1783,6 +1819,20 @@ static var TABLE: Dictionary = {
 		"face_final": func(ctx: Dictionary): return CoreHooks.balance_value(ctx),
 		"on_face_used": func(ctx: Dictionary): CoreHooks.balance_used(ctx),
 	},
+	"rule_pack_alpha": {
+		"on_combat_start": func(ctx: Dictionary): CoreHooks.alpha_start(ctx),
+		"incoming_dmg": func(ctx: Dictionary): return CoreHooks.incoming(ctx, "rule_pack_alpha"),
+		"on_kill": func(ctx: Dictionary): CoreHooks.alpha_kill(ctx),
+	},
+	"rule_set_is_king": {"face_final": func(ctx: Dictionary): return CoreHooks.set_king_value(ctx)},
+	"rule_pilot_light": {
+		"on_combat_start": func(ctx: Dictionary): CoreHooks.pilot_start(ctx),
+		"stash_cap": func(ctx: Dictionary): return CoreHooks.pilot_cap(ctx),
+		"on_stash": func(ctx: Dictionary): CoreHooks.pilot_stash(ctx),
+		"on_face_used": func(ctx: Dictionary): CoreHooks.focus_spent(ctx["combat"], "focus_rule_pilot_light", ctx["unit"]),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "rule_pilot_light"),
+	},
+	"rule_high_stakes": {},   # engine half: CombatEngine.effective_rmode / reroll_dice call CoreHooks.stakes_clean
 	# data-only Run Rules: knobs live in RelicDef.rule_knobs, read by the lanes that own them
 	"rule_none": {},
 	"rule_crow": {},

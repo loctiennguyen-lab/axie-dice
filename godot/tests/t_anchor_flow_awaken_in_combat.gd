@@ -125,7 +125,8 @@ func _case(c: Dictionary) -> void:
 					break
 		_check(pick_uid >= 0, "a_mana_mine: found a natural SET turn (%d rolls)" % tried)
 		if pick_uid >= 0:
-			_check(gain == 1, "a_mana_mine: natural SET on the first roll pays +1 mana (%d)" % gain)
+			var mine_mana := int(CombatEngine.tune_knob("anchor", "mine_mana", 1.0))
+			_check(gain == mine_mana, "a_mana_mine: natural SET on the first roll pays +mine_mana (%d, want %d)" % [gain, mine_mana])
 			e.mana = 10
 			_check(e.overcast_cost() == 1, "a_mana_mine: Overcast costs 1 after the SET")
 			_check(e.overcast(pick_uid) and e.mana == 9, "a_mana_mine: first Overcast paid 1 (mana %d)" % e.mana)

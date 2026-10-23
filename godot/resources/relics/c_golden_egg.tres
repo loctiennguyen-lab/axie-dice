@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "c_golden_egg"
 name = "Golden Egg"
-description = "When an Egg dies: +3 Mana, 4 Shield to your weakest Axie, and your team's next damage face gets +3."
+description = "When an Egg dies, or hatches (once per turn): +3 Mana, 4 Shield to your weakest Axie, and your team's next damage face gets +3."
 rarity = 1
 archetype = ""
 mload = 0

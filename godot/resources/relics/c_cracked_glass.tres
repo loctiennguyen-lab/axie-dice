@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_cracked_glass"
+name = "Cracked Glass"
+description = "A Cracked die that you use also sprays shards: pierce damage to all enemies equal to half its face value (rounded up), up to 3 times per turn."
+rarity = 1
+archetype = ""
+mload = 0
+sort_index = 201064
+hook_key = "c_cracked_glass"
+tags = PackedStringArray("nonattack", "convert_to_dmg")
+layer = "dice"
+core_axis = "dice"

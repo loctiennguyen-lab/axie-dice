@@ -43,7 +43,7 @@ var _noreroll := false     # ablation (--noreroll=1)
 var _corehold := true      # S2: expert Holds dice when it owns c_steady_hold / c_kindle / rule_tundra (--corehold=0 turns off)
 const HOLD_CORES := ["c_steady_hold", "c_kindle", "rule_tundra", "c_key_strike"]
 var _force: Array = []     # --force=id,id : grant these Cores at run start (diagnosis only)
-var _anchor_mode := "none"   # none | auto | decline | a_volley | a_gambler | a_mana_mine  (--anchor=)
+var _anchor_mode := "none"   # none | auto | decline | a_volley | a_gambler | a_mana_mine | a_kin | a_embers | a_big_hand  (--anchor=)
 var _stage := 3              # depth stage of every run (--stage=1|2|3)
 var _anchor_aw_node := -1
 var _anchor_aw_turn := -1
@@ -297,7 +297,10 @@ func _anchor_step() -> void:
 	var offer: Array = RunState.anchor_offer
 	var pick := String(offer[0])
 	if _anchor_mode != "auto":
-		pick = _anchor_mode if offer.has(_anchor_mode) else pick
+		if not offer.has(_anchor_mode):   # 6 Anchors, 3 offered: a forced run must really hold the forced Anchor
+			offer[0] = _anchor_mode
+			RunState.anchor_offer = offer
+		pick = _anchor_mode
 	elif _policy.begins_with("expert") or _policy == "free_hold":
 		pick = _anchor_heuristic(offer)
 	else:
@@ -307,18 +310,35 @@ func _anchor_step() -> void:
 
 
 ## Cheap team-based guess: Volley wants shield faces (plant/reptile), Mana Mine wants aqua/mana income, Gambler wants a
-## roster that profits from Lieu (beast/bird/bug). Ties go to the first in offer order.
+## roster that profits from Lieu (beast/bird/bug). Kin wants 3+ Axies of one class, Embers wants a Hold Core (it also Holds big dice
+## itself, see _core_hold), Big Hand wants a team with many repeated faces (approximated by class stacking + its own house Cores).
+## Ties go to the first in offer order.
 func _anchor_heuristic(offer: Array) -> String:
 	var n := {"shield": 0, "mana": 0, "gamble": 0}
+	var by_cls := {}
 	for u in _team_keys:
 		var k := String(u)
+		var cls := k.rstrip("0123456789")
+		by_cls[cls] = int(by_cls.get(cls, 0)) + 1
 		if k.begins_with("plant") or k.begins_with("reptile"):
 			n["shield"] += 1
 		elif k.begins_with("aqua"):
 			n["mana"] += 1
 		else:
 			n["gamble"] += 1
-	var sc := {"a_volley": n["shield"] + 0.5, "a_mana_mine": n["mana"] * 1.5 + 0.7, "a_gambler": n["gamble"] + 0.6}
+	var top := 0
+	for c in by_cls:
+		top = maxi(top, int(by_cls[c]))
+	var hold_core := 0
+	for id in HOLD_CORES:
+		if RunState.owned_relic_ids.has(id) or String(RunState.run_rule) == id:
+			hold_core += 1
+	var big_core := 0
+	for id in (Anchors.get_def("a_big_hand").get("house_cores", []) as Array):
+		if RunState.owned_relic_ids.has(id):
+			big_core += 1
+	var sc := {"a_volley": n["shield"] + 0.5, "a_mana_mine": n["mana"] * 1.5 + 0.7, "a_gambler": n["gamble"] + 0.6,
+		"a_kin": (3.5 + top if top >= 3 else 0.3), "a_embers": 1.6 + 2.0 * hold_core, "a_big_hand": 1.0 + 0.6 * top + 1.0 * big_core}
 	var best := String(offer[0])
 	for id in offer:
 		if float(sc.get(String(id), 0.0)) > float(sc.get(best, 0.0)):
@@ -910,10 +930,13 @@ func _eval(eng: CombatEngine) -> float:
 			var fi := int(eu.intent.get("face_index", -1))
 			if fi >= 0 and fi < eu.die.size() and String((eu.die[fi] as Dictionary).get("type", "")) == "dmg":
 				thr = float(eng._face_value(eu, fi))
-		v -= float(eu.hp) + 0.8 * float(eu.shield) + 4.0 + thr * 0.8
+		v -= float(eu.hp) + 0.8 * float(eu.shield) + 4.0 + thr * 0.8 + 0.8 * float(eng.shell_of(eu))   # anti-spam B: Shell left is HP left
 		v -= 0.7 * minf(float(eu.status.get("poison", 0)) * -1.0, 0.0)   # (poison counted below as bonus)
 		v += 0.9 * minf(float(eu.status.get("poison", 0)), float(eu.hp))
-	v += 0.5 * float(eng.mana)
+	if CombatEngine.antispam_on("mana_heat"):   # anti-spam A: mana over keep is burned into HP at end of turn
+		v += 0.5 * float(mini(eng.mana, eng.mana_heat_keep())) - 0.9 * float(eng.mana_heat_preview()["dmg"])
+	else:
+		v += 0.5 * float(eng.mana)
 	for f in eng.alive_party():
 		var fu: Unit = f
 		var inc := _incoming(eng, fu)
@@ -1045,6 +1068,8 @@ func _expert_turn_start(eng: CombatEngine, ready: Array, foes: Array) -> void:
 
 
 func _nohold_cores_off(eng: CombatEngine) -> bool:
+	if RunState.anchor_id == "a_embers":
+		return false   # Embers: a Held die comes back +0.50, so the bot parks dice every turn
 	for id in HOLD_CORES:
 		if RunState.owned_relic_ids.has(id) or String(RunState.run_rule) == id:
 			return false
@@ -1064,10 +1089,12 @@ func _core_hold(eng: CombatEngine) -> void:
 		var pick: Unit = null
 		var pv := 1000000
 		# c_key_strike quest (Held die hits for 9+): park the BIGGEST die instead of the smallest.
-		var big: bool = RunState.owned_relic_ids.has("c_key_strike") and not CoreHooks.quest_done(eng, "c_key_strike")
+		var big: bool = (RunState.owned_relic_ids.has("c_key_strike") and not CoreHooks.quest_done(eng, "c_key_strike")) or RunState.anchor_id == "a_embers"   # Embers also parks the biggest die (+0.50 next turn)
 		for u in ready:
 			if not eng.can_stash(u.uid):
 				continue
+			if RunState.anchor_id == "a_embers" and eng._in_bo(u):
+				continue   # never break a SET to park (Shell and every SET bonus punish it); park the leftovers only
 			var fv: int = eng._face_value(u, u.roll_face_index())
 			if big:
 				fv = -fv

@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "c_tidecaller"
 name = "Rising Wave"
-description = "Every 3 Mana you spend deals 2 damage to all enemies."
+description = "Every 2 Mana you spend deals 2 damage to all enemies."
 rarity = 0
 archetype = ""
 mload = 0

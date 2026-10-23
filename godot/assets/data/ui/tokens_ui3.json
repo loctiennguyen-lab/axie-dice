@@ -249,6 +249,10 @@
       "value": "#ffe5b4",
       "meaning": "kam-9, 2 px"
     },
+    "anchor_price": {
+      "value": "#ffb444",
+      "meaning": "Anchor MVP · the PRICE line on an Anchor card (amber, warning, not danger red). Always starts with a minus sign"
+    },
     "house_volley": {
       "value": "#7f9cff",
       "meaning": "Anchor MVP · House Volley (periwinkle). Always paired with the house glyph + name; ring/chip/frame only"
@@ -276,6 +280,14 @@
     "anchor_awake": {
       "value": "#ffd21f",
       "meaning": "Anchor MVP · awakened state: double frame, chip, ui_awaken glyph, AWAKEN chip border. Lemon-gold, more saturated and yellower than rarity_legendary/accent (#ffb444) and egg/cream. Never alone: always with the double frame or the glyph ui_awaken + the word Awakened"
+    },
+    "leader": {
+      "value": "#ffd21f",
+      "meaning": "Pack Alpha run rule: LEADER badge border on the enemy plate. Always with the node_elite glyph and the word LEADER"
+    },
+    "shell": {
+      "value": "#9fb1bf",
+      "meaning": "Resonance Shell bar on Elite/boss plates, steel grey, distinct from shield blue. Always with the face_shield glyph and the word Shell"
     }
   },
   "contrast": [

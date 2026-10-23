@@ -114,6 +114,29 @@ func _ready() -> void:
 	for n in chips5.get_children():
 		for l in n.find_children("*", "Label", true, false):
 			_ok(not (l as Label).text.to_lower().contains("tier"), "no word about the next pick tier")
+	# the three newer Anchors: tile glyph/colour from data, house Core ring + tooltip with the house name
+	for aid in ["a_kin", "a_embers", "a_big_hand"]:
+		var hc: Array = AnchorAdapter.house_cores(aid)
+		var st2 := {"anchor_id": aid, "owned": [hc[0]], "awakened": false}
+		AnchorAdapter.test_state = st2
+		RunState.owned_relic_ids.clear()
+		RunState.owned_relic_ids.append(String(hc[0]))
+		var p2 := CorePanel.new()
+		host.add_child(p2)
+		p2.refresh()
+		_ok(p2.anchor_slot != null, "%s tile shown" % aid)
+		var house := AnchorAdapter.house_id(aid)
+		_ok(p2.anchor_slot.find_child("HouseGlyph", true, false) != null or p2.anchor_slot.find_children("*", "TextureRect", true, false).size() > 0, "%s tile has a glyph" % aid)
+		_ok((p2.find_child("HouseChip", true, false).find_child("Text", true, false) as Label).text.begins_with("House Cores 1/2"), "%s chip 1/2" % aid)
+		var ring := 0
+		for s2 in p2.find_children("CoreSlot_*", "PanelContainer", true, false):
+			if s2.find_child("HouseRing", true, false) != null:
+				ring += 1
+				_ok(str(s2.get_meta("ui3_tip", "")).contains("House Core of " + AnchorAdapter.house_name(house)), "%s ring tooltip names the house" % aid)
+		_ok(ring == 1, "%s one ringed Core" % aid)
+		st2["awakened"] = true
+		p2.refresh()
+		_ok(p2.anchor_slot.find_child("AwakeInnerFrame", true, false) != null, "%s awakened frame" % aid)
 	AnchorAdapter.test_state = null
 	_guard.restore()
 	print("=== t_anchor_hud: %d checks, %d failure(s) ===" % [_checks, _fail])

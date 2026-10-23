@@ -34,7 +34,14 @@ func _ready() -> void:
 	_assert(RunState.pending_rewards.is_empty() and RunState.phase == RunState.RunPhase.REWARD, "pick 1 held back: no Core offer yet")
 	_assert(not RunState._core_offer_active and RunState.core_pick_index == 0, "no Core offer was built before the Anchor")
 	var offer: Array = RunState.anchor_offer.duplicate()
-	_assert(not RunState.pick_anchor("a_kin"), "disabled Anchor refused")
+	# An Anchor that is not in the offer must be refused (the offer is seed-dependent, so pick one that is absent).
+	var not_offered := ""
+	for aid in ["a_kin", "a_volley", "a_gambler", "a_big_hand", "a_embers", "a_mana_mine"]:
+		if not offer.has(aid):
+			not_offered = aid
+			break
+	_assert(not_offered != "", "found an Anchor outside the offer")
+	_assert(not RunState.pick_anchor(not_offered), "Anchor outside the offer refused")
 	var other := "a_nope"
 	_assert(not RunState.pick_anchor(other), "unknown id refused")
 	var pick := String(offer[0])

@@ -19,7 +19,7 @@ func _ready() -> void:
 	for a in en:
 		en_ids.append(a["id"])
 	en_ids.sort()
-	_assert(en_ids == ["a_gambler", "a_mana_mine", "a_volley"], "enabled = Volley, Gambler, Mana Mine: %s" % str(en_ids))
+	_assert(en_ids == ["a_big_hand", "a_embers", "a_gambler", "a_kin", "a_mana_mine", "a_volley"], "enabled = all 6: %s" % str(en_ids))
 	var seen_houses := {}
 	for a in all:
 		var id := String(a["id"])
@@ -47,7 +47,9 @@ func _ready() -> void:
 			_assert(not combo_seen.has(cid), "combo in one house " + String(cid))
 			combo_seen[cid] = true
 			_assert(Anchors.house_of_combo(String(cid)) == String(h["id"]), "house_of_combo " + String(cid))
-	_assert(combo_seen.size() == 14, "all 14 combos assigned")
+	# all() skips disabled combos (Volcano), houses still list them, so check "every live combo has a house".
+	for c in CoreCombos.all():
+		_assert(combo_seen.has(String((c as Dictionary).get("id", ""))), "live combo has a house " + String((c as Dictionary).get("id", "")))
 	_assert(Anchors.house_of_combo("combo_x") == "", "house_of_combo unknown")
 
 	# offer_three: deterministic, distinct, input-order independent

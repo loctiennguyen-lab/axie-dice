@@ -18,10 +18,10 @@ core("elder_trunk", "Thân Cổ Thụ", "Elder Trunk", 0, "stat", [], [], ["nona
 core("prime_chain", "Chuỗi Mồi", "Prime Chain", 0, "dice", [], [], ["nonattack", "convert_to_dmg"], "Using a shield or mana face primes the neighbouring Axies: their next damage face this turn deals +3.")
 core("finisher", "Kết Cục", "Final Blow", 0, "dice", [], [], ["nonattack"], "The last die you use each turn gets +1 for every die used before it (max +4).")
 core("prism", "Đa Sắc", "Prism", 1, "dice", ["faces_distinct:4"], [], ["nonattack"], "End of turn: if you used 4 or more different face types, the whole team gains 3 Shield and +2 Mana.")
-core("steady_hold", "Giữ Vững", "Steady Hold", 1, "dice", [], ["rule:rule_tundra"], ["nonattack"], "You can Hold 2 dice per turn, and the same die can be held two turns in a row.")
+core("steady_hold", "Giữ Vững", "Steady Hold", 1, "dice", [], ["rule:rule_tundra"], ["nonattack"], "You can Hold 2 dice per turn, and the same die can be held two turns in a row. A Held die gets +1 for every turn it has been held (max +3), lost once it is used.")
 core("kindle", "Cất Lửa", "Kindle", 1, "dice", [], [], ["nonattack"], "A Held die has Focus: used next turn it deals +4 (+8 if held two turns in a row).")
 core("sonic_shield", "Sóng Khiên", "Shield Wave", 1, "dice", ["face:shield"], [], ["nonattack", "convert_to_dmg"], "Shield and heal faces also deal damage equal to half their value (rounded up) to the enemy targeting that Axie.")
-core("fissure", "Vết Nứt", "Fissure", 1, "dice", ["face:poison|debuff"], [], ["nonattack", "convert_to_dmg"], "Poison and debuff faces that hit make the enemy take +25% from all damage until the end of next turn and strip its Armor.")
+core("fissure", "Vết Nứt", "Fissure", 1, "dice", ["face:poison|weaken|vulnerable|blind|freeze|stun"], [], ["nonattack", "convert_to_dmg"], "Poison and debuff faces that hit make the enemy take +25% from all damage until the end of next turn and strip its Armor.")
 core("field_medic", "Y Sĩ Chiến Trường", "Field Medic", 1, "dice", ["faces_distinct:3", "faces_nondmg:2"], ["owned:c_toxic_still"], ["nonattack", "tradeoff"], "Damage faces deal 2 less (min 1). Heal, shield, poison, mana and debuff faces get +3.")
 core("plague_spread", "Độc Lan", "Contagion", 1, "dice", ["face:poison"], [], ["nonattack", "convert_to_dmg"], "When a poisoned enemy dies, its remaining poison spreads to every living enemy. Poison faces give +2 stacks.")
 core("mirror_face", "Mặt Gương", "Mirror Face", 2, "dice", [], [], ["nonattack"], "The first die you use each turn is not spent: use it a second time, with a new target. The second use gets no Prime, Finisher or Focus.")
@@ -36,13 +36,13 @@ core("gatekeeper", "Kẻ Gác Cổng", "Gatekeeper", 1, "pos", [], FRONT_EXC, ["
 core("thorn_growth", "Gai Mọc", "Thorn Growth", 1, "pos", ["front_hero", "face:thorns|shield"], FRONT_EXC, ["nonattack", "front"], "Each time a front-row Axie is hit by a single-target attack, it gains +1 Thorns for the rest of the fight.")
 core("thorn_shield", "Khiên Gai", "Thorn Shield", 1, "stat", ["face:shield|thorns"], [], ["nonattack"], "End of your turn, every 2 leftover Shield on an Axie turns into 1 Thorns (that Shield is lost).")
 core("thorn_rebound", "Phản Chấn", "Rebound", 2, "rule", ["face:thorns|shield"], [], ["nonattack", "tradeoff"], "The Axie with the most Thorns reflects its Thorns a second time on every hit, but it cannot use damage faces.")
-core("backline_glow", "Hàng Sau Phát Sáng", "Backline Glow", 1, "pos", ["back_face:heal|mana|buff"], [], ["nonattack"], "Back-row Axies: buff, heal and mana faces get +50% (rounded up, at most +8).")
+core("backline_glow", "Hàng Sau Phát Sáng", "Backline Glow", 1, "pos", ["back_face:heal|mana|buff"], ["owned:c_open_ranks"], ["nonattack"], "Back-row Axies: buff, heal and mana faces get +50% (rounded up, at most +8).")
 core("living_wall", "Bức Tường Sống", "Living Wall", 2, "pos", [], ["owned:c_open_ranks"] + FRONT_EXC, ["nonattack", "front"], "Only slot 1 is the front row. That Axie gets +12 Max HP and 2 Thorns. The other four are the back row.")
-core("open_ranks", "Đội Hình Mở", "Open Ranks", 2, "pos", ["owned_tag:front"], ["owned:c_living_wall", "owned:c_backline_glow", "owned:c_descend", "rule:rule_rising_tide"] + FRONT_EXC, ["nonattack", "front"], "No back row: all 5 Axies are front row, and every front-row Core applies to the whole team.")
+core("open_ranks", "Đội Hình Mở", "Open Ranks", 2, "pos", [], ["owned:c_living_wall", "owned:c_backline_glow", "owned:c_descend", "rule:rule_rising_tide"] + FRONT_EXC, ["nonattack", "front"], "No back row: all 5 Axies are front row, and every front-row Core applies to the whole team.")
 core("growing_shell", "Mai Lớn Dần", "Growing Shell", 1, "pos", ["front_hero"], FRONT_EXC, ["nonattack", "front"], "Each enemy a front-row Axie kills gives it +1 Max HP for the run. If it falls, it loses two thirds of the stacks.")
-core("descend", "Xuống Trận", "Take The Field", 2, "pos", ["back_face:heal"], FRONT_EXC, ["nonattack", "convert_to_dmg"], "Pick a back-row Axie with heal faces: it moves to the front for good, its heal and buff faces become damage faces +2, +8 Max HP, 30% lifesteal.")
+core("descend", "Xuống Trận", "Take The Field", 2, "pos", ["back_face:heal"], ["owned:c_open_ranks"] + FRONT_EXC, ["nonattack", "convert_to_dmg"], "Pick a back-row Axie with heal faces: it moves to the front for good, its heal and buff faces become damage faces +2, +8 Max HP, 30% lifesteal.")
 # ---- mana
-core("tidecaller", "Ngọn Triều", "Rising Wave", 0, "mana", [], [], ["nonattack", "convert_to_dmg"], "Every 3 Mana you spend deals 2 damage to all enemies.")
+core("tidecaller", "Ngọn Triều", "Rising Wave", 0, "mana", [], [], ["nonattack", "convert_to_dmg"], "Every 2 Mana you spend deals 2 damage to all enemies.")
 core("mana_pool", "Hồ Mana", "Mana Pool", 0, "mana", [], ["rule:rule_dry_steppe"], ["nonattack"], "Mana faces give +1. End of turn: every 3 unspent Mana earns 1 more (max +3 per turn).")
 core("mana_ward", "Đổi Mana Lấy Khiên", "Mana Ward", 1, "mana", [], [], ["nonattack"], "End of turn, spend up to 6 unused Mana: every 2 Mana gives each front-row Axie 3 Shield.")
 core("overflow", "Bể Tràn", "Overflow", 1, "mana", [], ["rule:rule_dry_steppe"], ["nonattack", "convert_to_dmg"], "Mana above 8 turns into pierce damage to all enemies and drops back to 8.")
@@ -57,7 +57,7 @@ core("key_strike", "Trọng Điểm", "Key Strike", 1, "quest", [], [], ["nonatt
 core("chimera_hunt", "Săn Chimera", "Chimera Hunt", 1, "quest", [], [], ["attack"], "Quest in 3 steps: kill 8 enemies with a finishing die for +1 Core reroll; kill 20 for an Amber Core pick; kill a boss with a finishing die for a Crystal Core pick.", quest={"kind": "finisher_kills", "steps": [{"target": 8, "reward_tier": -1, "reward": "core_reroll"}, {"target": 20, "reward_tier": 1}, {"target": 1, "reward_tier": 2, "boss": True}]})
 # ---- rule (axis "rule")
 core("nest", "Tổ Ấm", "Nest", 0, "rule", [], [], ["nonattack", "egg"], "Start of combat: 1 Egg. Eggs count as front row, so single-target enemy attacks can pick them.")
-core("golden_egg", "Trứng Vàng", "Golden Egg", 1, "rule", ["egg_source"], [], ["nonattack"], "When an Egg dies: +3 Mana, 4 Shield to your weakest Axie, and your team's next damage face gets +3.")
+core("golden_egg", "Trứng Vàng", "Golden Egg", 1, "rule", ["egg_source"], [], ["nonattack"], "When an Egg dies, or hatches (once per turn): +3 Mana, 4 Shield to your weakest Axie, and your team's next damage face gets +3.")
 core("blood_sign", "Chữ Ký Máu", "Blood Sign", 2, "rule", ["face:poison"], [], ["nonattack", "convert_to_dmg"], "Damage faces add 1 poison per 3 damage dealt (rounded down). Poison faces also deal damage equal to half their value.")
 core("loop", "Vòng Lặp", "Loop", 2, "rule", ["face:cantrip"], [], ["nonattack"], "Cantrip faces reroll and are used one extra time each turn.")
 core("cascade", "Thác Đổ", "Cascade", 2, "rule", [], ["rule:rule_balance", "owned:c_toxic_still"], ["attack"], "Damage faces used back to back form a chain: the 2nd gets +2, the 3rd +4, the 4th +6, the 5th+ +8. Using a non-damage face breaks the chain.")
@@ -75,6 +75,19 @@ core("squad_up", "Hợp Đội", "Squad Up", 1, "pos", ["class_pair"], [], ["att
 core("wicked_tally", "Tích Ác", "Wicked Tally", 1, "dice", [], [], ["attack"], "Each time a finishing die kills an enemy it gets +1 for the run (max +6).", disabled=True, needs="cut 2.10")
 core("verdict", "Phán Quyết", "Verdict", 2, "rule", [], [], ["attack"], "Enemies under 20% HP die at once (not bosses). Finishing faces always Execute.", disabled=True, needs="cut 2.10")
 
+# ---- Cores v5 (design/proposals/cores-rules-v5.md section 10, 23/10)
+core("bloodline_ward", "Phòng Thủ Huyết Thống", "Bloodline Ward", 0, "pos", ["class_pair"], [], ["nonattack"], "When an Axie gains Shield from a shield face, each adjacent Axie of the same class gains half of it (rounded up).")
+core("smoldering", "Than Âm Ỉ", "Smoldering Coals", 0, "mana", [], ["rule:rule_dry_steppe"], ["nonattack"], "End of turn: each Held die gives +1 Mana (max +2 per turn).")
+core("cache_plate", "Giáp Cất", "Cache Plate", 1, "dice", ["face:shield"], [], ["nonattack"], "When you Hold a die showing a shield face, its Axie gains half that Shield now (rounded up, min 2, max 6, no M). Once per die per turn. The die keeps its full face for next turn.")
+core("golden_thread", "Sợi Chỉ Vàng", "Golden Thread", 1, "mana", ["stage_min:2"], [], ["nonattack"], "Wild Face costs 1 less Mana (min 1) and can be used 2 times per fight. A Set of four made with a Wild Face gets +0.20 M.")
+core("last_testament", "Di Chúc", "Last Testament", 2, "rule", ["class_pair"], [], ["nonattack"], "When an Axie falls, every living Axie of its class gets +2 on every face until the end of the fight (max +6). Eggs do not count.", first_run_hidden=True)
+core("melting_pot", "Nồi Lẩu Thập Cẩm", "Melting Pot", 1, "pos", ["classes_distinct:3"], ["anchor:a_kin", "owned:c_concord"], ["nonattack", "tradeoff"], "If your team has 3 or more classes and no two Axies share a class, every Set gets +0.25 M.")
+core("hunters_reward", "Tiền Săn", "Hunter's Reward", 0, "dice", [], [], ["nonattack"], "First time each turn a paid reroll makes a Set appear or grow: that reroll's Mana is refunded and every Axie in the Set gains 3 Shield.")
+core("support_hand", "Tay Hộ Pháp", "Support Hand", 1, "dice", ["face:shield|heal|mana"], [], ["nonattack"], "In a Set of three or more, each die showing a shield, heal or mana face gets +2 (counts toward the +10 flat cap).")
+core("cracked_glass", "Kính Nứt", "Cracked Glass", 1, "dice", [], [], ["nonattack", "convert_to_dmg"], "A Cracked die that you use also sprays shards: pierce damage to all enemies equal to half its face value (rounded up), up to 3 times per turn.")
+core("high_roller", "Tay Chơi Lớn", "High Roller", 2, "rule", ["anchor:a_gambler"], [], ["nonattack", "tradeoff"], "A Gamble of 3+ dice: if no die Cracks, every die in it gets +2 until end of turn. If one die Cracks, all of them Crack.", first_run_hidden=True)
+core("magma_seed", "Hạt Dung Nham", "Magma Seed", 2, "dice", [], ["rule:rule_tundra"], ["nonattack"], "A die Held two turns in a row erupts when used: its damage face hits ALL enemies for x1.25 (rounded up), no armor pierce. This Core lets a die be Held again.", first_run_hidden=True, disabled=True, keep_hook=True, needs="sim at integration")
+
 # Run rules: slug, vn, name, weight, desc, extra
 R = []
 def rule(slug, vn, name, weight, desc, **extra):
@@ -88,12 +101,17 @@ rule("starfall", "Mưa Sao Khởi Nguyên", "Genesis Starfall", 1, "Your first C
 rule("heavy_finish", "Kết Nặng", "Heavy Finish", 1, "The last die you use each turn gets +3, but enemies deal 10% more damage.", knobs={"finisher_bonus": 3, "enemy_dmg_mult": 1.1})
 rule("wasteland", "Đất Hoang Huyền Bí", "Mystic Wasteland", 1, "Only 3 Core picks (no pick after the elite), but each shows 4 cards. Every Axie +4 Max HP.", knobs={"core_picks": 3, "core_cards": 4, "party_hp": 4})
 rule("dry_steppe", "Thảo Nguyên Khô", "Dry Steppe", 1, "Mana does not carry over: leftover Mana is lost at end of turn. +2 Mana at the start of every turn.", knobs={"mana_carry": 0, "turn_mana": 2})
-rule("rising_tide", "Thuỷ Triều Lên", "Rising Tide", 1, "Each fight one row is in the water: the front row takes 25% less damage, or the back row's damage faces get +2. They alternate fight by fight.", knobs={"front_dmg_taken": 0.75, "back_dmg": 2})
+rule("rising_tide", "Thuỷ Triều Lên", "Rising Tide", 1, "Each fight one row is in the water: the front row takes 25% less damage, or the back row's damage faces get +2. They alternate fight by fight.", knobs={"front_dmg_taken": 0.75, "back_dmg": 2}, excludes_extra=["owned:c_open_ranks"])
 rule("upside_down", "Thế Giới Lộn Ngược", "Upside Down", 1, "Single-target enemy attacks pick the back row first. The front row only takes AoE.", knobs={"enemy_target_row": "back"})
 rule("old_forest", "Rừng Già", "Old Forest", 2, "Every Axie and enemy has +30% HP. Heal and poison faces are 50% stronger. Fights run long, so spamming damage runs out of steam.", knobs={"hp_mult": 1.3, "heal_poison_mult": 1.5})
 rule("crow", "Quạ Đưa Tin", "Crow Herald", 1, "The fight before each Core pick (from pick 2): win within 5 turns (boss 7) with nobody down and the pick is one tier higher; if an Axie falls, one tier lower.", knobs={"fast_turns": 5, "fast_turns_boss": 7})
 rule("hard_shell", "Vỏ Cứng", "Hard Shell", 2, "Every enemy has Armor 2: single-target damage faces deal 2 less (min 1). Poison, pierce, thorns and AoE are not reduced. Shield, poison and debuff faces get +2.", knobs={"plating_global": 2, "side_face_bonus": 2}, requires_extra=["team_can_break"])
 rule("balance", "Thế Cân Bằng", "Balance", 2, "From the 3rd damage face each turn, damage faces deal 2 less (min 1). Every non-damage face you use gives +1 Mana. You cannot stack five attacks.", knobs={"dmg_use_soft_cap": 2, "dmg_overuse_penalty": 2, "nondmg_mana": 1})
+
+rule("pack_alpha", "Thủ Lĩnh Bầy", "Pack Alpha", 2, "In normal and elite fights the enemy with the most HP is the Pack Alpha (+25% HP). While it lives, other enemies take 50% less from single-target damage faces (min 1; AoE, poison, thorns and pierce are not reduced). When it falls, every other enemy loses 20% of its current HP. Not in boss fights.", knobs={"alpha_hp_mult": 1.25, "others_single_mult": 0.5, "alpha_death_pct": 0.2})
+rule("set_is_king", "Bộ Là Vua", "Set Is King", 2, "A die inside a SET (3+) gets +2 on its face; a die in no SET gets -2 (min 1). No free reroll.", rerollUp=-1, disabled=True, keep_hook=True, needs="sim", knobs={"set_dice_bonus": 2, "nonset_penalty": 2, "free_reroll": 0})
+rule("pilot_light", "Lửa Mồi", "Pilot Light", 1, "Turn 1 of each fight your damage faces deal 0, but you can Hold up to 4 dice, and each die Held on turn 1 gets +3 when used on turn 2. Normal and elite enemies have +10% HP. Not in boss fights.", disabled=True, keep_hook=True, needs="sim", knobs={"t1_dmg_mult": 0, "t1_stash_cap": 4, "held_bonus": 3, "enemy_hp_mult": 1.1})
+rule("high_stakes", "Ván Bạc", "High Stakes", 1, "Every paid reroll is a Gamble (Crack 20% per die, no Mana cost). A clean Gamble gives each rerolled Axie 3 Shield, and the first clean Gamble each turn gives +1 Mana. Free rerolls stay Safe.", knobs={"paid_all_gamble": True, "crack_chance": 0.2, "clean_mana": 1, "clean_mana_per_turn": 1, "clean_shield": 3}, requires_extra=["stage_min:2"])
 
 def q(s): return '"' + s.replace('\\', '\\\\').replace('"', '\\"') + '"'
 def psa(l): return "PackedStringArray(" + ", ".join(q(x) for x in l) + ")" if l else "PackedStringArray()"
@@ -113,11 +131,12 @@ def emit(dirp, id_, name, desc, tier, axis, req, exc, tags, layer, idx, extra, i
     L.append("id = " + q(id_)); L.append("name = " + q(name)); L.append("description = " + q(desc))
     L.append("rarity = %d" % tier); L.append('archetype = ""'); L.append("mload = 0")
     L.append("sort_index = %d" % (200000 + tier * 1000 + idx))
-    L.append("hook_key = " + q("" if (extra.get("disabled") or id_ in NOHOOK) else id_)); L.append("tags = " + psa(tags)); L.append("layer = " + q(layer))
+    L.append("hook_key = " + q("" if ((extra.get("disabled") and not extra.get("keep_hook")) or id_ in NOHOOK) else id_)); L.append("tags = " + psa(tags)); L.append("layer = " + q(layer))
     L.append("core_axis = " + q("run_rule" if is_rule else axis))
     if req: L.append("requires = " + psa(req))
     if exc: L.append("excludes = " + psa(exc))
     ex = dict(extra)
+    ex.pop("keep_hook", None)
     if ex.pop("disabled", False): L.append("disabled = true"); L.append("hidden_from_pool = true")
     if ex.pop("first_run_hidden", False): L.append("first_run_hidden = true")
     if is_rule: L.append("run_rule = true"); L.append("weight = %d" % weight)
@@ -151,7 +170,8 @@ def main():
         if only and id_ not in only: continue
         ex = dict(r["extra"]); kn = ex.pop("knobs", {})
         rq = ex.pop("requires_extra", [])
-        open(os.path.join(out, id_ + ".tres"), "w").write(emit(out, id_, r["name"], r["desc"], 0, "run_rule", rq, [], ["rule"], "engine", 500 + i, ex, is_rule=True, weight=r["weight"], knobs=kn))
+        rx = ex.pop("excludes_extra", [])
+        open(os.path.join(out, id_ + ".tres"), "w").write(emit(out, id_, r["name"], r["desc"], 0, "run_rule", rq, rx, ["rule"], "engine", 500 + i, ex, is_rule=True, weight=r["weight"], knobs=kn))
         n += 1
     print("wrote", n)
 

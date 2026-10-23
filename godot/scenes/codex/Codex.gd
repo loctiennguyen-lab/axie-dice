@@ -237,6 +237,7 @@ func _select_tab(key: String) -> void:
 ## One tile per Core / combo. Unmet = dimmed plate with "?" (the name is NOT in the tree, so it cannot leak).
 func _fill_book(key: String) -> void:
 	UI3Meta.clear(_book_grid)
+	_close_anchor_detail()
 	var seen_n := 0
 	var total := 0
 	if key == "cores":
@@ -265,8 +266,14 @@ func _fill_book(key: String) -> void:
 				chips.append("Picked")
 			if bool(e.get("awakened", false)):
 				chips.append("Awakened")
-			_book_grid.add_child(_tile("AnchorTile_%s" % id, seen, AnchorAdapter.name_of(id),
-				AnchorAdapter.house_name(AnchorAdapter.house_id(id)) + (" · " + ", ".join(chips) if not chips.is_empty() else "")))
+			var tile := _tile("AnchorTile_%s" % id, seen, AnchorAdapter.name_of(id),
+				AnchorAdapter.house_name(AnchorAdapter.house_id(id)) + (" · " + ", ".join(chips) if not chips.is_empty() else ""))
+			if seen:   # click a met Anchor: its Rule / Price / Awakens (same blocks as the pick screen)
+				tile.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+				tile.gui_input.connect(func(ev: InputEvent) -> void:
+					if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+						_show_anchor_detail(id))
+			_book_grid.add_child(tile)
 	else:
 		for c in ComboAdapter.all():
 			total += 1
@@ -285,6 +292,41 @@ func _fill_book(key: String) -> void:
 		l.name = "BookEmpty"
 		_book_grid.add_child(l)
 	_lede.text = "%s  %d of %d met." % [BOOK_LEDE[key], seen_n, total]
+
+
+## Detail of one met Anchor above the grid; clicking the same tile (or the panel) again closes it.
+func _show_anchor_detail(id: String) -> void:
+	var was := _book_grid.get_parent().get_node_or_null("AnchorDetail")
+	var same: bool = was != null and String(was.get_meta("anchor_id", "")) == id
+	_close_anchor_detail()
+	if same:
+		return
+	var house := AnchorAdapter.house_id(id)
+	var panel := UI3.plate(&"card")
+	panel.name = "AnchorDetail"
+	panel.set_meta("anchor_id", id)
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	panel.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.pressed:
+			_close_anchor_detail())
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 8)
+	panel.add_child(col)
+	var top := UI3.label("%s · %s" % [AnchorAdapter.name_of(id), AnchorAdapter.house_name(house)], "LabelTitle")
+	top.name = "DetailTitle"
+	top.add_theme_color_override("font_color", AnchorAdapter.house_color(house))
+	col.add_child(top)
+	AnchorPick.add_text_blocks(col, id)
+	var par := _book_grid.get_parent()
+	par.add_child(panel)
+	par.move_child(panel, _book_grid.get_index())
+
+
+func _close_anchor_detail() -> void:
+	var d := _book_grid.get_parent().get_node_or_null("AnchorDetail") if _book_grid != null and _book_grid.get_parent() != null else null
+	if d != null:
+		d.get_parent().remove_child(d)
+		d.queue_free()
 
 
 const TierWords := ["Moss", "Amber", "Crystal"]

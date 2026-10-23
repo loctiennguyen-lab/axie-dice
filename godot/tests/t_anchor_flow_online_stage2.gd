@@ -43,7 +43,13 @@ func _ready() -> void:
 	UI3Gacha.instant_override = 1
 	AnchorAdapter.test_state = null
 	# ---- stage 2, online-style source, normal
-	_start(501, 2, false)
+	# The offer is 3 of 6 Anchors by seed, so scan for a seed whose offer holds Mana Mine and Volley/Gambler.
+	for sd in range(501, 701):
+		_start(sd, 2, false)
+		RunState.anchor_offer_open()
+		var offer: Array = RunState.anchor_offer
+		if offer.has("a_mana_mine") and (offer.has("a_volley") or offer.has("a_gambler")):
+			break
 	_ok(not (RunState.epoch is LocalEpochSource), "epoch source is non-local")
 	_ok(RunState.anchor_gate_reason() == "", "gate open: " + RunState.anchor_gate_reason())
 	var rm: Node = await _map()
@@ -86,7 +92,7 @@ func _ready() -> void:
 	rm.queue_free()
 	await _frames(2)
 	# ---- stage 1: no screen
-	_start(502, 1, false)
+	_start(504, 1, false)
 	var rm1: Node = await _map()
 	_ok(RunState.anchor_gate_reason() == "stage" and not RunState._anchor_waiting and RunState.anchor_id == "", "stage 1: gate shut")
 	_ok(rm1.find_child("AnchorPick", true, false) == null, "stage 1: no Anchor screen")

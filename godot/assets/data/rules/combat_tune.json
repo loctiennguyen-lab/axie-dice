@@ -29,7 +29,8 @@
   "cap": 0
  },
  "core": {
-  "mult_cap": 8
+  "mult_cap": 8,
+  "steady_hold_max": 3
  },
  "wild": {
   "cost": 2,
@@ -138,14 +139,48 @@
   "volley_pct_5": 90,
   "volley_cap": 20,
   "volley_set_add": 0.0,
-  "gambler_set_add": 0.35,
+  "gambler_set_add": 0.55,
   "gambler_turn_cap": 0.60,
-  "gambler_crack_pct": 15,
-  "mine_mana": 1,
+  "gambler_crack_pct": 10,
+  "mine_mana": 2,
   "mine_overcast_cost": 1,
   "mine_wild_cost": 2,
   "beat_per_turn": 2,
-  "beat_cost2": 2
+  "beat_cost2": 2,
+  "kin_class_n": 3,
+  "kin_set_add": 0.30,
+  "kin_miss_pen": 0.25,
+  "unison_max": 4,
+  "embers_hold_n": 2,
+  "embers_add": 1.50,
+  "big_set45_add": 0.60,
+  "sixth_hand_min_set": 4
  },
+ "mana_heat": {
+  "enabled": false,
+  "keep": 3,
+  "dmg": 2,
+  "per_turn_cap": 6,
+  "pierce": 1,
+  "target_front": 1,
+  "anchor_mine_keep_add": 2
+ },
+ "shell": {
+  "enabled": true,
+  "pct": 25,
+  "off_set_pct": 50,
+  "stage_min": 2,
+  "elite": 1,
+  "boss": 1,
+  "boss_open_turn_off": 1
+ },
+ "chain": {
+  "enabled": false,
+  "step_pct": 15,
+  "max": 3,
+  "repeat_pct": -10,
+  "types": ["dmg", "shield", "heal", "poison", "debuff", "mana"]
+ },
+ "_doc_antispam_v5": "design/proposals/anti-spam-v5.md. A mana_heat / B shell / C chain, each OFF by default (enabled=false = old behaviour). Defaults are the middle of the proposed ranges.",
  "_doc_depth_v3_traits": "Depth v3 6.7/6.7b anti-spam mechanics. plating.* = M1/M6 (P = clamp(round(budget/div), min, max); off_turns after any debuff/poison; decay_turn = anti-stall, non-boss Plating -1 per turn from it, ward stops). ward.* = M2, mend.* = M4 (fight_cap_pct of the source's own max HP), spite.* = M3, charge.* = M5 (period 4: charge turn n%period==charge_at, strike n%period==0), traits.* = max trait bearers in a normal fight (early = before the first Elite), run_rules.* = R12/R13."
 }

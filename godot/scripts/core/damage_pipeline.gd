@@ -70,6 +70,11 @@ static func resolve(ctx: Dictionary) -> int:
 		v = 0.0                                                                  # patientfang drawback, after ALL bonuses
 		EventBus.float_text.emit(tgt.uid, "0", "dmg", 0)
 
+	if src != null and src.side == "p" and CoreHooks.RelicHooks_has(combat, "rule_pilot_light"):
+		v = CoreHooks.pilot_dmg(combat, src, ctx, v)                              # Pilot Light (R15): turn-1 damage faces
+		if v <= 0.0:
+			EventBus.float_text.emit(tgt.uid, "0", "dmg", 0)
+
 	# ---- target side (steps 6-13) — always ----
 	if tgt.status.get("vulnerable", 0) > 0:
 		v = ceil(v * 1.5)                                                        # 6. vulnerable
@@ -85,6 +90,8 @@ static func resolve(ctx: Dictionary) -> int:
 	if attack or tgt.side == "e":
 		v = float(RelicHooks.run_value_hook(combat, "incoming_dmg", {"src": src, "tgt": tgt, "combat": combat,
 			"single": bool(ctx.get("single", false)), "pierce": pierce, "attack": attack}, v))   # 6d. Cores / rules (Bastion, Fissure, Rising Tide)
+	if tgt.side == "e" and tgt.custom_state.has("shell") and combat.has_method("shell_absorb"):
+		v = combat.shell_absorb(tgt, v, combat.shell_off_set(src, attack, String(ctx.get("face_type", "dmg")), pierce))   # 6e. Shell (anti-spam v5 B)
 	if tgt.side == "p":
 		var dr := RelicHooks.sum(combat, "dr")
 		if dr > 0.0:
@@ -252,7 +259,7 @@ static func apply_shield(combat, tgt: Unit, value: int) -> void:
 	if tgt.side == "p" and tgt.cls == "plant" and tgt.shield >= int(RelicHooks.field(combat, "bulwark_at", 10.0)):
 		tgt.status["thorns"] = StatusEngine.clamp_thorns(max(int(tgt.status.get("thorns", 0)), int(RelicHooks.field(combat, "bulwark_thorns", 2.0))))
 	if tgt.side == "p":
-		RelicHooks.fire(combat, "on_shield", {"v": v, "tgt": tgt, "combat": combat})
+		RelicHooks.fire(combat, "on_shield", {"v": v, "tgt": tgt, "combat": combat, "face": ("shield_from_face" in combat and bool(combat.shield_from_face))})
 
 
 static func on_enemy_death(combat, e: Unit, killer: Unit = null) -> void:

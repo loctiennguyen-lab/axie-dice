@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rule_high_stakes"
+name = "High Stakes"
+description = "Every paid reroll is a Gamble (Crack 20% per die, no Mana cost). A clean Gamble gives each rerolled Axie 3 Shield, and the first clean Gamble each turn gives +1 Mana. Free rerolls stay Safe."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200517
+hook_key = "rule_high_stakes"
+tags = PackedStringArray("rule")
+layer = "engine"
+core_axis = "run_rule"
+requires = PackedStringArray("stage_min:2")
+run_rule = true
+weight = 1
+rule_knobs = {"paid_all_gamble": true, "crack_chance": 0.2, "clean_mana": 1, "clean_mana_per_turn": 1, "clean_shield": 3}

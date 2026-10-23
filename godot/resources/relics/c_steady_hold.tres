@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "c_steady_hold"
 name = "Steady Hold"
-description = "You can Hold 2 dice per turn, and the same die can be held two turns in a row."
+description = "You can Hold 2 dice per turn, and the same die can be held two turns in a row. A Held die gets +1 for every turn it has been held (max +3), lost once it is used."
 rarity = 1
 archetype = ""
 mload = 0

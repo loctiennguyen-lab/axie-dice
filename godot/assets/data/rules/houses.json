@@ -27,7 +27,9 @@
   "name_en": "Gambler",
   "combo_ids": [
    "combo_bramble_hide",
-   "combo_lake_fishing"
+   "combo_lake_fishing",
+   "combo_glass_bet",
+   "combo_high_roller_table"
   ],
   "mutation": {
    "name_en": "Crack Mana",
@@ -73,7 +75,9 @@
   "name_en": "Kin",
   "combo_ids": [
    "combo_golden_nest",
-   "combo_ancient_turtle"
+   "combo_ancient_turtle",
+   "combo_chorus_wall",
+   "combo_funeral_pyre"
   ],
   "mutation": {
    "name_en": "Cover",
@@ -93,7 +97,9 @@
   "name_en": "Embers",
   "combo_ids": [
    "combo_slow_burn",
-   "combo_final_stroke"
+   "combo_final_stroke",
+   "combo_banked_fire",
+   "combo_volcano"
   ],
   "mutation": {
    "name_en": "Last Strike",
@@ -113,7 +119,10 @@
   "name_en": "Big Hand",
   "combo_ids": [
    "combo_dice_rainbow",
-   "combo_rain"
+   "combo_rain",
+   "combo_sewn_hand",
+   "combo_hand_of_aid",
+   "combo_hot_pot"
   ],
   "mutation": {
    "name_en": "Hunt Four",

@@ -16,4 +16,4 @@ tags = PackedStringArray("nonattack", "convert_to_dmg")
 layer = "positional"
 core_axis = "pos"
 requires = PackedStringArray("back_face:heal")
-excludes = PackedStringArray("rule:rule_upside_down")
+excludes = PackedStringArray("owned:c_open_ranks", "rule:rule_upside_down")
