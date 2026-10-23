@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_cache_plate"
+name = "Cache Plate"
+description = "When you Hold a die showing a shield face, its Axie gains half that Shield now (rounded up, min 2, max 6, no M). Once per die per turn. The die keeps its full face for next turn."
+rarity = 1
+archetype = ""
+mload = 0
+sort_index = 201058
+hook_key = "c_cache_plate"
+tags = PackedStringArray("nonattack")
+layer = "dice"
+core_axis = "dice"
+requires = PackedStringArray("face:shield")

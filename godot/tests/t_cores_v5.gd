@@ -10,6 +10,9 @@ func _ready() -> void:
 	EventBus.core_fired.connect(func(id: String, uid: int, amt: int, kind: String): _log.append([id, uid, amt, kind]))
 	t_tokens()
 	t_k1()
+	t_e1()
+	t_e2()
+	t_b2()
 	if _fails.is_empty():
 		print("t_cores_v5: PASS - %d checks OK" % _checks)
 		get_tree().quit(0)
@@ -98,3 +101,69 @@ func t_k1() -> void:
 		c3.party[k].shield = 0
 	DamagePipeline.apply_shield(c3, c3.party[2], 6)
 	_ok(c3.party[1].shield == 0 and c3.party[3].shield == 0, "K1: non-face Shield does not spread")
+
+
+func t_e1() -> void:
+	var c := _combat(["c_smoldering"])
+	c.party[0].held = true
+	c.party[1].held = true
+	c.party[2].held = true
+	var m0 := c.mana
+	RelicHooks.fire(c, "on_turn_end", {"combat": c})
+	_ok(c.mana == m0 + 2, "E1: 3 Held dice give +2 (cap), got %d" % (c.mana - m0))
+	var c2 := _combat(["c_smoldering"])
+	c2.party[0].held = true
+	var m2 := c2.mana
+	RelicHooks.fire(c2, "on_turn_end", {"combat": c2})
+	_ok(c2.mana == m2 + 1, "E1: 1 Held die gives +1")
+	var c3 := _combat(["c_smoldering"])
+	var m3 := c3.mana
+	_log.clear()
+	RelicHooks.fire(c3, "on_turn_end", {"combat": c3})
+	_ok(c3.mana == m3 and _fired("c_smoldering") == 0, "E1: no Held die, nothing")
+
+
+func t_e2() -> void:
+	var c := _combat(["c_cache_plate"])
+	var u: Unit = c.party[1]
+	u.shield = 0
+	u.die[0] = _face("shield", 7)
+	u.set_roll(0, false)
+	_ok(c.stash(u.uid), "E2: stash works")
+	_ok(u.shield == 4, "E2: Hold a shield 7 gives 4 (half, rounded up), got %d" % u.shield)
+	# once per die per turn: undo then re-stash does not stack (state is in the undo snapshot), second stash of the same uid is refused by the state key
+	CoreHooks.cache_plate_stash({"combat": c, "unit": u, "face": _face("shield", 7)})
+	_ok(u.shield == 4, "E2: at most once per die per turn")
+	var c2 := _combat(["c_cache_plate"])
+	var u2: Unit = c2.party[0]
+	u2.shield = 0
+	u2.die[0] = _face("dmg", 7)
+	u2.set_roll(0, false)
+	c2.stash(u2.uid)
+	_ok(u2.shield == 0, "E2: a damage face gets no Shield")
+	var c3 := _combat(["c_cache_plate"])
+	var u3: Unit = c3.party[1]
+	u3.shield = 0
+	u3.die[0] = _face("shield", 1)
+	u3.set_roll(0, false)
+	c3.stash(u3.uid)
+	_ok(u3.shield == 2, "E2: minimum 2")
+
+
+func t_b2() -> void:
+	var c := _combat(["c_golden_thread"])
+	var base := _combat([])
+	_ok(c.wild_cost() == base.wild_cost() - 1, "B2: Wild Face costs 1 less")
+	_ok(c.wild_per_battle() == base.wild_per_battle() + 1, "B2: 2 uses per fight")
+	var mine := _combat(["c_golden_thread"], 3, "a_mana_mine")
+	_ok(mine.wild_cost() == int(CombatEngine.tune_knob("anchor", "mine_wild_cost", 3.0)) - 1, "B2: Mana Mine price 3 -> 2")
+	var g := {"part": 0, "size": 4, "uids": [c.party[0].uid, c.party[1].uid, c.party[2].uid, c.party[3].uid], "hi": false, "m100": 220}
+	_ok(c.bo_group_m100(g) == 220, "B2: no Wild member, no add")
+	c.party[1].wild_slot = 0
+	_ok(c.bo_group_m100(g) == 240, "B2: Set of four with a Wild member +0.20")
+	var g3 := g.duplicate(true)
+	g3["size"] = 3
+	_ok(c.bo_group_m100(g3) == 220, "B2: a Set of three gets nothing")
+	var def = RelicRegistry.get_def("c_golden_thread")
+	_ok(not CoreOffer.is_valid(def, {"owned_ids": [], "roster": CoreTestUtil.roster(), "seen": [], "depth_stage": 1}), "B2: not offered at stage 1")
+	_ok(CoreOffer.is_valid(def, {"owned_ids": [], "roster": CoreTestUtil.roster(), "seen": [], "depth_stage": 2}), "B2: offered at stage 2")

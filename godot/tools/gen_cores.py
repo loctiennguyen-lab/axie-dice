@@ -77,6 +77,9 @@ core("verdict", "Phán Quyết", "Verdict", 2, "rule", [], [], ["attack"], "Enem
 
 # ---- Cores v5 (design/proposals/cores-rules-v5.md section 10, 23/10)
 core("bloodline_ward", "Phòng Thủ Huyết Thống", "Bloodline Ward", 0, "pos", ["class_pair"], [], ["nonattack"], "When an Axie gains Shield from a shield face, each adjacent Axie of the same class gains half of it (rounded up).")
+core("smoldering", "Than Âm Ỉ", "Smoldering Coals", 0, "mana", [], ["rule:rule_dry_steppe"], ["nonattack"], "End of turn: each Held die gives +1 Mana (max +2 per turn).")
+core("cache_plate", "Giáp Cất", "Cache Plate", 1, "dice", ["face:shield"], [], ["nonattack"], "When you Hold a die showing a shield face, its Axie gains half that Shield now (rounded up, min 2, max 6, no M). Once per die per turn. The die keeps its full face for next turn.")
+core("golden_thread", "Sợi Chỉ Vàng", "Golden Thread", 1, "mana", ["stage_min:2"], [], ["nonattack"], "Wild Face costs 1 less Mana (min 1) and can be used 2 times per fight. A Set of four made with a Wild Face gets +0.20 M.")
 
 # Run rules: slug, vn, name, weight, desc, extra
 R = []

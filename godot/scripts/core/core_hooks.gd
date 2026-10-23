@@ -1100,6 +1100,53 @@ static func bloodline_shield(ctx: Dictionary) -> void:
 			fire("c_bloodline_ward", n.uid, half, "shield")
 
 
+## E1 Smoldering Coals: end of turn, each Held die gives +1 Mana (max core.smoldering_cap, default 2).
+static func smoldering_turn_end(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	var n := 0
+	for u in living_axies(combat):
+		if u.held:
+			n += 1
+	gain_mana(combat, mini(n, int(CombatEngine.tune_knob("core", "smoldering_cap", 2.0))), "", "c_smoldering")
+
+
+## E2 Cache Plate: Holding a die that shows a shield face gives its Axie half the face's Shield (rounded up, min 2, max 6, no M),
+## at most once per die per turn (Steady Hold cannot farm it).
+static func cache_plate_stash(ctx: Dictionary) -> void:
+	var f: Dictionary = ctx["face"]
+	var u = ctx["unit"]
+	if String(f.get("type", "")) != "shield" or int(f.get("value", 0)) <= 0:
+		return
+	var st := turn_state(ctx["combat"], "cs_cache")
+	if st.has(str(u.uid)):
+		return
+	st[str(u.uid)] = true
+	var amt := clampi(int(ceil(int(f.get("value", 0)) / 2.0)), int(CombatEngine.tune_knob("core", "cache_min", 2.0)), int(CombatEngine.tune_knob("core", "cache_max", 6.0)))
+	DamagePipeline.apply_shield(ctx["combat"], u, amt)
+	fire("c_cache_plate", u.uid, amt, "shield")
+
+
+## B2 Golden Thread: Wild Face costs 1 less (min 1) and can be used 1 more time per fight (value hooks wild_cost / wild_per_battle).
+static func golden_thread_cost(ctx: Dictionary) -> int:
+	var v := int(ctx["value"])
+	return maxi(1, v - 1) if v > 0 else v
+
+
+## ... and a Set of four that a Wild Face made gets +core.golden_thread_add M (default 0.20). Hook set_add (percent).
+static func golden_thread_set_add(ctx: Dictionary) -> int:
+	var g: Dictionary = ctx["group"]
+	var combat = ctx["combat"]
+	var v := int(ctx["value"])
+	if int(g["size"]) != 4:
+		return v
+	for uid in (g["uids"] as Array):
+		var d = combat.by_uid(int(uid))
+		if d != null and d.wild_slot >= 0:
+			var add := roundi(CombatEngine.tune_knob("core", "golden_thread_add", 0.20) * 100.0)
+			return v + add
+	return v
+
+
 # --------------------------------------------------------------------------------------------
 # quests: progress lives in combat.relic_run_out["<core id>"] = {n, boss, steps_done, done}; lane B pays rewards
 # --------------------------------------------------------------------------------------------

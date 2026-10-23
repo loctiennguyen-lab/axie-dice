@@ -1673,6 +1673,13 @@ static var TABLE: Dictionary = {
 	},
 	"c_thorn_growth": {"on_dmg_taken": func(ctx: Dictionary): CoreHooks.thorn_growth_hit(ctx)},
 	"c_bloodline_ward": {"on_shield": func(ctx: Dictionary): CoreHooks.bloodline_shield(ctx)},
+	"c_smoldering": {"on_turn_end": func(ctx: Dictionary): CoreHooks.smoldering_turn_end(ctx)},
+	"c_cache_plate": {"on_stash": func(ctx: Dictionary): CoreHooks.cache_plate_stash(ctx)},
+	"c_golden_thread": {
+		"wild_cost": func(ctx: Dictionary): return CoreHooks.golden_thread_cost(ctx),
+		"wild_per_battle": func(ctx: Dictionary): return int(ctx["value"]) + 1,
+		"set_add": func(ctx: Dictionary): return CoreHooks.golden_thread_set_add(ctx),
+	},
 	"c_thorn_shield": {"on_turn_end": func(ctx: Dictionary): CoreHooks.thorn_shield_turn_end(ctx)},
 	"c_thorn_rebound": {
 		"thorns_extra": func(ctx: Dictionary): return CoreHooks.rebound_extra(ctx),

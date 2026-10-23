@@ -1534,6 +1534,8 @@ func wild_face(unit_uid: int, slot: int) -> bool:
 	var u := by_uid(unit_uid)
 	_push_undo()
 	mana -= wild_cost()
+	if CoreHooks.RelicHooks_has(self, "c_golden_thread"):
+		CoreHooks.fire("c_golden_thread", unit_uid, 1, "mana")   # the Mana it saved
 	wild_used += 1
 	u.wild_slot = slot
 	_snap_bo()
