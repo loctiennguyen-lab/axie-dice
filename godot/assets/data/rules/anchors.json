@@ -65,8 +65,8 @@
   "enabled": true,
   "name_en": "Kin",
   "name_vi": "Đồng Tộc",
-  "rule_en": "A SET with 3+ dice of the same class +0.40; a SET without that -0.25.",
-  "cost_en": "A SET that misses the class condition -0.25.",
+  "rule_en": "A SET with 3+ dice of the same class gets +0.40.",
+  "cost_en": "A SET without 3+ dice of the same class gets -0.25.",
   "house_id": "h_kin",
   "house_cores": [
    "c_nest",
@@ -105,8 +105,8 @@
   "enabled": true,
   "name_en": "Big Hand",
   "name_vi": "Bàn Tay Lớn",
-  "rule_en": "A SET of three gives no bonus; a SET of four or five gets +0.40.",
-  "cost_en": "A SET of three loses its bonus.",
+  "rule_en": "A SET of four or five gets +0.40.",
+  "cost_en": "A SET of three (the most common) gets no bonus.",
   "house_id": "h_big_hand",
   "house_cores": [
    "c_collector",

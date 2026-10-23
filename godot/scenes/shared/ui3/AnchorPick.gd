@@ -118,24 +118,7 @@ func _build_card(id: String, idx: int) -> PanelContainer:
 	names.add_child(hn)
 	top.add_child(names)
 	col.add_child(top)
-	_section(col, "RULE", "Rule", AnchorAdapter.rule_text(id), 3)
-	if AnchorAdapter.price_text(id) != "":   # an Anchor with no price shows no PRICE block (no fake cost line)
-		_section(col, "PRICE", "Price", "− " + AnchorAdapter.price_text(id), 2)
-	var aw := _section(col, "AWAKENS", "Awakens", "", 0)
-	var an := UI3.label(AnchorAdapter.awaken_name(id), "LabelDisplay")
-	an.name = "AwakenName"
-	aw.add_child(an)
-	var ar := UI3.label(AnchorAdapter.awaken_rule(id), "LabelMuted")
-	ar.name = "AwakenRule"
-	ar.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	ar.custom_minimum_size.x = CARD_W - 48.0
-	aw.add_child(ar)
-	var cond := UI3.label(tr("Awakens when you hold 2 of these 5 Cores"), "LabelMuted")
-	cond.name = "AwakenCondition"
-	cond.add_theme_color_override("font_color", UI3Theme.color("anchor_awake"))
-	cond.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	cond.custom_minimum_size.x = CARD_W - 48.0
-	aw.add_child(cond)
+	add_text_blocks(col, id)
 	var hcap := HBoxContainer.new()
 	hcap.add_theme_constant_override("separation", 8)
 	var hg := TextureRect.new()
@@ -167,12 +150,35 @@ func _build_card(id: String, idx: int) -> PanelContainer:
 	return card
 
 
+## RULE / PRICE (amber, only when the Anchor has one) / AWAKENS blocks. Shared with the Codex detail so both read the same.
+static func add_text_blocks(col: VBoxContainer, id: String) -> void:
+	_section(col, "RULE", "Rule", AnchorAdapter.rule_text(id), 3)
+	if AnchorAdapter.price_text(id) != "":   # an Anchor with no price shows no PRICE block (no fake cost line)
+		var pr := _section(col, "PRICE", "Price", "− " + AnchorAdapter.price_text(id), 2)
+		(pr.find_child("PriceText", true, false) as Label).add_theme_color_override("font_color", UI3Theme.color("anchor_price"))
+	var aw := _section(col, "AWAKENS", "Awakens", "", 0)
+	var an := UI3.label(AnchorAdapter.awaken_name(id), "LabelDisplay")
+	an.name = "AwakenName"
+	aw.add_child(an)
+	var ar := UI3.label(AnchorAdapter.awaken_rule(id), "LabelMuted")
+	ar.name = "AwakenRule"
+	ar.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ar.custom_minimum_size.x = CARD_W - 48.0
+	aw.add_child(ar)
+	var cond := UI3.label(TranslationServer.translate("Awakens when you hold 2 of these 5 Cores"), "LabelMuted")
+	cond.name = "AwakenCondition"
+	cond.add_theme_color_override("font_color", UI3Theme.color("anchor_awake"))
+	cond.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	cond.custom_minimum_size.x = CARD_W - 48.0
+	aw.add_child(cond)
+
+
 ## A small labelled block: muted caption, then the text. Returns the block (text label is "<cap>Text").
-func _section(col: VBoxContainer, cap: String, _key: String, text: String, _lines: int) -> VBoxContainer:
+static func _section(col: VBoxContainer, cap: String, _key: String, text: String, _lines: int) -> VBoxContainer:
 	var b := VBoxContainer.new()
 	b.name = "Section" + cap.capitalize()
 	b.add_theme_constant_override("separation", 2)
-	b.add_child(UI3.label(tr(cap), "LabelMuted"))
+	b.add_child(UI3.label(TranslationServer.translate(cap), "LabelMuted"))
 	if text != "":
 		var l := UI3.label(text, "LabelDisplay")
 		l.name = cap.capitalize() + "Text"
