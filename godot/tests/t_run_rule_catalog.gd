@@ -1,5 +1,5 @@
 extends Node
-## Depth v3 lane C: 13 Run Rules (design 2b.2). Weights R10/R12/R13 = 2, total 16; enabled rules have a hook.
+## Depth v3 lane C: 17 Run Rules (13 of design 2b.2 + 4 of v5). Weight 2: R10/R12/R13, Pack Alpha, Set Is King; total 22; enabled rules have a hook.
 var _fails: Array[String] = []
 var _checks := 0
 
@@ -23,7 +23,7 @@ func _ready() -> void:
 		total += def.weight
 		_ok(id.begins_with("rule_") and def.core_axis == "run_rule", "%s: rule id/axis" % id)
 		_ok(def.description.length() > 10, "%s: text" % id)
-		var heavy := ["rule_old_forest", "rule_hard_shell", "rule_balance"].has(id)
+		var heavy := ["rule_old_forest", "rule_hard_shell", "rule_balance", "rule_pack_alpha", "rule_set_is_king"].has(id)
 		_ok(def.weight == (2 if heavy else 1), "%s: weight %d" % [id, def.weight])
 		if def.disabled:
 			off += 1
@@ -34,8 +34,8 @@ func _ready() -> void:
 		_ok(not def.rule_knobs.is_empty(), "%s: rule_knobs" % id)
 	var none = RelicRegistry.get_def("rule_none")
 	_ok(none != null and none.weight == 0, "rule_none weight 0")
-	_ok(n == 13, "13 rules, got %d" % n)
-	_ok(total == 16, "total weight 16, got %d" % total)
+	_ok(n == 17, "17 rules, got %d" % n)
+	_ok(total == 22, "total weight 22, got %d" % total)
 	print("t_run_rule_catalog: rules=%d disabled(waiting engine)=%d total_weight=%d" % [n, off, total])
 	print("=== t_run_rule_catalog: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	if _fails.is_empty():

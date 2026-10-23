@@ -497,7 +497,7 @@ static func tide_spent(ctx: Dictionary) -> void:
 const FLAT_CAP := 10
 const FLAT_IDS := ["c_kindle", "c_steady_hold", "c_prime_chain", "c_finisher", "c_mana_pool", "c_three_dice", "c_field_medic",
 	"c_plague_spread", "c_hollow_core", "c_thorn_pact", "c_cascade", "c_gatekeeper", "c_golden_egg",
-	"rule_tundra", "rule_heavy_finish", "c_sacrifice", "c_concord", "rule_rising_tide"]
+	"rule_tundra", "rule_heavy_finish", "c_sacrifice", "c_concord", "rule_rising_tide", "rule_set_is_king", "rule_pilot_light"]
 
 
 static func mirror_second(combat, u) -> bool:
@@ -523,6 +523,12 @@ static func bonus(combat, u, ft: String, id: String, part: String = "") -> int:
 			return 0 if (sec or ft != "dmg") else int(turn_state(combat, "cs_prime").get(str(u.uid), 0))
 		"c_finisher":
 			return 0 if (sec or not (ft == "dmg" or ft == "shield" or ft == "heal" or ft == "poison")) else finisher_bonus(combat, u)
+		"rule_set_is_king":
+			if sec or not val:
+				return 0
+			return int(rule_knob("rule_set_is_king", "set_dice_bonus", 2)) if in_set(combat, u) else -int(rule_knob("rule_set_is_king", "nonset_penalty", 2))
+		"rule_pilot_light":
+			return 0 if sec else focus_value(combat, "focus_rule_pilot_light", u, ft)
 		"rule_heavy_finish":
 			return 0 if (sec or not val or not is_finisher(combat, u)) else 3
 		"c_mana_pool":
@@ -1470,3 +1476,25 @@ static func alpha_kill(ctx: Dictionary) -> void:
 		EventBus.hp_changed.emit(e.uid, e.hp, e.max_hp, e.shield)
 		EventBus.float_text.emit(e.uid, "-%d" % loss, "dmg", 0)
 		fire("rule_pack_alpha", e.uid, loss, "dmg")
+
+
+## ---- Set Is King (R14): a die in a SET gets +set_dice_bonus, any other die -nonset_penalty (min 1). No free reroll = rerollUp -1.
+static func in_set(combat, u) -> bool:
+	for g in combat.bo:
+		if (g as Dictionary).get("uids", []).has(u.uid):
+			return true
+	return false
+
+
+static func set_king_value(ctx: Dictionary) -> int:
+	var v := int(ctx["value"])
+	var u = ctx["unit"]
+	var ft := String(ctx.get("face_type", ""))
+	if v <= 0 or u.side != "p" or u.is_token or not VALUE_TYPES.has(ft):
+		return v
+	var own := bonus(ctx["combat"], u, ft, "rule_set_is_king")
+	if own >= 0:
+		return flat(ctx, "rule_set_is_king")
+	var nv := maxi(1, v + own)
+	_fire_live(ctx["combat"], "rule_set_is_king", u.uid, v - nv, ft)
+	return nv

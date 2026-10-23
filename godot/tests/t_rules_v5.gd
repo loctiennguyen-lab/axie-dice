@@ -11,6 +11,7 @@ func _ready() -> void:
 	_guard.capture()
 	await get_tree().process_frame
 	t_pack_alpha()
+	t_set_king()
 	print("=== t_rules_v5: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	for f in _fails:
 		print("t_rules_v5: FAIL - %s" % f)
@@ -18,6 +19,19 @@ func _ready() -> void:
 		print("t_rules_v5: PASS - %d checks OK" % _checks)
 	_guard.restore()
 	get_tree().quit(0 if _fails.is_empty() else 1)
+
+
+func _enable(id: String) -> void:
+	var d = RelicRegistry.get_def(id)
+	d.disabled = false
+	d.hook_key = id
+
+
+func _val_face(c: CombatEngine, u: Unit, ft: String) -> int:
+	for fi in u.die.size():
+		if String(u.die[fi].get("type", "")) == ft and int(u.die[fi].get("value", 0)) > 0:
+			return fi
+	return -1
 
 
 func _ok(c: bool, m: String) -> void:
@@ -99,3 +113,32 @@ func t_pack_alpha() -> void:
 	# boss: not applied
 	var b := _combat(["rule_pack_alpha"], {"kind": "boss"})
 	_ok(CoreHooks.alpha_unit(b) == null, "boss fight: no alpha")
+
+
+func t_set_king() -> void:
+	_enable("rule_set_is_king")
+	var base := _combat([])
+	var c := _combat(["rule_set_is_king"])
+	_ok(c.rerolls == base.rerolls - 1 and c.max_rerolls == base.max_rerolls - 1, "set king: no free reroll (%d vs %d)" % [c.rerolls, base.rerolls])
+	var tested := 0
+	for i in c.party.size():
+		var u: Unit = c.party[i]
+		var b: Unit = base.party[i]
+		var fi := _val_face(c, u, "dmg")
+		if fi < 0:
+			continue
+		var v0 := base._face_value(b, fi)
+		if v0 < 3:
+			continue
+		tested += 1
+		c.bo = []
+		_ok(c._face_value(u, fi) == maxi(1, v0 - 2), "%s lone die -2: %d -> %d" % [u.key, v0, c._face_value(u, fi)])
+		c.bo = [{"part": 0, "size": 3, "uids": [u.uid, 99, 98], "hi": false, "m100": 100}]
+		_ok(c._face_value(u, fi) == v0 + 2, "%s set die +2: %d -> %d" % [u.key, v0, c._face_value(u, fi)])
+		_ok(base._face_value(b, fi) == v0, "no rule: unchanged")
+		var c2 := CombatEngine.new()
+		c2.from_data(c.to_data())
+		_ok(c2._face_value(c2.party[i], fi) == v0 + 2, "save/load keeps set bonus")
+		c.bo = []
+	_ok(tested > 0, "set king: tested at least one die")
+	_ok(CoreHooks.in_set(c, c.party[0]) == false, "in_set false without sets")

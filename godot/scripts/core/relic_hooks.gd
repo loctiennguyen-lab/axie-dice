@@ -1793,6 +1793,7 @@ static var TABLE: Dictionary = {
 		"incoming_dmg": func(ctx: Dictionary): return CoreHooks.incoming(ctx, "rule_pack_alpha"),
 		"on_kill": func(ctx: Dictionary): CoreHooks.alpha_kill(ctx),
 	},
+	"rule_set_is_king": {"face_final": func(ctx: Dictionary): return CoreHooks.set_king_value(ctx)},
 	# data-only Run Rules: knobs live in RelicDef.rule_knobs, read by the lanes that own them
 	"rule_none": {},
 	"rule_crow": {},
