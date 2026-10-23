@@ -341,7 +341,7 @@ func test_an_anchor_fight_with_houses_and_awakening_replays() -> void:
 	var tiers := {}
 	for h in Anchors.houses():
 		tiers[String(h["id"])] = 2
-	for aid in ["a_volley", "a_gambler", "a_mana_mine"]:
+	for aid in ["a_volley", "a_gambler", "a_mana_mine", "a_kin", "a_embers", "a_big_hand"]:
 		_setup_extra = {"anchor_id": aid, "anchor_awakened": true, "house_tiers": tiers, "depth_stage": 3}
 		var log := ActionLog.new()
 		log.begin(COMBAT_SEED, ["plant1", "beast1", "aqua1", "reptile1", "bug1"], "short", 0, "test")
@@ -402,11 +402,18 @@ func test_an_anchor_run_is_picked_in_the_log_and_replays() -> void:
 
 ## Stage 2 run (Anchor open, Mana Mine locked until stage 3): a log whose pick_anchor points at Mana Mine is refused by the referee.
 func test_a_stage2_pick_of_mana_mine_is_refused() -> void:
-	RunBot.anchor_pick_index = 0
-	var played := RunBot.play_run(RUN_SEED, TEAM, "short", 0, {"anchor": true, "depth_stage": 2, "loadout": {"rules_on": false}})
-	RunBot.anchor_pick_index = -2
-	var log: ActionLog = played["log"]
-	var offer: Array = (played["state"] as Dictionary).get("anchor", {}).get("offer", [])
+	# The offer is 3 of 6 Anchors by seed: walk seeds until Mana Mine is in it.
+	var played := {}
+	var log: ActionLog = null
+	var offer: Array = []
+	for sd in 30:
+		RunBot.anchor_pick_index = 0
+		played = RunBot.play_run(RUN_SEED + sd, TEAM, "short", 0, {"anchor": true, "depth_stage": 2, "loadout": {"rules_on": false}})
+		RunBot.anchor_pick_index = -2
+		log = played["log"]
+		offer = (played["state"] as Dictionary).get("anchor", {}).get("offer", [])
+		if offer.has("a_mana_mine"):
+			break
 	var honest := RunVerifier.verify(log, played["tape"], {}, true)
 	_assert(bool(honest["ok"]), "honest stage-2 Anchor run accepted: %s %s" % [str(honest["error"]), str(honest["message"])])
 	var mi := offer.find("a_mana_mine")
