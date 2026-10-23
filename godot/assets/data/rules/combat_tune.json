@@ -166,8 +166,8 @@
   "anchor_mine_keep_add": 2
  },
  "shell": {
-  "enabled": false,
-  "pct": 40,
+  "enabled": true,
+  "pct": 25,
   "off_set_pct": 50,
   "elite": 1,
   "boss": 1,
