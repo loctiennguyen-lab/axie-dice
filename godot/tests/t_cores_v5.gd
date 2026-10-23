@@ -20,6 +20,7 @@ func _ready() -> void:
 	t_g1()
 	t_g2()
 	t_e3()
+	t_combos()
 	if _fails.is_empty():
 		print("t_cores_v5: PASS - %d checks OK" % _checks)
 		get_tree().quit(0)
@@ -379,3 +380,17 @@ func t_e3() -> void:
 	c2.use_die(u2.uid, c2.enemies[0].uid)
 	_ok(c2.enemies[0].hp == h2[0] - 8, "E3: only one Hold turn: plain 8")
 	_ok(c2.enemies.size() < 2 or c2.enemies[1].hp == h2[1], "E3: only one Hold turn: no sweep")
+
+
+func t_combos() -> void:
+	var row := CoreCombos.get_combo("combo_high_roller_table")
+	_ok(not row.is_empty() and row.get("full") == null, "combo: High Roller Table has full:null")
+	var owned := ["c_high_roller", "c_hunters_reward"]
+	_ok(CoreCombos._tier_of(row, owned) == "pair", "combo: full:null reaches the pair tier and stays there")
+	_ok(CoreCombos._tier_of(row, owned + ["c_prism"]) == "pair", "combo: no third Core can upgrade a full:null combo")
+	_ok(CoreCombos._tier_of(row, ["c_high_roller"]) == "", "combo: one Core is no combo")
+	var hot := CoreCombos.get_combo("combo_hot_pot")
+	_ok(CoreCombos._tier_of(hot, ["c_melting_pot", "c_prism", "c_collector"]) == "full", "combo: Hot Pot full")
+	for r in CoreCombos.all([]):
+		for id in CoreCombos.members(r):
+			_ok(id != "c_burnout", "combo: %s has no Burnout" % r["id"])
