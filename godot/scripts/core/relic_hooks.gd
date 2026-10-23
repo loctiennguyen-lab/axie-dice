@@ -1788,6 +1788,11 @@ static var TABLE: Dictionary = {
 		"face_final": func(ctx: Dictionary): return CoreHooks.balance_value(ctx),
 		"on_face_used": func(ctx: Dictionary): CoreHooks.balance_used(ctx),
 	},
+	"rule_pack_alpha": {
+		"on_combat_start": func(ctx: Dictionary): CoreHooks.alpha_start(ctx),
+		"incoming_dmg": func(ctx: Dictionary): return CoreHooks.incoming(ctx, "rule_pack_alpha"),
+		"on_kill": func(ctx: Dictionary): CoreHooks.alpha_kill(ctx),
+	},
 	# data-only Run Rules: knobs live in RelicDef.rule_knobs, read by the lanes that own them
 	"rule_none": {},
 	"rule_crow": {},

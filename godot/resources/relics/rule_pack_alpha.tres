@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rule_pack_alpha"
+name = "Pack Alpha"
+description = "In normal and elite fights the enemy with the most HP is the Pack Alpha (+25% HP). While it lives, other enemies take 50% less from single-target damage faces (min 1; AoE, poison, thorns and pierce are not reduced). When it falls, every other enemy loses 20% of its current HP. Not in boss fights."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200514
+hook_key = "rule_pack_alpha"
+tags = PackedStringArray("rule")
+layer = "engine"
+core_axis = "run_rule"
+run_rule = true
+weight = 2
+rule_knobs = {"alpha_hp_mult": 1.25, "others_single_mult": 0.5, "alpha_death_pct": 0.2}

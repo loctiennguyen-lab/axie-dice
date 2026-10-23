@@ -216,6 +216,8 @@ static func incoming(ctx: Dictionary, id: String = "") -> float:
 		if id == "c_fissure" and int(tgt.custom_state.get("fissure", -1)) >= int(combat.turn):
 			v = ceil(v * 1.25)
 			fire(id, tgt.uid, int(v - v0), "dmg")
+		if id == "rule_pack_alpha":
+			v = alpha_incoming(ctx, v)
 		return v
 	if tgt.is_token or combat.row_of(tgt) != 0:
 		return v
@@ -1396,3 +1398,75 @@ static func nametag_kill(ctx: Dictionary) -> void:
 		return
 	combat_state(combat, "cs_nametag")["paid"] = true
 	gain_mana(combat, 1, "RIP " + String(e.custom_state["nick"]), "c_meme_nametag")
+
+
+## ---- Pack Alpha (design/proposals/cores-rules-v5.md R17, approved 23/10) --------------------------------------------
+## Start of a normal / elite fight with 2+ non-boss enemies: the one with the most HP (tie: smallest uid) becomes the
+## Alpha (custom_state.alpha, saved with the unit) and gets +alpha_hp_mult HP. No RNG.
+static func alpha_start(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	var kind := String(ctx.get("node_kind", ""))
+	if kind != "battle" and kind != "elite":
+		return
+	var pool: Array = []
+	for e in combat.enemies:
+		if e.is_boss:
+			return
+		if e.hp > 0:
+			pool.append(e)
+	if pool.size() < 2:
+		return
+	var best = pool[0]
+	for e in pool:
+		if e.max_hp > best.max_hp or (e.max_hp == best.max_hp and e.uid < best.uid):
+			best = e
+	var hp0: int = best.max_hp
+	best.max_hp = int(ceil(best.max_hp * float(rule_knob("rule_pack_alpha", "alpha_hp_mult", 1.25))))
+	best.hp = best.max_hp
+	best.custom_state["alpha"] = true
+	fire("rule_pack_alpha", best.uid, best.max_hp - hp0, "rule")
+
+
+static func alpha_unit(combat):
+	for e in combat.enemies:
+		if bool(e.custom_state.get("alpha", false)):
+			return e
+	return null
+
+
+## Other enemies take others_single_mult from single-target damage faces while the Alpha lives (min 1). AoE, pierce, poison and
+## thorns (no player source / not single) are untouched.
+static func alpha_incoming(ctx: Dictionary, v: float) -> float:
+	var combat = ctx["combat"]
+	var tgt = ctx["tgt"]
+	var src = ctx.get("src", null)
+	if not bool(ctx.get("attack", false)) or not bool(ctx.get("single", false)) or bool(ctx.get("pierce", false)):
+		return v
+	if src == null or src.side != "p" or bool(tgt.custom_state.get("alpha", false)):
+		return v
+	var a = alpha_unit(combat)
+	if a == null or a.hp <= 0:
+		return v
+	var nv := maxf(1.0, ceil(v * float(rule_knob("rule_pack_alpha", "others_single_mult", 0.5))))
+	if nv < v:
+		fire("rule_pack_alpha", tgt.uid, int(v - nv), "block")
+	return minf(v, nv)
+
+
+## The Alpha falls: every other living enemy loses alpha_death_pct of its current HP (never to 0).
+static func alpha_kill(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	var dead = ctx["tgt"]
+	if not bool(dead.custom_state.get("alpha", false)):
+		return
+	var pct := float(rule_knob("rule_pack_alpha", "alpha_death_pct", 0.2))
+	for e in combat.enemies:
+		if e == dead or e.hp <= 0 or e.is_boss:
+			continue
+		var loss := mini(RulesMath.round_half_up(e.hp * pct), e.hp - 1)
+		if loss <= 0:
+			continue
+		e.hp -= loss
+		EventBus.hp_changed.emit(e.uid, e.hp, e.max_hp, e.shield)
+		EventBus.float_text.emit(e.uid, "-%d" % loss, "dmg", 0)
+		fire("rule_pack_alpha", e.uid, loss, "dmg")
