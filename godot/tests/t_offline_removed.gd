@@ -17,21 +17,22 @@ func _ready() -> void:
 	_guard.capture()
 	_check(RunState.local_epoch_allowed() == NetGuard.blocked(), "local epoch allowed exactly under AXIE_TEST_NO_NET (or opt-in)")
 	RunState.allow_local_epoch = false
+	RunState.force_online_gate = true   # behave like a release build even under AXIE_TEST_NO_NET
 	var old_src: Variant = ProjectSettings.get_setting("axie/epoch_source", "local")
 	ProjectSettings.set_setting("axie/epoch_source", "local")   # a build whose remote flag is off
-	if not NetGuard.blocked():
-		var r := await RunState.begin_run({"team_keys": ["plant1"], "mode": "short", "ascension": 0, "ranked": false})
-		_check(not r["ok"] and r["code"] == "offline_removed", "begin_run refuses without server source")
-	else:
-		_check(true, "(NO_NET set: local factory still allowed for tests)")
+	var r := await RunState.begin_run({"team_keys": ["plant1"], "mode": "short", "ascension": 0, "ranked": false})
+	_check(not r["ok"] and r["code"] == "offline_removed", "begin_run refuses without server source")
+	RunState.force_online_gate = false
 	ProjectSettings.set_setting("axie/epoch_source", old_src)
 	var svc: Node = load("res://autoload/AccountService.gd").new()
 	svc.online_required_override = true
 	_check(svc.gate_reason() == "", "gate open before any failure")
 	svc.server_unreachable = true
-	_check(svc.online_required() == (not NetGuard.blocked()), "online_required follows NO_NET")
-	if svc.online_required():
-		_check(svc.gate_reason() == "offline", "unreachable server -> gate")
+	_check(svc.online_required(), "online_required with the override, also under NO_NET")
+	_check(svc.gate_reason() == "offline", "unreachable server -> gate")
+	svc.transport = func(_m: String, _p: String, _b: String, done: Callable) -> void: done.call(0, "")
+	svc._on_me(0, "")
+	_check(svc.server_unreachable and svc.gate_reason() == "offline", "/api/me gets no answer -> gate stays shut")
 	svc.server_unreachable = false
 	_check(svc.gate_reason() == "", "server answered -> gate open")
 	var layer := CanvasLayer.new()

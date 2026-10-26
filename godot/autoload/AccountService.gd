@@ -438,6 +438,15 @@ func _apply_server(server: Dictionary) -> void:
 			for k in MetaState.SERVER_FIELDS:
 				if (mine as Dictionary).has(k):
 					merged[k] = mine[k]
+			# The reset this device already wiped for outranks the cloud's. A cloud copy from before that wipe
+			# (other id, or a wipe still waiting for the run to end) must not bring the old history back or make
+			# the next /api/econ wipe a second time: keep this device's meta whole.
+			var my_reset := String((mine as Dictionary).get("econ_reset_seen", ""))
+			var cloud_reset := String((smeta as Dictionary).get("econ_reset_seen", ""))
+			if my_reset != "" and (my_reset != cloud_reset or MetaState.has_pending_reset()):
+				merged = (mine as Dictionary).duplicate(true)
+			elif my_reset != "":
+				merged["econ_reset_seen"] = my_reset
 		smeta = merged
 	_write_snapshot(id, {"meta": smeta, "run": server.get("run")})
 	_rev = int(server.get("rev", 0))
@@ -559,7 +568,7 @@ func econ_flag_on() -> bool:
 
 ## B4: the game needs the server. True in a release build (epoch_source = remote) and never under AXIE_TEST_NO_NET.
 func online_required() -> bool:
-	return not NetGuard.blocked() and (online_required_override or String(ProjectSettings.get_setting("axie/epoch_source", "local")) == "remote")
+	return online_required_override or (not NetGuard.blocked() and String(ProjectSettings.get_setting("axie/epoch_source", "local")) == "remote")
 
 
 var online_required_override := false
@@ -587,7 +596,9 @@ func _attach_remote_econ() -> void:
 		return
 	_remote_econ = RemoteEcon.new(transport)
 	MetaState.use_remote_econ(_remote_econ)
-	_remote_econ.refresh()
+	_remote_econ.refresh(func(r: Dictionary) -> void:
+		if bool(r.get("net", false)):
+			MetaState.retry_pending_run_claims())
 
 
 func _detach_remote_econ() -> void:

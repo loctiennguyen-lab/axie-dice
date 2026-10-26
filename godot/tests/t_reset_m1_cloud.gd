@@ -39,6 +39,8 @@ func _ready() -> void:
 	_check(MetaState.econ_reset_seen == "m1", "reset id remembered")
 	var disk: Variant = JSON.parse_string(SaveStore.read_text_as("google:m1other", MetaState.SAVE_PATH))
 	_check(typeof(disk) == TYPE_DICTIONARY and int(disk["runs"]) == 0 and int(disk["shard_pool"]) == 0 and disk["econ_reset_seen"] == "m1", "the profile's save on disk was overwritten")
+	_check(MetaState.starter_granted and MetaState.starter_shard_locked == 0 and MetaState.shard_pool == 0 and int(MetaState.tickets["normal"]) == 0,
+		"wipe leaves no local starter behind (locked Shard, tickets, flag)")
 	_check(uploads[0] > 0, "SaveStore notified, so the cloud upload is scheduled")
 	# 3) same id again: no second wipe
 	MetaState.runs = 2

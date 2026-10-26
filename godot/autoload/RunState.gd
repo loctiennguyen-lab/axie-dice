@@ -415,8 +415,12 @@ func run_session() -> RunSession:
 var allow_local_epoch: bool = false
 
 
+## Tests of the B4 gate set this to behave like a release build even under AXIE_TEST_NO_NET.
+var force_online_gate: bool = false
+
+
 func local_epoch_allowed() -> bool:
-	return allow_local_epoch or NetGuard.blocked()
+	return not force_online_gate and (allow_local_epoch or NetGuard.blocked())
 
 
 ## Async start used by the real menu flow (L/M wire it before the remote flag is switched on).

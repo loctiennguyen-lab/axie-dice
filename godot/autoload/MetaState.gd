@@ -183,6 +183,10 @@ func _ready() -> void:
 	# A deferred call runs once the whole autoload set is up.
 	ensure_vault_heroes.call_deferred()
 
+## Stone / Shard reasons the server pays through /api/econ/claim while the economy is remote.
+const SERVER_PAID_REASONS: Array[String] = ["earn", "mission_win", "pass", "daily", "daily_run", "daily_weekly", "pass_loop"]
+
+
 func add_shards(amount: int, reason: String = "earn", save: bool = true) -> void:
 	if guest_no_wallet:
 		return
@@ -198,6 +202,8 @@ func add_shards(amount: int, reason: String = "earn", save: bool = true) -> void
 func add_stone(n: int, reason: String = "earn", save: bool = true) -> void:
 	if guest_no_wallet:
 		return
+	if _econ != null and SERVER_PAID_REASONS.has(reason):
+		return   # the server pays these (claims); the answer lands in the cache
 	if n <= 0:
 		return
 	stone += n
@@ -256,7 +262,7 @@ func use_remote_gem_wallet(w: GemWallet) -> void:
 # --- Server economy (SR1) ----------------------------------------------------------------------
 ## Fields D1 owns. They are a display cache here: never uploaded in the cloud save (AccountService strips them,
 ## the Worker strips them too) and never taken from a downloaded one, so a PUT can neither mint nor roll back money.
-const SERVER_FIELDS: Array[String] = ["shard_pool", "stone", "tickets", "unlocks", "echobox_pity", "starter_granted", "starter_shard_locked"]
+const SERVER_FIELDS: Array[String] = ["shard_pool", "stone", "tickets", "unlocks", "echobox_pity", "starter_granted", "starter_shard_locked", "pending_run_claims"]
 ## Id of the last server reset (M1) this device has wiped for. "" = none seen yet.
 var econ_reset_seen: String = ""
 var _econ: RemoteEcon = null
@@ -342,6 +348,10 @@ func _apply_server_pass(p: Dictionary) -> void:
 
 
 var _pending_reset: Dictionary = {}
+
+
+func has_pending_reset() -> bool:
+	return not _pending_reset.is_empty()
 ## Guest on a build that needs the server: no wallet at all (nothing earned, nothing spent). Set by AccountService.
 var guest_no_wallet: bool = false
 
@@ -361,6 +371,11 @@ func wipe_for_server_reset(reset_id: String) -> void:
 	SaveStore.erase(SAVE_PATH)
 	SaveStore.erase("user://run_save.json")
 	reload_from_store()
+	# reload_from_store just handed out the LOCAL starter: drop it (D1 re-grants its own, the snapshot fills the balances).
+	starter_granted = true
+	starter_shard_locked = 0
+	gems_cache = int(_gem_wallet.balance()) if _gem_wallet != null else 0
+	pending_run_claims.clear()
 	econ_reset_seen = reset_id
 	save_to_disk()
 
@@ -371,12 +386,51 @@ func econ_claims_after_run(run_id: String, shards: int, run_kind: String) -> voi
 	if _econ == null:
 		return
 	if run_id != "" and shards > 0:
-		_econ.claim("run", {"run_id": run_id, "amount": shards})
+		_queue_run_claim(run_id, shards)
 	var chain: Array[String] = ["daily"]
 	if run_kind == "daily":
 		chain.append("daily_run")
 	chain.append("weekly")
 	_econ_chain(chain)
+
+
+## Run Shard claims the server has not answered yet (offline at run end, close still in flight...). Saved through
+## SaveStore ("pending_run_claims"), sent again on every game start / reconnect until the server says ok or a
+## permanent no. Safe to repeat: the server pays once per run_id.
+var pending_run_claims: Array = []
+const _RUN_CLAIM_PERMANENT: Array[String] = ["nothing_to_claim", "run_too_short", "bad_request"]
+const _RUN_CLAIM_MAX := 20
+
+
+func _queue_run_claim(run_id: String, amount: int) -> void:
+	for c in pending_run_claims:
+		if String((c as Dictionary).get("run_id", "")) == run_id:
+			_send_run_claim(run_id, amount)
+			return
+	pending_run_claims.append({"run_id": run_id, "amount": amount})
+	while pending_run_claims.size() > _RUN_CLAIM_MAX:
+		pending_run_claims.pop_front()
+	save_to_disk()
+	_send_run_claim(run_id, amount)
+
+
+func _send_run_claim(run_id: String, amount: int) -> void:
+	if _econ == null:
+		return
+	_econ.claim("run", {"run_id": run_id, "amount": amount}, func(r: Dictionary) -> void:
+		if bool(r.get("ok", false)) or _RUN_CLAIM_PERMANENT.has(String(r.get("code", ""))):
+			for i in range(pending_run_claims.size() - 1, -1, -1):
+				if String((pending_run_claims[i] as Dictionary).get("run_id", "")) == run_id:
+					pending_run_claims.remove_at(i)
+			save_to_disk())
+
+
+## Sends every waiting run claim again. AccountService calls it once the remote economy is attached and answers.
+func retry_pending_run_claims() -> void:
+	if _econ == null:
+		return
+	for c in pending_run_claims.duplicate():
+		_send_run_claim(String((c as Dictionary).get("run_id", "")), int((c as Dictionary).get("amount", 0)))
 
 
 ## Claims one after another (each answer lands in the cache before the next goes out). A refusal such as
@@ -921,6 +975,7 @@ func _reset_economy_fields() -> void:
 	save_version = SAVE_VERSION
 	starter_granted = false
 	econ_reset_seen = ""
+	pending_run_claims = []
 	stone = 0
 	gems_cache = 0
 	gem_claim_next_utc = 0
@@ -1089,6 +1144,12 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 			profile_stats[k] = maxi(0, int((ps2 as Dictionary).get(k, 0)))
 	starter_granted = bool(parsed.get("starter_granted", false))
 	econ_reset_seen = String(parsed.get("econ_reset_seen", ""))
+	pending_run_claims = []
+	var prc: Variant = parsed.get("pending_run_claims", [])
+	if prc is Array:
+		for c in (prc as Array):
+			if c is Dictionary and String((c as Dictionary).get("run_id", "")) != "":
+				pending_run_claims.append({"run_id": String(c["run_id"]), "amount": int(c.get("amount", 0))})
 	if ver < SAVE_VERSION:
 		_migrate_pre_economy()
 	save_version = SAVE_VERSION
@@ -1280,6 +1341,7 @@ func save_to_disk() -> void:
 		"save_version": SAVE_VERSION,
 		"starter_granted": starter_granted,
 		"econ_reset_seen": econ_reset_seen,
+		"pending_run_claims": pending_run_claims,
 		"stone": stone,
 		"gems_cache": gems_cache,
 		"gem_claim_next_utc": gem_claim_next_utc,
