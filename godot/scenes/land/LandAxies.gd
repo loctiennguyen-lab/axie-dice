@@ -12,22 +12,20 @@ const _PARTS: Array[int] = [AxieTypes.Part.MOUTH, AxieTypes.Part.HORN, AxieTypes
 
 static func preset0_keys() -> Array:
 	var presets: Array = MetaState.team_presets
-	if presets.is_empty():
+	if presets.is_empty() or not (presets[0] is Dictionary):
 		return []
-	return (presets[0] as Dictionary).get("party", [])
+	var party: Variant = (presets[0] as Dictionary).get("party", [])
+	return (party as Array) if party is Array else []
 
 
-## Up to `limit` distinct, known hero keys from the first source that has any.
+## Up to `limit` distinct, known hero keys from team preset 0 (empty = caller uses random bodies).
 static func pick_keys(limit: int) -> Array[String]:
-	for src in [preset0_keys()]:
-		var out: Array[String] = []
-		for k in src:
-			var s := String(k)
-			if s != "" and not out.has(s) and ContentDB.heroes.has(s) and out.size() < limit:
-				out.append(s)
-		if not out.is_empty():
-			return out
-	return []
+	var out: Array[String] = []
+	for k in preset0_keys():
+		var s := String(k)
+		if s != "" and not out.has(s) and ContentDB.heroes.has(s) and out.size() < limit:
+			out.append(s)
+	return out
 
 
 ## Body for a hero key: real genes (Vault Axie) when valid, else the class body combat uses.

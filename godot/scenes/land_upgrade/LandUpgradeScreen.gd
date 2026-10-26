@@ -25,6 +25,7 @@ var _detail: PanelContainer
 var _sel := 0
 var _toast_host: VBoxContainer
 var _modal: Control
+var _done := false   # set after a successful upgrade so a double tap cannot toast an error
 
 
 func _ready() -> void:
@@ -325,8 +326,11 @@ func _close_modal() -> void:
 ## or double press cannot buy a second tier.
 func confirm_upgrade(target: int) -> bool:
 	_close_modal()
+	if _done or target <= MetaState.land_tier:
+		return false   # a second press of the same confirm: already upgraded, say nothing
 	var ok := target == MetaState.land_tier + 1 and MetaState.upgrade_land()
 	if ok:
+		_done = true
 		_toast("Your Land is now %s" % TIER_NAMES[MetaState.land_tier - 1])
 		if not no_scene_change and is_inside_tree():
 			LandNav.back_to_land()   # Land reads the new tier in _ready and shows the banner once
