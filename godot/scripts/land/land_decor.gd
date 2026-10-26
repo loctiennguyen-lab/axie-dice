@@ -110,6 +110,8 @@ static func placement_block(id: String, pos: Vector3, placed: Array, ctx: Dictio
 	var d := def(id)
 	if d.is_empty():
 		return "Unknown decor."
+	if tier < int(d.get("min_tier", 1)):
+		return "Needs Land tier %d." % int(d["min_tier"])
 	var r := float(d["footprint_r"])
 	var D := data()
 	var lim := float(D["land_half"]) - float(D["edge_margin"]) - r
@@ -153,7 +155,7 @@ static func sanitize(placed: Array, owned: Dictionary, tier: int) -> Array:
 			continue
 		var id := String(e.get("id", ""))
 		var d := def(id)
-		if d.is_empty() or out.size() >= tier_cap(tier):
+		if d.is_empty() or out.size() >= tier_cap(tier) or tier < int(d.get("min_tier", 1)):
 			continue
 		if int(per.get(id, 0)) >= int(owned.get(id, 0)):
 			continue

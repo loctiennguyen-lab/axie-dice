@@ -36,6 +36,12 @@ func _ready() -> void:
 	_ok(LandDecor.craft_block("decor_sav_tree", 1, {"decor_sav_tree": 6}, 999).contains("maximum"), "craft max_own")
 	_ok(LandDecor.craft_block("decor_sav_tree", 1, {}, 39).contains("40"), "craft shard")
 	_ok(LandDecor.craft_block("decor_sav_tree", 1, {}, 40) == "", "craft ok")
+	# min_tier: a Rare of tier 2 cannot stand on a tier 1 Land (placement + sanitize), but can on tier 2
+	var rare := {"decor_for_tree2": 1}
+	_ok(LandDecor.placement_block("decor_for_tree2", P, [], ctx, 1, rare).contains("tier 2"), "min_tier blocks placing on tier 1")
+	_ok(LandDecor.placement_block("decor_for_tree2", P, [], ctx, 2, rare) == "", "min_tier ok on tier 2")
+	_ok(LandDecor.sanitize([{"id": "decor_for_tree2", "x": 8.0, "z": -3.0, "rot": 0}], rare, 1).is_empty(), "sanitize drops above-tier decor")
+	_ok(LandDecor.sanitize([{"id": "decor_for_tree2", "x": 8.0, "z": -3.0, "rot": 0}], rare, 2).size() == 1, "sanitize keeps it on tier 2")
 	_ok(LandDecor.craft_block("decor_trophy", 6, {}, 999) != "", "trophy not craftable")
 	for x in _f:
 		print("FAIL ", x)
