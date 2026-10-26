@@ -2884,10 +2884,13 @@ func _do_reroll(uids: Array, rmode: int) -> void:
 		for uid in uids:
 			_reroll_prev[uid] = _combat.by_uid(uid).roll_face_index()
 	var gamble_on := rmode == 0 and _combat.depth_stage >= 2
-	_dm_audio.play("dm_gamble_arm" if gamble_on else ("dm_reroll_safe" if rmode != 0 else "dm_roll"))
+	# dm_roll itself is played once, by the throw (pre-throw or _start_dice_throw), not here.
+	if gamble_on or rmode != 0:
+		_dm_audio.play("dm_gamble_arm" if gamble_on else "dm_reroll_safe")
 	_begin_pre_throw(uids, rmode)   # PB: the dice fly NOW, the seed lands while they roll
 	var rr: Dictionary = await _combat.request_reroll_dice(uids, false, rmode)
 	if not _still_running():
+		_cancel_pre_throw()
 		return
 	var ok := bool(rr["ok"])
 	if not ok:
@@ -4031,7 +4034,8 @@ func _start_dice_throw(fresh: Array) -> void:
 	_reroll_prev.clear()
 	if entries.is_empty():
 		return
-	_dm_audio.play("dm_roll")
+	if _pre_throw_uids.is_empty():
+		_dm_audio.play("dm_roll")   # a pre-thrown roll already played it when the dice went up
 	last_throw = {"uids": entries.map(func(e): return int(e["uid"])), "reroll": rerolled}
 	var roller := _stage3d.get_dice_roller()
 	if MetaState.reduce_flash or roller == null or roller.will_skip():

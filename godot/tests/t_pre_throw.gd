@@ -90,6 +90,56 @@ func _run(delay_ms: int) -> Dictionary:
 	return out
 
 
+func _arm(view: Node, uids: Array) -> DiceRoller3D:
+	var roller: DiceRoller3D = view._stage3d.get_dice_roller()
+	var faces6: Array = []
+	for k in 6:
+		faces6.append({"type": "attack", "value": k + 1})
+	var es: Array = []
+	for u in uids:
+		es.append({"faces": faces6, "face_type": "attack", "value": 1, "result_index": 0, "uid": u})
+	roller.roll_pending(es, func(_i: int) -> Vector2: return Vector2.ZERO)
+	view._pre_throw_uids = uids.duplicate()
+	return roller
+
+
+func _flight_checks() -> void:
+	RunState.pending_combat = {"node_id": "pre_throw_fl", "kind": "battle", "pw": 2, "ascension": 0,
+		"roster_snapshot": _roster(), "relic_ids": [], "combat_seed": 4242}
+	var view := load("res://scenes/combat/Combat.tscn").instantiate() as Node2D
+	add_child(view)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(is_instance_valid(view._stage3d) and view._stage3d.get_dice_roller() != null, "flight: the view has a stage and a roller")
+	if not (is_instance_valid(view._stage3d) and view._stage3d.get_dice_roller() != null):
+		view.queue_free()
+		return
+	var a := int((view._combat.party[0] as Unit).uid)
+	var b := int((view._combat.party[1] as Unit).uid)
+	var roller := _arm(view, [a, b])
+	_check(view._pre_throw_matches([{"uid": a}, {"uid": b}]), "match: same uids, same order")
+	_check(not view._pre_throw_matches([{"uid": b}, {"uid": a}]), "mismatch: other order")
+	_check(not view._pre_throw_matches([{"uid": a}]), "mismatch: other count")
+	view._cancel_pre_throw()
+	_check(view._pre_throw_uids.is_empty() and not roller.is_rolling(), "cancel: dice land, pre-throw cleared")
+	# Leaving the fight while the seed is awaited cancels the pre-throw.
+	var eng: CombatEngine = view._combat
+	var src := DelayedSource.new()
+	src.host = self
+	src.delay_ms = 300
+	eng.set_epoch(src)
+	var done := [false]
+	(func() -> void:
+		await view._do_reroll(view._auto_reroll_uids(), 1)
+		done[0] = true).call()
+	roller = _arm(view, [a])
+	view._result_shown = true   # the fight ended while waiting
+	while not done[0]:
+		await get_tree().process_frame
+	_check(view._pre_throw_uids.is_empty() and not roller.is_rolling(), "leave while waiting: pre-throw cancelled")
+	view.queue_free()
+	await get_tree().process_frame
+
 func _ready() -> void:
 	CombatView.disable_juice_for_tests = true
 	_guard.capture()
@@ -120,6 +170,17 @@ func _ready() -> void:
 	_check(int(roller._dice[1]["result_index"]) == 4 and int(roller._dice[1]["value"]) == 5, "resolve: the die holds its result")
 	roller.skip()
 	roller.queue_free()
+
+	# Real-flight bookkeeping (the 3D flight itself is skipped headless, so the roller is armed by hand).
+	await _flight_checks()
+
+	# rtt_stats: nearest-rank p50 / p95.
+	var rs := RemoteEpochSource.new()
+	_check(int(rs.rtt_stats()["n"]) == 0 and int(rs.rtt_stats()["p95"]) == 0, "rtt_stats: empty = zeros")
+	for ms in [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 20000]:
+		rs.note_rtt("reroll", ms)
+	var st := rs.rtt_stats()
+	_check(int(st["n"]) == 20 and int(st["p50"]) == 1000 and int(st["p95"]) == 10000, "rtt_stats: p50 1000 / p95 10000 (got %s)" % str(st))
 
 	CombatView.disable_juice_for_tests = false
 	_guard.restore()
