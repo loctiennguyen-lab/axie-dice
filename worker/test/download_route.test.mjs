@@ -97,6 +97,28 @@ test('GET /download renders the page with both links, size and sha256', async ()
   assert.ok(html.includes('0.1.0') && html.includes('godot-2026-10-26-t'));
 });
 
+test('page explains macOS 15 Open Anyway and the xattr fallback, and Windows More info', async () => {
+  const html = await text(await get('/download', { GAME: fakeR2(bucket()) }));
+  assert.match(html, /Vẫn mở/);
+  assert.match(html, /xattr -dr com\.apple\.quarantine \/Applications\/AxieDice\.app/);
+  assert.match(html, /Thêm thông tin/);
+  assert.match(html, /Vẫn chạy/);
+});
+
+test('non-ASCII file name -> 404 (not a 500 from Headers)', async () => {
+  const res = await get('/download/%C3%A9t%C3%A9.zip', { GAME: fakeR2(bucket()) });
+  assert.equal(res.status, 404);
+});
+
+test('nosniff on the page, the file stream and the 404', async () => {
+  const pageRes = await get('/download', { GAME: fakeR2(bucket()) });
+  assert.equal(pageRes.headers.get('x-content-type-options'), 'nosniff');
+  const fileRes = await get('/download/' + MAC, { GAME: fakeR2(bucket()) });
+  assert.equal(fileRes.headers.get('x-content-type-options'), 'nosniff');
+  const missRes = await get('/download/AxieDice-nope.zip', { GAME: fakeR2(bucket()) });
+  assert.equal(missRes.headers.get('x-content-type-options'), 'nosniff');
+});
+
 test('GET /download/ (trailing slash) serves the same page', async () => {
   const res = await get('/download/', { GAME: fakeR2(bucket()) });
   assert.equal(res.status, 200);
@@ -123,8 +145,12 @@ for (const [label, bad] of [
   test(`invalid manifest (${label}) -> 500, no links rendered`, async () => {
     const body = typeof bad === 'string' ? bad : JSON.stringify(bad);
     const res = await get('/download', { GAME: fakeR2(bucket(body)) });
-    assert.equal(res.status, 500);
-    assert.doesNotMatch(await text(res), /href=/);
+    assert.equal(res.status, 503);
+    const errBody = await text(res);
+    assert.doesNotMatch(errBody, /href=/);
+    // Generic answer only: no reason from the manifest check reaches the client.
+    assert.doesNotMatch(errBody, /manifest|rules_version|sha256|platform|JSON|missing|bad|escapes/i);
+    assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
   });
 }
 

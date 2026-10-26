@@ -32,7 +32,8 @@ export function downloadKeyFor(pathname) {
   let name;
   try { name = decodeURIComponent(rest); } catch { return null; }
   if (name === '' || name.endsWith('/')) return null;
-  if (/[\\\x00-\x1f\x7f]/.test(name) || name.startsWith('/')) return null;
+  // ASCII printable only: a non-ASCII name would make `new Headers` throw (500) and R2 keys are not paths anyway.
+  if (!/^[\x20-\x7e]+$/.test(name) || /[\\]/.test(name) || name.startsWith('/')) return null;
   const segs = name.split('/');
   if (segs.some((s) => s === '' || s === '.' || s === '..')) return null;
   const ext = segs[segs.length - 1].split('.').pop().toLowerCase();
@@ -103,8 +104,10 @@ ul { padding-left: 20px; }
 ${cards}
 <h2>Trước khi mở</h2>
 <ul>
-  <li>Bản này chưa ký số. macOS: chuột phải vào app, chọn Mở, rồi xác nhận lần đầu.</li>
-  <li>Windows: SmartScreen có thể hỏi, chọn "Thêm thông tin" rồi "Vẫn chạy".</li>
+  <li>Bản này chưa ký số. macOS 15 trở lên: chuột phải chọn Mở không còn đủ. Vào Cài đặt hệ thống > Quyền riêng tư và bảo mật, kéo xuống mục về AxieDice và bấm "Vẫn mở" (Open Anyway), nhập mật khẩu máy.</li>
+  <li>macOS máy cũ (14 trở xuống): chuột phải vào app, chọn Mở. Nếu app báo "bị hỏng" thì chạy trong Terminal: <code>xattr -dr com.apple.quarantine /Applications/AxieDice.app</code></li>
+  <li>Windows: SmartScreen hiện "Windows đã bảo vệ máy tính PC", bấm "Thêm thông tin" (More info), rồi "Vẫn chạy" (Run anyway).</li>
+  <li>Nên so sha256 của file vừa tải với dòng SHA-256 trên trang này.</li>
   <li>Bản cũ sẽ báo "có bản mới" khi vào trận. Tải lại từ trang này là đủ.</li>
 </ul>
 </main>
@@ -112,7 +115,9 @@ ${cards}
 </html>`;
 }
 
-const HTML_HEADERS = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=60' };
+const SEC = { 'X-Content-Type-Options': 'nosniff' };
+const HTML_HEADERS = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=60', ...SEC };
+const TEXT = (status, msg) => new Response(msg, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8', ...SEC } });
 
 /** Entry point, called from index.js before the game fallback. */
 export async function handleDownload(request, env, url) {
@@ -122,16 +127,16 @@ export async function handleDownload(request, env, url) {
   const isPage = url.pathname === '/download' || url.pathname === '/download/';
   if (isPage) {
     const r = await loadDownloadManifest(env);
-    if (r.missing) return new Response('Chưa có bản desktop nào được đăng.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
-    if (r.error) return new Response(`downloads manifest invalid: ${r.error}`, { status: 500, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+    if (r.missing) return TEXT(503, 'Chưa có bản desktop nào được đăng.');
+    // The reason stays in the log; the public answer is the same for any manifest fault.
+    if (r.error) { console.error('downloads manifest invalid:', r.error); return TEXT(503, 'Trang tải tạm thời chưa sẵn sàng. Thử lại sau.'); }
     return new Response(request.method === 'HEAD' ? null : pageHtml(r.manifest), { status: 200, headers: HTML_HEADERS });
   }
 
   const key = downloadKeyFor(url.pathname);
-  if (key === null) return new Response('Not found', { status: 404 });
-  if (key === DOWNLOAD_MANIFEST_KEY) return new Response('Not found', { status: 404 });
+  if (key === null || key === DOWNLOAD_MANIFEST_KEY) return TEXT(404, 'Not found');
   const obj = request.method === 'HEAD' ? await env.GAME.head(key) : await env.GAME.get(key);
-  if (obj === null) return new Response('Not found', { status: 404 });
+  if (obj === null) return TEXT(404, 'Not found');
   const name = key.slice(PREFIX.length).split('/').pop();
   const headers = new Headers({
     'Content-Type': 'application/octet-stream',
@@ -139,6 +144,7 @@ export async function handleDownload(request, env, url) {
     'Content-Disposition': `attachment; filename="${name.replace(/["\\]/g, '_')}"`,
     'Cache-Control': 'public, max-age=3600',
     ETag: obj.httpEtag,
+    ...SEC,
   });
   return new Response(request.method === 'HEAD' ? null : obj.body, { status: 200, headers });
 }
