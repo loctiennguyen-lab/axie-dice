@@ -33,11 +33,15 @@ func _ready() -> void:
 	var u: Unit = v._party_dice_units()[0]
 	u.die[0] = {"type": "dmg", "value": 4, "keywords": []}
 	u.set_roll(0, false)
+	u.status.erase("weaken")   # some seeds open with a foe weakening the source die; that is not what this test is about
 	_check(CombatTraits.plating_of(c, e) == 3, "engine reads plating 3")
 	_check(v._plating_preview(e) == "", "no die picked: no preview")
 	v._selected_die_uid = u.uid
 	_check(v._plating_preview(e) == "4 → 1", "picked 4-dmg die on Plating 3 previews 4 → 1 (got '%s')" % v._plating_preview(e))
-	u.die[0] = {"type": "dmg", "value": 4, "keywords": ["pierce"]}
+	# Preview must follow the engine's real face value: Weaken 2 turns the 4 into 2 (2 -> 1 on Plating 3).
+	u.status["weaken"] = 2
+	_check(c._face_value(u, 0) == 2 and v._plating_preview(e) == "2 → 1", "weakened die previews the real face value (got '%s')" % v._plating_preview(e))
+	u.status.erase("weaken")
 	u.die[0] = {"type": "dmg", "value": 4, "keywords": ["pierce"]}
 	_check(v._plating_preview(e) == "", "pierce face: no preview")
 	u.die[0] = {"type": "dmg", "value": 4, "keywords": []}

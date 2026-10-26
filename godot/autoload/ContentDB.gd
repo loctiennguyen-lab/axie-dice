@@ -452,6 +452,46 @@ func _load_enemies() -> void:
 				_f("m", "debuff", 0, ["vulnerable:4"]), _f("m", "dmg", 8, ["aoe"]), _f("m", "shield", 10),
 			],
 		},
+		# --- AT step 2 (Atia roster +6, Liam-approved 26/10): each new key borrows the die/hp/trait of an
+		# existing monster with the same role (no new mechanic); only name, cost and min differ.
+		# cost 4 on the three min-1 normals keeps them above slime/bugling in the cost-desc sort so
+		# the start-of-run pool really shows 5 types (see t_pool_diversity). ---
+		"anemone": {   # poisoner, Bugling block
+			"n": "Anemone", "role": "poisoner", "cost": 4, "hp": 8, "die": [
+				_f("m", "poison", 2), _f("m", "dmg", 3), _f("m", "dmg", 2),
+				_f("m", "poison", 3), _blank(), _f("m", "dmg", 4),
+			],
+		},
+		"shiitake": {   # healer, Jellyfin block
+			"n": "Shiitake", "trait": "ward", "role": "healer", "cost": 4, "hp": 13, "die": [
+				_f("m", "dmg", 4, ["cleave"]), _f("m", "heal", 5), _f("m", "shield", 5),
+				_f("m", "heal", 4, ["aoe"]), _f("m", "dmg", 5), _blank(),
+			],
+		},
+		"slimes_04": {   # bruiser, Gooey Slime block
+			"n": "Mire Slime", "role": "bruiser", "cost": 4, "hp": 9, "die": [
+				_f("m", "dmg", 3), _f("m", "dmg", 3), _f("m", "dmg", 2),
+				_f("m", "shield", 3), _blank(), _f("m", "dmg", 4),
+			],
+		},
+		"pangolord": {   # tank, Thornback block
+			"n": "Pangolord", "trait": "plating", "role": "tank", "cost": 6, "hp": 19, "die": [
+				_f("m", "shield", 6), _f("m", "dmg", 5), _f("m", "buff", 0, ["thorns:4"]),
+				_f("m", "dmg", 6, ["cleave"]), _f("m", "dmg", 4), _blank(),
+			],
+		},
+		"e_golem": {   # bruiser elite, Elite Ravager block
+			"n": "Elite Golem", "role": "bruiser", "cost": 11, "elite": 1, "hp": 30, "die": [
+				_f("m", "dmg", 11, ["heavy"]), _f("m", "dmg", 8, ["cleave"]), _f("m", "dmg", 7),
+				_f("m", "dmg", 9), _f("m", "shield", 8), _f("m", "dmg", 6, ["aoe"]),
+			],
+		},
+		"e_seahorse": {   # mage elite, Elite Archon block
+			"n": "Elite Seahorse", "role": "mage", "cost": 11, "elite": 1, "hp": 26, "die": [
+				_f("m", "dmg", 9, ["aoe", "burn:4"]), _f("m", "debuff", 0, ["blind:2", "aoe"]), _f("m", "dmg", 13),
+				_f("m", "debuff", 0, ["vulnerable:4"]), _f("m", "dmg", 8, ["aoe"]), _f("m", "shield", 10),
+			],
+		},
 	}
 	egg_token = {
 		"n": "Axie Egg", "role": "token", "cost": 2, "hp": 6, "die": [
@@ -466,9 +506,11 @@ func _load_enemies() -> void:
 		{"k": "jellyfin", "min": 3}, {"k": "ravenling", "min": 3}, {"k": "bomblet", "min": 4}, {"k": "thornback", "min": 5},
 		{"k": "venomaw", "min": 5}, {"k": "totem", "min": 6}, {"k": "bruiser", "min": 7}, {"k": "hexeye", "min": 7},
 		{"k": "pyrewing", "min": 8}, {"k": "stalker", "min": 9}, {"k": "broodmaw", "min": 9}, {"k": "cleaver", "min": 10}, {"k": "warden", "min": 11},
+		# AT step 2: appended at the end on purpose (cost ties cut the highest index first)
+		{"k": "anemone", "min": 1}, {"k": "shiitake", "min": 1}, {"k": "slimes_04", "min": 1}, {"k": "pangolord", "min": 3},
 	]
 	# src/data.js ELITE_POOL (:362), verbatim.
-	elite_pool = ["e_ravager", "e_plague", "e_bulwark", "e_archon"]
+	elite_pool = ["e_ravager", "e_plague", "e_bulwark", "e_archon", "e_golem", "e_seahorse"]
 
 
 ## Content-expansion pass — copied verbatim from src/data.js BOSSES[] (rule spec §11).

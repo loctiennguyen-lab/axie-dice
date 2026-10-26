@@ -63,6 +63,12 @@ const MONSTER_SPRITES := {
 	"e_plague": "mommy-bear",
 	"e_bulwark": "treant-fighter",
 	"e_archon": "dryad-mage",
+	"e_golem": "werewolf",
+	"e_seahorse": "dryad-mage",
+	"anemone": "aqua-slime-sup",
+	"shiitake": "treant-fighter",
+	"slimes_04": "forest-slime-fighter",
+	"pangolord": "dryad-fighter",
 }
 
 ## Boss key (ContentDB.bosses) -> sprite basename.
@@ -130,13 +136,13 @@ static func sprite_name_for(key: String, is_boss: bool = false) -> String:
 
 const ATIA_REGISTRY_PATH := "res://assets/atia/atia_models.json"
 
-## The 27 enemy keys frozen for L1 (17 normal, 4 elite, 6 boss). ContentDB.enemies also holds
+## The 33 enemy keys (L1 froze 27; AT step 2 added 4 normal + 2 elite): 21 normal, 6 elite, 6 boss. ContentDB.enemies also holds
 ## the "egg" summon token, which is not a roster enemy and is deliberately not listed here.
 ## Adding or renaming a key means telling lane C (t_atia_coverage fails until it is covered).
 const NORMAL_KEYS := ["slime", "chomper", "bruiser", "cleaver", "ravenling", "stalker", "spikelet",
 	"thornback", "jellyfin", "warden", "bugling", "venomaw", "hexeye", "pyrewing", "broodmaw",
-	"bomblet", "totem"]
-const ELITE_KEYS := ["e_ravager", "e_plague", "e_bulwark", "e_archon"]
+	"bomblet", "totem", "anemone", "shiitake", "slimes_04", "pangolord"]
+const ELITE_KEYS := ["e_ravager", "e_plague", "e_bulwark", "e_archon", "e_golem", "e_seahorse"]
 const BOSS_KEYS := ["agony", "gooey_king", "mecha", "frost_lord", "plague_mother", "mirror"]
 
 ## Tests that need the flat Chimera sprite path (frame-sheet animation) set this to true so

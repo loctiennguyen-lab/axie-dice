@@ -247,7 +247,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 
 ## Pinned, 2026-10-26 (R2 Land, int/r2): economy_db.gd total Land Stone 1.82M -> 1.8M (tier 2 = 20k). Meta/economy only,
 ## no combat or replay input. Run result: NO, stays -u.
-const FINGERPRINT := "2acc6e2595cc322fa3145b3e2e27ea59081795cdb3d87efaae8ecabd782052a6"
+## BUMPED, 2026-10-26: `ActionLog.RULES_VERSION` -> `godot-2026-10-26-v`. R-Atia (int/ra): 6 new Atia monsters in the normal/Elite
+## pools change which monsters a seed draws. Same actions give a different run. Worker SUPPORTED_RULE_VERSIONS gained -v.
+const FINGERPRINT := "6e770d6fd419a831ef0cf1be32102f2256e5b06075f4d635b4c64f282d767c89"
 
 
 func _ready() -> void:

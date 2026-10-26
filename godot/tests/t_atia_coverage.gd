@@ -35,8 +35,8 @@ func _assert(cond: bool, msg: String) -> void:
 
 
 func test_frozen_key_list_matches_content() -> void:
-	_assert(MonsterArt.NORMAL_KEYS.size() == 17, "expected 17 normal keys")
-	_assert(MonsterArt.ELITE_KEYS.size() == 4, "expected 4 elite keys")
+	_assert(MonsterArt.NORMAL_KEYS.size() == 21, "expected 21 normal keys")
+	_assert(MonsterArt.ELITE_KEYS.size() == 6, "expected 6 elite keys")
 	_assert(MonsterArt.BOSS_KEYS.size() == 6, "expected 6 boss keys")
 	for k in ContentDB.enemies.keys():
 		if NON_ROSTER.has(String(k)):
