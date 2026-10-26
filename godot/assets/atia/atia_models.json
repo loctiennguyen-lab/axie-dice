@@ -410,6 +410,93 @@
    },
    "anim_speed": {},
    "fallback_sprite": "dryad-fighter"
+  },
+  "anemone": {
+   "kind": "glb",
+   "path": "res://assets/atia/anemone/anemone.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "Attack",
+    "hit": "GetHit",
+    "die": "Dead"
+   },
+   "anim_speed": {},
+   "fallback_sprite": "aqua-slime-sup"
+  },
+  "shiitake": {
+   "kind": "glb",
+   "path": "res://assets/atia/shiitake/shiitake.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "Attack",
+    "die": "Dead"
+   },
+   "anim_speed": {},
+   "fallback_sprite": "treant-fighter"
+  },
+  "slimes_04": {
+   "kind": "glb",
+   "path": "res://assets/atia/slimes_04/slimes_04.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "Attack",
+    "hit": "GetHit"
+   },
+   "anim_speed": {},
+   "fallback_sprite": "forest-slime-fighter"
+  },
+  "pangolord": {
+   "kind": "glb",
+   "path": "res://assets/atia/pangolord/pangolord.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "PouncingSwipe",
+    "hit": "GetHit",
+    "die": "Dead"
+   },
+   "anim_speed": {},
+   "fallback_sprite": "dryad-fighter"
+  },
+  "e_golem": {
+   "kind": "glb",
+   "path": "res://assets/atia/e_golem/e_golem.tscn",
+   "height_m": 2.8,
+   "fit_width_m": 3.0,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "Skill1",
+    "die": "Dead"
+   },
+   "anim_speed": {},
+   "fallback_sprite": "werewolf"
+  },
+  "e_seahorse": {
+   "kind": "glb",
+   "path": "res://assets/atia/e_seahorse/e_seahorse.tscn",
+   "height_m": 2.8,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "Skill1",
+    "die": "Dead"
+   },
+   "anim_speed": {},
+   "fallback_sprite": "dryad-mage"
   }
  }
 }

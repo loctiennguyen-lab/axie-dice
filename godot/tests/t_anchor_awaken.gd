@@ -8,7 +8,7 @@ func _init() -> void:
 func _eng(anchor: String, mana: int, awake: bool) -> CombatEngine:
 	var e := CombatEngine.new()
 	e.setup_new({"node_id": "bo", "kind": "battle", "pw": 2, "ascension": 0, "roster_snapshot": CoreTestUtil.roster(["plant1", "beast1", "aqua1", "reptile1", "bug1"]),
-		"relic_ids": [], "combat_seed": 7, "start_mana": mana, "depth_stage": 3, "anchor_id": anchor, "anchor_awakened": awake})
+		"relic_ids": [], "combat_seed": 29, "start_mana": mana, "depth_stage": 3, "anchor_id": anchor, "anchor_awakened": awake})
 	return e
 
 

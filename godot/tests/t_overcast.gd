@@ -3,7 +3,7 @@ extends Node
 ## Knobs: combat_tune.json overcast.mana_cost / add / per_turn. Depth v4 3.7: Overcast adds +overcast.add to the M bag (with the Set), one integer multiply at step 4, before face_final; no own x1.5.
 
 var _guard := SaveGuard.new()
-const SEED := 424242
+const SEED := 211
 var _fail: Array[String] = []
 var _checks := 0
 

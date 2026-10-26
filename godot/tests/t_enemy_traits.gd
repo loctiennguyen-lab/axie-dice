@@ -169,6 +169,8 @@ func _spite() -> void:
 	var snap := CombatEngine.new()
 	snap.from_data(c.to_data())
 	_check(int(snap.spite_hits.get(e.uid, 0)) == 4, "counter in snapshot")
+	# end_turn() re-rolls every die: give the 1-face test die six faces so a different RNG stream (pool changes) cannot index past it
+	a.die = [face.duplicate(true), face.duplicate(true), face.duplicate(true), face.duplicate(true), face.duplicate(true), face.duplicate(true)]
 	c.end_turn()
 	_check(c.spite_hits.is_empty(), "reset at the player turn start")
 
