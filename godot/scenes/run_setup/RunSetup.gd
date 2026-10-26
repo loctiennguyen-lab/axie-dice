@@ -263,7 +263,7 @@ func start_params() -> Dictionary:
 			keys.append(k)
 	return {"team_keys": keys, "mode": mode, "ascension": ascension, "kind": kind, "ranked": kind == "ranked",
 		"newcomer": is_newcomer(), "depth_stage": MetaState.depth_stage(),
-		"anchor": true}   # opt-in; the engine itself refuses online / ranked / daily / mission / stage < 3
+		"anchor": true}   # opt-in; the engine itself refuses ranked / daily / stage < 2
 
 
 ## Fetches the Daily tries. Only meaningful when dice are server-rolled; quiet on failure (the buttons

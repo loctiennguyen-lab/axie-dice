@@ -227,7 +227,8 @@ func mission_params(tier_id: String, mission_id: String = "") -> Dictionary:
 			keys.append(k)
 	return {
 		"team_keys": keys, "mode": String(o.mode), "ascension": int(o.ascension), "ranked": false,
-		"kind": "mission", "newcomer": false,
+		"kind": "mission", "newcomer": false, "depth_stage": MetaState.depth_stage(),
+		"anchor": true,   # Liam 26/10: Anchors in Missions like a normal run (stage gate still applies)
 		"mission": {
 			"mission_id": mission_id if mission_id != "" else "%s|%s" % [today(), tier_id], "tier": int(tier_id.substr(1)),
 			"rules": (o.rules as Array).duplicate(), "stake": int(o.stake),

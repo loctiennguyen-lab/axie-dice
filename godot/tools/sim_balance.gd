@@ -8,8 +8,8 @@ extends Node
 ## Mission mode (N-S, beta): --mission=N1..N6 (comma list ok) plays a Mission run: Ascension + Mission Rules M + the `standard`
 ##   block as RunState/ContentDB.mission_mods apply them. Ladder (LADDER below) is the brainstorm table, NOT read from
 ##   missions.json (N-C owns that file). Overrides: --asc=4 (list ok) --rules=M1,M5 (or --rules=none) --mode=short|full.
-##   --rules=... without --mission = one "custom" config (per-rule d at A0/A3). --kind=mission (default, what the game does: NO Anchor,
-##   RunState.anchor_gate_reason "kind") | normal (Anchor possible; header still carries the mission). --anchor defaults to auto in
+##   --rules=... without --mission = one "custom" config (per-rule d at A0/A3). --kind=mission (default, what the game does; since Liam 26/10
+##   Mission runs carry an Anchor like a normal run, stage gate applies) | normal (header still carries the mission). --anchor defaults to auto in
 ##   mission mode. --force_run_rule=<id> makes the opening Run Rule offer hold only that rule (even a disabled one) and the bot takes it.
 ##   Same seed list for every config (seed+i, team/core policy by i) so configs pair by seed. CSV gets cfg,mode,rules columns;
 ##   the report adds win-rate, SE and Wilson 95% CI per config and paired differences.
@@ -186,12 +186,6 @@ func run_batch(args: Dictionary) -> Array:
 			variants.append({"label": "", "tier": "", "mode": String(args.get("mode", "short")), "asc": int(asc_s), "rules": [], "kind": ""})
 	else:
 		_anchor_mode = String(args.get("anchor", "auto"))
-		for cfg0 in variants:
-			if String(cfg0["kind"]) == "mission" and _anchor_mode != "auto" and _anchor_mode != "none":
-				var w := "sim_balance WARNING: --anchor=%s has no effect in a mission run (kind=mission: RunState.anchor_gate_reason blocks Anchors). Use --kind=normal to test Anchors." % _anchor_mode
-				push_warning(w)
-				print(w)
-				break
 		_stage = clampi(int(args.get("stage", 3)), 1, 3)
 	_force_rule = String(args.get("force_run_rule", ""))
 	if _force_rule != "":
