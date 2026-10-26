@@ -1,0 +1,290 @@
+# Soak 2026-10-26
+
+- run: 27495
+- end: {'WON': 1321, 'LOST': 26171, 'STUCK_TURNS': 3}
+- verify: {'skip_forced': 14490, 'ok': 11459, 'rejected:action_rejected@51': 9, 'rejected:action_rejected@54': 7, 'rejected:action_rejected@132': 5, 'diff': 115, 'rejected:action_rejected@26': 7, 'rejected:action_rejected@44': 8, 'rejected:action_rejected@93': 8, 'rejected:action_rejected@105': 15, 'rejected:action_rejected@25': 19, 'rejected:action_rejected@46': 12, 'rejected:action_rejected@42': 14, 'rejected:action_rejected@28': 8, 'rejected:action_rejected@48': 15, 'rejected:action_rejected@110': 9, 'rejected:action_rejected@59': 23, 'rejected:action_rejected@113': 7, 'rejected:action_rejected@17': 33, 'rejected:action_rejected@75': 15, 'rejected:action_rejected@62': 6, 'rejected:action_rejected@77': 14, 'rejected:action_rejected@56': 11, 'rejected:action_rejected@52': 12, 'rejected:action_rejected@38': 8, 'rejected:action_rejected@13': 20, 'rejected:action_rejected@33': 11, 'rejected:action_rejected@138': 6, 'rejected:action_rejected@18': 23, 'rejected:action_rejected@22': 20, 'rejected:action_rejected@90': 10, 'rejected:action_rejected@34': 12, 'rejected:action_rejected@70': 5, 'rejected:action_rejected@53': 9, 'rejected:action_rejected@79': 11, 'rejected:action_rejected@92': 10, 'rejected:action_rejected@106': 8, 'rejected:action_rejected@133': 3, 'rejected:action_rejected@386': 1, 'rejected:action_rejected@307': 1, 'rejected:action_rejected@103': 6, 'rejected:action_rejected@88': 8, 'rejected:action_rejected@80': 6, 'rejected:action_rejected@9': 17, 'rejected:action_rejected@23': 24, 'rejected:action_rejected@121': 5, 'rejected:action_rejected@32': 13, 'rejected:action_rejected@97': 7, 'rejected:action_rejected@149': 1, 'rejected:action_rejected@130': 4, 'rejected:action_rejected@96': 8, 'rejected:action_rejected@64': 16, 'rejected:action_rejected@116': 5, 'rejected:action_rejected@39': 19, 'rejected:action_rejected@35': 12, 'rejected:action_rejected@57': 15, 'rejected:action_rejected@376': 1, 'rejected:action_rejected@95': 5, 'rejected:action_rejected@81': 14, 'rejected:action_rejected@127': 4, 'rejected:action_rejected@112': 8, 'rejected:action_rejected@43': 11, 'rejected:action_rejected@63': 14, 'rejected:action_rejected@185': 2, 'rejected:action_rejected@12': 32, 'rejected:action_rejected@82': 8, 'rejected:action_rejected@29': 13, 'rejected:action_rejected@24': 17, 'rejected:action_rejected@45': 9, 'rejected:action_rejected@14': 11, 'rejected:action_rejected@15': 9, 'rejected:action_rejected@11': 24, 'rejected:action_rejected@7': 4, 'rejected:action_rejected@16': 22, 'rejected:action_rejected@8': 11, 'rejected:action_rejected@27': 14, 'rejected:action_rejected@6': 5, 'rejected:action_rejected@87': 10, 'rejected:action_rejected@10': 23, 'rejected:action_rejected@100': 8, 'rejected:action_rejected@98': 2, 'rejected:action_rejected@128': 10, 'rejected:action_rejected@19': 19, 'rejected:action_rejected@114': 8, 'rejected:action_rejected@91': 4, 'rejected:action_rejected@94': 9, 'rejected:action_rejected@107': 4, 'rejected:action_rejected@233': 1, 'rejected:action_rejected@40': 7, 'rejected:action_rejected@21': 19, 'rejected:action_rejected@78': 13, 'rejected:action_rejected@170': 2, 'rejected:action_rejected@41': 8, 'rejected:action_rejected@154': 8, 'rejected:action_rejected@115': 7, 'rejected:action_rejected@281': 1, 'rejected:action_rejected@20': 15, 'rejected:action_rejected@155': 2, 'rejected:action_rejected@66': 8, 'rejected:action_rejected@118': 5, 'rejected:action_rejected@119': 5, 'rejected:action_rejected@85': 5, 'rejected:action_rejected@162': 1, 'rejected:action_rejected@49': 8, 'rejected:action_rejected@137': 3, 'rejected:action_rejected@47': 10, 'rejected:action_rejected@89': 14, 'rejected:action_rejected@412': 1, 'rejected:action_rejected@68': 5, 'rejected:action_rejected@198': 1, 'rejected:action_rejected@117': 2, 'rejected:action_rejected@211': 3, 'rejected:action_rejected@174': 7, 'rejected:action_rejected@203': 1, 'rejected:action_rejected@123': 2, 'rejected:action_rejected@126': 4, 'rejected:action_rejected@50': 10, 'rejected:action_rejected@72': 8, 'rejected:action_rejected@30': 18, 'rejected:action_rejected@55': 10, 'rejected:action_rejected@102': 8, 'rejected:action_rejected@104': 9, 'rejected:action_rejected@153': 5, 'rejected:action_rejected@249': 2, 'rejected:action_rejected@263': 1, 'rejected:action_rejected@37': 10, 'rejected:action_rejected@65': 8, 'rejected:action_rejected@61': 14, 'rejected:action_rejected@122': 4, 'rejected:action_rejected@257': 1, 'rejected:action_rejected@73': 12, 'rejected:action_rejected@99': 5, 'rejected:action_rejected@69': 14, 'rejected:action_rejected@179': 3, 'rejected:action_rejected@111': 6, 'rejected:action_rejected@76': 8, 'rejected:action_rejected@161': 2, 'rejected:action_rejected@60': 8, 'rejected:action_rejected@171': 2, 'rejected:action_rejected@31': 8, 'rejected:action_rejected@84': 6, 'rejected:action_rejected@304': 2, 'rejected:action_rejected@124': 3, 'rejected:action_rejected@167': 2, 'rejected:action_rejected@71': 11, 'rejected:action_rejected@160': 3, 'rejected:action_rejected@74': 6, 'rejected:action_rejected@182': 2, 'rejected:action_rejected@210': 1, 'rejected:action_rejected@143': 3, 'rejected:action_rejected@125': 6, 'rejected:action_rejected@140': 3, 'rejected:action_rejected@151': 2, 'rejected:action_rejected@134': 4, 'rejected:action_rejected@178': 3, 'rejected:action_rejected@195': 1, 'rejected:action_rejected@163': 2, 'rejected:action_rejected@145': 2, 'rejected:action_rejected@36': 14, 'rejected:action_rejected@101': 4, 'rejected:action_rejected@58': 6, 'rejected:action_rejected@252': 1, 'rejected:action_rejected@83': 7, 'rejected:action_rejected@196': 2, 'rejected:action_rejected@67': 8, 'rejected:action_rejected@109': 1, 'rejected:action_rejected@147': 3, 'rejected:action_rejected@180': 1, 'rejected:action_rejected@224': 1, 'rejected:action_rejected@201': 3, 'rejected:action_rejected@190': 1, 'rejected:action_rejected@176': 1, 'rejected:action_rejected@146': 2, 'rejected:action_rejected@141': 3, 'rejected:action_rejected@144': 2, 'rejected:action_rejected@5': 1, 'rejected:action_rejected@188': 1, 'rejected:action_rejected@187': 1, 'rejected:action_rejected@199': 2, 'rejected:action_rejected@364': 2, 'rejected:action_rejected@148': 1, 'rejected:action_rejected@207': 1, 'rejected:action_rejected@227': 1, 'rejected:action_rejected@209': 1, 'rejected:action_rejected@131': 2, 'rejected:action_rejected@135': 1, 'rejected:action_rejected@225': 1, 'rejected:action_rejected@108': 4, 'rejected:action_rejected@172': 2, 'rejected:action_rejected@221': 1, 'rejected:action_rejected@86': 1, 'rejected:action_rejected@326': 1, 'rejected:action_rejected@165': 3, 'rejected:action_rejected@192': 1, 'rejected:action_rejected@429': 1, 'rejected:action_rejected@139': 4, 'rejected:action_rejected@293': 1, 'rejected:action_rejected@294': 1, 'rejected:action_rejected@150': 1, 'rejected:action_rejected@345': 1, 'rejected:action_rejected@193': 2, 'rejected:action_rejected@183': 1, 'rejected:action_rejected@164': 1, 'rejected:action_rejected@197': 1, 'rejected:action_rejected@157': 1, 'rejected:action_rejected@158': 1, 'rejected:action_rejected@206': 1, 'rejected:action_rejected@177': 1, 'rejected:action_rejected@142': 1, 'rejected:action_rejected@152': 1, 'rejected:action_rejected@213': 1}
+- log: {'ERROR:': 415}
+- run xau: 1548
+
+## Run xau (seed de tai hien)
+- seed=500001 policy=random_legal team=aqua_plant asc=4 cfg=N5 anchor= rule=rule_old_forest end=LOST verify=rejected:action_rejected@51 Move 51 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500002 policy=random_legal team=reptile_bug asc=4 cfg=N5 anchor= rule=rule_old_forest end=LOST verify=rejected:action_rejected@54 Move 54 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500003 policy=random_legal team=mixed_std asc=4 cfg=N5 anchor= rule=rule_tundra end=LOST verify=rejected:action_rejected@132 Move 132 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500004 policy=random_legal team=mixed_dmg asc=4 cfg=N5 anchor= rule=rule_balance end=LOST verify=diff:score live=140 replay=150  [fastM_none_N5]
+- seed=500005 policy=random_legal team=tank_heavy asc=4 cfg=N5 anchor= rule=rule_crow end=LOST verify=rejected:action_rejected@26 Move 26 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500006 policy=random_legal team=thorn_shield asc=4 cfg=N5 anchor= rule=rule_starfall end=LOST verify=rejected:action_rejected@44 Move 44 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500007 policy=random_legal team=beast_bird asc=4 cfg=N5 anchor= rule=rule_hard_shell end=LOST verify=rejected:action_rejected@93 Reward 0 was taken from an offer of 0.  [fastM_none_N5]
+- seed=500008 policy=random_legal team=aqua_plant asc=4 cfg=N5 anchor= rule=rule_starfall end=LOST verify=rejected:action_rejected@105 Move 105 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500009 policy=random_legal team=reptile_bug asc=4 cfg=N5 anchor= rule=rule_old_forest end=LOST verify=rejected:action_rejected@25 Reward 0 was taken from an offer of 0.  [fastM_none_N5]
+- seed=500010 policy=random_legal team=mixed_std asc=4 cfg=N5 anchor= rule=rule_wasteland end=LOST verify=rejected:action_rejected@46 A combat move was recorded outside a combat.  [fastM_none_N5]
+- seed=500012 policy=random_legal team=tank_heavy asc=4 cfg=N5 anchor= rule=rule_upside_down end=LOST verify=rejected:action_rejected@42 Move 42 (reroll_dice) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500013 policy=random_legal team=thorn_shield asc=4 cfg=N5 anchor= rule=rule_dry_steppe end=LOST verify=diff:score live=160 replay=200  [fastM_none_N5]
+- seed=500016 policy=random_legal team=reptile_bug asc=4 cfg=N5 anchor= rule=rule_balance end=LOST verify=rejected:action_rejected@28 Move 28 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500017 policy=random_legal team=mixed_std asc=4 cfg=N5 anchor= rule=rule_upside_down end=LOST verify=diff:score live=290 replay=360  [fastM_none_N5]
+- seed=500018 policy=random_legal team=mixed_dmg asc=4 cfg=N5 anchor= rule=rule_tundra end=LOST verify=rejected:action_rejected@48 Move 48 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500019 policy=random_legal team=tank_heavy asc=4 cfg=N5 anchor= rule=rule_high_stakes end=LOST verify=diff:score live=160 replay=200  [fastM_none_N5]
+- seed=500020 policy=random_legal team=thorn_shield asc=4 cfg=N5 anchor= rule=rule_pack_alpha end=LOST verify=diff:score live=140 replay=150  [fastM_none_N5]
+- seed=500021 policy=random_legal team=beast_bird asc=4 cfg=N5 anchor= rule=rule_rising_tide end=LOST verify=rejected:action_rejected@110 Move 110 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500022 policy=random_legal team=aqua_plant asc=4 cfg=N5 anchor= rule=rule_balance end=LOST verify=rejected:action_rejected@59 Move 59 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500023 policy=random_legal team=reptile_bug asc=4 cfg=N5 anchor= rule=rule_hard_shell end=LOST verify=rejected:action_rejected@113 Move 113 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500024 policy=random_legal team=mixed_std asc=4 cfg=N5 anchor= rule=rule_pack_alpha end=WON verify=rejected:action_rejected@17 Move 17 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500026 policy=random_legal team=tank_heavy asc=4 cfg=N5 anchor= rule=rule_hard_shell end=LOST verify=rejected:action_rejected@75 Reward 1 was taken from an offer of 0.  [fastM_none_N5]
+- seed=500027 policy=random_legal team=thorn_shield asc=4 cfg=N5 anchor= rule=rule_upside_down end=LOST verify=rejected:action_rejected@62 A combat move was recorded outside a combat.  [fastM_none_N5]
+- seed=500029 policy=random_legal team=aqua_plant asc=4 cfg=N5 anchor= rule=rule_pack_alpha end=LOST verify=rejected:action_rejected@77 Move 77 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500000 policy=attack_spam team=beast_bird asc=4 cfg=N5 anchor= rule=rule_rising_tide end=LOST verify=rejected:action_rejected@56 Move 56 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500001 policy=attack_spam team=aqua_plant asc=4 cfg=N5 anchor= rule=rule_old_forest end=LOST verify=rejected:action_rejected@52 Move 52 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500002 policy=attack_spam team=reptile_bug asc=4 cfg=N5 anchor= rule=rule_old_forest end=LOST verify=diff:score live=280 replay=290  [fastM_none_N5]
+- seed=500003 policy=attack_spam team=mixed_std asc=4 cfg=N5 anchor= rule=rule_tundra end=LOST verify=rejected:action_rejected@38 A combat move was recorded outside a combat.  [fastM_none_N5]
+- seed=500004 policy=attack_spam team=mixed_dmg asc=4 cfg=N5 anchor= rule=rule_balance end=LOST verify=rejected:action_rejected@44 Move 44 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500005 policy=attack_spam team=tank_heavy asc=4 cfg=N5 anchor= rule=rule_crow end=LOST verify=rejected:action_rejected@13 A combat move was recorded outside a combat.  [fastM_none_N5]
+- seed=500006 policy=attack_spam team=thorn_shield asc=4 cfg=N5 anchor= rule=rule_starfall end=LOST verify=rejected:action_rejected@33 Move 33 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500008 policy=attack_spam team=aqua_plant asc=4 cfg=N5 anchor= rule=rule_starfall end=LOST verify=rejected:action_rejected@138 Reward 0 was taken from an offer of 0.  [fastM_none_N5]
+- seed=500010 policy=attack_spam team=mixed_std asc=4 cfg=N5 anchor= rule=rule_wasteland end=LOST verify=rejected:action_rejected@18 Move 18 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500011 policy=attack_spam team=mixed_dmg asc=4 cfg=N5 anchor= rule=rule_none end=LOST verify=rejected:action_rejected@22 Move 22 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500013 policy=attack_spam team=thorn_shield asc=4 cfg=N5 anchor= rule=rule_dry_steppe end=LOST verify=rejected:action_rejected@90 Move 90 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500014 policy=attack_spam team=beast_bird asc=4 cfg=N5 anchor= rule=rule_rising_tide end=LOST verify=diff:score live=170 replay=240  [fastM_none_N5]
+- seed=500015 policy=attack_spam team=aqua_plant asc=4 cfg=N5 anchor= rule=rule_tundra end=LOST verify=rejected:action_rejected@44 Move 44 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500017 policy=attack_spam team=mixed_std asc=4 cfg=N5 anchor= rule=rule_upside_down end=LOST verify=rejected:action_rejected@34 Move 34 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500019 policy=attack_spam team=tank_heavy asc=4 cfg=N5 anchor= rule=rule_high_stakes end=LOST verify=rejected:action_rejected@70 Move 70 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500020 policy=attack_spam team=thorn_shield asc=4 cfg=N5 anchor= rule=rule_pack_alpha end=LOST verify=rejected:action_rejected@28 Move 28 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500021 policy=attack_spam team=beast_bird asc=4 cfg=N5 anchor= rule=rule_rising_tide end=LOST verify=rejected:action_rejected@53 A combat move was recorded outside a combat.  [fastM_none_N5]
+- seed=500022 policy=attack_spam team=aqua_plant asc=4 cfg=N5 anchor= rule=rule_balance end=LOST verify=rejected:action_rejected@48 Move 48 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500023 policy=attack_spam team=reptile_bug asc=4 cfg=N5 anchor= rule=rule_hard_shell end=WON verify=rejected:action_rejected@79 A combat move was recorded outside a combat.  [fastM_none_N5]
+- seed=500024 policy=attack_spam team=mixed_std asc=4 cfg=N5 anchor= rule=rule_pack_alpha end=LOST verify=rejected:action_rejected@92 Move 92 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500025 policy=attack_spam team=mixed_dmg asc=4 cfg=N5 anchor= rule=rule_old_forest end=LOST verify=rejected:action_rejected@106 A combat move was recorded outside a combat.  [fastM_none_N5]
+- seed=500027 policy=attack_spam team=thorn_shield asc=4 cfg=N5 anchor= rule=rule_upside_down end=LOST verify=rejected:action_rejected@133 Move 133 (use_die) is not legal in the state the replay reached.  [fastM_none_N5]
+- seed=500029 policy=attack_spam team=aqua_plant asc=4 cfg=N5 anchor= rule=rule_pack_alpha end=LOST verify=diff:score live=200 replay=270  [fastM_none_N5]
+- seed=500002 policy=random_legal team=reptile_bug asc=2 cfg=N2 anchor= rule=rule_high_stakes end=WON verify=rejected:action_rejected@386 Move 386 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500003 policy=random_legal team=mixed_std asc=2 cfg=N2 anchor= rule=rule_rising_tide end=LOST verify=rejected:action_rejected@307 Move 307 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500004 policy=random_legal team=mixed_dmg asc=2 cfg=N2 anchor= rule=rule_balance end=LOST verify=rejected:action_rejected@103 Move 103 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500006 policy=random_legal team=thorn_shield asc=2 cfg=N2 anchor= rule=rule_hard_shell end=LOST verify=diff:score live=110 replay=150  [fastM_none_N2]
+- seed=500009 policy=random_legal team=reptile_bug asc=2 cfg=N2 anchor= rule=rule_rising_tide end=LOST verify=rejected:action_rejected@17 Move 17 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500010 policy=random_legal team=mixed_std asc=2 cfg=N2 anchor= rule=rule_pack_alpha end=LOST verify=rejected:action_rejected@88 A combat move was recorded outside a combat.  [fastM_none_N2]
+- seed=500011 policy=random_legal team=mixed_dmg asc=2 cfg=N2 anchor= rule=rule_none end=LOST verify=rejected:action_rejected@133 A combat move was recorded outside a combat.  [fastM_none_N2]
+- seed=500013 policy=random_legal team=thorn_shield asc=2 cfg=N2 anchor= rule=rule_tundra end=LOST verify=rejected:action_rejected@80 Move 80 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500014 policy=random_legal team=beast_bird asc=2 cfg=N2 anchor= rule=rule_balance end=LOST verify=rejected:action_rejected@9 Move 9 (overcast) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500015 policy=random_legal team=aqua_plant asc=2 cfg=N2 anchor= rule=rule_old_forest end=LOST verify=diff:score live=120 replay=190  [fastM_none_N2]
+- seed=500016 policy=random_legal team=reptile_bug asc=2 cfg=N2 anchor= rule=rule_wasteland end=LOST verify=rejected:action_rejected@18 Move 18 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500017 policy=random_legal team=mixed_std asc=2 cfg=N2 anchor= rule=rule_heavy_finish end=LOST verify=diff:score live=100 replay=110  [fastM_none_N2]
+- seed=500018 policy=random_legal team=mixed_dmg asc=2 cfg=N2 anchor= rule=rule_starfall end=LOST verify=rejected:action_rejected@106 Move 106 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500019 policy=random_legal team=tank_heavy asc=2 cfg=N2 anchor= rule=rule_old_forest end=LOST verify=diff:score live=110 replay=150  [fastM_none_N2]
+- seed=500020 policy=random_legal team=thorn_shield asc=2 cfg=N2 anchor= rule=rule_quick_beat end=LOST verify=rejected:action_rejected@52 Move 52 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500021 policy=random_legal team=beast_bird asc=2 cfg=N2 anchor= rule=rule_balance end=LOST verify=rejected:action_rejected@23 A combat move was recorded outside a combat.  [fastM_none_N2]
+- seed=500022 policy=random_legal team=aqua_plant asc=2 cfg=N2 anchor= rule=rule_heavy_finish end=LOST verify=rejected:action_rejected@121 Move 121 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500023 policy=random_legal team=reptile_bug asc=2 cfg=N2 anchor= rule=rule_pack_alpha end=LOST verify=rejected:action_rejected@110 A combat move was recorded outside a combat.  [fastM_none_N2]
+- seed=500024 policy=random_legal team=mixed_std asc=2 cfg=N2 anchor= rule=rule_old_forest end=LOST verify=rejected:action_rejected@17 A combat move was recorded outside a combat.  [fastM_none_N2]
+- seed=500025 policy=random_legal team=mixed_dmg asc=2 cfg=N2 anchor= rule=rule_starfall end=LOST verify=rejected:action_rejected@32 Move 32 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500026 policy=random_legal team=tank_heavy asc=2 cfg=N2 anchor= rule=rule_upside_down end=LOST verify=rejected:action_rejected@97 Move 97 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500027 policy=random_legal team=thorn_shield asc=2 cfg=N2 anchor= rule=rule_tundra end=LOST verify=rejected:action_rejected@149 Move 149 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500028 policy=random_legal team=beast_bird asc=2 cfg=N2 anchor= rule=rule_balance end=LOST verify=rejected:action_rejected@130 Move 130 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500029 policy=random_legal team=aqua_plant asc=2 cfg=N2 anchor= rule=rule_quick_beat end=LOST verify=diff:score live=90 replay=100  [fastM_none_N2]
+- seed=500000 policy=attack_spam team=beast_bird asc=2 cfg=N2 anchor= rule=rule_crow end=LOST verify=rejected:action_rejected@25 Reward 0 was taken from an offer of 0.  [fastM_none_N2]
+- seed=500001 policy=attack_spam team=aqua_plant asc=2 cfg=N2 anchor= rule=rule_wasteland end=LOST verify=rejected:action_rejected@96 Move 96 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500002 policy=attack_spam team=reptile_bug asc=2 cfg=N2 anchor= rule=rule_high_stakes end=LOST verify=rejected:action_rejected@113 Move 113 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500003 policy=attack_spam team=mixed_std asc=2 cfg=N2 anchor= rule=rule_rising_tide end=LOST verify=rejected:action_rejected@42 A combat move was recorded outside a combat.  [fastM_none_N2]
+- seed=500004 policy=attack_spam team=mixed_dmg asc=2 cfg=N2 anchor= rule=rule_balance end=LOST verify=rejected:action_rejected@79 Move 79 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500005 policy=attack_spam team=tank_heavy asc=2 cfg=N2 anchor= rule=rule_none end=LOST verify=rejected:action_rejected@106 Move 106 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500006 policy=attack_spam team=thorn_shield asc=2 cfg=N2 anchor= rule=rule_hard_shell end=LOST verify=rejected:action_rejected@54 A combat move was recorded outside a combat.  [fastM_none_N2]
+- seed=500007 policy=attack_spam team=beast_bird asc=2 cfg=N2 anchor= rule=rule_balance end=LOST verify=rejected:action_rejected@64 A combat move was recorded outside a combat.  [fastM_none_N2]
+- seed=500008 policy=attack_spam team=aqua_plant asc=2 cfg=N2 anchor= rule=rule_old_forest end=LOST verify=rejected:action_rejected@116 Move 116 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500009 policy=attack_spam team=reptile_bug asc=2 cfg=N2 anchor= rule=rule_rising_tide end=LOST verify=rejected:action_rejected@39 Move 39 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500010 policy=attack_spam team=mixed_std asc=2 cfg=N2 anchor= rule=rule_pack_alpha end=LOST verify=rejected:action_rejected@35 Move 35 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500013 policy=attack_spam team=thorn_shield asc=2 cfg=N2 anchor= rule=rule_tundra end=LOST verify=rejected:action_rejected@88 Move 88 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500014 policy=attack_spam team=beast_bird asc=2 cfg=N2 anchor= rule=rule_balance end=LOST verify=rejected:action_rejected@57 Reward 2 was taken from an offer of 0.  [fastM_none_N2]
+- seed=500015 policy=attack_spam team=aqua_plant asc=2 cfg=N2 anchor= rule=rule_old_forest end=LOST verify=rejected:action_rejected@62 Reward 0 was taken from an offer of 0.  [fastM_none_N2]
+- seed=500016 policy=attack_spam team=reptile_bug asc=2 cfg=N2 anchor= rule=rule_wasteland end=LOST verify=rejected:action_rejected@376 Move 376 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500017 policy=attack_spam team=mixed_std asc=2 cfg=N2 anchor= rule=rule_heavy_finish end=LOST verify=rejected:action_rejected@95 Move 95 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500018 policy=attack_spam team=mixed_dmg asc=2 cfg=N2 anchor= rule=rule_starfall end=LOST verify=rejected:action_rejected@81 Move 81 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500019 policy=attack_spam team=tank_heavy asc=2 cfg=N2 anchor= rule=rule_old_forest end=LOST verify=rejected:action_rejected@127 Move 127 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500020 policy=attack_spam team=thorn_shield asc=2 cfg=N2 anchor= rule=rule_quick_beat end=LOST verify=rejected:action_rejected@33 Move 33 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500021 policy=attack_spam team=beast_bird asc=2 cfg=N2 anchor= rule=rule_balance end=LOST verify=rejected:action_rejected@52 Move 52 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500022 policy=attack_spam team=aqua_plant asc=2 cfg=N2 anchor= rule=rule_heavy_finish end=LOST verify=rejected:action_rejected@112 Move 112 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500023 policy=attack_spam team=reptile_bug asc=2 cfg=N2 anchor= rule=rule_pack_alpha end=LOST verify=rejected:action_rejected@132 Move 132 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500024 policy=attack_spam team=mixed_std asc=2 cfg=N2 anchor= rule=rule_old_forest end=STUCK_TURNS verify=rejected:action_rejected@43 Move 43 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500025 policy=attack_spam team=mixed_dmg asc=2 cfg=N2 anchor= rule=rule_starfall end=LOST verify=rejected:action_rejected@63 A combat move was recorded outside a combat.  [fastM_none_N2]
+- seed=500026 policy=attack_spam team=tank_heavy asc=2 cfg=N2 anchor= rule=rule_upside_down end=LOST verify=rejected:action_rejected@79 Move 79 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500027 policy=attack_spam team=thorn_shield asc=2 cfg=N2 anchor= rule=rule_tundra end=LOST verify=rejected:action_rejected@185 Move 185 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500029 policy=attack_spam team=aqua_plant asc=2 cfg=N2 anchor= rule=rule_quick_beat end=LOST verify=rejected:action_rejected@23 Move 23 (use_die) is not legal in the state the replay reached.  [fastM_none_N2]
+- seed=500000 policy=random_legal team=beast_bird asc=0 cfg=N1 anchor=a_volley rule=rule_balance end=LOST verify=rejected:action_rejected@12 A combat move was recorded outside a combat.  [fastM_a_volley_N1]
+- seed=500011 policy=random_legal team=mixed_dmg asc=0 cfg=N1 anchor=a_volley rule=rule_wasteland end=LOST verify=rejected:action_rejected@22 A combat move was recorded outside a combat.  [fastM_a_volley_N1]
+- seed=500012 policy=random_legal team=tank_heavy asc=0 cfg=N1 anchor=a_volley rule=rule_heavy_finish end=LOST verify=rejected:action_rejected@17 A combat move was recorded outside a combat.  [fastM_a_volley_N1]
+- seed=500013 policy=random_legal team=thorn_shield asc=0 cfg=N1 anchor=a_volley rule=rule_cheap_mana end=LOST verify=rejected:action_rejected@82 Move 82 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N1]
+- seed=500015 policy=random_legal team=aqua_plant asc=0 cfg=N1 anchor=a_volley rule=rule_tundra end=LOST verify=rejected:action_rejected@29 A combat move was recorded outside a combat.  [fastM_a_volley_N1]
+- seed=500016 policy=random_legal team=reptile_bug asc=0 cfg=N1 anchor=a_volley rule=rule_quick_beat end=LOST verify=rejected:action_rejected@17 Move 17 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N1]
+- seed=500017 policy=random_legal team=mixed_std asc=0 cfg=N1 anchor=a_volley rule=rule_high_stakes end=LOST verify=rejected:action_rejected@17 Move 17 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N1]
+- seed=500018 policy=random_legal team=mixed_dmg asc=0 cfg=N1 anchor=a_volley rule=rule_pack_alpha end=LOST verify=rejected:action_rejected@24 A combat move was recorded outside a combat.  [fastM_a_volley_N1]
+- seed=500020 policy=random_legal team=thorn_shield asc=0 cfg=N1 anchor=a_volley rule=rule_old_forest end=LOST verify=rejected:action_rejected@22 Move 22 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N1]
+- seed=500021 policy=random_legal team=beast_bird asc=0 cfg=N1 anchor=a_volley rule=rule_heavy_finish end=WON verify=rejected:action_rejected@12 Move 12 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N1]
+- seed=500022 policy=random_legal team=aqua_plant asc=0 cfg=N1 anchor=a_volley rule=rule_none end=LOST verify=rejected:action_rejected@25 A combat move was recorded outside a combat.  [fastM_a_volley_N1]
+- seed=500024 policy=random_legal team=mixed_std asc=0 cfg=N1 anchor=a_volley rule=rule_quick_beat end=LOST verify=rejected:action_rejected@45 A combat move was recorded outside a combat.  [fastM_a_volley_N1]
+- seed=500025 policy=random_legal team=mixed_dmg asc=0 cfg=N1 anchor=a_volley rule=rule_none end=LOST verify=rejected:action_rejected@14 A combat move was recorded outside a combat.  [fastM_a_volley_N1]
+- seed=500027 policy=random_legal team=thorn_shield asc=0 cfg=N1 anchor=a_volley rule=rule_rising_tide end=LOST verify=rejected:action_rejected@33 Move 33 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N1]
+- seed=500028 policy=random_legal team=beast_bird asc=0 cfg=N1 anchor=a_volley rule=rule_starfall end=LOST verify=rejected:action_rejected@42 Move 42 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N1]
+- seed=500029 policy=random_legal team=aqua_plant asc=0 cfg=N1 anchor=a_volley rule=rule_none end=LOST verify=rejected:action_rejected@15 A combat move was recorded outside a combat.  [fastM_a_volley_N1]
+- seed=500000 policy=attack_spam team=beast_bird asc=0 cfg=N1 anchor=a_volley rule=rule_balance end=LOST verify=rejected:action_rejected@11 A combat move was recorded outside a combat.  [fastM_a_volley_N1]
+- seed=500011 policy=attack_spam team=mixed_dmg asc=0 cfg=N1 anchor=a_volley rule=rule_wasteland end=LOST verify=rejected:action_rejected@7 Move 7 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N1]
+- seed=500012 policy=attack_spam team=tank_heavy asc=0 cfg=N1 anchor=a_volley rule=rule_heavy_finish end=LOST verify=rejected:action_rejected@12 Move 12 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N1]
+- seed=500013 policy=attack_spam team=thorn_shield asc=0 cfg=N1 anchor=a_volley rule=rule_cheap_mana end=LOST verify=rejected:action_rejected@24 A combat move was recorded outside a combat.  [fastM_a_volley_N1]
+- seed=500015 policy=attack_spam team=aqua_plant asc=0 cfg=N1 anchor=a_volley rule=rule_tundra end=LOST verify=rejected:action_rejected@12 Move 12 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N1]
+- seed=500016 policy=attack_spam team=reptile_bug asc=0 cfg=N1 anchor=a_volley rule=rule_quick_beat end=LOST verify=rejected:action_rejected@17 Move 17 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N1]
+- seed=500017 policy=attack_spam team=mixed_std asc=0 cfg=N1 anchor=a_volley rule=rule_high_stakes end=LOST verify=rejected:action_rejected@16 Move 16 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N1]
+- seed=500018 policy=attack_spam team=mixed_dmg asc=0 cfg=N1 anchor=a_volley rule=rule_pack_alpha end=LOST verify=rejected:action_rejected@12 Move 12 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N1]
+- seed=500020 policy=attack_spam team=thorn_shield asc=0 cfg=N1 anchor=a_volley rule=rule_old_forest end=LOST verify=rejected:action_rejected@28 Move 28 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N1]
+- seed=500021 policy=attack_spam team=beast_bird asc=0 cfg=N1 anchor=a_volley rule=rule_heavy_finish end=LOST verify=rejected:action_rejected@8 Move 8 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N1]
+- seed=500022 policy=attack_spam team=aqua_plant asc=0 cfg=N1 anchor=a_volley rule=rule_none end=LOST verify=rejected:action_rejected@11 A combat move was recorded outside a combat.  [fastM_a_volley_N1]
+- seed=500024 policy=attack_spam team=mixed_std asc=0 cfg=N1 anchor=a_volley rule=rule_quick_beat end=LOST verify=rejected:action_rejected@27 Move 27 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N1]
+- seed=500025 policy=attack_spam team=mixed_dmg asc=0 cfg=N1 anchor=a_volley rule=rule_none end=LOST verify=rejected:action_rejected@6 Move 6 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N1]
+- seed=500027 policy=attack_spam team=thorn_shield asc=0 cfg=N1 anchor=a_volley rule=rule_rising_tide end=LOST verify=rejected:action_rejected@22 Move 22 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N1]
+- seed=500028 policy=attack_spam team=beast_bird asc=0 cfg=N1 anchor=a_volley rule=rule_starfall end=LOST verify=rejected:action_rejected@12 Move 12 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N1]
+- seed=500029 policy=attack_spam team=aqua_plant asc=0 cfg=N1 anchor=a_volley rule=rule_none end=LOST verify=rejected:action_rejected@12 Move 12 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N1]
+- seed=500001 policy=random_legal team=aqua_plant asc=4 cfg=N5 anchor=a_embers rule=rule_old_forest end=LOST verify=rejected:action_rejected@87 A combat move was recorded outside a combat.  [fastM_a_embers_N5]
+- seed=500004 policy=random_legal team=mixed_dmg asc=4 cfg=N5 anchor=a_embers rule=rule_balance end=LOST verify=rejected:action_rejected@43 Move 43 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N5]
+- seed=500005 policy=random_legal team=tank_heavy asc=4 cfg=N5 anchor=a_embers rule=rule_crow end=LOST verify=rejected:action_rejected@26 Move 26 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N5]
+- seed=500006 policy=random_legal team=thorn_shield asc=4 cfg=N5 anchor=a_embers rule=rule_starfall end=LOST verify=diff:score live=150 replay=160  [fastM_a_embers_N5]
+- seed=500009 policy=random_legal team=reptile_bug asc=4 cfg=N5 anchor=a_embers rule=rule_old_forest end=LOST verify=rejected:action_rejected@10 Move 10 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N5]
+- seed=500010 policy=random_legal team=mixed_std asc=4 cfg=N5 anchor=a_embers rule=rule_wasteland end=LOST verify=rejected:action_rejected@79 Move 79 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N5]
+- seed=500012 policy=random_legal team=tank_heavy asc=4 cfg=N5 anchor=a_embers rule=rule_upside_down end=LOST verify=rejected:action_rejected@100 A combat move was recorded outside a combat.  [fastM_a_embers_N5]
+- seed=500014 policy=random_legal team=beast_bird asc=4 cfg=N5 anchor=a_embers rule=rule_rising_tide end=LOST verify=diff:score live=160 replay=200  [fastM_a_embers_N5]
+- seed=500020 policy=random_legal team=thorn_shield asc=4 cfg=N5 anchor=a_embers rule=rule_pack_alpha end=LOST verify=rejected:action_rejected@98 Reward 0 was taken from an offer of 0.  [fastM_a_embers_N5]
+- seed=500021 policy=random_legal team=beast_bird asc=4 cfg=N5 anchor=a_embers rule=rule_rising_tide end=LOST verify=diff:score live=160 replay=200  [fastM_a_embers_N5]
+- seed=500022 policy=random_legal team=aqua_plant asc=4 cfg=N5 anchor=a_embers rule=rule_balance end=LOST verify=rejected:action_rejected@128 Move 128 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N5]
+- seed=500023 policy=random_legal team=reptile_bug asc=4 cfg=N5 anchor=a_embers rule=rule_hard_shell end=LOST verify=rejected:action_rejected@82 A combat move was recorded outside a combat.  [fastM_a_embers_N5]
+- seed=500024 policy=random_legal team=mixed_std asc=4 cfg=N5 anchor=a_embers rule=rule_pack_alpha end=LOST verify=rejected:action_rejected@19 Reward 0 was taken from an offer of 0.  [fastM_a_embers_N5]
+- seed=500001 policy=attack_spam team=aqua_plant asc=4 cfg=N5 anchor=a_embers rule=rule_old_forest end=LOST verify=rejected:action_rejected@114 Move 114 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N5]
+- seed=500004 policy=attack_spam team=mixed_dmg asc=4 cfg=N5 anchor=a_embers rule=rule_balance end=LOST verify=rejected:action_rejected@42 Move 42 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N5]
+- seed=500005 policy=attack_spam team=tank_heavy asc=4 cfg=N5 anchor=a_embers rule=rule_crow end=LOST verify=rejected:action_rejected@91 Move 91 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N5]
+- seed=500006 policy=attack_spam team=thorn_shield asc=4 cfg=N5 anchor=a_embers rule=rule_starfall end=LOST verify=rejected:action_rejected@53 Move 53 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N5]
+- seed=500009 policy=attack_spam team=reptile_bug asc=4 cfg=N5 anchor=a_embers rule=rule_old_forest end=LOST verify=rejected:action_rejected@10 Move 10 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N5]
+- seed=500010 policy=attack_spam team=mixed_std asc=4 cfg=N5 anchor=a_embers rule=rule_wasteland end=LOST verify=rejected:action_rejected@97 Move 97 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N5]
+- seed=500011 policy=attack_spam team=mixed_dmg asc=4 cfg=N5 anchor=a_embers rule=rule_none end=LOST verify=rejected:action_rejected@43 Move 43 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N5]
+- seed=500012 policy=attack_spam team=tank_heavy asc=4 cfg=N5 anchor=a_embers rule=rule_upside_down end=LOST verify=rejected:action_rejected@94 Move 94 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N5]
+- seed=500014 policy=attack_spam team=beast_bird asc=4 cfg=N5 anchor=a_embers rule=rule_rising_tide end=LOST verify=rejected:action_rejected@23 Move 23 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N5]
+- seed=500017 policy=attack_spam team=mixed_std asc=4 cfg=N5 anchor=a_embers rule=rule_upside_down end=LOST verify=rejected:action_rejected@103 Move 103 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N5]
+- seed=500020 policy=attack_spam team=thorn_shield asc=4 cfg=N5 anchor=a_embers rule=rule_pack_alpha end=LOST verify=rejected:action_rejected@45 Move 45 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N5]
+- seed=500021 policy=attack_spam team=beast_bird asc=4 cfg=N5 anchor=a_embers rule=rule_rising_tide end=LOST verify=rejected:action_rejected@33 Move 33 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N5]
+- seed=500023 policy=attack_spam team=reptile_bug asc=4 cfg=N5 anchor=a_embers rule=rule_hard_shell end=LOST verify=rejected:action_rejected@107 Move 107 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N5]
+- seed=500024 policy=attack_spam team=mixed_std asc=4 cfg=N5 anchor=a_embers rule=rule_pack_alpha end=LOST verify=rejected:action_rejected@233 Move 233 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N5]
+- seed=500000 policy=random_legal team=beast_bird asc=2 cfg=N2 anchor=a_embers rule=rule_crow end=LOST verify=diff:score live=150 replay=220  [fastM_a_embers_N2]
+- seed=500001 policy=random_legal team=aqua_plant asc=2 cfg=N2 anchor=a_embers rule=rule_wasteland end=LOST verify=rejected:action_rejected@40 Move 40 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N2]
+- seed=500005 policy=random_legal team=tank_heavy asc=2 cfg=N2 anchor=a_embers rule=rule_none end=LOST verify=rejected:action_rejected@16 Move 16 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N2]
+- seed=500006 policy=random_legal team=thorn_shield asc=2 cfg=N2 anchor=a_embers rule=rule_hard_shell end=LOST verify=rejected:action_rejected@21 Move 21 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N2]
+- seed=500007 policy=random_legal team=beast_bird asc=2 cfg=N2 anchor=a_embers rule=rule_balance end=LOST verify=rejected:action_rejected@78 Move 78 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N2]
+- seed=500009 policy=random_legal team=reptile_bug asc=2 cfg=N2 anchor=a_embers rule=rule_rising_tide end=LOST verify=rejected:action_rejected@10 Move 10 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N2]
+- seed=500010 policy=random_legal team=mixed_std asc=2 cfg=N2 anchor=a_embers rule=rule_pack_alpha end=LOST verify=rejected:action_rejected@170 Move 170 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N2]
+- seed=500012 policy=random_legal team=tank_heavy asc=2 cfg=N2 anchor=a_embers rule=rule_tundra end=LOST verify=rejected:action_rejected@106 Move 106 (wild_face) is not legal in the state the replay reached.  [fastM_a_embers_N2]
+- seed=500017 policy=random_legal team=mixed_std asc=2 cfg=N2 anchor=a_embers rule=rule_heavy_finish end=LOST verify=rejected:action_rejected@90 Move 90 (reroll_dice) is not legal in the state the replay reached.  [fastM_a_embers_N2]
+- seed=500019 policy=random_legal team=tank_heavy asc=2 cfg=N2 anchor=a_embers rule=rule_old_forest end=LOST verify=rejected:action_rejected@32 Reward 0 was taken from an offer of 0.  [fastM_a_embers_N2]
+- seed=500020 policy=random_legal team=thorn_shield asc=2 cfg=N2 anchor=a_embers rule=rule_quick_beat end=LOST verify=rejected:action_rejected@41 Move 41 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N2]
+- seed=500023 policy=random_legal team=reptile_bug asc=2 cfg=N2 anchor=a_embers rule=rule_pack_alpha end=LOST verify=rejected:action_rejected@154 A combat move was recorded outside a combat.  [fastM_a_embers_N2]
+- seed=500026 policy=random_legal team=tank_heavy asc=2 cfg=N2 anchor=a_embers rule=rule_upside_down end=LOST verify=rejected:action_rejected@115 A combat move was recorded outside a combat.  [fastM_a_embers_N2]
+- seed=500027 policy=random_legal team=thorn_shield asc=2 cfg=N2 anchor=a_embers rule=rule_tundra end=WON verify=rejected:action_rejected@281 Move 281 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N2]
+- seed=500000 policy=attack_spam team=beast_bird asc=2 cfg=N2 anchor=a_embers rule=rule_crow end=LOST verify=rejected:action_rejected@28 Reward 0 was taken from an offer of 0.  [fastM_a_embers_N2]
+- seed=500001 policy=attack_spam team=aqua_plant asc=2 cfg=N2 anchor=a_embers rule=rule_wasteland end=LOST verify=rejected:action_rejected@80 A combat move was recorded outside a combat.  [fastM_a_embers_N2]
+- seed=500005 policy=attack_spam team=tank_heavy asc=2 cfg=N2 anchor=a_embers rule=rule_none end=LOST verify=rejected:action_rejected@12 Move 12 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N2]
+- seed=500009 policy=attack_spam team=reptile_bug asc=2 cfg=N2 anchor=a_embers rule=rule_rising_tide end=LOST verify=rejected:action_rejected@10 Move 10 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N2]
+- seed=500010 policy=attack_spam team=mixed_std asc=2 cfg=N2 anchor=a_embers rule=rule_pack_alpha end=LOST verify=rejected:action_rejected@20 Move 20 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N2]
+- seed=500012 policy=attack_spam team=tank_heavy asc=2 cfg=N2 anchor=a_embers rule=rule_tundra end=LOST verify=rejected:action_rejected@32 Move 32 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N2]
+- seed=500017 policy=attack_spam team=mixed_std asc=2 cfg=N2 anchor=a_embers rule=rule_heavy_finish end=LOST verify=rejected:action_rejected@110 Move 110 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N2]
+- seed=500019 policy=attack_spam team=tank_heavy asc=2 cfg=N2 anchor=a_embers rule=rule_old_forest end=WON verify=rejected:action_rejected@155 Move 155 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N2]
+- seed=500020 policy=attack_spam team=thorn_shield asc=2 cfg=N2 anchor=a_embers rule=rule_quick_beat end=LOST verify=diff:score live=210 replay=250  [fastM_a_embers_N2]
+- seed=500021 policy=attack_spam team=beast_bird asc=2 cfg=N2 anchor=a_embers rule=rule_balance end=LOST verify=rejected:action_rejected@75 Move 75 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N2]
+- seed=500023 policy=attack_spam team=reptile_bug asc=2 cfg=N2 anchor=a_embers rule=rule_pack_alpha end=LOST verify=rejected:action_rejected@66 Move 66 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N2]
+- seed=500026 policy=attack_spam team=tank_heavy asc=2 cfg=N2 anchor=a_embers rule=rule_upside_down end=LOST verify=rejected:action_rejected@118 Move 118 (use_die) is not legal in the state the replay reached.  [fastM_a_embers_N2]
+- seed=500027 policy=attack_spam team=thorn_shield asc=2 cfg=N2 anchor=a_embers rule=rule_tundra end=LOST verify=rejected:action_rejected@119 A combat move was recorded outside a combat.  [fastM_a_embers_N2]
+- seed=500001 policy=random_legal team=aqua_plant asc=6 cfg=N6 anchor=a_volley rule=rule_pack_alpha end=LOST verify=rejected:action_rejected@85 Move 85 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N6]
+- seed=500003 policy=random_legal team=mixed_std asc=6 cfg=N6 anchor=a_volley rule=rule_quick_beat end=LOST verify=rejected:action_rejected@29 A combat move was recorded outside a combat.  [fastM_a_volley_N6]
+- seed=500008 policy=random_legal team=aqua_plant asc=6 cfg=N6 anchor=a_volley rule=rule_pack_alpha end=LOST verify=diff:score live=280 replay=350  [fastM_a_volley_N6]
+- seed=500010 policy=random_legal team=mixed_std asc=6 cfg=N6 anchor=a_volley rule=rule_hard_shell end=LOST verify=rejected:action_rejected@119 A combat move was recorded outside a combat.  [fastM_a_volley_N6]
+- seed=500013 policy=random_legal team=thorn_shield asc=6 cfg=N6 anchor=a_volley rule=rule_hard_shell end=LOST verify=rejected:action_rejected@162 Move 162 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N6]
+- seed=500014 policy=random_legal team=beast_bird asc=6 cfg=N6 anchor=a_volley rule=rule_old_forest end=LOST verify=rejected:action_rejected@24 A combat move was recorded outside a combat.  [fastM_a_volley_N6]
+- seed=500016 policy=random_legal team=reptile_bug asc=6 cfg=N6 anchor=a_volley rule=rule_quick_beat end=LOST verify=rejected:action_rejected@49 Move 49 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N6]
+- seed=500019 policy=random_legal team=tank_heavy asc=6 cfg=N6 anchor=a_volley rule=rule_pack_alpha end=LOST verify=rejected:action_rejected@90 A combat move was recorded outside a combat.  [fastM_a_volley_N6]
+- seed=500023 policy=random_legal team=reptile_bug asc=6 cfg=N6 anchor=a_volley rule=rule_upside_down end=LOST verify=rejected:action_rejected@137 Move 137 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N6]
+- seed=500026 policy=random_legal team=tank_heavy asc=6 cfg=N6 anchor=a_volley rule=rule_old_forest end=LOST verify=rejected:action_rejected@47 Reward 1 was taken from an offer of 0.  [fastM_a_volley_N6]
+- seed=500028 policy=random_legal team=beast_bird asc=6 cfg=N6 anchor=a_volley rule=rule_quick_beat end=LOST verify=rejected:action_rejected@15 Move 15 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N6]
+- seed=500001 policy=attack_spam team=aqua_plant asc=6 cfg=N6 anchor=a_volley rule=rule_pack_alpha end=LOST verify=rejected:action_rejected@89 Move 89 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N6]
+- seed=500003 policy=attack_spam team=mixed_std asc=6 cfg=N6 anchor=a_volley rule=rule_quick_beat end=LOST verify=rejected:action_rejected@412 Reward 0 was taken from an offer of 0.  [fastM_a_volley_N6]
+- seed=500010 policy=attack_spam team=mixed_std asc=6 cfg=N6 anchor=a_volley rule=rule_hard_shell end=LOST verify=rejected:action_rejected@57 Move 57 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N6]
+- seed=500012 policy=attack_spam team=tank_heavy asc=6 cfg=N6 anchor=a_volley rule=rule_crow end=LOST verify=rejected:action_rejected@68 Move 68 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N6]
+- seed=500013 policy=attack_spam team=thorn_shield asc=6 cfg=N6 anchor=a_volley rule=rule_hard_shell end=LOST verify=rejected:action_rejected@132 Move 132 (use_die) is not legal in the state the replay reached.  [fastM_a_volley_N6]
+
+## Log
+- ERROR: x10 in fastM_a_mana_mine_N4.log
+- ERROR: x1 in expM_a_big_hand_N3.log
+- ERROR: x5 in fastM_a_volley_N6.log
+- ERROR: x12 in fastM_a_embers_N1.log
+- ERROR: x2 in expM_a_big_hand_N2.log
+- ERROR: x5 in fastM_a_mana_mine_N5.log
+- ERROR: x7 in fastM_a_volley_N5.log
+- ERROR: x5 in fastM_a_embers_N3.log
+- ERROR: x5 in fastM_a_embers_N2.log
+- ERROR: x4 in fastM_a_volley_N4.log
+- ERROR: x3 in expM_a_big_hand_N1.log
+- ERROR: x7 in fastM_a_mana_mine_N6.log
+- ERROR: x5 in fastM_a_mana_mine_N2.log
+- ERROR: x2 in expM_a_big_hand_N5.log
+- ERROR: x7 in fastM_a_embers_N6.log
+- ERROR: x12 in fastM_a_volley_N1.log
+- ERROR: x2 in expM_a_big_hand_N4.log
+- ERROR: x6 in fastM_a_mana_mine_N3.log
+- ERROR: x12 in fastM_a_mana_mine_N1.log
+- ERROR: x1 in expM_a_big_hand_N6.log
+- ERROR: x8 in fastM_a_volley_N3.log
+- ERROR: x3 in fastM_a_embers_N5.log
+- ERROR: x2 in fastM_a_embers_N4.log
+- ERROR: x3 in fastM_a_volley_N2.log
+- ERROR: x7 in expM_a_kin_N1.log
+- ERROR: x2 in expM_a_gambler_N1.log
+- ERROR: x1 in expM_a_gambler_N3.log
+- ERROR: x4 in expM_a_kin_N2.log
+- ERROR: x1 in expM_a_kin_N3.log
+- ERROR: x2 in expM_a_gambler_N6.log
+- ERROR: x2 in expM_a_kin_N6.log
+- ERROR: x4 in expM_a_kin_N4.log
+- ERROR: x3 in expM_a_gambler_N5.log
+- ERROR: x1 in expM_a_gambler_N4.log
+- ERROR: x1 in expM_a_kin_N5.log
+- ERROR: x4 in fastM_a_gambler_N4.log
+- ERROR: x13 in fastM_a_big_hand_N1.log
+- ERROR: x5 in fastM_a_gambler_N5.log
+- ERROR: x5 in fastM_a_big_hand_N2.log
+- ERROR: x8 in fastM_a_big_hand_N3.log
+- ERROR: x4 in fastM_a_gambler_N6.log
+- ERROR: x5 in fastM_a_gambler_N2.log
+- ERROR: x5 in fastM_a_big_hand_N6.log
+- ERROR: x4 in fastM_a_gambler_N3.log
+- ERROR: x7 in fastM_a_gambler_N1.log
+- ERROR: x5 in fastM_a_big_hand_N4.log
+- ERROR: x3 in fastM_a_big_hand_N5.log
+- ERROR: x2 in expM_a_volley_N1.log
+- ERROR: x3 in fastM_a_kin_N2.log
+- ERROR: x1 in expM_a_mana_mine_N5.log
+- ERROR: x4 in expM_none_N3.log
+- ERROR: x3 in expM_none_N2.log
+- ERROR: x5 in expM_a_mana_mine_N4.log
+- ERROR: x3 in expM_a_embers_N6.log
+- ERROR: x10 in fastM_a_kin_N3.log
+- ERROR: x8 in fastM_none_N6.log
+- ERROR: x9 in fastM_none_N4.log
+- ERROR: x5 in expM_a_volley_N2.log
+- ERROR: x18 in fastM_a_kin_N1.log
+- ERROR: x2 in expM_a_mana_mine_N6.log
+- ERROR: x11 in expM_none_N1.log
+- ERROR: x8 in fastM_none_N5.log
+- ERROR: x23 in fastM_none_N1.log
+- ERROR: x9 in fastM_a_kin_N4.log
+- ERROR: x5 in expM_a_embers_N1.log
+- ERROR: x4 in expM_a_mana_mine_N3.log
+- ERROR: x3 in expM_none_N4.log
+- ERROR: x3 in expM_a_mana_mine_N2.log
+- ERROR: x7 in fastM_a_kin_N5.log
+- ERROR: x3 in expM_a_volley_N6.log
+- ERROR: x8 in fastM_none_N2.log
+- ERROR: x1 in expM_a_volley_N4.log
+- ERROR: x2 in expM_a_embers_N2.log
+- ERROR: x6 in expM_none_N6.log
+- ERROR: x4 in expM_a_mana_mine_N1.log
+- ERROR: x1 in expM_a_embers_N3.log
+- ERROR: x5 in fastM_a_kin_N6.log
+- ERROR: x1 in expM_a_volley_N5.log
+- ERROR: x13 in fastM_none_N3.log
