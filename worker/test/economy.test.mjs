@@ -263,16 +263,43 @@ test('claim mission: Stone from the settled escrow and the table, once, capped p
   _setTableForTest();
 });
 
-test('claim pass: table reward once per level; bad level refused', async () => {
-  const env = mkEnv();
-  await call(env, '/api/econ');
-  const pass = (level) => j(call(env, '/api/econ/claim', 'POST', { kind: 'pass', level }));
-  assert.equal((await pass(0)).status, 400);
-  assert.equal((await pass(31)).status, 400);
-  const a = await pass(1);
-  if (a.code === 'out_of_season') return;   // before the season start date the claim is refused
-  assert.equal(a.shard, 800);   // 500 starter + 300 (pass_v2 level 1)
-  assert.equal((await pass(1)).shard, 800);
+const inSeason = async (fn) => { const real = Date.now; Date.now = () => Date.parse('2026-11-10T12:00:00Z'); try { await fn(Math.floor(Date.now() / 1000)); } finally { Date.now = real; } };
+
+test('pass XP: server adds run XP (clamped, day cap), claim only up to the server level, once per level', async () => {
+  await inSeason(async (now) => {
+    const env = mkEnv();
+    const s0 = await j(call(env, '/api/econ'));
+    assert.deepEqual(s0.pass, { season: 's1', xp: 0, level: 0, claimed: [] });
+    const pass = (level) => j(call(env, '/api/econ/claim', 'POST', { kind: 'pass', level }));
+    assert.equal((await pass(1)).code, 'not_reached', 'client cannot claim a level it did not earn');
+    const run = (id, closed, score, pw = 10, extra = {}) => env.DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, ascension, rules_version, state, created_at, closed_at, outcome, battles_done, summary_json) VALUES (?, 'p1', ?, 0, 'x', 'closed', 1, ?, 'won', 5, ?)`)
+      .run(id, extra.mode || 'normal', closed, JSON.stringify({ score, len: 'short', pw, bosses_started: 1, elites: 1 }));
+    run('a'.repeat(32), now - 100, 400);           // within the formula cap: 30+100+60+150+30 = 370 -> clamped to 370
+    run('b'.repeat(32), now - 90, 370);             // exactly the formula ceiling
+    run('c'.repeat(32), now - 80, 400, 10, { mode: 'mission' });   // Mission runs give no Pass XP here
+    const s1 = await j(call(env, '/api/econ'));
+    assert.equal(s1.pass.xp, 740);
+    assert.equal(s1.pass.level, 1);   // level 1 needs 500
+    assert.equal((await j(call(env, '/api/econ'))).pass.xp, 740, 'not counted twice');
+    const a = await pass(1);
+    assert.equal(a.shard, 800); assert.deepEqual(a.pass.claimed, [1]);
+    assert.equal((await pass(1)).shard, 800);
+    assert.equal((await pass(2)).code, 'not_reached');
+  });
+});
+
+test('pass XP: day cap (1500 full, 20% after, 2000 max) and daily-claim bonus', async () => {
+  await inSeason(async (now) => {
+    const { capRunXp } = await import('../src/economy.js');
+    assert.deepEqual(capRunXp(1000, 0), { granted: 1000, used: 1000 });
+    assert.deepEqual(capRunXp(1000, 1000), { granted: 500 + 100, used: 1600 });
+    assert.deepEqual(capRunXp(5000, 1990), { granted: 10, used: 2000 });
+    const env = mkEnv();
+    await call(env, '/api/econ');
+    env.DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, rules_version, state, created_at, closed_at, battles_done) VALUES (?, 'p1', 'normal', 'x', 'closed', 1, ?, 2)`).run('d'.repeat(32), now - 5);
+    const c = await j(call(env, '/api/econ/claim', 'POST', { kind: 'daily' }));
+    assert.equal(c.pass.xp, 100);
+  });
 });
 
 test('claim land: milestone items from decor.json, needs the points, once', async () => {

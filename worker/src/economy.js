@@ -18,6 +18,7 @@ import pass from '../../godot/assets/data/economy/pass_v2.json' with { type: 'js
 import decor from '../../godot/assets/data/land/decor.json' with { type: 'json' };
 import { UNLOCKS, RUN_SHARD_MAX } from './econ_tables.js';
 import { tierStone, stoneDayCap } from './missions.js';
+import { scoreFromSummary } from './leaderboard.js';
 
 const { json } = shared;
 const nowS = () => Math.floor(Date.now() / 1000);
@@ -71,6 +72,47 @@ async function priorOp(env, pid, opKey) {
   return { ok: true, dup: true, answer: a };
 }
 
+// ---------------------------------------------------------------- Pass XP
+
+export const passLevel = (xp) => { let lv = 0; for (const l of pass.levels) if (xp >= l.xp_total) lv = l.lv; return lv; };
+const passStart = () => Date.parse(`${pass.start_day}T00:00:00Z`) / 1000;
+const passEnd = () => Date.parse(`${pass.end_day}T00:00:00Z`) / 1000;
+const passRow = (env, pid) => env.DB.prepare('INSERT OR IGNORE INTO pass_xp (player_id, season) VALUES (?, ?)').bind(pid, pass.season_id);
+
+/** Run XP after the per-day cap (same rule as PassV2.add_run_xp): full rate up to run_full_rate_until, then
+ *  run_over_rate, never past run_cap_day. -> {granted, used} */
+export function capRunXp(raw, used) {
+  const x = pass.xp;
+  const full = Math.max(0, Math.min(raw, x.run_full_rate_until - used));
+  const granted = Math.min(full + Math.floor((raw - full) * x.run_over_rate), Math.max(0, x.run_cap_day - used));
+  return { granted, used: used + granted };
+}
+
+/** Add the XP of every valid closed run in the season that was not counted yet (oldest first). Valid = same gate as
+ *  the `run` claim. Raw XP = the run's summary score, bounded by leaderboard.scoreFromSummary (the client's Pass XP
+ *  formula as a ceiling). Idempotent per run (marker) and ordered (position row on `n`); a lost race just means
+ *  the next call picks the run up. Until the verifier (B3) the run itself is still the client's claim. */
+export async function syncPassXp(env, pid, at = nowS()) {
+  const { results } = await env.DB.prepare(
+    `SELECT r.run_id, r.ascension, r.outcome, r.closed_at, r.summary_json FROM runs r
+      WHERE r.player_id = ? AND r.${VALID_RUN.replaceAll(' AND ', ' AND r.')} AND r.closed_at >= ? AND r.closed_at < ?
+        AND NOT EXISTS (SELECT 1 FROM wallet_ledger l WHERE l.player_id = r.player_id AND l.idem_key = 'op:passxp:' || r.run_id)
+      ORDER BY r.closed_at, r.run_id LIMIT 50`,
+  ).bind(pid, passStart(), passEnd()).all();
+  for (const r of results) {
+    const row = (await env.DB.prepare('SELECT day, day_xp, n FROM pass_xp WHERE player_id = ? AND season = ?').bind(pid, pass.season_id).first()) || { day: '', day_xp: 0, n: 0 };
+    const sc = scoreFromSummary(r.summary_json, { asc: r.ascension, won: r.outcome === 'won' });
+    const day = utcDay(r.closed_at);
+    const { granted, used } = capRunXp(sc ? sc.score : 0, row.day === day ? row.day_xp : 0);
+    const res = await runOp(env, pid, `passxp:${r.run_id}`, { xp: granted }, [
+      ledger(env, pid, 'op', 0, '{}', `passpos:${pass.season_id}:${row.n}`, at),
+      passRow(env, pid),
+      env.DB.prepare('UPDATE pass_xp SET xp = xp + ?, day = ?, day_xp = ?, n = n + 1 WHERE player_id = ? AND season = ?').bind(granted, day, used, pid, pass.season_id),
+    ], at);
+    if (!res.ok) break;   // conflict: another request is counting; stop, the next call continues
+  }
+}
+
 // ---------------------------------------------------------------- reads
 
 async function state(env, pid) {
@@ -85,7 +127,11 @@ async function state(env, pid) {
   let pity = {};
   try { pity = es ? JSON.parse(es.pity_json) : {}; } catch { pity = {}; }
   const rs = await env.DB.prepare(`SELECT idem_key FROM wallet_ledger WHERE player_id = ? AND idem_key LIKE 'op:reset:%' ORDER BY id DESC LIMIT 1`).bind(pid).first();
+  const px = await env.DB.prepare('SELECT xp FROM pass_xp WHERE player_id = ? AND season = ?').bind(pid, pass.season_id).first();
+  const claimed = await env.DB.prepare(`SELECT idem_key FROM wallet_ledger WHERE player_id = ? AND currency = 'op' AND idem_key LIKE ?`).bind(pid, `op:claim:pass:${pass.season_id}:%`).all();
+  const xp = px ? px.xp : 0;
   return {
+    pass: { season: pass.season_id, xp, level: passLevel(xp), claimed: claimed.results.map((r) => Number(r.idem_key.split(':').pop())).sort((a, b) => a - b) },
     reset_id: rs ? rs.idem_key.slice('op:reset:'.length) : '',
     shard: bal.shard, stone: bal.stone, ticket: bal.ticket,
     unlocks: u.results.map((r) => r.unlock_id), owned: inv.results.map((r) => r.item_id),
@@ -184,8 +230,8 @@ async function closedRunToday(env, pid, at, mode) {
 async function claim(env, pid, b, at) {
   const day = utcDay(at);
   const dIdx = Math.floor(at / 86400);
-  const grant = (cfg, key, reason) => {
-    const stmts = [];
+  const grant = (cfg, key, reason, extra = []) => {
+    const stmts = [...extra];
     if (cfg.shards > 0) stmts.push(...move(env, pid, 'shard', cfg.shards, reason, key, at));
     if (cfg.stone > 0) stmts.push(...move(env, pid, 'stone', cfg.stone, reason, key, at));
     return runOp(env, pid, key, { shards: cfg.shards || 0, stone: cfg.stone || 0 }, stmts, at);
@@ -193,7 +239,9 @@ async function claim(env, pid, b, at) {
   switch (b.kind) {
     case 'daily':   // any closed run today
       if (!(await closedRunToday(env, pid, at))) return { ok: false, code: 'no_run_today' };
-      return grant(daily.daily_reward, `claim:daily:${day}`, 'daily');
+      // +daily_bonus Pass XP (no run cap), in season, in the same batch as the reward
+      return grant(daily.daily_reward, `claim:daily:${day}`, 'daily', at >= passStart() && at < passEnd()
+        ? [passRow(env, pid), env.DB.prepare('UPDATE pass_xp SET xp = xp + ? WHERE player_id = ? AND season = ?').bind(pass.xp.daily_bonus, pid, pass.season_id)] : []);
     case 'daily_run':   // first finished Daily-mode run
       if (!(await closedRunToday(env, pid, at, 'daily'))) return { ok: false, code: 'no_run_today' };
       return grant(daily.daily_run_reward, `claim:daily_run:${day}`, 'daily_run');
@@ -227,12 +275,13 @@ async function claim(env, pid, b, at) {
       return grant({ stone: amount }, `claim:mission:${b.run_id}`, 'mission_win');
     }
     case 'pass': {   // free reward of Pass level `level` (1..30). NOTE: Pass XP/level is still client-side, so the level is the
-      // client's claim; the server only checks the season window, the level's table row, and once per level. Proposed
-      // fix: move Pass XP to the server (needs run xp per closed run) before real stakes. Gem rewards are not paid here.
+      // client's claim -> now the SERVER's: lv must be <= the level from pass_xp (syncPassXp). Gem rewards are not paid here.
       const lv = b.level;
       if (!Number.isSafeInteger(lv) || lv < 1 || lv > pass.levels.length) return { ok: false, code: 'bad_request' };
       const start = Date.parse(`${pass.start_day}T00:00:00Z`) / 1000;
       if (at < start) return { ok: false, code: 'out_of_season' };
+      await syncPassXp(env, pid, at);
+      if (lv > passLevel(((await state(env, pid)).pass).xp)) return { ok: false, code: 'not_reached' };
       const free = pass.levels[lv - 1].free;
       const pay = { shards: 0, stone: 0, tickets: 0, items: [], unlocks: [] };
       for (const r of free) {
@@ -388,6 +437,7 @@ export async function handleEcon(request, env, url, opts = {}) {
     const pid = player.id;
     if (url.pathname === '/api/econ' && request.method === 'GET') {
       await ensureStarter(env, pid, at);
+      await syncPassXp(env, pid, at);
       return json(await state(env, pid));
     }
     if (request.method !== 'POST') return json({ error: 'not_found' }, 404);
@@ -396,6 +446,7 @@ export async function handleEcon(request, env, url, opts = {}) {
     const b = await readBody(request);
     if (!b || typeof b !== 'object') return json({ error: 'bad_request' }, 400);
     await ensureStarter(env, pid, at);
+    await syncPassXp(env, pid, at);
     let r;
     if (url.pathname === '/api/econ/spend') {
       if (typeof b.req_id !== 'string' || !REQ_RE.test(b.req_id) || typeof b.sku !== 'string') return json({ error: 'bad_request' }, 400);

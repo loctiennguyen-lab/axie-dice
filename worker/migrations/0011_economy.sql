@@ -43,3 +43,16 @@ CREATE TABLE starter_claims (
   identity TEXT PRIMARY KEY,
   at       INTEGER NOT NULL
 );
+
+-- Battle Pass XP per season (SR1): the server adds XP from closed, valid runs (summary score, clamped) and the
+-- daily bonus; claims of Pass levels check against it. `n` = how many runs were added (position guard),
+-- day/day_xp = the UTC day and the XP of runs already counted that day (daily cap 1500 full rate / 2000 total).
+CREATE TABLE pass_xp (
+  player_id  TEXT NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  season     TEXT NOT NULL,
+  xp         INTEGER NOT NULL DEFAULT 0,
+  day        TEXT NOT NULL DEFAULT '',
+  day_xp     INTEGER NOT NULL DEFAULT 0,
+  n          INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (player_id, season)
+);
