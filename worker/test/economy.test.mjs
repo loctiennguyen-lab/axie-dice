@@ -285,6 +285,13 @@ test('pass XP: server adds run XP (clamped, day cap), claim only up to the serve
     assert.equal(a.shard, 800); assert.deepEqual(a.pass.claimed, [1]);
     assert.equal((await pass(1)).shard, 800);
     assert.equal((await pass(2)).code, 'not_reached');
+    // level 10 has 90 Gem: needs xp 6800
+    env.DB.db.prepare('UPDATE pass_xp SET xp = 6800').run();
+    const g = await pass(10);
+    assert.equal(g.ok, true);
+    const { balanceOf } = await import('../src/wallet.js');
+    assert.equal(await balanceOf(env, 'p1'), 90);
+    assert.equal((await pass(10)).dup, true); assert.equal(await balanceOf(env, 'p1'), 90, 'Gem paid once');
   });
 });
 

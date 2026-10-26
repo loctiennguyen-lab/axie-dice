@@ -237,9 +237,10 @@ function bundle(env, pid, key, p, reason, at) {
   if (p.shards > 0) st.push(...move(env, pid, 'shard', p.shards, reason, key, at));
   if (p.stone > 0) st.push(...move(env, pid, 'stone', p.stone, reason, key, at));
   if (p.tickets > 0) st.push(...move(env, pid, 'ticket', p.tickets, reason, key, at));
+  if (p.gem > 0) st.push(...move(env, pid, 'gem', p.gem, reason, key, at));   // same wallets/ledger rows applyDelta uses for Gem
   for (const i of p.items || []) st.push(env.DB.prepare('INSERT OR IGNORE INTO inventory (player_id, item_id, at) VALUES (?, ?, ?)').bind(pid, i, at));
   for (const u of p.unlocks || []) st.push(env.DB.prepare('INSERT OR IGNORE INTO unlocks (player_id, unlock_id, at) VALUES (?, ?, ?)').bind(pid, u, at));
-  return runOp(env, pid, key, { shards: p.shards || 0, stone: p.stone || 0, tickets: p.tickets || 0, items: p.items || [] }, st, at);
+  return runOp(env, pid, key, { shards: p.shards || 0, stone: p.stone || 0, tickets: p.tickets || 0, gem: p.gem || 0, items: p.items || [] }, st, at);
 }
 
 const weekOf = (day) => Math.floor((day + 3) / 7);   // Monday-based week of a unix-day index
@@ -335,7 +336,7 @@ async function claim(env, pid, b, at) {
       return grant({ stone: amount }, `claim:mission:${b.run_id}`, 'mission_win', [ledger(env, pid, 'op', 0, '{}', `stonepos:${utcDay(at)}:${used ? used.n : 0}`, at)]);
     }
     case 'pass': {   // free reward of Pass level `level` (1..30). NOTE: Pass XP/level is still client-side, so the level is the
-      // client's claim -> now the SERVER's: lv must be <= the level from pass_xp (syncPassXp). Gem rewards are not paid here.
+      // client's claim -> now the SERVER's: lv must be <= the level from pass_xp (syncPassXp). Gem goes to the server Gem wallet in the same batch.
       const lv = b.level;
       if (!Number.isSafeInteger(lv) || lv < 1 || lv > pass.levels.length) return { ok: false, code: 'bad_request' };
       const start = Date.parse(`${pass.start_day}T00:00:00Z`) / 1000;
@@ -343,11 +344,12 @@ async function claim(env, pid, b, at) {
       await syncPassXp(env, pid, at);
       if (lv > passLevel(((await state(env, pid)).pass).xp)) return { ok: false, code: 'not_reached' };
       const free = pass.levels[lv - 1].free;
-      const pay = { shards: 0, stone: 0, tickets: 0, items: [], unlocks: [] };
+      const pay = { shards: 0, stone: 0, tickets: 0, gem: 0, items: [], unlocks: [] };
       for (const r of free) {
         if (r.type === 'shard') pay.shards += r.value;
         else if (r.type === 'stone') pay.stone += r.value;
         else if (r.type === 'ticket') pay.tickets += r.value;
+        else if (r.type === 'gem') pay.gem += r.value;
         else if (r.type === 'cosmetic') pay.items.push(r.value);
         else if (r.type === 'title') pay.items.push(`title:${r.value}`);
         else if (r.type === 'unlock' && Object.hasOwn(UNLOCKS, r.value)) pay.unlocks.push(r.value);
