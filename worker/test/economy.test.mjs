@@ -269,7 +269,7 @@ test('pass XP: server adds run XP (clamped, day cap), claim only up to the serve
   await inSeason(async (now) => {
     const env = mkEnv();
     const s0 = await j(call(env, '/api/econ'));
-    assert.deepEqual(s0.pass, { season: 's1', xp: 0, level: 0, claimed: [] });
+    assert.deepEqual([s0.pass.season, s0.pass.xp, s0.pass.level, s0.pass.claimed], ['s1', 0, 0, []]);
     const pass = (level) => j(call(env, '/api/econ/claim', 'POST', { kind: 'pass', level }));
     assert.equal((await pass(1)).code, 'not_reached', 'client cannot claim a level it did not earn');
     const run = (id, closed, score, pw = 10, extra = {}) => env.DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, ascension, rules_version, state, created_at, closed_at, outcome, battles_done, summary_json) VALUES (?, 'p1', ?, 0, 'x', 'closed', 1, ?, 'won', 5, ?)`)
@@ -328,4 +328,31 @@ test('reset M1: SQL deletes everything, leaves players/sessions, marks reset_id,
   const s = await j(call(env, '/api/econ'));
   assert.equal(s.reset_id, 'T1'); assert.equal(s.shard, 500); assert.deepEqual(s.unlocks, []);
   assert.equal((await j(call(env, '/api/save'))).rev, 0, 'cloud save gone: another device sees no old numbers');
+});
+
+test('pass weekly tasks and post-30 loop are computed on the server', async () => {
+  await inSeason(async (now) => {
+    const env = mkEnv();
+    await call(env, '/api/econ');
+    const run = (id, won, boss) => env.DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, ascension, rules_version, state, created_at, closed_at, outcome, battles_done, summary_json) VALUES (?, 'p1', 'normal', 0, 'x', 'closed', 1, ?, ?, 3, ?)`)
+      .run(id, now - 50, won ? 'won' : 'lost', JSON.stringify({ score: 0, len: 'short', pw: 1, bosses_started: boss, elites: 0 }));
+    const claim = (kind, extra) => j(call(env, '/api/econ/claim', 'POST', { kind, ...extra }));
+    assert.equal((await claim('pass_weekly', { task: 'reach_boss' })).code, 'not_done');
+    run('a'.repeat(32), true, 1); run('b'.repeat(32), true, 0);
+    const s = await j(call(env, '/api/econ'));
+    assert.deepEqual([s.pass.weekly.runs, s.pass.weekly.wins, s.pass.weekly.boss], [2, 2, 1]);
+    const a = await claim('pass_weekly', { task: 'win_runs' });
+    assert.equal(a.pass.xp, 500); assert.deepEqual(a.pass.weekly.claimed, ['win_runs']);
+    assert.equal((await claim('pass_weekly', { task: 'win_runs' })).pass.xp, 500, 'once');
+    assert.equal((await claim('pass_weekly', { task: 'play_runs' })).code, 'not_done');
+    assert.equal((await claim('pass_weekly', { task: 'nope' })).status, 400);
+    // post-30: top of the table is 'max' XP; push the player 2 loops past it
+    const max = (await import('../../godot/assets/data/economy/pass_v2.json', { with: { type: 'json' } })).default.levels.at(-1).xp_total;
+    env.DB.db.prepare(`UPDATE pass_xp SET xp = ?`).run(max + 2 * 2000 + 10);
+    assert.equal((await j(call(env, '/api/econ'))).pass.post30.pending, 2);
+    const before = (await j(call(env, '/api/econ'))).shard;
+    const c = await claim('pass_post30');
+    assert.equal(c.shard, before + 100); assert.equal(c.pass.post30.pending, 0); assert.equal(c.pass.post30.claimed, 2);
+    assert.equal((await claim('pass_post30')).code, 'nothing_to_claim');
+  });
 });

@@ -113,6 +113,27 @@ export async function syncPassXp(env, pid, at = nowS()) {
   }
 }
 
+const maxPassXp = () => pass.levels[pass.levels.length - 1].xp_total;
+const weekStartS = (at) => (Math.floor((Math.floor(at / 86400) + 3) / 7) * 7 - 3) * 86400;   // Monday 00:00 UTC of `at`'s week
+const inSeasonAt = (at) => at >= passStart() && at < passEnd();
+
+/** Weekly task progress for the week of `at`, from closed runs on the server: runs = every closed run with a battle
+ *  (Mission runs count, as in PassV2.record_run), wins = outcome won, boss = summary.bosses_started >= 1. */
+async function weeklyProgress(env, pid, at) {
+  const from = weekStartS(at);
+  const r = await env.DB.prepare(
+    `SELECT COUNT(*) AS runs, COALESCE(SUM(outcome = 'won'), 0) AS wins,
+            COALESCE(SUM(CASE WHEN json_valid(summary_json) AND COALESCE(json_extract(summary_json, '$.bosses_started'), 0) >= 1 THEN 1 ELSE 0 END), 0) AS boss
+       FROM runs WHERE player_id = ? AND state = 'closed' AND battles_done >= 1 AND closed_at >= ? AND closed_at < ?`,
+  ).bind(pid, Math.max(from, passStart()), Math.min(from + 7 * 86400, passEnd())).first();
+  return { runs: r.runs, wins: r.wins, boss: r.boss };
+}
+const post30Claimed = async (env, pid) => {
+  const per = pass.post30_loop.shard;
+  const r = await env.DB.prepare(`SELECT COALESCE(SUM(delta), 0) AS n FROM wallet_ledger WHERE player_id = ? AND currency = 'shard' AND idem_key LIKE ?`).bind(pid, `shard:claim:post30:${pass.season_id}:%`).first();
+  return Math.floor((r ? r.n : 0) / per);
+};
+
 // ---------------------------------------------------------------- reads
 
 async function state(env, pid) {
@@ -130,8 +151,14 @@ async function state(env, pid) {
   const px = await env.DB.prepare('SELECT xp FROM pass_xp WHERE player_id = ? AND season = ?').bind(pid, pass.season_id).first();
   const claimed = await env.DB.prepare(`SELECT idem_key FROM wallet_ledger WHERE player_id = ? AND currency = 'op' AND idem_key LIKE ?`).bind(pid, `op:claim:pass:${pass.season_id}:%`).all();
   const xp = px ? px.xp : 0;
+  const wk = await env.DB.prepare(`SELECT idem_key FROM wallet_ledger WHERE player_id = ? AND currency = 'op' AND idem_key LIKE ?`).bind(pid, `op:claim:pass_weekly:${utcDay(weekStartS(nowS()))}:%`).all();
+  const wprog = inSeasonAt(nowS()) ? await weeklyProgress(env, pid, nowS()) : { runs: 0, wins: 0, boss: 0 };
+  const loops = Math.max(0, Math.floor((xp - maxPassXp()) / pass.post30_loop.xp));
+  const p30 = await post30Claimed(env, pid);
   return {
-    pass: { season: pass.season_id, xp, level: passLevel(xp), claimed: claimed.results.map((r) => Number(r.idem_key.split(':').pop())).sort((a, b) => a - b) },
+    pass: { weekly: { week: utcDay(weekStartS(nowS())), ...wprog, claimed: wk.results.map((x) => x.idem_key.split(':').pop()) },
+      post30: { pending: Math.max(0, loops - p30), claimed: p30 },
+      season: pass.season_id, xp, level: passLevel(xp), claimed: claimed.results.map((r) => Number(r.idem_key.split(':').pop())).sort((a, b) => a - b) },
     reset_id: rs ? rs.idem_key.slice('op:reset:'.length) : '',
     shard: bal.shard, stone: bal.stone, ticket: bal.ticket,
     unlocks: u.results.map((r) => r.unlock_id), owned: inv.results.map((r) => r.item_id),
@@ -263,6 +290,26 @@ async function claim(env, pid, b, at) {
       const amount = Math.max(0, Math.min(RUN_SHARD_MAX, Number.isSafeInteger(sum.shards) ? sum.shards : 0));
       if (amount === 0) return { ok: false, code: 'nothing_to_claim' };
       return grant({ shards: amount }, `claim:run:${b.run_id}`, 'run');
+    }
+    case 'pass_weekly': {   // 500 XP for one finished weekly task of THIS week (in season), progress counted from our runs
+      if (!inSeasonAt(at)) return { ok: false, code: 'out_of_season' };
+      const t = pass.weekly_tasks.tasks.find((x) => x.id === b.task);
+      if (!t) return { ok: false, code: 'bad_request' };
+      const prog = await weeklyProgress(env, pid, at);
+      if (prog[t.counter] < t.target) return { ok: false, code: 'not_done' };
+      const key = `claim:pass_weekly:${utcDay(weekStartS(at))}:${t.id}`;
+      return runOp(env, pid, key, { xp: pass.weekly_tasks.xp_each }, [
+        passRow(env, pid),
+        env.DB.prepare('UPDATE pass_xp SET xp = xp + ? WHERE player_id = ? AND season = ?').bind(pass.weekly_tasks.xp_each, pid, pass.season_id),
+      ], at);
+    }
+    case 'pass_post30': {   // every full post30_loop.xp above level 30 = post30_loop.shard Shard; claims all pending loops
+      const st = await state(env, pid);
+      const total = Math.max(0, Math.floor((st.pass.xp - maxPassXp()) / pass.post30_loop.xp));
+      const done = await post30Claimed(env, pid);
+      if (total <= done) return { ok: false, code: 'nothing_to_claim' };
+      // key names the loop count reached: two parallel claims from the same state collide on it
+      return grant({ shards: (total - done) * pass.post30_loop.shard }, `claim:post30:${pass.season_id}:${total}`, 'pass_loop');
     }
     case 'mission': {   // Stone of a WON Mission run: from the settled escrow + the table, nothing from the client
       if (typeof b.run_id !== 'string' || !/^[0-9a-f]{32}$/.test(b.run_id)) return { ok: false, code: 'bad_request' };
@@ -423,7 +470,7 @@ async function readBody(request, max = 1024) {
   try { const t = await request.text(); return t.length <= max ? JSON.parse(t) : null; } catch { return null; }
 }
 const STATUS = { insufficient: 402, no_tickets: 402, conflict: 409, owned: 409, day_cap: 409, hold_cap: 409, unknown_sku: 400, bad_request: 400,
-  no_run_today: 409, nothing_to_claim: 409, run_not_closed: 409, not_enough_days: 409, out_of_season: 409, not_reached: 409 };
+  no_run_today: 409, nothing_to_claim: 409, run_not_closed: 409, not_enough_days: 409, out_of_season: 409, not_reached: 409, not_done: 409 };
 
 export async function handleEcon(request, env, url, opts = {}) {
   try {
