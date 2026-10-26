@@ -154,8 +154,10 @@ func _recover_open_run(done: Callable) -> void:
 			session.release()
 			done.call("run_in_progress")
 			return
+		session.phase_changed.emit("closing_old")
 		session.abandon(func(abandoned: bool) -> void:
 			if abandoned:
+				session.phase_changed.emit("creating")
 				done.call("retry")
 			else:
 				session.release()
