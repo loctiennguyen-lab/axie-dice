@@ -29,10 +29,11 @@ extends Resource
                                         ## nothing rather than as missing text. Keeping them in
                                         ## one file makes "added the relic, forgot the words"
                                         ## impossible instead of merely unlikely.
-@export var rarity: int = 0            ## 0 Common .. 3 Legendary. No rarity-4 (Mythic)
-                                        ## PASSIVE relic exists in src/data.js RELICS today —
-                                        ## Mythic only appears on hero/mutation FACES (rule
-                                        ## spec §11), not on this list. Not a porting omission.
+@export var rarity: int = 0            ## 0 Common .. 3 Epic. No rarity-4 (Legendary) and no
+                                        ## rarity-5 (Mythic, cosmetic only) PASSIVE relic exists in
+                                        ## src/data.js RELICS today; those tiers only appear on
+                                        ## hero/mutation FACES (rule spec §11), not on this list.
+                                        ## Not a porting omission.
 @export var archetype: String = ""     ## rule spec §11 ARCH key (poison/burn/shield/mana/
                                         ## pierce/crit/growth/summon/aoe/thorns/exec) — tracker
                                         ## UI only, no gameplay call site reads this yet.

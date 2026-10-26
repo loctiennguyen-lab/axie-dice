@@ -1068,7 +1068,7 @@ func effective_rmode(from_aid: bool, rmode: int) -> int:
 		return 1
 	if depth_stage >= 2 and CoreHooks.RelicHooks_has(self, "rule_high_stakes"):
 		return 0   # High Stakes (R16): every paid reroll is a Gamble. Stage 1 has no Gamble (reroll_refusal), so it stays Safe;
-		# at integration the rule gets requires stage_min:2 (token from lane NC).
+		# the stage >= 2 test above is a second guard: the rule itself already needs stage_min 2 (see run_rules in the catalog).
 	return 0 if rmode == 0 else 1
 
 
