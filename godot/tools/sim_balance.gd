@@ -61,6 +61,7 @@ var _turns_total := 0
 var _team_keys: Array = []
 var _force_rule := ""      # --force_run_rule=<id>
 var _arg_error := ""       # set by parse_mission_args
+var _dump_fail := ""       # --dump_fail=<dir>: write the action log + tape of every run that fails verify (feed it to tools/verify_run.tscn)
 var _verify := false       # --verify=1: after each run replay its action log through RunVerifier and compare (soak)
 var _forced_mut := false   # this run had a forced Anchor / Run Rule that was NOT in the natural offer (replay cannot rebuild it)
 ## Fallback ladder (used only for a tier whose missions.json entry has no `rules` array) from design/proposals/nhiem-vu-beta-brainstorm.md section 2 (Huong B). Sim input, not game data.
@@ -191,6 +192,7 @@ func run_batch(args: Dictionary) -> Array:
 		_stage = clampi(int(args.get("stage", 3)), 1, 3)
 	_force_rule = String(args.get("force_run_rule", ""))
 	_verify = int(args.get("verify", 0)) == 1
+	_dump_fail = String(args.get("dump_fail", ""))
 	if _force_rule != "":
 		var fd = RelicRegistry.get_def(_force_rule)
 		if fd == null or String(fd.core_axis) != "run_rule":
@@ -439,19 +441,35 @@ func _verify_run(won: bool, seed_value: int) -> Array:
 	var live := {"phase": int(RunState.phase), "power_level": RunState.power_level, "relics": RunState.owned_relic_ids.duplicate(),
 		"visited": RunState.visited_node_ids.duplicate(), "shards": RunState.shards_this_run, "score": RunState.compute_run_xp(won)}
 	var tape: Array = RunState.epoch.tape() if RunState.epoch != null else []
-	var copy := ActionLog.from_data(log.to_data())
+	var bundle := log.to_data()
+	bundle["tape"] = tape
+	var copy := ActionLog.from_data(bundle)
 	var v := RunVerifier.verify(copy, tape, {}, true)
+	if _dump_fail != "" and (not bool(v.get("ok", false)) or _verify_diff(v, live, won) != ""):
+		DirAccess.make_dir_recursive_absolute(_dump_fail)
+		var f := FileAccess.open(_dump_fail.path_join("log_%d_%s_%s.json" % [seed_value, _policy, _team_keys[0] if not _team_keys.is_empty() else "x"]), FileAccess.WRITE)
+		if f != null:
+			f.store_string(JSON.stringify(bundle))
+			f.close()
 	if not bool(v.get("ok", false)):
 		return ["rejected:%s@%d" % [String(v.get("error", "?")), int(v.get("action_index", -1))], String(v.get("message", "")).replace(",", ";").replace("\n", " ")]
+	var dd := _verify_diff(v, live, won)
+	if dd != "":
+		return [dd.get_slice("|", 0), dd.get_slice("|", 1)]
+	return ["ok", ""]
+
+
+## "" when the replay verdict `v` matches the live end state, else "diff:<field>|<detail>".
+func _verify_diff(v: Dictionary, live: Dictionary, won: bool) -> String:
 	var st: Dictionary = v.get("state", {}) as Dictionary
 	if bool(v.get("won", false)) != won:
-		return ["diff:won", "live=%s replay=%s" % [str(won), str(v.get("won"))]]
+		return "diff:won|live=%s replay=%s" % [str(won), str(v.get("won"))]
 	if int(v.get("score", -1)) != int(live["score"]):
-		return ["diff:score", "live=%d replay=%d" % [int(live["score"]), int(v.get("score", -1))]]
+		return "diff:score|live=%d replay=%d" % [int(live["score"]), int(v.get("score", -1))]
 	for k in [["phase", "phase"], ["power_level", "power_level"], ["relics", "owned_relic_ids"], ["visited", "visited_node_ids"], ["shards", "shards_this_run"]]:
 		if JSON.stringify(live[k[0]]) != JSON.stringify(st.get(k[1])):
-			return ["diff:" + String(k[0]), ("live=%s replay=%s" % [JSON.stringify(live[k[0]]), JSON.stringify(st.get(k[1]))]).replace(",", ";")]
-	return ["ok", ""]
+			return ("diff:%s|live=%s replay=%s" % [String(k[0]), JSON.stringify(live[k[0]]), JSON.stringify(st.get(k[1]))]).replace(",", ";")
+	return ""
 
 
 const _UNDOABLE := ["use_die", "overcast", "wild_face", "play_active", "stash"]
@@ -461,7 +479,7 @@ const _UNDOABLE := ["use_die", "overcast", "wild_face", "play_active", "stash"]
 ## real decisions (a trial search would otherwise blow the 3000-action cap) and the replay does not play trials.
 func _undo(eng: CombatEngine) -> bool:
 	var ok := eng.undo_last()
-	if _verify and ok and eng.action_log != null:
+	if _verify and ok and eng.action_log != null and OS.get_environment("AXIE_SOAK_KEEP_TRIALS") != "1":
 		var en: Array = eng.action_log.entries
 		var n := en.size()
 		if n >= 2 and String((en[n - 1] as Dictionary).get("fn", "")) == "undo_last" and _UNDOABLE.has(String((en[n - 2] as Dictionary).get("fn", ""))):
