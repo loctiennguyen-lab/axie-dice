@@ -201,6 +201,7 @@ func _overview_tab() -> void:
 	for t in stat_tiles():
 		tiles.add_child(_stat_tile(t))
 	left.add_child(tiles)
+	left.add_child(_land_section())
 	left.add_child(UI3.label("Last %d runs" % MetaState.RUN_LOG_MAX, "LabelTitle"))
 	var list := VBoxContainer.new()
 	list.name = "RunList"
@@ -212,6 +213,31 @@ func _overview_tab() -> void:
 		list.add_child(e)
 	for i in MetaState.run_log.size():
 		list.add_child(_run_row(MetaState.run_log[i] as Dictionary, i))
+
+
+## Land section (LD-A 3, minimal UI3; Claude Design redoes it at polish): tier, aesthetic score, milestones claimed.
+func _land_section() -> Control:
+	var box := VBoxContainer.new()
+	box.name = "LandSection"
+	box.add_theme_constant_override("separation", UI3Theme.space("8"))
+	box.add_child(UI3.label("Land", "LabelTitle"))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UI3Theme.space("16"))
+	var tier := clampi(MetaState.land_tier, 1, LandUpgradeScreen.TIER_NAMES.size())
+	var score := LandDecor.aesthetic(MetaState.land_decor_placed)
+	var ms := LandDecor.milestones()
+	var got := 0
+	for m in ms:
+		if MetaState.land_milestones_claimed.has(String((m as Dictionary).get("id", ""))):
+			got += 1
+	for r in [["Tier", "%s %d/6" % [LandUpgradeScreen.TIER_NAMES[tier - 1], tier], "LandTier"],
+			["Aesthetic score", str(score), "LandScore"],
+			["Milestones claimed", "%d / %d" % [got, ms.size()], "LandMilestones"]]:
+		var ir := _info_row(r[0], r[1], r[2])
+		ir.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(ir)
+	box.add_child(row)
+	return box
 
 
 ## [{k, v, s}] x 5 from saved data. Missing data reads "—", never a made-up number.
