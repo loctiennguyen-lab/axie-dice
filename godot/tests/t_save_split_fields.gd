@@ -25,6 +25,7 @@ func _ready() -> void:
 	svc.account = {"id": "google:split1"}
 	SaveStore.profile = "google:split1"
 	MetaState.reload_from_store()
+	MetaState.starter_granted = true
 	MetaState.shard_pool = 500
 	MetaState.stone = 40
 	MetaState.unlocks.append("u_hp")
