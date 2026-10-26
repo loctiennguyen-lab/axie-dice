@@ -78,7 +78,8 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}, a
 
 	# Depth v4 3.10.9 (T7): the stage is the one the SERVER wrote into the tape's run_start header. A log header that claims another one is a lie
 	# (the replay itself plays under the tape's stage, so a stage-gated action in a low-stage run is refused at its own index, T6).
-	var tape_stage := int((((tape[0] as Dictionary).get("extra", {}) as Dictionary).get("header", {}) as Dictionary).get("depth_stage", 3))
+	var tape_hdr: Dictionary = {} if tape.is_empty() else (((tape[0] as Dictionary).get("extra", {}) as Dictionary).get("header", {}) as Dictionary)
+	var tape_stage := int(tape_hdr.get("depth_stage", 3))
 	if int(header.get("depth_stage", 3)) != tape_stage:
 		return _fail(ERR_STAGE_MISMATCH, "The record claims depth stage %d; the server issued stage %d." % [int(header.get("depth_stage", 3)), tape_stage])
 
@@ -105,7 +106,6 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}, a
 	# Mission runs: the mission header (tier + rules) and kind drive the M-rule mods, the Anchor gate and the map shape. The tape's own run_start
 	# header wins (a server writes it); a tape without one (local/sim epoch) falls back to the log header. Without this a Mission record replays
 	# as a normal run and diverges (soak 26/10: ~85% of Mission runs rejected).
-	var tape_hdr: Dictionary = (((tape[0] as Dictionary).get("extra", {}) as Dictionary).get("header", {}) as Dictionary)
 	var log_mission: Dictionary = header.get("mission", {}) as Dictionary
 	var tape_mission: Dictionary = tape_hdr.get("mission", {}) as Dictionary
 	if not tape_mission.is_empty() and JSON.stringify(tape_mission) != JSON.stringify(log_mission):

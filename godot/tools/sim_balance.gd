@@ -62,6 +62,7 @@ var _team_keys: Array = []
 var _force_rule := ""      # --force_run_rule=<id>
 var _arg_error := ""       # set by parse_mission_args
 var _dump_fail := ""       # --dump_fail=<dir>: write the action log + tape of every run that fails verify (feed it to tools/verify_run.tscn)
+var last_bundle: Dictionary = {}   # last verified run's {log fields..., tape}
 var _verify := false       # --verify=1: after each run replay its action log through RunVerifier and compare (soak)
 var _forced_mut := false   # this run had a forced Anchor / Run Rule that was NOT in the natural offer (replay cannot rebuild it)
 ## Fallback ladder (used only for a tier whose missions.json entry has no `rules` array) from design/proposals/nhiem-vu-beta-brainstorm.md section 2 (Huong B). Sim input, not game data.
@@ -443,6 +444,7 @@ func _verify_run(won: bool, seed_value: int) -> Array:
 	var tape: Array = RunState.epoch.tape() if RunState.epoch != null else []
 	var bundle := log.to_data()
 	bundle["tape"] = tape
+	last_bundle = bundle.duplicate(true)   # for tests (t_soak_verify): the log + tape that was just verified
 	var copy := ActionLog.from_data(bundle)
 	var v := RunVerifier.verify(copy, tape, {}, true)
 	if _dump_fail != "" and (not bool(v.get("ok", false)) or _verify_diff(v, live, won) != ""):

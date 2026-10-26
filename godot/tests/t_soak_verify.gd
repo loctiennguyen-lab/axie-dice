@@ -40,6 +40,25 @@ func _ready() -> void:
 	_assert(differs, "edited log is reported as a mismatch")
 	# And the comparison itself: a replay that scored differently is a diff.
 	_assert(sim._verify_diff({"ok": true, "won": true, "score": 5, "state": {}}, {"score": 9}, true) == "diff:score|live=9 replay=5", "score mismatch named")
+	# Mission runs (soak 26/10: the verifier replayed them as normal runs and ~85% diverged): M rules + Anchor must replay ok.
+	var mrecs: Array = sim.run_batch({"runs": 2, "seed": 500000, "asc": "0", "policies": "random_legal", "teams": "all", "cores": "mix", "verify": 1,
+		"anchor": "auto", "rules": "M1,M5", "kind": "mission", "stage": 3})
+	for r in mrecs:
+		_assert(String((r as Dictionary).get("verify", "")) == "ok", "mission run verifies ok: %s (%s)" % [str(r.get("verify")), str(r.get("vdetail"))])
+	var mb: Dictionary = (sim.last_bundle as Dictionary).duplicate(true)
+	var mtape: Array = mb["tape"]
+	var mlog := ActionLog.from_data(mb.duplicate(true))
+	_assert(not (mlog.header.get("mission", {}) as Dictionary).is_empty() and not ((mlog.header["mission"] as Dictionary).get("rules", []) as Array).is_empty(), "mission log carries tier + M rules")
+	_assert(bool(RunVerifier.verify(mlog, mtape, {}, true)["ok"]), "untouched mission log verifies")
+	# Header lie: the tape (server) says one mission, the log another -> bad_header.
+	var tt: Array = (JSON.parse_string(JSON.stringify(mtape)) as Array)
+	var th: Dictionary = ((tt[0] as Dictionary).get("extra", {}) as Dictionary).get("header", {}) as Dictionary
+	th["mission"] = {"mission_id": "x", "tier": 1, "rules": []}
+	var lied := RunVerifier.verify(ActionLog.from_data(mb.duplicate(true)), tt, {}, true)
+	_assert(String(lied.get("error", "")) == RunVerifier.ERR_BAD_HEADER, "mission header differing from the tape is refused: " + str(lied.get("error")))
+	# Empty tape must refuse, not crash.
+	var empty := RunVerifier.verify(ActionLog.from_data(mb.duplicate(true)), [], {}, true)
+	_assert(not bool(empty.get("ok", true)), "empty tape is refused without crashing")
 	sim.free()
 	_guard.restore()
 	if _failures.is_empty():
