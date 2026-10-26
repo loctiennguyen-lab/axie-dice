@@ -27,7 +27,7 @@ func _ready() -> void:
 	MetaState.land_milestones_claimed.clear()
 	MetaState.land_decor_placed = []
 	MetaState.land_decor_placed.append_array(_many(10))
-	_ok(LandDecor.claim("m8") != "", "m8 needs 90")
+	_ok(LandDecor.claim("m8") != "", "m8 needs 100")
 	MetaState.reload_from_store()
 	g.restore()
 	for x in _f:

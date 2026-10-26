@@ -13,6 +13,8 @@ extends Node
 
 signal state_changed(state: String)
 signal kicked(reason: String)
+## Step of a run start for the UI: "closing_old" (abandoning a stale run) then "creating".
+signal phase_changed(phase: String)
 
 const REPLY_TIMEOUT_S := 8.0
 const MAX_TRIES := 3

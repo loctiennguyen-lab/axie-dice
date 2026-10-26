@@ -244,7 +244,10 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## BUMPED, 2026-10-26: `ActionLog.RULES_VERSION` -> `godot-2026-10-26-u`. Beta R1 (int/r1): 6-tier Missions (per-tier rules, win-chain unlock),
 ## Anchors allowed in Mission runs, Anchor round (Big Hand SET4/5 +0.90, Embers +2.25, rule text states the M 3.00 cap), stale tier comments, missions table from sim v2; N5 stake 1250.
 ## Same actions give a different run. Worker SUPPORTED_RULE_VERSIONS gained -u (keeps -t for the 7-day desktop window).
-const FINGERPRINT := "ec86507c1ca5083aead636d59a42fca827e9d77d9ff89165745c8733db4c3bae"
+
+## Pinned, 2026-10-26 (R2 Land, int/r2): economy_db.gd total Land Stone 1.82M -> 1.8M (tier 2 = 20k). Meta/economy only,
+## no combat or replay input. Run result: NO, stays -u.
+const FINGERPRINT := "2acc6e2595cc322fa3145b3e2e27ea59081795cdb3d87efaae8ecabd782052a6"
 
 
 func _ready() -> void:

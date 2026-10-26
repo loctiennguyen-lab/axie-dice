@@ -105,7 +105,7 @@ const VARIANTS_4 := [2, 4, 8, 10]
 const COLOR_VARIANTS := [8, 3, 14, 30, 20, 26]
 const BODIES := [AxieTypes.Body.NORMAL, AxieTypes.Body.FUZZY, AxieTypes.Body.CURLY,
 	AxieTypes.Body.BIGYAK, AxieTypes.Body.FROSTY, AxieTypes.Body.WETDOG, AxieTypes.Body.SUMO, AxieTypes.Body.SPIKY]
-const WANDERERS := 5                 # budget: ~0.22 ms each on M3 Pro (land_spike); iOS to be measured
+const WANDERERS := 5                 # desktop count (LandQuality.wanderers() = 2 on the light web build). budget: ~0.22 ms each on M3 Pro (land_spike); iOS to be measured
 const AXIE_SCALE := 1.2
 const WALK_SPEED := 1.3
 const RUN_SPEED := 3.2
@@ -124,6 +124,8 @@ var _decor_zones: Array[Dictionary] = []   # keep-out discs for player decor (bu
 var _edit: LandEdit
 var _hub := Vector3.ZERO             # where all lanes meet, in front of the Portal
 var _axies: Array[Dictionary] = []
+var _wander_keys: Array[String] = []   # the player's own Axies that walk the Land (LandAxies.pick_keys)
+var _gift_given := false
 
 var _ui: Control
 var _hits := {}                      # id -> Button (clickable box)
@@ -190,21 +192,56 @@ func _ready() -> void:
 	_first = _flag("first_launch", MetaState.runs == 0)
 	_touch_mode = _flag("touch", false)
 	_mission_run = _has_run and _flag("mission", not MetaState.mission_escrow.is_empty())
+	_gift_given = _grant_gift()
 	_build_world()
 	_build_ground()
 	_build_buildings()
 	_build_decor()
 	_build_props()
 	_build_ui()
-	for i in WANDERERS:
-		_spawn_axie()
+	_wander_keys = LandAxies.pick_keys(LandQuality.wanderers())
+	for i in LandQuality.wanderers():
+		_spawn_axie(i)
 	_layout()
+	_notices_on_enter.call_deferred()
 	var _notice := RunState.take_discard_notice()
 	if _notice != "":
 		_show_toast(_notice, 5.0)
 	_account_entered.call_deferred()
 	if _should_show_moon_card():
 		show_moon_card.call_deferred()
+
+
+## First visit ever: the three starter decor (LD-A 3). Silent on later visits.
+func _grant_gift() -> bool:
+	return MetaState.grant_land_gift_once(LandAxies.GIFT_DECOR)
+
+
+## Starter-gift toast, then the "new tier" banner (once per tier, MetaState.land_tier_banner_seen).
+func _notices_on_enter() -> void:
+	if _gift_given:
+		_show_toast("Welcome gift: 3 decor in your storage — press E (Edit Land) to place them", 6.0)
+	if MetaState.land_tier_banner_seen < _tier and not has_modal():
+		MetaState.land_tier_banner_seen = _tier
+		MetaState.save_to_disk()
+		_show_tier_banner()
+
+
+func _show_tier_banner() -> void:
+	var ok := UI3.button("Look around", &"primary")
+	ok.name = "TierBannerOk"
+	ok.pressed.connect(_close_modal)
+	var body := "%s is open. " % TIER_NAMES[_tier - 1]
+	var parts: PackedStringArray = []
+	for seg in String(LandUpgradeScreen.ADDS.get(_tier, "")).split(" · "):
+		if seg != "":
+			parts.append(seg.left(1).to_upper() + seg.substr(1))
+	body += ". ".join(parts) + "."
+	var m := UI3.modal("Your Land is now %s" % TIER_NAMES[_tier - 1], body, [ok], 0)
+	m.name = "TierBanner"
+	m.cancelled.connect(_close_modal)
+	_modal = m
+	_ui.add_child(_modal)
 
 
 func _exit_tree() -> void:
@@ -904,8 +941,12 @@ func _inst(path: String) -> Node3D:
 
 # ================================================================ wandering Axies
 
-func _spawn_axie() -> void:
-	var desc := AxieDescriptor.new()
+func _spawn_axie(idx: int = -1) -> void:
+	var desc := LandAxies.descriptor_for(_wander_keys[idx]) if idx >= 0 and idx < _wander_keys.size() else null
+	if desc != null:
+		_spawn_axie_desc(desc)
+		return
+	desc = AxieDescriptor.new()
 	desc.body = BODIES[_rng.randi() % BODIES.size()]
 	desc.color_variant = COLOR_VARIANTS[_rng.randi() % COLOR_VARIANTS.size()]
 	var parts: Array[AxiePartDescriptor] = []
@@ -914,6 +955,10 @@ func _spawn_axie() -> void:
 		var vars: Array = VARIANTS_4 if pt in [AxieTypes.Part.MOUTH, AxieTypes.Part.EYE] else VARIANTS_6
 		parts.append(AxiePartDescriptor.new(pt, 0, PART_CLASSES[_rng.randi() % 6], vars[_rng.randi() % vars.size()], 1))
 	desc.parts = parts
+	_spawn_axie_desc(desc)
+
+
+func _spawn_axie_desc(desc: AxieDescriptor) -> void:
 	var ch := AxieCharacter3D.from_descriptor(desc)
 	if ch == null or ch.root == null:
 		return
@@ -1372,8 +1417,9 @@ func _land_link() -> Control:
 	var can_up := preload("res://scripts/meta/economy_db.gd").land_upgrade_enabled() and have >= need
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", UI3Theme.space("8"))
-	var txt := "Upgrade Land · %s %d/6" % [tn, _tier]
-	row.add_child(UI3.label(txt + (" · ready" if can_up else "")))
+	var txt := "Upgrade Land · %s %d/6 · Stone %s/%s" % [tn, _tier, _fmt(mini(have, need)), _fmt(need)]
+	txt += " · ready" if can_up else " · %s to %s" % [_fmt(maxi(need - have, 0)), TIER_NAMES[_tier]]
+	row.add_child(UI3.label(txt))
 	var cell := _cell("UpgradeLand", row, _on_land_pressed)
 	cell.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	cell.get_node("UpgradeLand").tooltip_text = "%s / %s Land Stone" % [_fmt(have), _fmt(need)]

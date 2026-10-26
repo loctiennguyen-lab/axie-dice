@@ -221,5 +221,5 @@ static func _validate_land(errs: Array[String]) -> void:
 	var total := 0
 	for t in get_table("land_tiers").get("tiers", []):
 		total += int((t as Dictionary).get("cost_stone", 0))
-	if total != 1820000:
-		errs.append("land_tiers: tổng Stone %d != 1.820.000" % total)
+	if total != 1800000:
+		errs.append("land_tiers: tổng Stone %d != 1.800.000" % total)
