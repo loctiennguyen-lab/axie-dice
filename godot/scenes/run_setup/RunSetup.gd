@@ -74,6 +74,11 @@ var _footer_msg: Label
 ## True from the Start click until the server answers (can take ~15 s when an old run has to be closed first).
 var _busy := false
 var _busy_text := ""
+var _busy_gen := 0
+## Screen-side guard: RunSession gives up after 3 x 8 s, so a hung start is released a bit later than that.
+var start_timeout_s := 35.0
+## Tests only: scene path to try instead of the run map.
+var run_map_override := ""
 var _begin_btn: Button
 var _party_row: HBoxContainer
 var _party_label: Label
@@ -410,7 +415,14 @@ func begin() -> Dictionary:
 		return {"ok": false, "code": "blocked"}
 	var params := start_params()
 	var r: Dictionary
-	_set_busy(true, "Starting…")
+	_set_busy(true, tr("Starting…"))
+	_busy_gen += 1
+	var gen := _busy_gen
+	if is_inside_tree():
+		get_tree().create_timer(start_timeout_s).timeout.connect(func() -> void:
+			if _busy and gen == _busy_gen:
+				_set_busy(false)
+				_add_banner("Couldn't start — try again", "Nothing was spent.", false))
 	var sess: RunSession = null
 	if not start_hook.is_valid() and RemoteEpochSource.flag_on():
 		sess = RunState.run_session()
@@ -422,7 +434,7 @@ func begin() -> Dictionary:
 	if sess != null and is_instance_valid(sess):
 		sess.phase_changed.disconnect(_on_start_phase)
 	var leaving: bool = r.get("ok", false) and not no_scene_change and is_inside_tree()
-	if not leaving:
+	if not leaving and gen == _busy_gen:
 		_set_busy(false)   # success that changes scene stays busy: no second click while the map loads
 	if not r.get("ok", false):
 		if String(r.get("code", "")) == "unauthenticated":
@@ -443,7 +455,11 @@ func begin() -> Dictionary:
 		return r
 	begin_error = ""
 	if not no_scene_change and is_inside_tree():
-		get_tree().change_scene_to_file(RUN_MAP)
+		var err := get_tree().change_scene_to_file(run_map_override if run_map_override != "" else RUN_MAP)
+		if err != OK:
+			_set_busy(false)
+			begin_error = "Couldn't open the run map"
+			_add_banner("Couldn't open the run map", "Try Start run again.", false)
 	return r
 
 
@@ -457,9 +473,9 @@ func _set_busy(on: bool, text := "") -> void:
 ## RunSession tells us which step the server call is on (RemoteEpochSource._recover_open_run).
 func _on_start_phase(phase: String) -> void:
 	if _busy and phase == "closing_old":
-		_set_busy(true, "Closing your old run…")
+		_set_busy(true, tr("Closing your old run…"))
 	elif _busy and phase == "creating":
-		_set_busy(true, "Starting…")
+		_set_busy(true, tr("Starting…"))
 
 
 ## [title, detail] shown when Begin fails with `code` (RunState.begin_run -> RemoteEpochSource create error).
