@@ -109,7 +109,7 @@ QA thật: save đủ Stone (20k) nâng tier 2, thấy banner/chip/Axie; đăng 
 performance-analyst. Chỉ đo M-series bằng agent, ghi `production/qa/land-web-perf-2026-10.md`; không máy iGPU, không chặn gì. Làm khi rảnh sau R2.
 
 ### LD-B — Data Land (`beta/ldb`) — S-M (đợi LD-D)
-technical-artist + gameplay-programmer; review: lead-programmer. +8 decor common (chép từ `asset-library/godot-ready/`, chỉ món dùng), 2 Rare tier 2, số mốc theo LD-D. Test: `t_decor_data`, `t_land_milestones`. File data nếu nằm trong fingerprint thì chỉ ghim "Run result: NO", không bump.
+technical-artist + gameplay-programmer; review: lead-programmer. +8 decor common (chép từ `asset-library/godot-ready/`, chỉ món dùng), 2 Rare tier 2, số mốc theo LD-D. Test: `t_decor_data`, `t_land_milestones`. File data nếu nằm trong fingerprint thì chỉ ghim "Run result: NO", không bump. **Số chốt: mục "Số chốt LD-D (26/10)" trong `land-beta-brainstorm.md` + review `design/proposals/land-ldd-review.md` (APPROVE WITH CHANGES): giữ m4=30 + assert "trần T2 >= m4+2"; KIỂM `land_decor.gd` ~150-167 có chặn `min_tier` không (nếu không, Rare đặt được ở T1 → phải chặn); sửa `economy_db.gd:208` 1.82M→1.8M (ghim), test t_land_upgrade/t_decor_data/t_decor_milestones + grep số điểm cứng ở t_decor_score/t_land_milestones; technical-artist xem S_Tree03 vs S_Tree03a, F_Tree2 vs F_Tree1; quà 3 món = 7 điểm qua m1 ngay (báo Liam). Quà: `grant_land_gift_once([...])` đã nhận Array (93a0541).**
 
 ### AT — Atia: thêm quái mới (`beta/at`) — M-L, phạm vi sơ bộ (brainstorm hướng B đang sửa theo review, chốt khi Liam duyệt)
 **Đặt TRƯỚC SR1 theo ưu tiên Liam.** gameplay-programmer + godot-gdscript-specialist (+ technical-artist cho model); sim: economy-designer; review: technical-artist + lead-programmer. Đợi CL xong.

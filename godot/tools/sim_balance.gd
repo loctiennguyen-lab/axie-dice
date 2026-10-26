@@ -5,11 +5,20 @@ extends Node
 ## Cores: random | greedy_axis | combo (owned axis, then highest rarity); mix cycles the three.
 ## Args (after `--`): --runs=10 --seed=1000 --asc=0 --policies=attack_spam,greedy,random_legal
 ##   --teams=all|<name,name> --cores=random|greedy_axis|mix --out=<dir> --tag=<name>
+## Mission mode (N-S, beta): --mission=N1..N6 (comma list ok) plays a Mission run: Ascension + Mission Rules M + the `standard`
+##   block as RunState/ContentDB.mission_mods apply them. Ladder (LADDER below) is the brainstorm table, NOT read from
+##   missions.json (N-C owns that file). Overrides: --asc=4 (list ok) --rules=M1,M5 (or --rules=none) --mode=short|full.
+##   --rules=... without --mission = one "custom" config (per-rule d at A0/A3). --kind=mission (default, what the game does: NO Anchor,
+##   RunState.anchor_gate_reason "kind") | normal (Anchor possible; header still carries the mission). --anchor defaults to auto in
+##   mission mode. --force_run_rule=<id> makes the opening Run Rule offer hold only that rule (even a disabled one) and the bot takes it.
+##   Same seed list for every config (seed+i, team/core policy by i) so configs pair by seed. CSV gets cfg,mode,rules columns;
+##   the report adds win-rate, SE and Wilson 95% CI per config and paired differences.
 ## Deterministic by seed (the bot's own choices use a private Rng, never the game's).
 ## Never touches the network; the real save is guarded (SaveGuard) and the worktree has its own user dir.
 ## Engine gaps handled here (no engine edits): bot rng, preview via engine.preview_damage, private
 ## engine._face_value for non-dmg values.
 
+const _Econ := preload("res://scripts/meta/economy_db.gd")
 const MAX_TURNS := 60
 const STUCK_TURNS := 20
 const MAX_NODES := 60
@@ -50,6 +59,17 @@ var _anchor_aw_turn := -1
 var _anchor_mut := {}
 var _turns_total := 0
 var _team_keys: Array = []
+var _force_rule := ""      # --force_run_rule=<id>
+var _arg_error := ""       # set by parse_mission_args
+## Fallback ladder (used only for a tier whose missions.json entry has no `rules` array) from design/proposals/nhiem-vu-beta-brainstorm.md section 2 (Huong B). Sim input, not game data.
+const LADDER := {
+	"N1": {"mode": "short", "asc": 0, "rules": []},
+	"N2": {"mode": "short", "asc": 1, "rules": ["M6"]},
+	"N3": {"mode": "short", "asc": 3, "rules": ["M5", "M6"]},
+	"N4": {"mode": "short", "asc": 4, "rules": ["M1", "M7"]},
+	"N5": {"mode": "short", "asc": 6, "rules": ["M2", "M4", "M5"]},
+	"N6": {"mode": "full", "asc": 6, "rules": ["M1", "M5", "M6", "M7"]},
+}
 var _beam := 3             # expert in-turn beam width (--beam)
 var _core_fired_seen := {} # ids reported by EventBus.core_fired, when the branch has that signal
 ## Real combos (design/proposals/core-pick-excitement-brainstorm.md 2.B1; members that exist as ids on this branch).
@@ -116,19 +136,27 @@ func _ready() -> void:
 		args["runs"] = recs.size()
 	else:
 		recs = run_batch(args)
+		if _arg_error != "":
+			guard.restore()
+			get_tree().quit(2)
+			return
 	guard.restore()
 	var out_dir := String(args.get("out", ProjectSettings.globalize_path("res://").path_join("../production/qa/sim")))
 	var tag := String(args.get("tag", "%dx%s_A%s" % [int(args["runs"]), str(args["policies"]).replace(",", "+"), args["asc"]]))
+	if args.has("mission") and not args.has("tag"):
+		tag = "%dx%s_%s" % [int(args["runs"]), str(args["policies"]).replace(",", "+"), str(args["mission"]).replace(",", "+")]
 	SimReport.write(recs, out_dir, tag, float(args.get("_secs", 0.0)), catalog())
 	get_tree().quit(0)
 
 
 func _parse_args() -> Dictionary:
-	var a := {"runs": 10, "seed": 1000, "asc": "0", "policies": "attack_spam,greedy", "teams": "all", "cores": "mix", "tag": ""}
+	var a := {"runs": 10, "seed": 1000, "asc": "0", "_asc_default": true, "policies": "attack_spam,greedy", "teams": "all", "cores": "mix", "tag": ""}
 	for s in OS.get_cmdline_user_args():
 		if s.begins_with("--") and s.contains("="):
 			var kv := s.substr(2).split("=", true, 1)
 			a[kv[0]] = kv[1]
+			if kv[0] == "asc":
+				a.erase("_asc_default")
 	a["runs"] = int(a["runs"])
 	a["seed"] = int(a["seed"])
 	if a["tag"] == "":
@@ -147,15 +175,40 @@ func run_batch(args: Dictionary) -> Array:
 	_e1_min_ev = float(args.get("e1_min_ev", 1.0))
 	_e1_mana_lam = float(args.get("e1_mana_lam", 0.35))
 	_e1_p = float(args.get("e1_p", -1.0))
+	var parsed := parse_mission_args(args)
+	_arg_error = String(parsed["error"])
+	if _arg_error != "":
+		push_error("sim_balance: " + _arg_error)
+		return recs
+	var variants: Array = parsed["configs"]
+	if variants.is_empty():
+		for asc_s in String(args.get("asc", "0")).split(","):
+			variants.append({"label": "", "tier": "", "mode": String(args.get("mode", "short")), "asc": int(asc_s), "rules": [], "kind": ""})
+	else:
+		_anchor_mode = String(args.get("anchor", "auto"))
+		for cfg0 in variants:
+			if String(cfg0["kind"]) == "mission" and _anchor_mode != "auto" and _anchor_mode != "none":
+				var w := "sim_balance WARNING: --anchor=%s has no effect in a mission run (kind=mission: RunState.anchor_gate_reason blocks Anchors). Use --kind=normal to test Anchors." % _anchor_mode
+				push_warning(w)
+				print(w)
+				break
+		_stage = clampi(int(args.get("stage", 3)), 1, 3)
+	_force_rule = String(args.get("force_run_rule", ""))
+	if _force_rule != "":
+		var fd = RelicRegistry.get_def(_force_rule)
+		if fd == null or String(fd.core_axis) != "run_rule":
+			_arg_error = "--force_run_rule=%s is not a Run Rule id" % _force_rule
+			push_error("sim_balance: " + _arg_error)
+			return recs
 	var t0 := Time.get_ticks_msec()
-	for asc_s in String(args.get("asc", "0")).split(","):
+	for cfg in variants:
 		for pol in String(args.get("policies", "greedy")).split(","):
 			for i in int(args["runs"]):
 				var team_name: String = team_names[i % team_names.size()]
 				var cp: String = String(args.get("cores", "mix"))
 				if cp == "mix":
 					cp = ["random", "greedy_axis", "combo"][(i / team_names.size()) % 3]
-				recs.append(_play_run(int(args["seed"]) + i, team_name, int(asc_s), pol, cp))
+				recs.append(_play_run(int(args["seed"]) + i, team_name, int(cfg["asc"]), pol, cp, cfg))
 	args["_secs"] = (Time.get_ticks_msec() - t0) / 1000.0
 	return recs
 
@@ -165,7 +218,79 @@ var _mx_prev_end := 0   # mana left at the end of the previous turn of this figh
 var _mx_paid_k := 0     # paid Safe rerolls so far this turn
 
 
-func _play_run(seed_value: int, team_name: String, asc: int, policy: String, core_policy: String) -> Dictionary:
+## Parses the mission-mode flags (see header). Returns {error, configs}; configs is [] when neither --mission nor --rules is given
+## (then the sim behaves exactly as before). Pure: touches no state.
+func parse_mission_args(args: Dictionary) -> Dictionary:
+	var out := {"error": "", "configs": []}
+	var has_mode := args.has("mode")
+	var mode_o := String(args.get("mode", "short")).to_lower()
+	if has_mode and not (mode_o == "short" or mode_o == "full"):
+		out["error"] = "--mode must be short|full, got '%s'" % mode_o
+		return out
+	var kind := String(args.get("kind", "mission")).to_lower()
+	if kind != "mission" and kind != "normal":
+		out["error"] = "--kind must be mission|normal, got '%s'" % kind
+		return out
+	if not args.has("mission") and not args.has("rules"):
+		return out
+	var tiers: Array = ["custom"]
+	if args.has("mission"):
+		tiers = []
+		for t in String(args["mission"]).split(",", false):
+			var tid := t.strip_edges().to_upper()
+			if not LADDER.has(tid):
+				out["error"] = "--mission: unknown tier '%s' (N1..N6)" % t
+				return out
+			tiers.append(tid)
+		if tiers.is_empty():
+			out["error"] = "--mission is empty"
+			return out
+	var table_tiers: Dictionary = ((args["_table"] if args.has("_table") else _Econ.get_table("missions")) as Dictionary).get("tiers", {})
+	var rules_o: Array = []
+	var has_rules := args.has("rules")
+	if has_rules:
+		var table: Dictionary = ContentDB.mission_table.get("rules", {})
+		for r in String(args["rules"]).split(",", false):
+			var rid := r.strip_edges().to_upper()
+			if rid == "NONE":
+				continue
+			if not table.has(rid):
+				out["error"] = "--rules: unknown rule '%s'" % r
+				return out
+			if not rules_o.has(rid):
+				rules_o.append(rid)
+	var asc_o: Array = []
+	if args.has("asc") and not bool(args.get("_asc_default", false)):
+		for a in String(args["asc"]).split(",", false):
+			asc_o.append(int(a))
+	for tid in tiers:
+		var base: Dictionary = LADDER.get(tid, {"mode": "short", "asc": 0, "rules": []})
+		var src := "brainstorm(bs)" if tid != "custom" else "custom"
+		var tt: Dictionary = (table_tiers.get(tid, {}) as Dictionary)
+		if tid != "custom" and tt.get("rules", null) is Array:   # new form: the table the game reads
+			base = {"mode": String(tt.get("mode", "short")), "asc": int(tt.get("ascension", 0)), "rules": (tt["rules"] as Array).map(func(x): return String(x))}
+			src = "missions.json"
+		var ascs: Array = asc_o if not asc_o.is_empty() else [int(base["asc"])]
+		for asc in ascs:
+			var rules: Array = rules_o.duplicate() if has_rules else (base["rules"] as Array).duplicate()
+			var mode := mode_o if has_mode else String(base["mode"])
+			var label := String(tid) + ("(bs)" if src.begins_with("brainstorm") else "")
+			var mods: Array = []
+			if asc != int(base["asc"]):
+				mods.append("A%d" % asc)
+			if has_rules and rules != (base["rules"] as Array):
+				mods.append("rules=" + ("+".join(rules) if not rules.is_empty() else "none"))
+			if mode != String(base["mode"]):
+				mods.append(mode)
+			if tid == "custom":
+				label = "custom@A%d[%s]" % [asc, "+".join(rules) if not rules.is_empty() else "none"] + ("" if mode == "short" else "/" + mode)
+			elif not mods.is_empty():
+				label += "{" + ",".join(mods) + "}"
+			(out["configs"] as Array).append({"label": label, "tier": tid, "mode": mode, "asc": int(asc), "rules": rules, "kind": kind, "src": src})
+	return out
+
+
+func _play_run(seed_value: int, team_name: String, asc: int, policy: String, core_policy: String, cfg: Dictionary = {}) -> Dictionary:
 	_policy = policy
 	_core_policy = core_policy
 	_mx_ft = 0.0
@@ -195,9 +320,17 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 	for k in keys:
 		team.append(String(k))
 	_team_keys = team.duplicate()
-	RunState.start_run_with_epoch(LocalEpochSource.new(PackedByteArray(), seed_value), {
+	var run_params := {
 		"team_keys": team, "mode": "short", "ascension": asc, "ranked": false, "rules_on": true,
-		"newcomer": false, "bonuses": {}, "anchor": _anchor_mode != "none", "depth_stage": _stage}, seed_value)
+		"newcomer": false, "bonuses": {}, "anchor": _anchor_mode != "none", "depth_stage": _stage}
+	var cfg_label := String(cfg.get("label", ""))
+	if cfg_label != "":
+		# What MissionsScreen.mission_params builds (kind "mission" + header), minus stake/payout (the sim does not settle).
+		run_params["mode"] = String(cfg["mode"])
+		run_params["kind"] = String(cfg["kind"])
+		run_params["mission"] = {"mission_id": "sim|%s" % cfg_label, "tier": int(String(cfg["tier"]).substr(1)) if String(cfg["tier"]).begins_with("N") else 0,
+			"rules": (cfg["rules"] as Array).duplicate()}
+	RunState.start_run_with_epoch(LocalEpochSource.new(PackedByteArray(), seed_value), run_params, seed_value)
 	for fid in _force:
 		RunState._grant_relic(String(fid), "sim_force")
 	_drain_core_offers()
@@ -282,7 +415,8 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 		"cores": cores, "fights": _fights.duplicate(true), "offered": _offered.keys(), "picked": _picked.duplicate(),
 		"trig": _trig.keys(), "m": _met.duplicate(),
 		"anchor": RunState.anchor_id, "aw_node": _anchor_aw_node, "aw_turn": _anchor_aw_turn,
-		"mut": _anchor_mut.duplicate(), "combos": RunState.combo_done.size()}
+		"mut": _anchor_mut.duplicate(), "combos": RunState.combo_done.size(),
+		"cfg": cfg_label, "src": String(cfg.get("src", "")), "kind": String(cfg.get("kind", "")), "mode": String(cfg.get("mode", "short")), "rules": "+".join(cfg.get("rules", []) as Array)}
 
 
 # ---------------------------------------------------------------- rewards / cores
@@ -368,7 +502,11 @@ func _drain_core_offers() -> void:
 		for c in cards:
 			_offered[String((c as Dictionary).get("key", ""))] = true
 		var card: Dictionary = cards[0]
-		if bool(card.get("rule", false)):
+		if bool(card.get("rule", false)) and _force_rule != "":
+			# --force_run_rule: the offer becomes just this rule (valid or not, even `disabled`); no bot rng is drawn.
+			card = CoreOffer.rule_card_of(RelicRegistry.get_def(_force_rule), 0)
+			RunState.pending_rewards = [card]
+		elif bool(card.get("rule", false)):
 			card = cards[_rng.next_int(cards.size())]
 			if _core_policy == "combo":
 				for c in cards:
