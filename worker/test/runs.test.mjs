@@ -209,7 +209,7 @@ test('daily cap counts neither mission nor infra_error runs', async () => {
   const capped = await create(call);
   assert.equal(capped.status, 429);
   // a mission run is not capped
-  assert.equal((await create(call, { kind: 'mission', rules_version: CURRENT, ascension: 0, mission: { tier: 'N1', stake: 300, rules: [] } })).status, 200);
+  assert.equal((await create(call, { kind: 'mission', rules_version: CURRENT, ascension: 0, mission: { tier: 'N1', stake: 300, rules: ['M6'] } })).status, 200);
   // infra_error runs do not count: turn one of the earlier runs into one and a slot reopens
   DB.db.prepare(`UPDATE runs SET state = 'abandoned' WHERE mode = 'mission'`).run();
   DB.db.prepare(`UPDATE runs SET state = 'infra_error' WHERE mode = 'normal' AND rowid = (SELECT MIN(rowid) FROM runs WHERE mode = 'normal')`).run();

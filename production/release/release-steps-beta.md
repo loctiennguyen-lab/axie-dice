@@ -8,8 +8,7 @@ KHÔNG phải lệnh chạy sẵn. Mỗi đợt làn I (hoặc Liam) đi từ tr
 
 - [ ] `bash tools/release_gate.sh --suite` xanh: `missions.json` không còn `_tmp` và suite Godot chạy
       với `AXIE_RELEASE=1` không cờ skip, Worker test xanh. Chạy khoảng 20 phút, `AXIE_HANG_KILL=1200`.
-- Hiện trạng 26/10: gate ĐỎ, 8 dòng `_tmp` trong `godot/assets/data/economy/missions.json`. R1 bị chặn
-  tới khi N-S ghép số thật. Đây là đúng thiết kế, không phải lỗi gate.
+- 26/10 (R1): số sim v2 đã ghép, 0 dòng `_tmp`; suite `AXIE_RELEASE=1` 245/245.
 - [ ] Cây sạch: `git status` không có sửa đổi trong `godot/` và `worker/src/`, HEAD đã merge vào
       `godot-port` và đã được review độc lập (xem `production/agent-lane-rules.md`).
 
@@ -23,7 +22,10 @@ KHÔNG phải lệnh chạy sẵn. Mỗi đợt làn I (hoặc Liam) đi từ tr
       `build/web-prev/WORKER_VERSION.txt`).
 - [ ] `cd worker && npx wrangler deploy`. Cảnh báo "multiple environments" là đã biết (không truyền `--env`).
 - [ ] Lưu ý thứ tự: Worker có `SUPPORTED_RULE_VERSIONS` chứa bản luật mới TRƯỚC khi web lên. Client cũ
-      vẫn gửi bản luật cũ nên không bị ảnh hưởng. Đợt có bump thì xem mục Rollback.
+      vẫn gửi bản luật cũ: run thường không bị ảnh hưởng, NHƯNG từ lúc Worker lên tới lúc web lên, run Nhiệm vụ
+      từ client cũ bị `mission_needs_update` (đợt có Nhiệm vụ: làm Worker → web liền nhau). Client mới không
+      resume được save run bản luật cũ (xoá, run dở mất). Đợt có bump: ưu tiên hotfix tiến, không lùi Worker
+      (lùi thì web mới bị 409 hết và run Nhiệm vụ bản mới treo cược). Xem mục Rollback.
 
 ## 2. Web
 

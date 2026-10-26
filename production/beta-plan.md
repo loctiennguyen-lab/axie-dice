@@ -145,7 +145,7 @@ Bump RULES_VERSION: **`-u` ở R1** (V5 + `mission_rules.json`/`ascension.json`,
 
 ## 5. Release (có desktop)
 
-Web (như `deploy-2026-10-23.md`): suite KHÔNG cờ skip + Worker test -> push -> `wrangler d1 migrations list --remote`, đọc SQL, `apply` -> tắt editor -> `bash export-web.sh` -> `bash deploy-r2.sh --pck-only` -> `cd worker && npx wrangler deploy` -> `bash deploy-r2.sh --rest` -> kiểm md5 `/index.pck` đủ byte (không chỉ HTTP 200), html/js/wasm -> QA tài khoản Liam -> báo Liam 3-5 dòng. Dừng ở bước lỗi đầu tiên.
+**Trước mọi đợt có Nhiệm vụ (R1+): `grep -c '_tmp' godot/assets/data/economy/missions.json` = 0 và suite chạy với `AXIE_RELEASE=1` (test fail khi còn số tạm — review code N-C 26/10).** Web (như `deploy-2026-10-23.md`): suite KHÔNG cờ skip + Worker test -> push -> `wrangler d1 migrations list --remote`, đọc SQL, `apply` -> tắt editor -> `bash export-web.sh` -> `bash deploy-r2.sh --pck-only` -> `cd worker && npx wrangler deploy` -> `bash deploy-r2.sh --rest` -> kiểm md5 `/index.pck` đủ byte (không chỉ HTTP 200), html/js/wasm -> QA tài khoản Liam -> báo Liam 3-5 dòng. Dừng ở bước lỗi đầu tiên.
 **Desktop (thêm, vì beta chủ yếu desktop):** sau khi web + Worker lên, `bash tools/build_desktop.sh` (mac + Windows, không để `override.cfg` vào gói), dời bản cũ vào `build/old/`, đặt bản tải ở **link cố định** (nơi đặt: chốt cùng Liam, câu 2), báo tester. Smoke bản desktop mới (đăng nhập desktop, vào run, Nhiệm vụ).
 **Cửa sổ `-t`:** Worker giữ `-t` + `-u` trong **7 ngày kể từ lúc có link tải desktop mới**, không phải ngày deploy web. Hết hạn: bản cũ gặp 409 -> màn "có bản mới" (N-C). Đợt R-Atia (`-v`) lặp lại: giữ `-u` + `-v` 7 ngày từ link mới.
 Trước mỗi đợt: giữ `web/` + md5 + version Worker cũ ở `build/web-prev/`. Đợt có bump: sửa tiến bằng hotfix; nếu buộc rollback Worker thì đổi link desktop về bản cũ CÙNG LÚC (tránh vòng lặp 409). Rollback: `wrangler rollback`; web chạy lại `deploy-r2.sh` từ `build/web-prev/` (cả bộ, không để pck cũ + js mới); desktop: link cũ để lại ở `build/old/`; D1 chỉ ADD nên không rollback.
@@ -156,7 +156,7 @@ Trước mỗi đợt: giữ `web/` + md5 + version Worker cũ ở `build/web-pr
 | R1 | V5 + N-W + N-C (6 bậc) + màn 409 + CL | `-u` | `0010` | Có (-t và -u) | Có | **Có** (mở cửa sổ 7 ngày) | 4-5/11 |
 | R2 | Land (tier 20k, banner, chip, Axie, decor) | Không (ghim) | Không | Không | Có | Có | 7-9/11 |
 | R-Atia | quái mới | `-v` | Không | Có | Có | Có | ~16-18/11 |
-| R3 | SR1 + B4 + reset M1 | Không (ghim) | `0011` + snapshot | Có | Có | Có | ~18-21/11 |
+| R3 | SR1 + B4 + reset M1 (lane I: `project.godot` `[axie] econ="remote"` + Worker env `ECON_SHARD_WALLET=1` CÙNG đợt; D1 0011 trước Worker; `tools/reset_m1.sh --remote --yes` sau snapshot, báo tester trước) | Không (ghim) | `0011` + snapshot | Có | Có | Có | ~18-21/11 |
 | R-CF | khung cosmetics + LD-R | Không (ghim) | Không | Không | Có | Có | ~22-26/11 |
 | R4 | SR-V bóng (nền) | Không | `0012` | Có + Container | Không | Không | sau, không chặn |
 

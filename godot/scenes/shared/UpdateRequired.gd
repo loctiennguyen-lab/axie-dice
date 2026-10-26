@@ -20,14 +20,26 @@ static func is_update_code(code: String) -> bool:
 	return code == "version" or code == "mission_needs_update"
 
 
+## True on the browser build: there the fix is a page reload, not a download.
+static var web_override := -1   ## tests: 0 = desktop, 1 = web, -1 = real platform
+
+
+static func is_web() -> bool:
+	return OS.has_feature("web") if web_override < 0 else web_override == 1
+
+
 ## [title, body] for `code`. Pure (a test can check both). Says that nothing was lost.
 static func texts_for(code: String) -> Array:
+	var how := "Reload the page to get it" if is_web() else "Download it, then open the game again"
 	if code == "mission_needs_update":
-		return ["This version is out of date", "Missions need the newest version of the game. Download it, then open the game again. Nothing was spent."]
-	return ["This version is out of date", "The game has been updated and this version can't start new runs any more. Download the new version, then open the game again. Nothing was spent."]
+		return ["This version is out of date", "Missions need the newest version of the game. %s. Nothing was spent." % how]
+	return ["This version is out of date", "The game has been updated and this version can't start new runs any more. %s. Nothing was spent." % how]
 
 
 static func open_download() -> void:
+	if is_web() and not open_url_hook.is_valid():
+		JavaScriptBridge.eval("window.location.reload()")
+		return
 	if open_url_hook.is_valid():
 		open_url_hook.call(DOWNLOAD_URL)
 	else:
@@ -48,7 +60,7 @@ static func show(host: Node, code := "version", on_close: Callable = Callable())
 	var t := texts_for(code)
 	var close := UI3.button("Close", &"secondary", &"M")
 	close.name = "CloseButton"
-	var dl := UI3.button("Download the new version", &"primary", &"M")
+	var dl := UI3.button("Reload the page" if is_web() else "Download the new version", &"primary", &"M")
 	dl.name = "DownloadButton"
 	var m := UI3.modal(String(t[0]), String(t[1]), [close, dl], 1)
 	layer.add_child(m)
