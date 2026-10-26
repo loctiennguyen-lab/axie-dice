@@ -21,6 +21,8 @@ const REASONS := {
 	"gem_needs_server": "Gem gifts need a connection", "not_reached": "Not reached yet",
 	"already_claimed": "Already claimed", "season_over": "The season is over, no more XP",
 	"week_over": "That week is over", "not_done": "Task not finished",
+	"out_of_season": "The season is not running", "nothing_to_claim": "Nothing to claim",
+	"offline": "Can't reach the server", "unauthenticated": "Sign in to claim", "bad_request": "The server did not accept that claim",
 }
 
 ## "normal" | "offline" | "guest"
@@ -49,6 +51,10 @@ func _ready() -> void:
 	if use_account:
 		state = derive_state()
 	refresh()
+	if is_remote():   # show the server's Pass numbers, not an old cache
+		MetaState.econ_remote().refresh(func(_r: Dictionary) -> void:
+			if is_inside_tree():
+				refresh())
 
 
 func derive_state() -> String:
@@ -115,7 +121,29 @@ func node_state(lv: int) -> String:
 	return "next" if lv == level() + 1 else "locked"
 
 
+func is_remote() -> bool:
+	return MetaState.econ_remote() != null
+
+
+## Text for a server refusal code: our table first, then the wallet's wording, else the raw code.
+func remote_msg(code: String) -> String:
+	if REASONS.has(code):
+		return String(REASONS[code])
+	var m := RemoteEcon.message_for(code)
+	return m if not m.ends_with("Nothing was spent.") else "Server refused: %s" % code
+
+
+## Remote claim answer -> last_result + redraw. ok_text is shown on success.
+func _remote_done(r: Dictionary, ok_text: String) -> void:
+	last_result = ok_text if bool(r.get("ok", false)) else remote_msg(String(r.get("code", "server")))
+	if is_inside_tree():
+		refresh()
+
+
 func claim_level(lv: int) -> Dictionary:
+	if is_remote():
+		MetaState.pass_claim_free_async(lv, func(r: Dictionary) -> void: _remote_done(r, "Level %d claimed" % lv))
+		return {"ok": false, "reason": "pending", "rewards": []}
 	var r: Dictionary = MetaState.pass_claim_free(lv)
 	last_result = "Level %d claimed" % lv if bool(r.get("ok", false)) else String(REASONS.get(r.get("reason", ""), "Could not claim"))
 	refresh()
@@ -123,6 +151,9 @@ func claim_level(lv: int) -> Dictionary:
 
 
 func claim_all() -> int:
+	if is_remote():
+		_claim_all_remote(PassV2.claimable_levels(MetaState), 0)
+		return 0
 	var n := 0
 	for lv in PassV2.claimable_levels(MetaState):
 		var r: Dictionary = MetaState.pass_claim_free(int(lv))
@@ -136,7 +167,22 @@ func claim_all() -> int:
 	return n
 
 
+func _claim_all_remote(levels: Array, n: int) -> void:
+	if levels.is_empty():
+		_remote_done({"ok": true}, "Claimed %d levels" % n)
+		return
+	var rest: Array = levels.slice(1)
+	MetaState.pass_claim_free_async(int(levels[0]), func(r: Dictionary) -> void:
+		if not bool(r.get("ok", false)):
+			_remote_done(r, "")
+			return
+		_claim_all_remote(rest, n + 1))
+
+
 func claim_weekly(task_id: String) -> Dictionary:
+	if is_remote():
+		MetaState.pass_claim_weekly_async(task_id, func(r: Dictionary) -> void: _remote_done(r, "+500 XP"))
+		return {"ok": false, "reason": "pending", "xp": 0}
 	var r: Dictionary
 	if today_override == "":
 		r = MetaState.pass_claim_weekly(today(), task_id)
@@ -148,6 +194,11 @@ func claim_weekly(task_id: String) -> Dictionary:
 
 
 func claim_loop() -> int:
+	if is_remote():
+		MetaState.pass_claim_post30_async(func(r: Dictionary) -> void:
+			var sh := int((r.get("result", {}) as Dictionary).get("shards", 0))
+			_remote_done(r, "+%d Shard" % sh))
+		return 0
 	var s := PassV2.claim_post30(MetaState)
 	last_result = "+%d Shard" % s if s > 0 else "Nothing to claim"
 	refresh()

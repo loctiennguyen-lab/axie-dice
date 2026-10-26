@@ -86,4 +86,9 @@ static func message_for(code: String) -> String:
 		"unauthenticated": return "Sign in to use your wallet."
 		"no_run_today": return "Finish a run first."
 		"not_enough_days": return "Not enough daily claims this week."
+		"not_reached": return "Not reached yet."
+		"out_of_season": return "The Pass season is not running."
+		"not_done": return "That task is not finished yet."
+		"nothing_to_claim": return "Nothing to claim."
+		"run_not_closed": return "The run is not closed on the server yet."
 		_: return "The server refused this (%s). Nothing was spent." % code

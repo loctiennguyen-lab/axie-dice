@@ -216,6 +216,39 @@ static func next_milestone(score: int) -> Dictionary:
 	return {}
 
 
+## Remote economy: the server grants the items (answer lands in cosmetics_owned through the snapshot); the local
+## side only marks the milestone and gives the trophy decor. done(err:String), "" = ok. The Land score is still the client's.
+static func claim_remote(id: String, done: Callable) -> void:
+	var m: Dictionary = {}
+	for x in milestones():
+		if String(x["id"]) == id:
+			m = x
+	var econ: RemoteEcon = MetaState.econ_remote()
+	var why := ""
+	if m.is_empty():
+		why = "Unknown milestone."
+	elif MetaState.land_milestones_claimed.has(id):
+		why = "Already claimed."
+	elif aesthetic(MetaState.land_decor_placed) < int(m["points"]):
+		why = "Needs %d aesthetic points." % int(m["points"])
+	elif econ == null:
+		why = "Sign in to claim rewards."
+	if why != "":
+		done.call(why)
+		return
+	econ.claim("land", {"milestone": id, "points": aesthetic(MetaState.land_decor_placed)}, func(r: Dictionary) -> void:
+		if not bool(r.get("ok", false)):
+			done.call(RemoteEcon.message_for(String(r.get("code", "server"))))
+			return
+		if m.has("decor"):
+			var did := String(m["decor"])
+			MetaState.land_decor_owned[did] = maxi(int(MetaState.land_decor_owned.get(did, 0)), 1)
+		if not MetaState.land_milestones_claimed.has(id):
+			MetaState.land_milestones_claimed.append(id)
+		MetaState.save_to_disk()
+		done.call(""))
+
+
 ## Grants one milestone through cosmetics_owned (no Stone, no power). "" ok, else reason. Saves via SaveStore.
 static func claim(id: String) -> String:
 	var m: Dictionary = {}

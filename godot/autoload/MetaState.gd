@@ -307,8 +307,38 @@ func apply_server_econ(snap: Dictionary, save: bool = true) -> void:
 		p["buy_day"] = String(snap.get("buy_day", ""))
 		p["buy_count"] = int(snap.get("buy_count", 0))
 		echobox_pity = p
+	if snap.has("pass") and snap["pass"] is Dictionary:
+		_apply_server_pass(snap["pass"] as Dictionary)
 	if save:
 		save_to_disk()
+
+
+## Pass progress is the server's while the economy is remote: XP, level, claimed levels, weekly tasks and post-30
+## loops are copied from GET /api/econ `pass` into pass_season (the shape PassV2 / PassView already read).
+func _apply_server_pass(p: Dictionary) -> void:
+	var ps: Dictionary = pass_season
+	var sid := String(p.get("season", ps.get("id", "")))
+	if String(ps.get("id", "")) != sid:
+		ps = PassV2.new_state(sid)
+	var xp := int(p.get("xp", 0))
+	ps["xp"] = xp
+	ps["level"] = int(p.get("level", PassV2.level_for_xp(xp)))
+	var cl: Array = []
+	for lv in (p.get("claimed", []) as Array):
+		cl.append(int(lv))
+	ps["claimed_free"] = cl
+	var p30: Variant = p.get("post30", {})
+	if p30 is Dictionary:
+		ps["post30_claimed"] = int((p30 as Dictionary).get("claimed", 0))
+	var wk: Variant = p.get("weekly", {})
+	if wk is Dictionary and String((wk as Dictionary).get("week", "")) != "":
+		var w: Dictionary = wk
+		var ids: Array = []
+		for t in (w.get("claimed", []) as Array):
+			ids.append(String(t))
+		ps["weekly"] = {String(w["week"]): {"runs": int(w.get("runs", 0)), "wins": int(w.get("wins", 0)),
+			"boss": int(w.get("boss", 0)), "claimed": ids}}
+	pass_season = ps
 
 
 var _pending_reset: Dictionary = {}
@@ -380,6 +410,8 @@ func unlock_price(id: String) -> int:
 
 ## Gọi khi một run kết thúc (A/U nối): cộng XP Pass v2 theo công thức run XP. Trả XP thực nhận.
 func pass_add_run_xp(raw_xp: int) -> int:
+	if _econ != null:
+		return 0   # remote: the server counts Pass XP from our closed runs
 	var got := PassV2.add_run_xp(self, raw_xp, today_utc())
 	return got
 
@@ -397,6 +429,28 @@ func pass_claim_free(lv: int) -> Dictionary:
 ## Nhận hết vòng sau lv30 đang chờ (50 Shard/vòng, data). Trả số Shard nhận được.
 func pass_claim_post30() -> int:
 	return PassV2.claim_post30(self)
+
+
+## Remote economy: the claims below ask the server and show what it answers (Pass level, weekly task, post-30 loop).
+## done(r) gets RemoteEcon's {ok, code, dup, result, net}. Local wallet: use the sync pass_claim_* above.
+func pass_claim_free_async(lv: int, done: Callable = Callable()) -> void:
+	_pass_remote("pass", {"level": lv}, done)
+
+
+func pass_claim_weekly_async(task_id: String, done: Callable = Callable()) -> void:
+	_pass_remote("pass_weekly", {"task": task_id}, done)
+
+
+func pass_claim_post30_async(done: Callable = Callable()) -> void:
+	_pass_remote("pass_post30", {}, done)
+
+
+func _pass_remote(kind: String, extra: Dictionary, done: Callable) -> void:
+	if _econ == null:
+		if done.is_valid():
+			done.call({"ok": false, "code": "unauthenticated", "dup": false, "result": {}, "net": false})
+		return
+	_econ.claim(kind, extra, done)
 
 
 ## Ảnh chụp chỉ đọc của Pass v2 cho màn hình (đổi dict trả về không ảnh hưởng save).
@@ -499,7 +553,8 @@ func record_run_outcome(params: Dictionary, won: bool) -> void:
 			and not String(params.get("mission_id", "")).is_empty():
 		settle_mission_stake(won, false)
 	# Việc tuần Pass v2: mọi run đã kết thúc đều tính; params.reached_boss (tuỳ chọn) cho việc "chạm boss".
-	PassV2.record_run(self, today_utc(), won, bool(params.get("reached_boss", false)))
+	if _econ == null:   # remote: weekly progress is counted by the server
+		PassV2.record_run(self, today_utc(), won, bool(params.get("reached_boss", false)))
 	if not won:
 		return
 	var asc := int(params.get("ascension", 0))
@@ -637,6 +692,12 @@ func settle_mission_stake(won: bool, save: bool = true) -> bool:
 
 ## Stone for a won mission, capped per UTC day (stone_day_cap). Stone stays client-side in L1.
 func _grant_mission_stone(e: Dictionary) -> void:
+	if _econ != null:
+		# Remote: the server pays Stone from its settled escrow (claim kind "mission"); nothing local.
+		var rid := String(e.get("run_id", ""))
+		if rid != "":
+			_econ.claim("mission", {"run_id": rid})
+		return
 	var day := today_utc()
 	if String(mission_stone_day.get("day", "")) != day:
 		mission_stone_day = {"day": day, "n": 0}

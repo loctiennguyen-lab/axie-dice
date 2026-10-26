@@ -315,6 +315,11 @@ func _craft(id: String) -> void:
 
 
 func _claim(id: String) -> void:
+	if MetaState.econ_remote() != null:
+		LandDecor.claim_remote(id, func(err: String) -> void:
+			_toast.call(err if err != "" else "Reward claimed", 2.0, &"error" if err != "" else &"ok")
+			refresh())
+		return
 	var why := LandDecor.claim(id)
 	_toast.call(why if why != "" else "Reward claimed", 2.0, &"error" if why != "" else &"ok")
 	refresh()
