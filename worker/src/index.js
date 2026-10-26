@@ -210,7 +210,7 @@ async function loadPckManifest(env) {
   if (typeof m.md5 !== 'string' || !/^[0-9a-f]{32}$/.test(m.md5)) return bad('md5 missing or not 32 lowercase hex');
   let sum = 0;
   for (const p of m.parts) {
-    if (!p || typeof p.key !== 'string' || !p.key.startsWith('pck/')) return bad('part key must start with pck/');
+    if (!p || typeof p.key !== 'string' || !p.key.startsWith('pck/') || p.key.split('/').some((seg) => seg === '' || seg === '.' || seg === '..')) return bad('part key must start with pck/ and have no empty, . or .. segment');
     if (!Number.isSafeInteger(p.size) || p.size <= 0) return bad('bad part entry');
     sum += p.size;
   }
@@ -283,7 +283,11 @@ async function servePck(request, env, manifest, ctx) {
     'Cross-Origin-Embedder-Policy': 'require-corp',
   });
   const rangeHeader = request.headers.get('range');
-  const r = rangeHeader ? parseRange(rangeHeader, total) : null;
+  let r = rangeHeader ? parseRange(rangeHeader, total) : null;
+  // If-Range (RFC 7233 3.2): the validator must be our strong ETag. Anything else (old etag, a date, W/ form)
+  // means the client's copy may be stale, so the Range is ignored and the whole file is sent.
+  const ifRange = request.headers.get('if-range');
+  if (rangeHeader && ifRange !== null && ifRange.trim() !== etag) r = null;
   if (r === 'unsatisfiable') {
     headers.set('Content-Range', `bytes */${total}`);
     return new Response(null, { status: 416, headers });

@@ -4,7 +4,7 @@
 import { shared } from './accounts.js';
 import { signRunToken, newJti } from './run_token.js';
 import { rulesSupported } from './run_do.js';
-import { validateMission, escrowStatements, settleEscrow, reconcileEscrows } from './missions.js';
+import { validateMission, escrowStatements, settleEscrow, reconcileEscrows, currentRules } from './missions.js';
 
 const RULES_PER_DAY_DEFAULT = 20;
 const NEWCOMER_RUNS = 5;
@@ -55,6 +55,9 @@ async function createRun(request, env, url, player) {
   if (!KINDS.has(mode) || ascension < 0 || ascension > 10 || typeof rules !== 'string' || !/^[a-z0-9_.-]{1,40}$/.test(rules)) return json({ error: 'bad_request' }, 400);
   if (nonce !== null && !/^[a-f0-9]{32}$/.test(nonce)) return json({ error: 'bad_request' }, 400);
   if (!rulesSupported(env, rules)) return json({ error: 'version' }, 409);
+  // A mission run only takes the newest rules (the table is a single, current one). An older client that is
+  // still accepted for normal runs gets its own code so the UI can say "update", not a generic version error.
+  if (mode === 'mission' && rules !== currentRules(env)) return json({ error: 'mission_needs_update' }, 409);
   if (GATED_MODES.has(mode) && env.ALLOW_GATED_MODES !== '1') return json({ error: 'not_available' }, 403);
   // Ranked: newcomers (< 5 runs with a fight) wait; imported (vault) Axies are refused. The server cannot see
   // the team, so team_keys is the client's word - an honest-client check until the verifier (P3) lands.
@@ -63,11 +66,12 @@ async function createRun(request, env, url, player) {
     if (Array.isArray(body.team_keys) && body.team_keys.some((k) => k.startsWith(VAULT_PREFIX))) return json({ error: 'vault_banned' }, 403);
     if (env.ALLOW_GATED_MODES !== '1' && await newcomer(env, player.id)) return json({ error: 'newcomer_locked' }, 403);
   }
-  // Mission: stake and tier are checked against the server's table; N4..N6 are locked in this build. Same
-  // newcomer gate as ranked. The escrow rows go in the run's own batch below.
+  // Mission: stake, tier, rules and unlock chain are checked against the server's table and D1 (all six tiers
+  // can be bought once unlocked by wins). Same newcomer gate as ranked. The escrow rows go in the run's own
+  // batch below.
   let mission = null;
   if (mode === 'mission') {
-    mission = validateMission(body.mission, ascension);
+    mission = await validateMission(env, player.id, body.mission, ascension);
     if (!mission.ok) return json({ error: mission.error }, mission.status);
     if (env.ALLOW_GATED_MODES !== '1' && await newcomer(env, player.id)) return json({ error: 'newcomer_locked' }, 403);
   } else if (body.mission !== undefined) return json({ error: 'bad_request' }, 400);
@@ -157,7 +161,7 @@ const changed = (r) => ((r && r.meta && r.meta.changes) || 0) > 0;
 
 async function abandon(request, env, url, player, runId) {
   if (request.headers.get('Origin') && !shared.isAllowedOrigin(request.headers.get('Origin'), url)) return json({ error: 'forbidden' }, 403);
-  const row = await env.DB.prepare('SELECT state FROM runs WHERE run_id = ? AND player_id = ?').bind(runId, player.id).first();
+  const row = await env.DB.prepare('SELECT state, rules_version FROM runs WHERE run_id = ? AND player_id = ?').bind(runId, player.id).first();
   if (!row) return json({ error: 'not_found' }, 404);
   const at = Math.floor(Date.now() / 1000);
   // Every settle below is gated on THIS request's UPDATE having changed the row: if a close, a cron sweep or
@@ -177,10 +181,12 @@ async function abandon(request, env, url, player, runId) {
     if (out && out.state === 'closed') return json({ ok: true });
     const u = await env.DB.prepare(`UPDATE runs SET state = 'abandoned', outcome = 'lost', closed_at = ? WHERE run_id = ? AND state = 'open'`)
       .bind(at, runId).run();
-    // Abandon = the stake is lost. Only a run that never really started (no epoch answered, i.e. run_start
-    // failed) gets the stake back: once run_start is answered the player has seen the map, and a free refund
-    // would let them reroll maps (Liam 16/10). Unknown count = lost.
-    if (changed(u)) await settleEscrow(env, runId, out && out.epochs === 0 ? 'refunded' : 'lost'); // no-op for a run without escrow
+    // Abandon = the stake is lost. Two exceptions get it back: a run that never really started (no epoch
+    // answered, i.e. run_start failed), and a run created under older rules than the current ones (we bumped
+    // under the player, the client cannot resume it). Once run_start is answered on current rules the player has
+    // seen the map, and a free refund would let them reroll maps (Liam 16/10). Unknown count = lost.
+    const bumped = row.rules_version !== currentRules(env);
+    if (changed(u)) await settleEscrow(env, runId, (out && out.epochs === 0) || bumped ? 'refunded' : 'lost'); // no-op for a run without escrow
   }
   return json({ ok: true });
 }
