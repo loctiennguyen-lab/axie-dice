@@ -123,9 +123,16 @@ func _ready() -> void:
 		_assert(not RunState.pick_anchor("a_volley"), "%s run: pick refused" % kind)
 		_assert(not RunState._anchor_waiting, "%s run: flow not held" % kind)
 	# Liam 26/10: a Mission run carries an Anchor like a normal run
-	_start(105, {"kind": "mission"})
+	# (the 3 offered Anchors depend on the run's rule/mode, so take the first offered one the run allows, not a fixed id;
+	# depth_stage is set in the params so no state left by an earlier test can matter)
+	_start(105, {"kind": "mission", "depth_stage": 3})
 	_assert(RunState.anchor_gate_reason() == "" and RunState.anchor_offer_open(), "mission run: Anchor offered")
-	_assert(RunState.pick_anchor("a_volley"), "mission run: pick accepted")
+	var m_pick := ""
+	for oid in RunState.anchor_offer:
+		if RunState.anchor_disabled_reason(String(oid)) == "":
+			m_pick = String(oid)
+			break
+	_assert(m_pick != "" and RunState.pick_anchor(m_pick), "mission run: pick accepted (%s of %s)" % [m_pick, str(RunState.anchor_offer)])
 	RunState.clear_saved_run()
 	_start(106, {"anchor": false})
 	_assert(RunState.anchor_gate_reason() == "off" and RunState._core_offer_active, "no opt-in: old flow, pick 1 straight away")
