@@ -8,11 +8,12 @@ func _snap(name: String) -> void:
 	for i in 12:
 		await get_tree().process_frame
 	await RenderingServer.frame_post_draw
-	var sz := get_viewport().get_visible_rect().size
+	var img := get_viewport().get_texture().get_image()
+	var sz := Vector2(img.get_width(), img.get_height())
 	var dir := OS.get_environment("ADT_EVIDENCE_DIR")
 	if dir == "":
 		dir = "user://"
-	get_viewport().get_texture().get_image().save_png("%s/nc_%s_%dx%d.png" % [dir, name, int(sz.x), int(sz.y)])
+	img.save_png("%s/nc_%s_%s.png" % [dir, name, OS.get_environment("QA_TAG")])
 
 
 func _ready() -> void:
