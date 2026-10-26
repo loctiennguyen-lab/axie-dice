@@ -8,7 +8,7 @@ func _init() -> void:
 func _k100(key: String) -> int:
 	return int(roundf(CombatEngine.tune_knob("anchor", key, 0.0) * 100.0))
 
-func _eng(anchor: String, mana: int = 0, awake: bool = false, seed_v: int = 7) -> CombatEngine:
+func _eng(anchor: String, mana: int = 0, awake: bool = false, seed_v: int = 29) -> CombatEngine:
 	var e := CombatEngine.new()
 	e.setup_new({"node_id": "bo", "kind": "battle", "pw": 2, "ascension": 0, "roster_snapshot": CoreTestUtil.roster(["plant1", "beast1", "aqua1", "reptile1", "bug1"]),
 		"relic_ids": [], "combat_seed": seed_v, "start_mana": mana, "depth_stage": 3, "anchor_id": anchor, "anchor_awakened": awake})
@@ -155,7 +155,7 @@ func run() -> void:
 	eq(plain.overcast_cost(), 2, "no Anchor: Overcast 2")
 
 
-func _gamble_engine(seed_v: int = 7) -> CombatEngine:
+func _gamble_engine(seed_v: int = 29) -> CombatEngine:
 	var e := _eng("a_gambler", 0, false, seed_v)
 	e.rerolls = 0
 	BoTestBase.force(e, [0, 1, 2, 3, 4], [face("dmg", 5), face("dmg", 5), face("dmg", 5), face("dmg", 5), face("dmg", 5)])

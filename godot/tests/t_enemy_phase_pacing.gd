@@ -251,7 +251,7 @@ func _fresh_engine() -> CombatEngine:
 	var c := CombatEngine.new()
 	c.setup_new({
 		"node_id": "pacing_node", "kind": "battle", "pw": 6, "ascension": 0,
-		"roster_snapshot": _synthetic_roster(), "relic_ids": [], "combat_seed": 246813,
+		"roster_snapshot": _synthetic_roster(), "relic_ids": [], "combat_seed": 2794,
 	})
 	return c
 
