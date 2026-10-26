@@ -235,6 +235,8 @@ func _land_section() -> Control:
 			["Milestones claimed", "%d / %d" % [got, ms.size()], "LandMilestones"]]:
 		var ir := _info_row(r[0], r[1], r[2])
 		ir.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if r[2] == "LandScore":
+			UI3Tooltip.bind(ir, "Points from decor placed on your Land. They unlock milestone rewards.")
 		row.add_child(ir)
 	box.add_child(row)
 	return box

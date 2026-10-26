@@ -10,7 +10,7 @@ const _Eco := preload("res://scripts/meta/economy_db.gd")
 const TIER_NAMES: Array[String] = ["Savannah", "Forest", "Arctic", "Mystic", "Genesis", "LunaLanding"]
 ## Tier gates that Land.gd reads from houses.json are listed here only by name.
 const ADDS: Dictionary = {
-	2: "+3 preset slots · new decor set · +2 Rare decor",
+	2: "+3 preset slots · New decor set · +2 Rare decor",
 	3: "+3 preset slots · Mastery house",
 	4: "New decor set",
 	5: "Gallery",

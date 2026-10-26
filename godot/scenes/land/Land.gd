@@ -220,7 +220,7 @@ func _grant_gift() -> bool:
 ## Starter-gift toast, then the "new tier" banner (once per tier, MetaState.land_tier_banner_seen).
 func _notices_on_enter() -> void:
 	if _gift_given:
-		_show_toast("Welcome gift: 3 decor are in your storage", 4.0)
+		_show_toast("Welcome gift: 3 decor in your storage — press E (Edit Land) to place them", 6.0)
 	if MetaState.land_tier_banner_seen < _tier and not has_modal():
 		MetaState.land_tier_banner_seen = _tier
 		MetaState.save_to_disk()
@@ -232,7 +232,11 @@ func _show_tier_banner() -> void:
 	ok.name = "TierBannerOk"
 	ok.pressed.connect(_close_modal)
 	var body := "%s is open. " % TIER_NAMES[_tier - 1]
-	body += String(LandUpgradeScreen.ADDS.get(_tier, "")).replace(" · ", ". ") + "."
+	var parts: PackedStringArray = []
+	for seg in String(LandUpgradeScreen.ADDS.get(_tier, "")).split(" · "):
+		if seg != "":
+			parts.append(seg.left(1).to_upper() + seg.substr(1))
+	body += ". ".join(parts) + "."
 	var m := UI3.modal("Your Land is now %s" % TIER_NAMES[_tier - 1], body, [ok], 0)
 	m.name = "TierBanner"
 	m.cancelled.connect(_close_modal)
@@ -1413,8 +1417,9 @@ func _land_link() -> Control:
 	var can_up := preload("res://scripts/meta/economy_db.gd").land_upgrade_enabled() and have >= need
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", UI3Theme.space("8"))
-	var txt := "Upgrade Land · %s %d/6 · %s/%s" % [tn, _tier, _fmt(mini(have, need)), _fmt(need)]
-	row.add_child(UI3.label(txt + (" · ready" if can_up else "")))
+	var txt := "Upgrade Land · %s %d/6 · Stone %s/%s" % [tn, _tier, _fmt(mini(have, need)), _fmt(need)]
+	txt += " · ready" if can_up else " · %s to %s" % [_fmt(maxi(need - have, 0)), TIER_NAMES[_tier]]
+	row.add_child(UI3.label(txt))
 	var cell := _cell("UpgradeLand", row, _on_land_pressed)
 	cell.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	cell.get_node("UpgradeLand").tooltip_text = "%s / %s Land Stone" % [_fmt(have), _fmt(need)]
