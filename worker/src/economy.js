@@ -19,6 +19,7 @@ import decor from '../../godot/assets/data/land/decor.json' with { type: 'json' 
 import { UNLOCKS, RUN_SHARD_MAX } from './econ_tables.js';
 import { tierStone, stoneDayCap } from './missions.js';
 import { scoreFromSummary } from './leaderboard.js';
+import { CLOSE_SANITY } from './run_core.js';
 
 const { json } = shared;
 const nowS = () => Math.floor(Date.now() / 1000);
@@ -94,20 +95,20 @@ export function capRunXp(raw, used) {
  *  the next call picks the run up. Until the verifier (B3) the run itself is still the client's claim. */
 export async function syncPassXp(env, pid, at = nowS()) {
   const { results } = await env.DB.prepare(
-    `SELECT r.run_id, r.ascension, r.outcome, r.closed_at, r.summary_json FROM runs r
-      WHERE r.player_id = ? AND r.${VALID_RUN.replaceAll(' AND ', ' AND r.')} AND r.closed_at >= ? AND r.closed_at < ?
+    `SELECT r.run_id, r.ascension, r.outcome, r.created_at, r.closed_at, r.summary_json FROM runs r
+      WHERE r.player_id = ? AND r.${VALID_RUN.replaceAll(' AND ', ' AND r.')} AND r.closed_at >= MAX(?, COALESCE((SELECT counted_to FROM pass_xp WHERE player_id = r.player_id AND season = ?), 0)) AND r.closed_at < ?
         AND NOT EXISTS (SELECT 1 FROM wallet_ledger l WHERE l.player_id = r.player_id AND l.idem_key = 'op:passxp:' || r.run_id)
       ORDER BY r.closed_at, r.run_id LIMIT 50`,
-  ).bind(pid, passStart(), passEnd()).all();
+  ).bind(pid, passStart(), pass.season_id, passEnd()).all();
   for (const r of results) {
     const row = (await env.DB.prepare('SELECT day, day_xp, n FROM pass_xp WHERE player_id = ? AND season = ?').bind(pid, pass.season_id).first()) || { day: '', day_xp: 0, n: 0 };
-    const sc = scoreFromSummary(r.summary_json, { asc: r.ascension, won: r.outcome === 'won' });
+    const sc = runTimeOk(r) ? scoreFromSummary(r.summary_json, { asc: r.ascension, won: r.outcome === 'won' }) : null;
     const day = utcDay(r.closed_at);
     const { granted, used } = capRunXp(sc ? sc.score : 0, row.day === day ? row.day_xp : 0);
     const res = await runOp(env, pid, `passxp:${r.run_id}`, { xp: granted }, [
       ledger(env, pid, 'op', 0, '{}', `passpos:${pass.season_id}:${row.n}`, at),
       passRow(env, pid),
-      env.DB.prepare('UPDATE pass_xp SET xp = xp + ?, day = ?, day_xp = ?, n = n + 1 WHERE player_id = ? AND season = ?').bind(granted, day, used, pid, pass.season_id),
+      env.DB.prepare('UPDATE pass_xp SET xp = xp + ?, day = ?, day_xp = ?, n = n + 1, counted_to = MAX(counted_to, ?) WHERE player_id = ? AND season = ?').bind(granted, day, used, r.closed_at, pid, pass.season_id),
     ], at);
     if (!res.ok) break;   // conflict: another request is counting; stop, the next call continues
   }
@@ -245,6 +246,16 @@ const weekOf = (day) => Math.floor((day + 3) / 7);   // Monday-based week of a u
 // A run that counts for rewards: closed, played at least one battle, not a Mission run (those pay via escrow).
 // NOTE (Liam accepted until B3): `closed`, `battles_done` and summary are the client's claims, there is no verifier
 // yet, so this cannot stop a forged run. It only stops the cheap cases (empty runs, double pay, Mission double pay).
+/** Cheap-fake guard (not a payout cap): a run cannot have taken less server time than SR0's CLOSE_SANITY gives per
+ *  map row (min_secs_per_row x rows reached; a won run must have reached the final row of its mode). Time is
+ *  closed_at - created_at on OUR clock. The number of epochs the Durable Object issued would be a second check, but
+ *  it lives in the DO's own SQLite, not in D1, and run_do.js is not ours to change; so it is NOT checked here. */
+export function runTimeOk(run) {
+  let sum = {}; try { sum = JSON.parse(run.summary_json || '{}') || {}; } catch { sum = {}; }
+  const mode = sum.len === 'full' ? 'full' : 'short';
+  const rows = run.outcome === 'won' ? CLOSE_SANITY.final_row[mode] : Math.min(Number.isSafeInteger(sum.pw) ? sum.pw : 1, CLOSE_SANITY.final_row[mode]);
+  return (run.closed_at || 0) - (run.created_at || 0) >= CLOSE_SANITY.min_secs_per_row * Math.max(1, rows);
+}
 const VALID_RUN = `state = 'closed' AND battles_done >= 1 AND mode != 'mission'`;
 async function closedRunToday(env, pid, at, mode) {
   const d0 = Math.floor(at / 86400) * 86400;
@@ -284,8 +295,9 @@ async function claim(env, pid, b, at) {
     case 'run': {   // Shard reward of ONE closed run, once per run id. The amount is computed HERE from what the run
       // recorded at close (summary_json.shards), never taken from the request, and clamped to RUN_SHARD_MAX.
       if (typeof b.run_id !== 'string' || !/^[0-9a-f]{32}$/.test(b.run_id)) return { ok: false, code: 'bad_request' };
-      const run = await env.DB.prepare(`SELECT summary_json FROM runs WHERE run_id = ? AND player_id = ? AND ${VALID_RUN}`).bind(b.run_id, pid).first();
+      const run = await env.DB.prepare(`SELECT summary_json, outcome, created_at, closed_at FROM runs WHERE run_id = ? AND player_id = ? AND ${VALID_RUN}`).bind(b.run_id, pid).first();
       if (!run) return { ok: false, code: 'run_not_closed' };
+      if (!runTimeOk(run)) return { ok: false, code: 'run_too_short' };
       let sum = {}; try { sum = JSON.parse(run.summary_json || '{}') || {}; } catch { sum = {}; }
       const amount = Math.max(0, Math.min(RUN_SHARD_MAX, Number.isSafeInteger(sum.shards) ? sum.shards : 0));
       if (amount === 0) return { ok: false, code: 'nothing_to_claim' };
@@ -319,7 +331,8 @@ async function claim(env, pid, b, at) {
       const used = await env.DB.prepare(`SELECT COALESCE(SUM(delta), 0) AS n FROM wallet_ledger WHERE player_id = ? AND currency = 'stone' AND reason = 'mission_win' AND at >= ? AND at < ?`).bind(pid, d0, d0 + 86400).first();
       const amount = Math.max(0, Math.min(tierStone(e.tier), stoneDayCap() - (used ? used.n : 0)));   // table's per-day Stone cap (design number, not a Shard payout cap)
       if (amount === 0) return { ok: false, code: 'nothing_to_claim' };
-      return grant({ stone: amount }, `claim:mission:${b.run_id}`, 'mission_win');
+      // position row: two claims of different runs that read the same day total collide here, the loser retries
+      return grant({ stone: amount }, `claim:mission:${b.run_id}`, 'mission_win', [ledger(env, pid, 'op', 0, '{}', `stonepos:${utcDay(at)}:${used ? used.n : 0}`, at)]);
     }
     case 'pass': {   // free reward of Pass level `level` (1..30). NOTE: Pass XP/level is still client-side, so the level is the
       // client's claim -> now the SERVER's: lv must be <= the level from pass_xp (syncPassXp). Gem rewards are not paid here.
@@ -345,7 +358,9 @@ async function claim(env, pid, b, at) {
       }
       return bundle(env, pid, `claim:pass:${pass.season_id}:${lv}`, pay, 'pass', at);
     }
-    case 'land': {   // milestone items from decor.json; `points` is the client's Land score, must reach the milestone's number
+    case 'land': {   // COSMETICS ONLY (titles, frames, dice skins, a trophy decor): no Shard/Stone/ticket, so trusting the
+      // client's Land score is accepted (nothing that can be sold or spent). Do not add currency rewards here
+      // without a server-side Land score. milestone items from decor.json; `points` is the client's Land score, must reach the milestone's number
       const m = decor.milestones.find((x) => x.id === b.milestone);
       if (!m || !Number.isSafeInteger(b.points)) return { ok: false, code: 'bad_request' };
       if (b.points < m.points) return { ok: false, code: 'not_reached' };
@@ -470,7 +485,7 @@ async function readBody(request, max = 1024) {
   try { const t = await request.text(); return t.length <= max ? JSON.parse(t) : null; } catch { return null; }
 }
 const STATUS = { insufficient: 402, no_tickets: 402, conflict: 409, owned: 409, day_cap: 409, hold_cap: 409, unknown_sku: 400, bad_request: 400,
-  no_run_today: 409, nothing_to_claim: 409, run_not_closed: 409, not_enough_days: 409, out_of_season: 409, not_reached: 409, not_done: 409 };
+  no_run_today: 409, run_too_short: 409, nothing_to_claim: 409, run_not_closed: 409, not_enough_days: 409, out_of_season: 409, not_reached: 409, not_done: 409 };
 
 export async function handleEcon(request, env, url, opts = {}) {
   try {

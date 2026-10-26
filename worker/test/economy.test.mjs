@@ -100,7 +100,7 @@ test('economy: daily claim needs a closed run today, pays once per day; weekly n
 });
 
 const insRun = (env, id, pid, mode, battles, shards) => env.DB.db.prepare(
-  `INSERT INTO runs (run_id, player_id, mode, rules_version, state, created_at, closed_at, battles_done, summary_json) VALUES (?, ?, ?, 'x', 'closed', 1, 2, ?, ?)`)
+  `INSERT INTO runs (run_id, player_id, mode, rules_version, state, created_at, closed_at, battles_done, summary_json) VALUES (?, ?, ?, 'x', 'closed', 1, 1000, ?, ?)`)
   .run(id, pid, mode, battles, JSON.stringify({ shards }));
 
 test('economy C1/C2: run reward is computed on the server, once per run, own closed non-mission runs only', async () => {
@@ -355,4 +355,20 @@ test('pass weekly tasks and post-30 loop are computed on the server', async () =
     assert.equal(c.shard, before + 100); assert.equal(c.pass.post30.pending, 0); assert.equal(c.pass.post30.claimed, 2);
     assert.equal((await claim('pass_post30')).code, 'nothing_to_claim');
   });
+});
+
+test('economy review 2: claim needs the server time a run takes; Stone position row; pass sync skips counted runs', async () => {
+  const env = mkEnv();
+  await call(env, '/api/econ');
+  const ins = (id, created, closed, extra = {}) => env.DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, rules_version, state, created_at, closed_at, outcome, battles_done, summary_json) VALUES (?, 'p1', 'normal', 'x', 'closed', ?, ?, ?, 2, ?)`)
+    .run(id, created, closed, extra.outcome || 'lost', JSON.stringify({ shards: 100, pw: extra.pw || 3, len: extra.len || 'short' }));
+  const claim = (id) => j(call(env, '/api/econ/claim', 'POST', { kind: 'run', run_id: id }));
+  ins('a'.repeat(32), 100, 105);                       // 5 s for 3 rows: needs 18
+  assert.equal((await claim('a'.repeat(32))).code, 'run_too_short');
+  ins('b'.repeat(32), 100, 130);                       // 30 s >= 18
+  assert.equal((await claim('b'.repeat(32))).shard, 600);
+  ins('c'.repeat(32), 100, 150, { outcome: 'won' });   // a win must have lasted 108 s (short)
+  assert.equal((await claim('c'.repeat(32))).code, 'run_too_short');
+  ins('d'.repeat(32), 100, 250, { outcome: 'won' });
+  assert.equal((await claim('d'.repeat(32))).shard, 700);
 });

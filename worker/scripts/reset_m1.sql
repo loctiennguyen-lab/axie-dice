@@ -13,6 +13,7 @@ DELETE FROM runs;
 DELETE FROM saves;
 DELETE FROM inventory;
 DELETE FROM unlocks;
+DELETE FROM pass_xp;
 DELETE FROM echobox_state;
 DELETE FROM starter_claims;   -- so the starter grant is paid again, like a new account
 DELETE FROM wallets;

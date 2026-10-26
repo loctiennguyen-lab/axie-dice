@@ -54,5 +54,6 @@ CREATE TABLE pass_xp (
   day        TEXT NOT NULL DEFAULT '',
   day_xp     INTEGER NOT NULL DEFAULT 0,
   n          INTEGER NOT NULL DEFAULT 0,
+  counted_to INTEGER NOT NULL DEFAULT 0,   -- newest closed_at already counted: later syncs only look at runs from here on
   PRIMARY KEY (player_id, season)
 );
