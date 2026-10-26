@@ -1083,6 +1083,7 @@ func end_run(won: bool) -> void:
 	if not server_settles:
 		MetaState.settle_mission_for_run(String(mission.get("mission_id", "")), bool(mission_outcome(won)["won"]))
 	clear_saved_run()
+	var econ_wait: EpochReply = null
 	if epoch != null:
 		var mo := mission_outcome(won)
 		var close_reply := epoch.close("won" if bool(mo["won"]) else "lost", close_summary(bool(mo["won"]), bool(mo["condition_ok"]), _esc))
@@ -1090,6 +1091,7 @@ func end_run(won: bool) -> void:
 			_submit_ranked_score(close_reply, String(action_log.header.get("run_id", "")))
 		if server_settles:
 			_reconcile_mission_after_close(close_reply)
+		econ_wait = close_reply
 	MetaState.add_shards(shards_this_run)
 
 	# Lifetime stats and the Ascension ladder (src/client.html onRunEnd(), :5436-5446).
@@ -1124,6 +1126,13 @@ func end_run(won: bool) -> void:
 	if run_kind == "daily":
 		daily_run_reward_granted = MetaState.claim_daily_run_reward()
 	MetaState.save_to_disk()
+	# SR1: remote economy -> the run's Shards and the daily claims are the server's to pay.
+	# The server only pays a CLOSED run, so wait for the close answer when it is still in flight.
+	var claim_args: Array = [String(action_log.header.get("run_id", "")), shards_this_run, run_kind]
+	if MetaState.econ_remote() != null and econ_wait != null and not econ_wait.done:
+		econ_wait.resolved.connect(func() -> void: MetaState.callv("econ_claims_after_run", claim_args), CONNECT_ONE_SHOT)
+	else:
+		MetaState.callv("econ_claims_after_run", claim_args)
 
 	EventBus.run_ended.emit(won)
 

@@ -284,6 +284,7 @@ func _on_me(code: int, text: String) -> void:
 			desktop_phase = "signed_in"
 		changed.emit()
 		_attach_remote_wallet()
+		_attach_remote_econ()
 		transport.call("GET", "/api/save", "", _on_save_fetched)
 	elif code == 401:
 		reconciling = false
@@ -425,7 +426,18 @@ func _adopt(snap: Dictionary, base_rev: int) -> void:
 
 func _apply_server(server: Dictionary) -> void:
 	var id := String(account["id"])
-	_write_snapshot(id, {"meta": server.get("meta"), "run": server.get("run")})
+	var smeta: Variant = server.get("meta")
+	if typeof(smeta) == TYPE_DICTIONARY:
+		# SR1: a cloud save never carries money. Keep what this device already shows for those fields
+		# (the next refresh from /api/econ is what makes them true).
+		var merged: Dictionary = MetaState.strip_server_fields(smeta)
+		var mine: Variant = _parse_or_null(SaveStore.read_text_as(id, META_PATH))
+		if typeof(mine) == TYPE_DICTIONARY:
+			for k in MetaState.SERVER_FIELDS:
+				if (mine as Dictionary).has(k):
+					merged[k] = mine[k]
+		smeta = merged
+	_write_snapshot(id, {"meta": smeta, "run": server.get("run")})
 	_rev = int(server.get("rev", 0))
 	_dirty = false
 	_save_sync()
@@ -459,7 +471,7 @@ func _push() -> void:
 	var snap := _snapshot(String(account["id"]))
 	var body := {"rev": _rev, "run": snap["run"]}
 	if typeof(snap["meta"]) == TYPE_DICTIONARY:
-		body["meta"] = snap["meta"]
+		body["meta"] = MetaState.strip_server_fields(snap["meta"])   # SR1: D1 owns the money fields
 	_push_in_flight = true
 	var edits_at := _edits
 	status = Status.SAVING
@@ -533,6 +545,27 @@ func _schedule_retry(what: Callable) -> void:
 ## `remote_wallet_enabled`). Signed in -> RemoteGemWallet; signed out -> MetaState back to the local wallet.
 var remote_wallet_enabled := false
 var _remote_wallet: RemoteGemWallet = null
+## SR1: server economy (Shard / Stone / tickets / unlocks / Echo Box). OFF unless project setting `axie/econ` =
+## "remote" (or a test sets `remote_econ_enabled`). Same lifetime as the Gem wallet: signed in -> on, guest -> off.
+var remote_econ_enabled := false
+var _remote_econ: RemoteEcon = null
+
+
+func _attach_remote_econ() -> void:
+	if not (remote_econ_enabled or String(ProjectSettings.get_setting("axie/econ", "local")) == "remote"):
+		return
+	if _remote_econ != null:
+		return
+	_remote_econ = RemoteEcon.new(transport)
+	MetaState.use_remote_econ(_remote_econ)
+	_remote_econ.refresh()
+
+
+func _detach_remote_econ() -> void:
+	if _remote_econ == null:
+		return
+	_remote_econ = null
+	MetaState.use_remote_econ(null)
 
 
 func _attach_remote_wallet() -> void:
@@ -546,6 +579,7 @@ func _attach_remote_wallet() -> void:
 
 
 func _detach_remote_wallet() -> void:
+	_detach_remote_econ()
 	if _remote_wallet == null:
 		return
 	_remote_wallet = null

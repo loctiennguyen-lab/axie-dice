@@ -184,6 +184,8 @@ func _ready() -> void:
 	ensure_vault_heroes.call_deferred()
 
 func add_shards(amount: int, reason: String = "earn", save: bool = true) -> void:
+	if _econ != null and reason == "earn":
+		return   # run reward: the server pays it through econ_claims_after_run
 	shard_pool += amount
 	ledger_add("shard", amount, reason)
 	if save:
@@ -243,6 +245,93 @@ func use_remote_gem_wallet(w: GemWallet) -> void:
 	gems_cache = w.balance()
 	if w.has_signal("balance_changed"):
 		w.connect("balance_changed", func(b: int) -> void: gems_cache = b)
+
+
+# --- Server economy (SR1) ----------------------------------------------------------------------
+## Fields D1 owns. They are a display cache here: never uploaded in the cloud save (AccountService strips them,
+## the Worker strips them too) and never taken from a downloaded one, so a PUT can neither mint nor roll back money.
+const SERVER_FIELDS: Array[String] = ["shard_pool", "stone", "tickets", "unlocks", "echobox_pity", "starter_granted", "starter_shard_locked"]
+## Id of the last server reset (M1) this device has wiped for. "" = none seen yet.
+var econ_reset_seen: String = ""
+var _econ: RemoteEcon = null
+
+
+## The remote economy while it is on (signed in + project setting axie/econ="remote"), else null.
+func econ_remote() -> RemoteEcon:
+	return _econ
+
+
+func use_remote_econ(e: RemoteEcon) -> void:
+	_econ = e
+
+
+## Meta save dict without the server-owned fields.
+static func strip_server_fields(meta: Dictionary) -> Dictionary:
+	var out := meta.duplicate()
+	for k in SERVER_FIELDS:
+		out.erase(k)
+	return out
+
+
+## Overwrites the cache from a server snapshot (GET /api/econ shape). Goes through save_to_disk -> SaveStore.
+## A snapshot carrying a new `reset_id` first wipes this device (see wipe_for_server_reset).
+func apply_server_econ(snap: Dictionary, save: bool = true) -> void:
+	var rid := String(snap.get("reset_id", ""))
+	if rid != "" and rid != econ_reset_seen:
+		wipe_for_server_reset(rid)
+	shard_pool = int(snap.get("shard", shard_pool))
+	stone = int(snap.get("stone", stone))
+	tickets["normal"] = int(snap.get("ticket", int(tickets.get("normal", 0))))
+	starter_granted = true
+	if snap.has("unlocks") and snap["unlocks"] is Array:
+		unlocks.clear()
+		for u in snap["unlocks"]:
+			unlocks.append(String(u))
+	if snap.has("owned") and snap["owned"] is Array:
+		for it in snap["owned"]:
+			if not cosmetics_owned.has(String(it)):
+				cosmetics_owned.append(String(it))
+	if snap.has("pity") and snap["pity"] is Dictionary:
+		var p: Dictionary = (snap["pity"] as Dictionary).duplicate()
+		p["opens"] = int(snap.get("opens", 0))
+		p["buy_day"] = String(snap.get("buy_day", ""))
+		p["buy_count"] = int(snap.get("buy_count", 0))
+		echobox_pity = p
+	if save:
+		save_to_disk()
+
+
+## Server says everything was reset (M1: Shard, Stone, tickets, Gem, run history, saves). Drops every local value
+## through SaveStore (so the signed-in profile's cloud copy is overwritten by the next upload) and remembers the id.
+func wipe_for_server_reset(reset_id: String) -> void:
+	SaveStore.erase(SAVE_PATH)
+	SaveStore.erase("user://run_save.json")
+	reload_from_store()
+	econ_reset_seen = reset_id
+	save_to_disk()
+
+
+## Run end (remote economy): Shard reward of the closed run, daily claims. Fire-and-forget; the answer lands in the
+## cache. The local claim_daily_* are off while remote (the server owns "once per day").
+func econ_claims_after_run(run_id: String, shards: int, run_kind: String) -> void:
+	if _econ == null:
+		return
+	if run_id != "" and shards > 0:
+		_econ.claim("run", {"run_id": run_id, "amount": shards})
+	var chain: Array[String] = ["daily"]
+	if run_kind == "daily":
+		chain.append("daily_run")
+	chain.append("weekly")
+	_econ_chain(chain)
+
+
+## Claims one after another (each answer lands in the cache before the next goes out). A refusal such as
+## not_enough_days for "weekly" is normal and ends quietly.
+func _econ_chain(kinds: Array[String]) -> void:
+	if kinds.is_empty() or _econ == null:
+		return
+	var rest: Array[String] = kinds.slice(1)
+	_econ.claim(kinds[0], {}, func(_r: Dictionary) -> void: _econ_chain(rest))
 
 
 ## Nhận Gem tặng, bất đồng bộ (bản remote hỏi server). done(result:{ok, granted, reason, next_utc}).
@@ -746,6 +835,7 @@ func _key_bindings_from_json(v: Variant) -> Dictionary:
 func _reset_economy_fields() -> void:
 	save_version = SAVE_VERSION
 	starter_granted = false
+	econ_reset_seen = ""
 	stone = 0
 	gems_cache = 0
 	gem_claim_next_utc = 0
@@ -913,6 +1003,7 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 		for k in profile_stats:
 			profile_stats[k] = maxi(0, int((ps2 as Dictionary).get(k, 0)))
 	starter_granted = bool(parsed.get("starter_granted", false))
+	econ_reset_seen = String(parsed.get("econ_reset_seen", ""))
 	if ver < SAVE_VERSION:
 		_migrate_pre_economy()
 	save_version = SAVE_VERSION
@@ -1103,6 +1194,7 @@ func save_to_disk() -> void:
 		"tutorial_seen": tutorial_seen,
 		"save_version": SAVE_VERSION,
 		"starter_granted": starter_granted,
+		"econ_reset_seen": econ_reset_seen,
 		"stone": stone,
 		"gems_cache": gems_cache,
 		"gem_claim_next_utc": gem_claim_next_utc,
@@ -1309,6 +1401,8 @@ func unlock_def(id: String) -> Dictionary:
 
 ## Spends shards on a permanent unlock. Returns "" on success or the reason it was refused.
 func buy_unlock(id: String) -> String:
+	if _econ != null:
+		return "Unlocks are bought through the server (buy_unlock_async)."
 	if has_unlock(id):
 		return "Already owned."
 	var def := unlock_def(id)
@@ -1322,6 +1416,17 @@ func buy_unlock(id: String) -> String:
 	unlocks.append(id)
 	save_to_disk()
 	return ""
+
+
+## Remote economy: buy an unlock on the server. done(err:String) with "" on success. Offline / refused -> message.
+func buy_unlock_async(id: String, done: Callable = Callable()) -> void:
+	if _econ == null:
+		if done.is_valid():
+			done.call(buy_unlock(id))
+		return
+	_econ.buy_unlock(id, func(r: Dictionary) -> void:
+		if done.is_valid():
+			done.call("" if bool(r["ok"]) else RemoteEcon.message_for(String(r["code"]))))
 
 
 # ===========================================================================
@@ -1624,6 +1729,8 @@ static func today_utc() -> String:
 ## 60 shards once, on the first — the same contract the JS relies on by calling it unconditionally
 ## from `onRunEnd()`.
 func claim_daily_mission() -> bool:
+	if _econ != null:
+		return false   # the server owns "once a day"
 	var today := today_utc()
 	if daily_date == today:
 		return false
@@ -1645,6 +1752,8 @@ func claim_daily_mission() -> bool:
 ## a SEPARATE reward from claim_daily_mission (that one is the any-run daily). Ledgered through add_shards /
 ## add_stone, idempotent per UTC day via `last_daily_reward_utc` (already saved + reloaded). Caller saves.
 func claim_daily_run_reward() -> bool:
+	if _econ != null:
+		return false
 	var today := today_utc()
 	if last_daily_reward_utc == today:
 		return false
