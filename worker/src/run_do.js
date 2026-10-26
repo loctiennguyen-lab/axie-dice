@@ -30,6 +30,26 @@ export const HELLO_DEADLINE_MS = 10_000;
 /** How long the close path waits for the D1 write-back before answering 'closed' anyway. */
 export const CLOSE_SYNC_BUDGET_MS = 4_000;
 
+/**
+ * Hello check against D1 (ADR 4.6 + SR0 token-to-session binding): the run's current token id, the account not
+ * locked, AND the account still has a live login. A run token is only as good as the login that earned it, so
+ * logging out (cookie session deleted) or revoking the device (device_sessions.revoked) kills the token even
+ * inside its 2 h TTL. Fails closed on a missing DB / jti. Cookie sessions: sessions.expires_at; desktop: a
+ * non-revoked device_sessions row.
+ * ONLY "the player still has ANY login": NOT bound to the one session that minted the token (a stolen token survives
+ * a logout on device A while device B is logged in). TODO sid claim minted in runs.js (N-W's file), checked here.
+ */
+export async function helloAllowed(env, claims, nowS = Math.floor(Date.now() / 1000)) {
+  if (!env.DB || !claims || !claims.jti) return false;
+  const row = await env.DB.prepare(
+    `SELECT r.token_jti, p.locked_at,
+            (EXISTS (SELECT 1 FROM sessions s WHERE s.player_id = r.player_id AND s.expires_at > ?)
+             OR EXISTS (SELECT 1 FROM device_sessions d WHERE d.player_id = r.player_id AND d.revoked = 0)) AS live
+       FROM runs r JOIN players p ON p.id = r.player_id WHERE r.run_id = ? AND r.player_id = ?`,
+  ).bind(nowS, claims.run_id, claims.player_id).first();
+  return !!row && row.locked_at == null && row.token_jti === claims.jti && Number(row.live) === 1;
+}
+
 export class RunDO {
   constructor(ctx, env) {
     this.ctx = ctx;
@@ -37,13 +57,7 @@ export class RunDO {
     RunCore.initSchema(ctx.storage.sql);
     this.core = new RunCore(ctx.storage.sql, {
       verifyToken: (t) => verifyRunToken(env, t),
-      checkHello: async (claims) => {
-        if (!env.DB || !claims.jti) return false;
-        const row = await env.DB.prepare(
-          `SELECT r.token_jti, p.locked_at FROM runs r JOIN players p ON p.id = r.player_id WHERE r.run_id = ? AND r.player_id = ?`,
-        ).bind(claims.run_id, claims.player_id).first();
-        return !!row && row.locked_at == null && row.token_jti === claims.jti;
-      },
+      checkHello: (claims) => helloAllowed(env, claims),
       supportsRules: (v) => rulesSupported(env, v),
       // Gem is charged in D1 inside the request that earns the seed (ADR 4.9). The idem key is built by
       // RunCore as aid:{run}:{seq}, so a retried request replays the old charge instead of paying twice.
@@ -142,6 +156,8 @@ export class RunDO {
       // Not trusted from the client, and no migration: reports read it with json_extract(summary_json, '$.srv.aids').
       let srv = { aids: [] };
       try { srv = { aids: this.core.sql.exec('SELECT aid FROM epochs WHERE aid IS NOT NULL ORDER BY seq').toArray().map((r) => r.aid) }; } catch { /* keep empty */ }
+      // SR0 write-only sanity of the close (run_core CLOSE_SANITY): marks the run, changes nothing else.
+      try { const sane = this.core.closeSanity(); if (sane) srv.sanity = sane; } catch { /* never block the write-back */ }
       const merged = JSON.stringify({ ...s, srv });
       const upd = await this.env.DB.prepare(
         `UPDATE runs SET state = 'closed', outcome = ?, closed_at = ?, battles_done = ?, summary_json = ?
