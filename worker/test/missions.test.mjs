@@ -8,9 +8,9 @@ import worker from '../src/index.js';
 import { RunCore } from '../src/run_core.js';
 import { settleEscrow, payoutFor, PAYOUT_CAP } from '../src/missions.js';
 import { sweepPending, PENDING_TTL_S } from '../src/runs.js';
-import { RunDO } from '../src/run_do.js';
+import { RunDO, SUPPORTED_RULE_VERSIONS } from '../src/run_do.js';
 
-const RULES = 'godot-2026-09-21-a';
+const RULES = SUPPORTED_RULE_VERSIONS.at(-1);   // mission runs only take the current rules version
 const mig = (f) => readFileSync(new URL(`../migrations/${f}`, import.meta.url), 'utf8');
 const table = JSON.parse(readFileSync(new URL('../../godot/assets/data/economy/missions.json', import.meta.url), 'utf8'));
 
@@ -24,7 +24,7 @@ class Stmt {
 class FakeD1 {
   constructor() {
     this.db = new DatabaseSync(':memory:'); this.db.exec('PRAGMA foreign_keys = ON;');
-    for (const f of ['0001_accounts.sql', '0002_runs.sql', '0009_depth_stage.sql', '0003_wallet.sql', '0005_token_revocation.sql', '0006_leaderboard.sql', '0007_mission_escrow.sql']) this.db.exec(mig(f));
+    for (const f of ['0001_accounts.sql', '0002_runs.sql', '0009_depth_stage.sql', '0003_wallet.sql', '0005_token_revocation.sql', '0006_leaderboard.sql', '0007_mission_escrow.sql', '0010_mission_unlock.sql']) this.db.exec(mig(f));
   }
   prepare(s) { return new Stmt(this.db, s); }
   async batch(stmts) { const out = []; for (const s of stmts) out.push(await s.run()); return out; }
@@ -63,6 +63,8 @@ async function setup(extra = {}) {
   // enough finished runs to pass the newcomer gate (5 with a fight)
   const seed = (player, n) => { for (let i = 0; i < n; i++) DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, ascension, rules_version, state, created_at, closed_at, outcome, battles_done) VALUES (?, ?, 'normal', 0, ?, 'closed', 1, 2, 'lost', 1)`).run(`${player.slice(-1)}${i}`.padStart(32, 'a'), player, RULES); };
   if (!extra.newcomer) { seed('google:1', 5); seed('google:2', 5); }
+  // These tests are about escrow, not the unlock chain: open every tier for both players (missions_unlock covers the chain).
+  if (!extra.locked) for (const p of ['google:1', 'google:2']) for (const t of ['N1', 'N2', 'N3', 'N4', 'N5']) DB.db.prepare('INSERT INTO mission_wins (run_id, player_id, tier, at) VALUES (?, ?, ?, 1)').run(`seed-${p}-${t}`, p, t);
   const call = (path, { method = 'GET', body, token = 'tok1' } = {}) =>
     worker.fetch(new Request(`https://axiedice.fun${path}`, {
       method, headers: { cookie: `ad_session=${token}`, 'content-type': 'application/json' },
@@ -84,9 +86,7 @@ const close = async (env, DB, runId, outcome) => {   // what RunDO._syncClosed d
   return settleEscrow(env, runId, outcome);
 };
 
-test('table sanity: N1..N3 enabled, N4..N6 not, payouts are the documented 645 / 1200 / 2880', () => {
-  assert.deepEqual(['N1', 'N2', 'N3'].map((t) => table.tiers[t].enabled), [true, true, true]);
-  assert.deepEqual(['N4', 'N5', 'N6'].map((t) => table.tiers[t].enabled), [false, false, false]);
+test('table sanity: payouts are the documented 645 / 1200 / 2880', () => {
   assert.deepEqual(['N1', 'N2', 'N3'].map((t) => payoutFor(table.tiers[t].stake, table.tiers[t].m_base * table.tiers[t].m_scale)), [645, 1200, 2880]);
   assert.equal(PAYOUT_CAP, 20000);
 });
@@ -102,9 +102,8 @@ test('create: mission is open (not not_available); escrow row + shard stake-out 
   assert.deepEqual(shardRows(), [{ delta: -500, reason: 'mission_stake:N2', idem_key: `mission_stake:${j.run_id}` }]);
 });
 
-test('create: validation. N4..N6 locked (403 tier_locked), bad tier 400, stake/ascension must match the table (409), no block 400', async () => {
+test('create: validation. N4..N6 are buyable once unlocked (no tier_locked), bad tier 400, stake/ascension must match the table (409), no block 400', async () => {
   const { mission, call, DB } = await setup();
-  for (const t of ['N4', 'N5', 'N6']) { const r = await mission(t); assert.equal(r.status, 403); assert.equal((await r.json()).error, 'tier_locked'); }
   for (const bad of [{ tier: 'N7', stake: 1 }, { tier: 'n1', stake: 300 }, { tier: 'N1', stake: '300' }, { tier: 'N1' }, 'N1', null, [], { tier: '__proto__', stake: 300 }]) {
     assert.equal((await mission('N1', { mission: bad })).status, 400, JSON.stringify(bad));
   }
