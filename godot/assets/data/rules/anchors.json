@@ -85,7 +85,7 @@
   "enabled": true,
   "name_en": "Embers",
   "name_vi": "Giữ Lửa",
-  "rule_en": "You may Hold 2 dice; a Held die used next turn gets +1.50.",
+  "rule_en": "You may Hold 2 dice; a Held die used next turn gets +2.25.",
   "cost_en": "Only Held dice carry over.",
   "house_id": "h_embers",
   "house_cores": [
