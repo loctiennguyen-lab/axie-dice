@@ -56,6 +56,45 @@ func _ready() -> void:
 	th["mission"] = {"mission_id": "x", "tier": 1, "rules": []}
 	var lied := RunVerifier.verify(ActionLog.from_data(mb.duplicate(true)), tt, {}, true)
 	_assert(String(lied.get("error", "")) == RunVerifier.ERR_BAD_HEADER, "mission header differing from the tape is refused: " + str(lied.get("error")))
+	# Server mode (no allow_unranked): the tape's mission header is the only truth. Add / drop / alter -> bad_header.
+	var srv_tape: Array = (JSON.parse_string(JSON.stringify(mtape)) as Array)
+	var srv_h: Dictionary = ((srv_tape[0] as Dictionary).get("extra", {}) as Dictionary).get("header", {}) as Dictionary
+	var lm: Dictionary = (mlog.header["mission"] as Dictionary)
+	srv_h["mission"] = {"mission_id": str(lm.get("mission_id", "")), "tier": lm.get("tier"), "rules": (lm.get("rules", []) as Array).duplicate()}
+	_assert(bool(RunVerifier.verify(ActionLog.from_data(mb.duplicate(true)), srv_tape)["ok"]), "server mode: tape mission == log mission verifies")
+	# Key order and int-vs-float do not matter (JSON round trip turns ints into floats).
+	var rt: Dictionary = JSON.parse_string(JSON.stringify(mb))
+	var rl := ActionLog.from_data(rt)
+	var rtape: Array = JSON.parse_string(JSON.stringify(srv_tape))
+	_assert(bool(RunVerifier.verify(rl, rtape)["ok"]), "server mode: JSON round trip (floats, key order) still verifies")
+	var odd_tape: Array = JSON.parse_string(JSON.stringify(srv_tape))
+	var oh: Dictionary = ((odd_tape[0] as Dictionary).get("extra", {}) as Dictionary).get("header", {}) as Dictionary
+	var om: Dictionary = oh["mission"]
+	oh["mission"] = {"rules": om["rules"], "tier": om["tier"], "mission_id": om["mission_id"]}   # other key order
+	_assert(bool(RunVerifier.verify(ActionLog.from_data(mb.duplicate(true)), odd_tape)["ok"]), "server mode: different key order verifies")
+	# log has no mission but the tape does
+	var nom: Dictionary = mb.duplicate(true)
+	(nom["header"] as Dictionary).erase("mission")
+	_assert(String(RunVerifier.verify(ActionLog.from_data(nom), srv_tape).get("error", "")) == RunVerifier.ERR_BAD_HEADER, "server mode: log drops the mission -> bad_header")
+	# tape has no mission but the log does (server mode)
+	_assert(not bool(RunVerifier.verify(ActionLog.from_data(mb.duplicate(true)), mtape)["ok"]), "server mode: log adds a mission the tape lacks -> refused")
+	# tier / rules altered in the log
+	var alt: Dictionary = mb.duplicate(true)
+	((alt["header"] as Dictionary)["mission"] as Dictionary)["tier"] = "N1" if str(lm.get("tier")) != "N1" else "N2"
+	_assert(String(RunVerifier.verify(ActionLog.from_data(alt), srv_tape).get("error", "")) == RunVerifier.ERR_BAD_HEADER, "server mode: altered tier -> bad_header")
+	var alr: Dictionary = mb.duplicate(true)
+	((alr["header"] as Dictionary)["mission"] as Dictionary)["rules"] = []
+	_assert(String(RunVerifier.verify(ActionLog.from_data(alr), srv_tape).get("error", "")) == RunVerifier.ERR_BAD_HEADER, "server mode: altered rules -> bad_header")
+	var swp: Dictionary = mb.duplicate(true)
+	var sr: Array = (((swp["header"] as Dictionary)["mission"] as Dictionary)["rules"] as Array)
+	if sr.size() > 1:
+		sr.reverse()
+		_assert(String(RunVerifier.verify(ActionLog.from_data(swp), srv_tape).get("error", "")) == RunVerifier.ERR_BAD_HEADER, "server mode: rules order matters")
+	# ranked + mission -> bad_header
+	var rk: Dictionary = mb.duplicate(true)
+	(rk["header"] as Dictionary)["ranked"] = true
+	var rkv := RunVerifier.verify(ActionLog.from_data(rk), srv_tape)
+	_assert(String(rkv.get("error", "")) == RunVerifier.ERR_BAD_HEADER, "ranked + mission -> bad_header: " + str(rkv.get("error")) + str(rkv.get("message")))
 	# Empty tape must refuse, not crash.
 	var empty := RunVerifier.verify(ActionLog.from_data(mb.duplicate(true)), [], {}, true)
 	_assert(not bool(empty.get("ok", true)), "empty tape is refused without crashing")

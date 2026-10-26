@@ -71,7 +71,9 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}, a
 		return _fail(ERR_CONTENT_VERSION,
 			"This run was played on balance data '%s'; this referee has '%s'."
 			% [str(header.get("content_version", "?")), content_version])
-	if not is_ranked and not allow_unranked:
+	# A tape whose run_start header carries a mission was written by the server for a Mission run: that is the one unranked kind it replays.
+	var server_mission: bool = not is_ranked and not ((((tape[0] as Dictionary).get("extra", {}) as Dictionary).get("header", {}) as Dictionary).get("mission", {}) as Dictionary).is_empty()
+	if not is_ranked and not allow_unranked and not server_mission:
 		return _fail(ERR_NOT_RANKED,
 			"Only a ranked run can be verified. An unranked one starts from unlocks that exist "
 			+ "only on the player's own machine.")
@@ -83,6 +85,9 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}, a
 	if int(header.get("depth_stage", 3)) != tape_stage:
 		return _fail(ERR_STAGE_MISMATCH, "The record claims depth stage %d; the server issued stage %d." % [int(header.get("depth_stage", 3)), tape_stage])
 
+	# A ranked run is never a Mission run, whichever side claims it.
+	if is_ranked and (not (header.get("mission", {}) as Dictionary).is_empty() or not (tape_hdr.get("mission", {}) as Dictionary).is_empty()):
+		return _fail(ERR_BAD_HEADER, "A ranked record cannot carry a mission header.")
 	# Anchors exist in normal runs only: a ranked record that names one (header, loadout or a pick_anchor action) is refused outright.
 	var hl: Dictionary = header.get("loadout", {}) as Dictionary
 	if is_ranked and (String(header.get("anchor_id", "")) != "" or String(hl.get("anchor_id", "")) != "" or bool(hl.get("anchor", false))
@@ -108,8 +113,12 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}, a
 	# as a normal run and diverges (soak 26/10: ~85% of Mission runs rejected).
 	var log_mission: Dictionary = header.get("mission", {}) as Dictionary
 	var tape_mission: Dictionary = tape_hdr.get("mission", {}) as Dictionary
-	if not tape_mission.is_empty() and JSON.stringify(tape_mission) != JSON.stringify(log_mission):
-		return _fail(ERR_BAD_HEADER, "The record's mission header differs from the one the server issued.")
+	if not tape_mission.is_empty() or not allow_unranked:
+		# Server mode (no allow_unranked) or a tape that carries the server's header: the log may not add, drop or alter the mission.
+		# Compared field by field (tier as text, rules in order), never by JSON text: key order and int-vs-float must not matter.
+		if tape_mission.is_empty() != log_mission.is_empty() or not _mission_same(tape_mission, log_mission):
+			return _fail(ERR_BAD_HEADER, "The record's mission header differs from the one the server issued.")
+	# Fallback to the log's own header only for sim/local replays (allow_unranked, tape without a mission header).
 	if not log_mission.is_empty():
 		params["mission"] = log_mission
 		params["kind"] = "mission"
@@ -312,6 +321,31 @@ static func _apply_combat(engine: CombatEngine, fn: String, args: Array) -> bool
 			engine.end_turn()
 			return true
 	return false
+
+
+## Mission headers equal on what drives the rules: tier (compared as text), rules (same order), and mission_id when the tape has one.
+static func _mission_same(a: Dictionary, b: Dictionary) -> bool:
+	if a.is_empty() and b.is_empty():
+		return true
+	if _norm(a.get("tier", "")) != _norm(b.get("tier", "")):
+		return false
+	var ra: Array = a.get("rules", []) as Array
+	var rb: Array = b.get("rules", []) as Array
+	if ra.size() != rb.size():
+		return false
+	for i in ra.size():
+		if _norm(ra[i]) != _norm(rb[i]):
+			return false
+	if a.has("mission_id") and str(a["mission_id"]) != str(b.get("mission_id", "")):
+		return false
+	return true
+
+
+## Text form for comparing header values: a whole-number float (JSON round trip) equals the int.
+static func _norm(v: Variant) -> String:
+	if v is float and (v as float) == floor(v as float):
+		return str(int(v))
+	return str(v)
 
 
 static func _fail(error: String, message: String, action_index: int = -1) -> Dictionary:
