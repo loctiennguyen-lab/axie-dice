@@ -67,6 +67,12 @@ func daily_claimed() -> bool:
 func claim_daily() -> bool:
 	if _blocks() or daily_claimed():
 		return false
+	if MetaState.econ_remote() != null:
+		# SR1: the server pays (needs a closed run today); the cache updates from its answer.
+		MetaState.econ_remote().claim("daily", {}, func(r: Dictionary) -> void:
+			last_result = "Claimed" if bool(r["ok"]) else RemoteEcon.message_for(String(r["code"]))
+			_refresh())
+		return false
 	var ok := MetaState.claim_daily_mission()
 	var d: Dictionary = _Econ.get_table("daily").get("daily_reward", {})
 	last_result = "+%d Shard, +%d Stone, +%d Pass XP" % [int(d.get("shards", 0)), int(d.get("stone", 0)), int(d.get("xp", 0))] if ok else "Already claimed today"

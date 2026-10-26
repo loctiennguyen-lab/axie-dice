@@ -406,12 +406,22 @@ function parseBlob(text) {
   }
 }
 
+// Keys the SERVER owns (SR1): balances, unlocks, Echo Box pity. A client PUT never writes them and GET never
+// returns them, so an old device cannot push stale numbers over the D1 balance and a stale row cannot bring them back.
+export const SERVER_META_KEYS = ['shard_pool', 'stone', 'tickets', 'unlocks', 'echobox_pity', 'starter_granted', 'starter_shard_locked'];
+const stripServerKeys = (meta) => {
+  if (!meta || typeof meta !== 'object' || Array.isArray(meta)) return meta;
+  const out = { ...meta };
+  for (const k of SERVER_META_KEYS) delete out[k];
+  return out;
+};
+
 async function readSave(env, playerId) {
   const row = await env.DB.prepare(
     'SELECT meta_json, run_json, rev, updated_at FROM saves WHERE player_id = ?',
   ).bind(playerId).first();
   if (!row) return { rev: 0, meta: null, run: null, updated_at: null };
-  return { rev: row.rev, meta: parseBlob(row.meta_json), run: parseBlob(row.run_json), updated_at: row.updated_at };
+  return { rev: row.rev, meta: stripServerKeys(parseBlob(row.meta_json)), run: parseBlob(row.run_json), updated_at: row.updated_at };
 }
 
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -446,7 +456,7 @@ async function handleSave(request, env, url) {
   }
 
   const t = now();
-  const metaJson = hasMeta ? JSON.stringify(body.meta) : null;
+  const metaJson = hasMeta ? JSON.stringify(stripServerKeys(body.meta)) : null;
   const runJson = hasRun && body.run !== null ? JSON.stringify(body.run) : null;
   let changes;
   if (body.rev === 0) {

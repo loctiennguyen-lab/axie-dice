@@ -132,6 +132,13 @@ func _build_row(def: Dictionary, primary: bool) -> PanelContainer:
 
 
 func _on_buy_pressed(id: String) -> void:
+	if MetaState.econ_remote() != null:
+		# SR1: the server decides; the row refreshes from its answer.
+		MetaState.buy_unlock_async(id, func(e: String) -> void:
+			_status_label.text = e
+			_status_label.visible = e != ""
+			refresh())
+		return
 	var err := MetaState.buy_unlock(id)
 	if err != "":
 		_status_label.text = err
