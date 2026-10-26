@@ -374,8 +374,8 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 				if RunState.phase == RunState.RunPhase.PACT:
 					if _pact_mode == "skip" and RunState.pact_can_skip():
 						RunState.skip_pact()
-					elif not RunState.take_pact(0):
-						RunState.skip_pact()
+					else:
+						_settle_pact()
 				if not RunState.pending_rewards.is_empty():
 					RunState.apply_chosen_reward(_pick_plain_reward())
 			"event":
@@ -470,6 +470,25 @@ func _verify_diff(v: Dictionary, live: Dictionary, won: bool) -> String:
 		if JSON.stringify(live[k[0]]) != JSON.stringify(st.get(k[1])):
 			return ("diff:%s|live=%s replay=%s" % [String(k[0]), JSON.stringify(live[k[0]]), JSON.stringify(st.get(k[1]))]).replace(",", ";")
 	return ""
+
+
+## Settles the open boss Pact like a player would: first card that fits (selling a relic when the slots are full), else skip, and if the offer is
+## forced and nothing fits, any card with a sale. (Before 26/10 the bot tried card 0 only and then walked on with the Pact still open: the live run
+## accepted a reward in PACT phase, the verifier rightly refused it = 14 false "mismatches" in the soak.)
+func _settle_pact() -> void:
+	var cards := RunState.pact_cards()
+	for i in cards.size():
+		var c: Dictionary = cards[i]
+		if bool(c["ok"]):
+			if RunState.take_pact(i):
+				return
+		elif bool(c["needs_sell"]) and not (c["sell_from"] as Array).is_empty():
+			if RunState.take_pact(i, String((c["sell_from"] as Array)[0])):
+				return
+	if RunState.phase == RunState.RunPhase.PACT:
+		RunState.skip_pact()
+	if RunState.phase == RunState.RunPhase.PACT:
+		push_warning("sim_balance: Pact could not be settled")
 
 
 const _UNDOABLE := ["use_die", "overcast", "wild_face", "play_active", "stash"]
