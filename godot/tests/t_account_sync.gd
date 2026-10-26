@@ -87,8 +87,9 @@ func _reset_storage() -> void:
 
 
 func _meta(shards: int, runs: int = 0) -> Dictionary:
-	# save_version 2 + starter_granted: a v1 save is (by decision) reset on load, not what this test is about
-	return {"shard_pool": shards, "runs": runs, "xp": 0, "vault": [], "unlocks": [], "save_version": 2, "starter_granted": true}
+	# xp mirrors shards: shard_pool is a server-owned field (SR1) and never travels in the cloud save, so xp is the marker the
+	# tests follow through upload/download. save_version 2 + starter_granted: a v1 save is (by decision) reset on load, not what this test is about
+	return {"shard_pool": shards, "runs": runs, "xp": shards, "vault": [], "unlocks": [], "save_version": 2, "starter_granted": true}
 
 
 func _put_meta(who: String, m: Dictionary) -> void:
@@ -194,9 +195,11 @@ func test_first_sign_in_empty_cloud_moves_guest_progress() -> void:
 	_check(puts.size() == 1, "uploaded once")
 	if puts.size() == 1:
 		var body: Dictionary = JSON.parse_string(puts[0][2])
-		_check(int(body["rev"]) == 0 and int(body["meta"]["shard_pool"]) == 60,
+		_check(int(body["rev"]) == 0 and int(body["meta"]["xp"]) == 60,
 			"upload is the guest save on top of rev 0")
-	_check(int((_read_meta(ID) as Dictionary)["shard_pool"]) == 60, "account save is the guest save")
+		_check(not (body["meta"] as Dictionary).has("shard_pool") and not (body["meta"] as Dictionary).has("stone"),
+			"SR1: server-owned money fields are not in the PUT")
+	_check(int((_read_meta(ID) as Dictionary)["xp"]) == 60, "account save is the guest save")
 	_check(_read_meta("") == null, "guest save cleared after moving, so it cannot be moved twice")
 	_check(svc.status == AccountServiceScript.Status.SAVED, "status Saved")
 	_check(MetaState.shard_pool == 60, "MetaState reloaded from the account")
@@ -224,7 +227,7 @@ func test_first_sign_in_pulls_cloud_when_no_guest_progress() -> void:
 	var svc := await _boot()
 	_check(_asked.is_empty(), "nothing to ask")
 	_check(_puts().is_empty(), "nothing uploaded")
-	_check(int((_read_meta(ID) as Dictionary)["shard_pool"]) == 25, "cloud meta downloaded")
+	_check(int((_read_meta(ID) as Dictionary)["xp"]) == 25, "cloud meta downloaded")
 	_check(SaveStore.exists_as(ID, RUN), "cloud run downloaded, so CONTINUE works on a new device")
 	_check(svc._rev == 4 and not svc._dirty, "in step with rev 4")
 	_done(svc)
@@ -240,8 +243,8 @@ func test_first_sign_in_both_have_saves_keep_cloud() -> void:
 	_check(_asked.size() == 1 and _asked[0][0] == "choose", "asked to choose")
 	_check(int(_asked[0][1]["cloud"]["runs"]) == 20 and int(_asked[0][1]["local"]["runs"]) == 12,
 		"both sides summarised")
-	_check(int((_read_meta(ID) as Dictionary)["shard_pool"]) == 25, "cloud kept")
-	_check(int((_read_meta(AccountServiceScript.BACKUP_PROFILE) as Dictionary)["shard_pool"]) == 60,
+	_check(int((_read_meta(ID) as Dictionary)["xp"]) == 25, "cloud kept")
+	_check(int((_read_meta(AccountServiceScript.BACKUP_PROFILE) as Dictionary)["xp"]) == 60,
 		"guest save kept as the backup")
 	_check(_read_meta("") == null, "guest cleared")
 	_check(_puts().is_empty(), "keeping cloud uploads nothing")
@@ -259,7 +262,7 @@ func test_first_sign_in_both_have_saves_keep_device() -> void:
 	var puts := _puts()
 	_check(puts.size() == 1 and int(JSON.parse_string(puts[0][2])["rev"]) == 3,
 		"device save uploaded on top of the cloud's rev 3")
-	_check(int((_read_meta(AccountServiceScript.BACKUP_PROFILE) as Dictionary)["shard_pool"]) == 25,
+	_check(int((_read_meta(AccountServiceScript.BACKUP_PROFILE) as Dictionary)["xp"]) == 25,
 		"cloud save kept as the backup")
 	_check(svc._rev == 4, "now at rev 4")
 	_done(svc)
@@ -275,7 +278,7 @@ func test_dirty_same_rev_uploads() -> void:
 	_routes["PUT /api/save"] = [200, "{\"rev\":3,\"updated_at\":1}"]
 	var svc := await _boot()
 	_check(SaveStore.profile == ID, "cached account selects its save before MetaState loads")
-	_check(_puts().size() == 1 and int(JSON.parse_string(_puts()[0][2])["meta"]["shard_pool"]) == 30,
+	_check(_puts().size() == 1 and int(JSON.parse_string(_puts()[0][2])["meta"]["xp"]) == 30,
 		"unsynced local change uploaded")
 	_check(svc._rev == 3 and not svc._dirty, "clean at rev 3")
 	_done(svc)
@@ -290,7 +293,7 @@ func test_cloud_moved_on_and_device_clean_pulls() -> void:
 	_routes["GET /api/save"] = [200, _server(5, _meta(90))]
 	var svc := await _boot()
 	_check(_asked.is_empty() and _puts().is_empty(), "no question, no upload")
-	_check(int((_read_meta(ID) as Dictionary)["shard_pool"]) == 90, "newer cloud save downloaded")
+	_check(int((_read_meta(ID) as Dictionary)["xp"]) == 90, "newer cloud save downloaded")
 	_check(svc._rev == 5, "rev 5")
 	_done(svc)
 
@@ -308,7 +311,7 @@ func test_both_moved_on_asks_and_keep_device_overwrites() -> void:
 	_check(_asked.size() == 1 and _asked[0][0] == "conflict", "conflict dialog")
 	_check(_puts().size() == 1 and int(JSON.parse_string(_puts()[0][2])["rev"]) == 5,
 		"device save sent on top of rev 5")
-	_check(int((_read_meta(AccountServiceScript.BACKUP_PROFILE) as Dictionary)["shard_pool"]) == 90,
+	_check(int((_read_meta(AccountServiceScript.BACKUP_PROFILE) as Dictionary)["xp"]) == 90,
 		"the cloud copy is kept as backup")
 	_done(svc)
 
@@ -325,7 +328,7 @@ func test_push_409_turns_into_a_conflict() -> void:
 	_answer = "cloud"
 	var svc := await _boot()
 	_check(_asked.size() == 1 and _asked[0][0] == "conflict", "409 shows the conflict dialog")
-	_check(int((_read_meta(ID) as Dictionary)["shard_pool"]) == 77, "keep cloud applied the server copy")
+	_check(int((_read_meta(ID) as Dictionary)["xp"]) == 77, "keep cloud applied the server copy")
 	_check(svc._rev == 3 and not svc._dirty, "clean at the server's rev")
 	_done(svc)
 
