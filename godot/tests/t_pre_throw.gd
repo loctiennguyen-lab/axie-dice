@@ -60,7 +60,10 @@ func _run(delay_ms: int) -> Dictionary:
 		faces_before.append((u as Unit).roll_face_index())
 	var len_before := eng.action_log.size()
 	var t0 := Time.get_ticks_msec()
-	var task := view._do_reroll(uids, 1)   # not awaited: we look at the state while it waits
+	var done := [false]
+	(func() -> void:
+		await view._do_reroll(uids, 1)
+		done[0] = true).call()   # started, not awaited here: we look at the state while it waits
 	var out := {"delay": delay_ms}
 	out["pre_recorded"] = not view.last_pre_throw.is_empty() and (view.last_pre_throw["uids"] as Array).size() == uids.size()
 	out["pending_at_start"] = eng.epoch_pending
@@ -72,14 +75,15 @@ func _run(delay_ms: int) -> Dictionary:
 				out["faces_unchanged_at_start"] = false
 		out["pending_mid"] = eng.epoch_pending
 		out["log_mid"] = eng.action_log.size() == len_before
-	await task
+	while not done[0]:
+		await get_tree().process_frame
 	out["elapsed_ms"] = Time.get_ticks_msec() - t0
 	out["pending_end"] = eng.epoch_pending
 	var faces: Array = []
 	for u in eng.party:
 		faces.append((u as Unit).roll_face_index())
 	out["faces"] = faces
-	out["log_len"] = eng.action_log.size()
+	out["log_len"] = eng.action_log.size() - len_before   # entries this reroll added (the log object is shared between runs)
 	out["reqs"] = src.reqs
 	view.queue_free()
 	await get_tree().process_frame
