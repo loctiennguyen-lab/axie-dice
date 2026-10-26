@@ -9,6 +9,10 @@ extends RefCounted
 ## Tests: replaces AccountService.transport. Callable(method, path, body_text, done(code:int, text:String)).
 static var transport_override: Callable = Callable()
 static var _busy := false
+static var _unlocks_busy := false
+## The last settlement applied to the local mirror ({run_id, tier, state: won|lost|refunded, payout}); the
+## Missions screen reads it once (take_applied) to say "Old run, stake refunded". Empty = nothing new.
+static var last_applied: Dictionary = {}
 
 
 static func _transport() -> Callable:
@@ -52,7 +56,12 @@ static func reconcile_status(done: Callable, force := false) -> void:
 		var settled: Variant = (j as Dictionary).get("settled", [])
 		for s in (settled as Array if typeof(settled) == TYPE_ARRAY else []):
 			if typeof(s) == TYPE_DICTIONARY and String((s as Dictionary).get("run_id", "")) == run_id:
-				done.call("applied" if MetaState.apply_mission_settlement(s) else "unknown")
+				var tier_before := String(MetaState.mission_escrow.get("tier", ""))
+				var ok := MetaState.apply_mission_settlement(s)
+				if ok:
+					last_applied = {"run_id": run_id, "tier": tier_before, "state": String(s.get("state", "")),
+						"payout": int(s.get("payout", 0))}
+				done.call("applied" if ok else "unknown")
 				return
 		var open: Variant = (j as Dictionary).get("open", null)
 		if typeof(open) == TYPE_DICTIONARY and String((open as Dictionary).get("run_id", "")) == run_id:
@@ -76,11 +85,58 @@ static func settle_dead_run_mirror(done: Callable = Callable()) -> void:
 		if done.is_valid():
 			done.call("local")
 		return
+	# The saved run was made under other rules (a bump): the client can never resume it. The server refunds such
+	# a run when it is abandoned, so abandon it there (the stake is not lost for our bump), then read the result.
+	var stale_rules := String(RunState.saved_run_status().get("reason", "")) == "rules"
+	var run_id := String(MetaState.mission_escrow.get("run_id", ""))
 	reconcile_status(func(st: String) -> void:
+		if st == "open" and stale_rules and not run_id.is_empty():
+			abandon_on_server(run_id, func() -> void:
+				reconcile_status(func(st2: String) -> void:
+					if st2 == "no_record":
+						MetaState.settle_mission_stake(false, true)
+					if done.is_valid():
+						done.call(st2)))
+			return
 		if st == "no_record":
 			MetaState.settle_mission_stake(false, true)
 		if done.is_valid():
 			done.call(st))
+
+
+## POST /api/run/<id>/abandon for a run this device can no longer play. done() runs whatever the answer was
+## (offline included): the caller reads the settlement afterwards; nothing here treats an error as a loss.
+static func abandon_on_server(run_id: String, done: Callable) -> void:
+	var t := _transport()
+	if run_id.is_empty() or not t.is_valid():
+		done.call()
+		return
+	t.call("POST", "/api/run/%s/abandon" % run_id, "", func(_code: int, _text: String) -> void:
+		done.call())
+
+
+## Returns and clears `last_applied` ({} when nothing new).
+static func take_applied() -> Dictionary:
+	var d := last_applied
+	last_applied = {}
+	return d
+
+
+## GET /api/missions/unlocks -> MissionBoard.apply_unlocks (MetaState.mission_unlock_cache). done(ok: bool).
+## `force` skips the remote-flag check (tests). Offline / error / busy: the cache stays as it was, ok = false.
+static func fetch_unlocks(done: Callable = Callable(), force := false) -> void:
+	var t := _transport()
+	if (not force and not RemoteEpochSource.flag_on()) or not t.is_valid() or _unlocks_busy:
+		if done.is_valid():
+			done.call(false)
+		return
+	_unlocks_busy = true
+	t.call("GET", "/api/missions/unlocks", "", func(code: int, text: String) -> void:
+		_unlocks_busy = false
+		var j: Variant = JSON.parse_string(text) if code == 200 and not text.is_empty() else null
+		var ok := MissionBoard.apply_unlocks(MetaState, j)
+		if done.is_valid():
+			done.call(ok))
 
 
 class Waiter extends RefCounted:

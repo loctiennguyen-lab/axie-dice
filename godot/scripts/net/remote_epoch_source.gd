@@ -66,7 +66,9 @@ func start_run(params: Dictionary) -> EpochReply:
 	if String(params.get("kind", "")) == "mission":
 		# The server checks tier and stake against its copy of missions.json and holds the stake in escrow.
 		var mh: Dictionary = params.get("mission", {}) as Dictionary
-		body["mission"] = {"tier": "N%d" % int(mh.get("tier", 0)), "stake": int(mh.get("stake", 0))}
+		# `rules` = the tier's fixed rule ids (Worker: 400 mission_rules_mismatch when they differ from its table).
+		body["mission"] = {"tier": "N%d" % int(mh.get("tier", 0)), "stake": int(mh.get("stake", 0)),
+			"rules": (mh.get("rules", []) as Array).duplicate()}
 	_create(params, body, nonce, reply, false)
 	return reply
 
@@ -407,7 +409,8 @@ func _map_http_code(c: String) -> String:
 			return "bad_request"
 		# Each of these has its own message in RunSetup; a generic "rejected" told the player nothing.
 		"run_open", "daily_cap", "daily_tries", "not_available", "newcomer_locked", "vault_banned", \
-		"tier_locked", "stake_mismatch", "tier_mismatch", \
+		"tier_locked", "stake_mismatch", "tier_mismatch", "mission_rules_mismatch", "tier_not_unlocked", \
+		"mission_needs_update", \
 		"unauthenticated", "forbidden", "rate_limited":
 			return c
 	return "rejected"

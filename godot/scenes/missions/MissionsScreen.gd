@@ -5,7 +5,9 @@ extends Control
 ## are all read from economy/missions.json + rules/mission_rules.json. Nothing numeric lives here.
 ## Card follows the art-director decluttered layout: tier + mode, Stake / Pay / Stone tiles, rules line,
 ## button. Full rule rows, the m multiplier and the stake warning live in the confirm modal (M6c).
-## No win-rate or expected-return line: no data source exists yet.
+## Detail card (beta §5): rules in words, Stake -> Win back -> Net, "Estimate (bot)" win chance and average
+## return, a fixed warning from N3 up, and a disabled Stake button that says why. The win chance is a BOT
+## estimate (missions.json est_win_pct), labelled as such.
 ##
 ## Paying the stake: MetaState.take_mission_stake() escrows it and returns the mission id; RunState.end_run
 ## settles it, a failed begin_run refunds it, abandon is settled in SettingsView.
@@ -29,6 +31,8 @@ var start_hook: Callable
 ## start_hook is only honoured when a test sets this; the game path always uses RunState.begin_run.
 var test_mode := false
 var _starting := false
+## True while the last-mission check (reconcile) and the unlock refresh are in flight: no stake until done.
+var _syncing := false
 var begin_error := ""
 var day_override := ""
 
@@ -47,13 +51,29 @@ var _detail: PanelContainer
 func _ready() -> void:
 	_build()
 	selected = _default_tier()
-	if remote_on:
-		MissionEscrowSync.reconcile(func(applied: bool) -> void:
-			if applied and is_inside_tree():
-				_refresh())
 	if use_account:
 		state = derive_state()
 	set_state(state)
+	sync_server()
+
+
+## reconcileEscrows BEFORE the balance and the buy button are trusted: close a stake the server settled while we
+## were away, then refresh which tiers the win chain has opened. Offline / local dice: both are no-ops and the
+## screen keeps the cache. Safe to call again (e.g. after a run).
+func sync_server(force := false) -> void:
+	if not (remote_on or force) or _syncing:
+		return
+	_syncing = true
+	_refresh()
+	MissionEscrowSync.reconcile_status(func(_st: String) -> void:
+		MissionEscrowSync.fetch_unlocks(func(_ok: bool) -> void:
+			_syncing = false
+			if not is_inside_tree():
+				return
+			var ap := MissionEscrowSync.take_applied()
+			if String(ap.get("state", "")) == "refunded":
+				_banner("Old run, stake refunded", "That mission started before an update, so your %s Shard stake was returned." % UI3.fmt(int(ap.get("payout", 0))), false)
+			_refresh(), force), force)
 
 
 ## Derived from the account and the saved run. Guest/offline only BLOCK staking when the remote
@@ -128,6 +148,8 @@ func block_reason(tier_id: String, own_start := false) -> String:
 		return "Finish or abandon your open run first"
 	if state == "loading":
 		return "Loading..."
+	if _syncing:
+		return "Checking your last mission..."
 	if _starting and not own_start:
 		return "Starting..."
 	if _account_blocks():
@@ -140,19 +162,18 @@ func block_reason(tier_id: String, own_start := false) -> String:
 
 
 func lock_text(o: Dictionary) -> String:
-	var t: Dictionary = (_Econ.get_table("missions").get("tiers", {}) as Dictionary).get(String(o.tier), {})
 	match String(o.lock_reason):
 		"disabled":
 			return "Not in this build"
 		"newcomer":
 			var need := int(_Econ.get_table("missions").get("newcomer_runs", 5))
 			return "Play %d runs first (you have %d)" % [need, MetaState.runs_with_battle]
-		"house":
-			return "Needs Mission House level %d" % int(t.get("house_level", 1))
-		"full_a9":
-			return "Win a Full run on Ascension %d first" % int(t.get("ascension", 9))
-		"asc_win":
-			return "Win a run on Ascension %d first" % int(t.get("unlock_win_asc", 0))
+		"chain":
+			var need := int(o.get("unlock_need", 1))
+			var prev := String(o.get("unlock_prev", ""))
+			if need <= 1:
+				return "Win %s to unlock" % prev
+			return "Win %s %d times to unlock (%d/%d)" % [prev, need, int(o.get("unlock_wins", 0)), need]
 	return String(o.lock_reason)
 
 
@@ -251,13 +272,39 @@ func _start_inner(tier_id: String) -> Dictionary:
 	var r: Dictionary = (await start_hook.call(params)) if (test_mode and start_hook.is_valid()) else (await RunState.begin_run(params))
 	if not r.get("ok", false):
 		MetaState.refund_mission_stake()
-		begin_error = "Could not start the mission, try again."
-		_banner(begin_error, "Code: %s" % String(r.get("code", "?")), false)
+		var code := String(r.get("code", "?"))
+		if UpdateRequired.is_update_code(code):
+			begin_error = "This version is out of date"
+			if is_inside_tree():
+				UpdateRequired.show(self, code)
+			_banner(begin_error, "Download the new version to play Missions. Your stake was returned.", false)
+			return r
+		var msg := begin_error_text(code)
+		begin_error = String(msg[0])
+		_banner(String(msg[0]), String(msg[1]), false)
 		return r
 	begin_error = ""
 	if not no_scene_change and is_inside_tree():
 		get_tree().change_scene_to_file(RUN_MAP)
 	return r
+
+
+## [title, detail] for a failed mission start. Pure. The stake is always returned when the start fails.
+static func begin_error_text(code: String) -> Array:
+	match code:
+		"tier_not_unlocked":
+			return ["This tier is not open yet", "Win the tier before it first. Your stake was returned."]
+		"mission_rules_mismatch":
+			return ["This mission doesn't match the server", "Update the game and try again. Your stake was returned."]
+		"tier_locked", "tier_disabled":
+			return ["This tier is closed right now", "Try another tier. Your stake was returned."]
+		"stake_mismatch", "tier_mismatch":
+			return ["The mission table changed", "Reload the game to get the new table. Your stake was returned."]
+	return ["Could not start the mission, try again.", "Your stake was returned. Code: %s" % code]
+
+
+func _signed(n: int) -> String:
+	return ("+" if n >= 0 else "-") + UI3.fmt(absi(n))
 
 
 func set_state(s: String) -> void:
@@ -292,7 +339,9 @@ func open_confirm(tier_id: String) -> void:
 	for line in rule_lines(o):
 		lines.append(String(line))
 	lines.append("")
-	lines.append("If you win you get %d Shard back (×%s). If you fail, the stake is lost." % [int(o.payout), _num(float(o.m))])
+	lines.append("Win: %s Shard back (x%s), net %s. Lose or abandon: you lose all %s, no refund." % [
+		UI3.fmt(int(o.payout)), _num(float(o.m)), _signed(int(o.net)), UI3.fmt(int(o.stake))])
+	lines.append("Estimate (bot): about %s%% to win." % _num(float(o.est_win_pct)))
 	lines.append("No Continue and no Aid in a mission run.")
 	var no := UI3.button("Not now", &"secondary", &"M")
 	no.name = "NotNow"
@@ -525,22 +574,21 @@ func _draw_detail() -> void:
 	if o.is_empty():
 		return
 	var id := selected
+	var outer := VBoxContainer.new()
+	outer.add_theme_constant_override("separation", UI3Theme.space("16"))
+	_detail.add_child(outer)
 	var v := VBoxContainer.new()
+	v.name = "DetailBody"
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_theme_constant_override("separation", UI3Theme.space("16"))
-	_detail.add_child(v)
+	var sc := UI3Meta.scroll(v)
+	sc.name = "DetailScroll"
+	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	outer.add_child(sc)
 	var t := UI3.label("%s · %s, A%d" % [id, String(o.mode).capitalize(), int(o.ascension)], "LabelScreenTitle")
 	t.name = "DetailTitle"
 	v.add_child(t)
-	var st := HBoxContainer.new()
-	var sl := UI3.label("Stake", "LabelMuted")
-	sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	st.add_child(sl)
-	var sv := UI3.label("%s Shards" % UI3.fmt(int(o.stake)), "LabelScreenTitle")
-	sv.name = "StakeValue"
-	st.add_child(sv)
-	v.add_child(st)
-	v.add_child(_tinted("win", "Win", "%s Shards back (×%s) and +%d Stone." % [UI3.fmt(int(o.payout)), _num(float(o.m)), int(o.stone)]))
-	v.add_child(_tinted("lose", "Lose", "The stake is gone. No Stone."))
+	# 1. rules in words (same names as the chips in the run)
 	var rules := VBoxContainer.new()
 	rules.name = "RuleLines"
 	rules.add_theme_constant_override("separation", UI3Theme.space("8"))
@@ -548,12 +596,39 @@ func _draw_detail() -> void:
 		var rl := UI3.label(String(line))
 		rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		rules.add_child(rl)
-	var rl2 := UI3.label("No Continue and no Aid.", "LabelMuted")
-	rules.add_child(rl2)
 	v.add_child(rules)
-	var sp := Control.new()
-	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	v.add_child(sp)
+	# 2. Stake -> Win back -> Net
+	var money := VBoxContainer.new()
+	money.name = "Money"
+	money.add_theme_constant_override("separation", UI3Theme.space("8"))
+	for row in [["Stake", "%s Shards" % UI3.fmt(int(o.stake)), "StakeValue"],
+			["Win back", "%s Shards (x%s)" % [UI3.fmt(int(o.payout)), _num(float(o.m))], "PayValue"],
+			["Net if you win", "%s Shards, +%d Stone" % [_signed(int(o.net)), int(o.stone)], "NetValue"]]:
+		var hb := HBoxContainer.new()
+		var kl := UI3.label(String(row[0]), "LabelMuted")
+		kl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		hb.add_child(kl)
+		var vl := UI3.label(String(row[1]), "LabelTitle")
+		vl.name = String(row[2])
+		hb.add_child(vl)
+		money.add_child(hb)
+	v.add_child(money)
+	v.add_child(_tinted("lose", "Lose or abandon", "You lose %s Shards. No refund, no Stone." % UI3.fmt(int(o.stake))))
+	# 3. estimate (bot) and the fixed warning
+	var est := UI3.label("Estimate (bot): about %s%% win, you get back about %d%% of the stake on average. Real players may do better or worse." % [
+		_num(float(o.est_win_pct)), roundi(float(o.est_return_pct))], "LabelMuted")
+	est.name = "Estimate"
+	est.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(est)
+	var wt := warning_text(String(o.warning))
+	if wt != "":
+		var wl := UI3.label(wt)
+		wl.name = "Warning"
+		wl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		wl.add_theme_color_override("font_color", UI3Theme.color("anchor_price"))
+		v.add_child(wl)
+	var nc := UI3.label("No Continue and no Aid.", "LabelMuted")
+	v.add_child(nc)
 	var why := block_reason(id)
 	var b := UI3.button("Stake %d and play" % int(o.stake), &"primary", &"M")
 	b.name = "Stake"
@@ -563,4 +638,16 @@ func _draw_detail() -> void:
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.custom_minimum_size.y = 72
 	b.pressed.connect(open_confirm.bind(id))
-	v.add_child(b)
+	outer.add_child(b)
+
+
+## Fixed warning per tier kind (MissionBoard.warning_kind). "" = none.
+static func warning_text(kind: String) -> String:
+	match kind:
+		"most_lose":
+			return "Most players lose this tier."
+		"challenge":
+			return "Challenge tier: on average you get back less than your stake."
+		"title":
+			return "Title tier: almost nobody clears it, and on average you get back far less than your stake."
+	return ""

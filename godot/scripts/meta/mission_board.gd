@@ -1,14 +1,21 @@
 class_name MissionBoard
 extends RefCounted
-## Bảng Nhiệm vụ ngày (L1: chỉ N1-N3 bật; N4-N6 và nâng nhà tắt). Design: nhiem-vu-risk-to-earn.md 3.2-3.6.
-## Dữ liệu: assets/data/economy/missions.json. Định nghĩa luật M1-M5 (con số đổi trận) nằm ở
-## rules/mission_rules.json của làn A; ở đây chỉ tham chiếu mã.
-## Chỉ là dữ liệu bảng + điều kiện mở. Escrow (trừ cược lúc tạo run) và trả thưởng là việc server.
+## Bảng Nhiệm vụ beta: 6 bậc (N1-N6), mỗi bậc MỘT bộ luật cố định (không xoay A/B), mở bậc bằng chuỗi thắng.
+## Design: nhiem-vu-beta-brainstorm.md §2 (hướng B), nhiem-vu-risk-to-earn.md 3.2-3.6.
+## Dữ liệu: assets/data/economy/missions.json (field `rules` = mảng luật cố định của bậc, đúng tên Worker kiểm;
+## `unlock_wins` = số lần thắng bậc trước để mở, mặc định 1). Định nghĩa luật M1-M7 (con số đổi trận) nằm ở
+## rules/mission_rules.json; ở đây chỉ tham chiếu mã.
+## Mở bậc: nguồn thật là server (GET /api/missions/unlocks -> apply_unlocks -> MetaState.mission_unlock_cache).
+## Offline/test dùng cache. N1 luôn mở. Escrow (trừ cược lúc tạo run) và trả thưởng là việc server.
 ##
-## `store` cần: runs:int, asc_wins:Dictionary, full_a9_won:bool, mission_house_level:int,
+## `store` cần: runs:int, mission_unlock_cache:Array, mission_house_level:int, is_newcomer(),
 ## spend(currency, n, reason)->bool, save_to_disk().
 
 const _Econ := preload("res://scripts/meta/economy_db.gd")
+
+## Số lần thắng mỗi bậc theo lần hỏi server gần nhất: {"N1": {"unlocked": bool, "wins": int, "needs": int}}.
+## Chỉ để viết lý do khoá ("1/2"); quyết định mở bậc đọc từ store.mission_unlock_cache.
+static var server_tiers: Dictionary = {}
 
 
 static func _cfg() -> Dictionary:
@@ -40,53 +47,110 @@ static func house_level(store: Object) -> int:
 	if lv < 1 and not store.is_newcomer():
 		lv = 1
 	if not bool(_cfg().get("house_upgrade_enabled", false)):
-		lv = mini(lv, 1)   # L1: nhà luôn lv1, kể cả save/test lỡ ghi cấp cao hơn
+		lv = mini(lv, 1)   # beta: nhà luôn lv1, kể cả save/test lỡ ghi cấp cao hơn
 	return lv
 
 
-## Bậc có bật trong bản này không (data `enabled`). Bậc lạ = false. L1: chỉ N1-N3.
+## Bậc có bật trong bản này không (data `enabled`, thiếu = bật). Bậc lạ = false.
 static func tier_enabled(tier_id: String) -> bool:
 	var t: Dictionary = (_cfg().get("tiers", {}) as Dictionary).get(tier_id, {})
-	return bool(t.get("enabled", false))
+	return not t.is_empty() and bool(t.get("enabled", true))
 
 
-## Bộ luật A hay B hôm nay cho bậc này (cố định theo ngày UTC, mọi người như nhau).
-static func rule_set_key(day: String, tier_id: String) -> String:
-	return "A" if ("%s|nv|%s" % [day, tier_id]).hash() % 2 == 0 else "B"
+## Luật M cố định của bậc (mảng mã, copy).
+static func tier_rules(tier_id: String) -> Array:
+	var t: Dictionary = (_cfg().get("tiers", {}) as Dictionary).get(tier_id, {})
+	return (t.get("rules", []) as Array).duplicate()
 
 
-## Danh sách offer hôm nay: một dòng mỗi bậc (kể cả bậc tắt/khoá, kèm lý do để UI hiện xám).
-static func offers(day: String, store: Object) -> Array:
+## Số lần thắng bậc trước cần để mở bậc này (N1 = 0).
+static func wins_needed(tier_id: String) -> int:
+	if tier_id == "N1":
+		return 0
+	var t: Dictionary = (_cfg().get("tiers", {}) as Dictionary).get(tier_id, {})
+	return maxi(1, int(t.get("unlock_wins", 1)))
+
+
+## Bậc trước ("N2" -> "N1"); "" cho N1 / bậc lạ.
+static func prev_tier(tier_id: String) -> String:
+	var i := tier_ids().find(tier_id)
+	return String(tier_ids()[i - 1]) if i > 0 else ""
+
+
+## Bậc mở theo cache server. N1 luôn mở.
+static func tier_unlocked(tier_id: String, store: Object) -> bool:
+	if tier_id == "N1":
+		return true
+	var cache: Variant = store.get("mission_unlock_cache")
+	return typeof(cache) == TYPE_ARRAY and (cache as Array).has(tier_id)
+
+
+## Ghi câu trả lời của GET /api/missions/unlocks ({tiers:{N1:{unlocked,wins,needs}}}) vào cache của store.
+## Trả true nếu câu trả lời hợp lệ. Câu trả lời lạ -> không đổi gì (không khoá nhầm người chơi).
+static func apply_unlocks(store: Object, resp: Variant) -> bool:
+	if typeof(resp) != TYPE_DICTIONARY or typeof((resp as Dictionary).get("tiers", null)) != TYPE_DICTIONARY:
+		return false
+	var info: Dictionary = (resp as Dictionary)["tiers"]
+	var ids: Array = []
+	server_tiers = {}
+	for id in tier_ids():
+		var e: Variant = info.get(id, null)
+		if typeof(e) != TYPE_DICTIONARY:
+			continue
+		var d: Dictionary = e
+		server_tiers[id] = {"unlocked": bool(d.get("unlocked", false)), "wins": int(d.get("wins", 0)), "needs": int(d.get("needs", 0))}
+		if bool(d.get("unlocked", false)):
+			ids.append(id)
+	store.set_mission_unlocks(ids)
+	return true
+
+
+## Cảnh báo cố định theo bậc (§5): "" | "most_lose" (N3+) | "challenge" (N5+) | "title" (N6).
+static func warning_kind(tier_id: String) -> String:
+	var n := int(tier_id.substr(1)) if tier_id.length() > 1 else 0
+	if n >= 6:
+		return "title"
+	if n >= 5:
+		return "challenge"
+	if n >= 3:
+		return "most_lose"
+	return ""
+
+
+## Danh sách offer: một dòng mỗi bậc (kể cả bậc khoá, kèm lý do để UI hiện xám). `day` giữ cho chữ ký cũ.
+static func offers(_day: String, store: Object) -> Array:
 	var cfg := _cfg()
 	var out: Array = []
 	for id in tier_ids():
 		var t: Dictionary = (cfg.get("tiers", {}) as Dictionary).get(id, {})
-		var key := rule_set_key(day, id)
 		var lock := lock_reason(id, store)
+		var stake := int(t.get("stake", 0))
+		var pay := payout(id)
+		var est := float(t.get("est_win_pct", 0.0))
+		var sv: Dictionary = server_tiers.get(id, {})
+		var prev := prev_tier(id)
 		out.append({
 			"tier": id, "mode": t.get("mode", "short"), "ascension": int(t.get("ascension", 0)),
-			"stake": int(t.get("stake", 0)), "m": float(t.get("m_base", 0)) * float(t.get("m_scale", 1.0)),
-			"payout": payout(id), "stone": int(t.get("stone", 0)),
-			"rule_set": key, "rules": ((cfg.get("rule_sets", {}) as Dictionary).get(id, {}) as Dictionary).get(key, []),
-			"enabled": bool(t.get("enabled", false)), "unlocked": lock == "", "lock_reason": lock,
+			"stake": stake, "m": float(t.get("m_base", 0)) * float(t.get("m_scale", 1.0)),
+			"payout": pay, "net": pay - stake, "stone": int(t.get("stone", 0)),
+			"rules": tier_rules(id),
+			# ước tính từ bot (hiện nhãn "ước tính"): xác suất thắng và % cược nhận về trung bình
+			"est_win_pct": est, "est_return_pct": (est / 100.0) * float(pay) / maxf(float(stake), 1.0) * 100.0,
+			"warning": warning_kind(id),
+			"unlock_prev": prev, "unlock_need": wins_needed(id), "unlock_wins": int(sv.get("wins", 0)),
+			"enabled": tier_enabled(id), "unlocked": lock == "", "lock_reason": lock,
 		})
 	return out
 
 
-## "" nếu mua được; ngược lại "disabled" | "newcomer" | "house" | "asc_win" | "full_a9".
+## "" nếu mua được; ngược lại "disabled" | "newcomer" | "chain" (chưa thắng bậc trước đủ số lần).
 static func lock_reason(tier_id: String, store: Object) -> String:
-	var t: Dictionary = (_cfg().get("tiers", {}) as Dictionary).get(tier_id, {})
-	if not bool(t.get("enabled", false)):
+	if not tier_enabled(tier_id):
 		return "disabled"
 	if store.is_newcomer():
 		return "newcomer"
-	if house_level(store) < int(t.get("house_level", 1)):
-		return "house"
-	if bool(t.get("unlock_full_a9", false)):
-		if not bool(store.full_a9_won):
-			return "full_a9"
-	elif int((store.asc_wins as Dictionary).get(str(int(t.get("unlock_win_asc", 0))), 0)) < 1:
-		return "asc_win"
+	if not tier_unlocked(tier_id, store):
+		return "chain"
 	return ""
 
 
