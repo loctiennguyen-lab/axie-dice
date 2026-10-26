@@ -17,6 +17,20 @@ export const MAX_MSG_BYTES = 16 * 1024;
 export const BUCKET_BURST = 20;
 export const BUCKET_PER_S = 5;
 
+/**
+ * run_close sanity (SR0, WRITE-ONLY): the cheapest thing that catches "create a run, close it as won at once".
+ * A failed check only marks the run (summary_json.srv.sanity + a 'close_sanity' log line); it never turns
+ * `won` into `lost` and never holds a reward. TEMPORARY thresholds, deliberately low: tune them from the real
+ * logs (query `summary_json -> srv.sanity`) before anything enforces. final_row = last boss row of the map
+ * mode (godot RunMapGenerator.MODE_CONFIG: short 18, full 30); the player walks one node per row.
+ */
+export const CLOSE_SANITY = {
+  final_row: { short: 18, full: 30 },
+  min_enter_ratio: 0.5,      // distinct enter_node ids >= ratio * final_row
+  min_log_per_row: 2,        // log_len >= this * final_row (each fight needs at least an end_turn)
+  min_secs_per_row: 6,       // seconds from run creation to run_close >= this * final_row (short 108 s, full 180 s)
+};
+
 /** Mirrors ActionLog.ALLOWED_FNS (godot/scripts/core/action_log.gd) plus the ADR 4.2 additions. */
 export const ALLOWED_FNS = new Set([
   'enter_node', 'use_die', 'play_active', 'reroll_dice', 'end_turn', 'undo_last', 'take_reward',
@@ -498,7 +512,48 @@ export class RunCore {
     );
     // TODO(verifier, P3): state should go 'closing' -> 'closed' after verify. L1 has no verifier.
     this.sql.exec(`UPDATE meta SET state = 'closed', outcome = ?, summary = ? WHERE id = 1`, m.outcome, summary);
+    // Write-only sanity (see CLOSE_SANITY): never changes the outcome or the reply.
+    try {
+      const sane = this.closeSanity();
+      if (sane && !sane.ok) this._anomaly('close_sanity', { run_id: meta.run_id, mode: meta.mode, fails: sane.fails, enters: sane.enters, log_len: sane.log_len, secs: sane.secs });
+    } catch { /* a sanity bug must never block a close */ }
     return { t: 'closed', seq };
+  }
+
+  /**
+   * Server-side sanity of a CLOSED run from the DO's own epoch log (not the client summary).
+   * Only a 'won' run is judged; returns null when the run is not closed. {ok, fails[], enters, log_len, secs, final_row, boss}.
+   */
+  closeSanity() {
+    const meta = this.meta();
+    if (!meta || meta.state !== 'closed') return null;
+    const rows = this.sql.exec('SELECT seq, kind, args, log_len, log_delta, at FROM epochs ORDER BY seq').toArray();
+    const close = rows.find((r) => r.kind === 'close');
+    if (!close) return null;
+    let mapMode = 'short';
+    const start = rows.find((r) => r.kind === 'run_start');
+    if (start) { try { const a = JSON.parse(start.args); if (a && CLOSE_SANITY.final_row[a.mode]) mapMode = a.mode; } catch { /* default */ } }
+    const finalRow = CLOSE_SANITY.final_row[mapMode];
+    const enters = new Set();
+    let boss = false;
+    for (const r of rows) {
+      let d; try { d = JSON.parse(r.log_delta); } catch { continue; }
+      if (!Array.isArray(d)) continue;
+      for (const a of d) {
+        if (!a || a.fn !== 'enter_node' || !Array.isArray(a.args) || nodeRow(a.args[0]) < 1) continue;
+        enters.add(a.args[0]);
+        if (a.args[1] === 'boss' && nodeRow(a.args[0]) >= finalRow) boss = true;
+      }
+    }
+    const secs = Math.max(0, Math.floor((close.at - meta.created_at) / 1000));
+    const fails = [];
+    if (meta.outcome === 'won') {
+      if (!boss) fails.push('no_final_boss');
+      if (enters.size < Math.ceil(CLOSE_SANITY.min_enter_ratio * finalRow)) fails.push('few_nodes');
+      if (close.log_len < CLOSE_SANITY.min_log_per_row * finalRow) fails.push('short_log');
+      if (secs < CLOSE_SANITY.min_secs_per_row * finalRow) fails.push('too_fast');
+    }
+    return { ok: fails.length === 0, fails, enters: enters.size, log_len: close.log_len, secs, final_row: finalRow, map_mode: mapMode, boss, mode_checked: meta.outcome === 'won' };
   }
 
   /** abandon = loss, no final delta (ADR 4.6). Idempotent. */
