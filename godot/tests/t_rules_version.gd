@@ -241,7 +241,10 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## round 3, High Stakes needs stage 2. Same actions give a different run. Worker SUPPORTED_RULE_VERSIONS gained -t.
 ## Pinned, 2026-10-26 (beta prelude, production/beta-plan.md): MetaState gained land_tier_banner_seen, land_gift_granted,
 ## mission_unlock_cache + grant_land_gift_once() / set_mission_unlocks(). Meta/save only, no rule or replay input. Run result: NO, stays -t.
-const FINGERPRINT := "16b6ebc7ff2fd6868c49417ca9445bfd1db22cd38e0f2ff4444e164b828cec48"
+## BUMPED, 2026-10-26: `ActionLog.RULES_VERSION` -> `godot-2026-10-26-u`. Beta R1 (int/r1): 6-tier Missions (per-tier rules, win-chain unlock),
+## Anchors allowed in Mission runs, Anchor round (Big Hand SET4/5 +0.90, Embers +2.25, rule text states the M 3.00 cap), stale tier comments.
+## Same actions give a different run. Worker SUPPORTED_RULE_VERSIONS gained -u (keeps -t for the 7-day desktop window).
+const FINGERPRINT := "85b46a20352a98b8b03f37122be98858effc15cd27dceb9dde6aaeb7371ff6e7"
 
 
 func _ready() -> void:
