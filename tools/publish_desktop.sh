@@ -122,7 +122,9 @@ if [[ -n "$PREV" ]]; then
   echo "# Manifest trên R2 phải đúng bản --prev. Khác nhau thì DỪNG: có người đăng đè."
   echo "cmp $PREV $PUB_DIR/prev/live-latest.json"
   echo "# Lưu bản cũ vào downloads/old/: tải về, kiểm sha theo manifest TRÊN R2, rồi mới up."
-  python3 -I - "$PUB_DIR/prev/live-latest.json" <<'PY' | while IFS=$'\t' read -r name sha; do
+  # File names/sha come from --prev at plan time (live-latest.json is only fetched when the plan runs; the cmp above
+  # stops the plan if R2 differs from --prev).
+  python3 -I - "$PREV" <<'PY' | while IFS=$'\t' read -r name sha; do
 import json, sys
 m = json.load(open(sys.argv[1], encoding="utf-8"))
 for p in ("macos", "windows"):
@@ -134,7 +136,7 @@ PY
     echo "echo '$sha  $PUB_DIR/prev/$name' | shasum -a 256 -c -"
     echo "$WRANGLER r2 object put $BUCKET/downloads/old/$name --file $PUB_DIR/prev/$name --content-type application/octet-stream --remote"
   done
-  OLD_LIST="$(python3 -I - "$PUB_DIR/prev/live-latest.json" <<'PY'
+  OLD_LIST="$(python3 -I - "$PREV" <<'PY'
 import json, sys
 m = json.load(open(sys.argv[1], encoding="utf-8"))
 print(" ".join(m["platforms"][p]["file"] for p in ("macos", "windows")))
