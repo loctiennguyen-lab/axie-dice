@@ -30,6 +30,7 @@ func _ready() -> void:
 	MetaState.stone = 40
 	MetaState.unlocks.append("u_full")
 	MetaState.runs = 4
+	MetaState.pass_season = {"id": "s1", "xp": 300, "level": 3, "claimed_free": [1]}
 	MetaState.save_to_disk()
 	svc._dirty = true
 	svc._push()
@@ -42,10 +43,20 @@ func _ready() -> void:
 	for k in MetaState.SERVER_FIELDS:
 		_check(not meta.has(k), "PUT body has no " + k)
 	# a cloud save with inflated money must not land
-	svc._apply_server({"rev": 5, "meta": {"save_version": 2, "shard_pool": 99999, "stone": 99999, "unlocks": ["u_all"], "runs": 7}, "run": null})
+	svc._apply_server({"rev": 5, "meta": {"save_version": 2, "shard_pool": 99999, "stone": 99999, "unlocks": ["u_all"], "runs": 7, "pass_season": {"id": "s1", "xp": 99999, "level": 99, "claimed_free": []}}, "run": null})
 	_check(MetaState.runs == 7, "non-money fields come from the cloud save")
 	_check(MetaState.shard_pool == 500 and MetaState.stone == 40 and MetaState.has_unlock("u_full") and not MetaState.has_unlock("u_all"),
 		"money fields kept from the device cache, cloud values ignored")
+	_check(int(MetaState.pass_season.get("level", 0)) == 3, "pass_season kept from the device cache, cloud value ignored")
+	# remote wallet on: local add_shards for server-paid reasons is refused, others still land
+	var e := RemoteEcon.new(func(_m: String, _p: String, _b: String, done: Callable) -> void: done.call(200, "{}"))
+	MetaState.use_remote_econ(e)
+	for r in MetaState.SERVER_PAID_REASONS:
+		MetaState.add_shards(10, r, false)
+	_check(MetaState.shard_pool == 500, "add_shards refuses every server-paid reason while the wallet is remote")
+	MetaState.add_shards(10, "refund", false)
+	_check(MetaState.shard_pool == 510, "other reasons still add")
+	MetaState.use_remote_econ(null)
 	svc.queue_free()
 	SaveStore.profile = ""
 	_guard.restore()

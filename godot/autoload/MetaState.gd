@@ -190,8 +190,8 @@ const SERVER_PAID_REASONS: Array[String] = ["earn", "mission_win", "pass", "dail
 func add_shards(amount: int, reason: String = "earn", save: bool = true) -> void:
 	if guest_no_wallet:
 		return
-	if _econ != null and reason == "earn":
-		return   # run reward: the server pays it through econ_claims_after_run
+	if _econ != null and SERVER_PAID_REASONS.has(reason):
+		return   # the server pays these (run reward via econ_claims_after_run, claims); the answer lands in the cache
 	shard_pool += amount
 	ledger_add("shard", amount, reason)
 	if save:
@@ -262,7 +262,7 @@ func use_remote_gem_wallet(w: GemWallet) -> void:
 # --- Server economy (SR1) ----------------------------------------------------------------------
 ## Fields D1 owns. They are a display cache here: never uploaded in the cloud save (AccountService strips them,
 ## the Worker strips them too) and never taken from a downloaded one, so a PUT can neither mint nor roll back money.
-const SERVER_FIELDS: Array[String] = ["shard_pool", "stone", "tickets", "unlocks", "echobox_pity", "starter_granted", "starter_shard_locked", "pending_run_claims"]
+const SERVER_FIELDS: Array[String] = ["shard_pool", "stone", "tickets", "unlocks", "echobox_pity", "starter_granted", "starter_shard_locked", "pending_run_claims", "pass_season"]
 ## Id of the last server reset (M1) this device has wiped for. "" = none seen yet.
 var econ_reset_seen: String = ""
 var _econ: RemoteEcon = null
