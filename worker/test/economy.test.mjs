@@ -10,7 +10,7 @@ import echo from '../../godot/assets/data/economy/echobox.json' with { type: 'js
 
 import { mkEnv } from './_econ_harness.mjs';
 const call = (env, path, method = 'GET', body, tok = 'tok1') => worker.fetch(new Request(`https://axiedice.fun${path}`, {
-  method, headers: { cookie: `ad_session=${tok}`, 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }), env);
+  method, headers: { cookie: `ad_session=${tok}`, origin: 'https://axiedice.fun', 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }), env);
 const j = async (p) => { const r = await p; return { status: r.status, ...(await r.json()) }; };
 const setBal = (env, pid, cur, n) => env.DB.db.prepare('INSERT INTO wallets (player_id, currency, balance) VALUES (?, ?, ?) ON CONFLICT(player_id, currency) DO UPDATE SET balance = ?').run(pid, cur, n, n);
 const R = (n) => `req_${String(n).padStart(8, '0')}`;
@@ -232,4 +232,73 @@ test('echobox endpoint: spends a ticket, pays stone or items, retry replays, par
   setBal(env, 'p1', 'ticket', 0);
   assert.equal((await open(20)).code, 'no_tickets');
   assert.equal((await open(20)).status, 402);
+});
+
+// ------------------------------------------------------------ SR1 client support: save split, source claims, reset
+
+test('save split: PUT drops server-owned meta keys, GET never returns them', async () => {
+  const env = mkEnv();
+  const put = (rev, meta) => call(env, '/api/save', 'PUT', { rev, meta });
+  const r = await put(0, { shard_pool: 999999, stone: 5, tickets: { normal: 9 }, unlocks: ['u_hp'], echobox_pity: { a: 1 }, starter_granted: true, starter_shard_locked: 3, runs: 7 });
+  assert.equal(r.status, 200);
+  const stored = JSON.parse(env.DB.db.prepare(`SELECT meta_json FROM saves WHERE player_id = 'p1'`).get().meta_json);
+  assert.deepEqual(stored, { runs: 7 });
+  env.DB.db.prepare(`UPDATE saves SET meta_json = ?`).run(JSON.stringify({ shard_pool: 1e9, runs: 1 }));   // an old row from before the split
+  assert.deepEqual((await j(call(env, '/api/save'))).meta, { runs: 1 });
+  assert.equal((await j(call(env, '/api/econ'))).shard, 500, 'balance unaffected by the save');
+});
+
+test('claim mission: Stone from the settled escrow and the table, once, capped per day', async () => {
+  const env = mkEnv();
+  await call(env, '/api/econ');
+  const { _setTableForTest } = await import('../src/missions.js');
+  _setTableForTest({ payout_cap: 20000, stone_day_cap: 10, tiers: { N1: { stake: 300, m_base: 2, stone: 4 }, N2: { stake: 500, m_base: 2, stone: 8 } } });
+  const esc = (id, tier, state) => { env.DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, rules_version, state, created_at) VALUES (?, 'p1', 'mission', 'x', 'closed', 1)`).run(id); env.DB.db.prepare(`INSERT INTO mission_escrow (run_id, player_id, tier, stake, payout_mult, state, created_at) VALUES (?, 'p1', ?, 1, 1, ?, 1)`).run(id, tier, state); };
+  const claim = (id, extra) => j(call(env, '/api/econ/claim', 'POST', { kind: 'mission', run_id: id, ...extra }));
+  esc('a'.repeat(32), 'N1', 'lost'); esc('b'.repeat(32), 'N1', 'won'); esc('c'.repeat(32), 'N2', 'won');
+  assert.equal((await claim('a'.repeat(32))).code, 'run_not_closed');
+  assert.equal((await claim('b'.repeat(32), { amount: 999 })).stone, 4);
+  assert.equal((await claim('b'.repeat(32))).stone, 4, 'replay');
+  assert.equal((await claim('c'.repeat(32))).stone, 10, 'clipped to the day cap: 4 + min(8, 6)');
+  _setTableForTest();
+});
+
+test('claim pass: table reward once per level; bad level refused', async () => {
+  const env = mkEnv();
+  await call(env, '/api/econ');
+  const pass = (level) => j(call(env, '/api/econ/claim', 'POST', { kind: 'pass', level }));
+  assert.equal((await pass(0)).status, 400);
+  assert.equal((await pass(31)).status, 400);
+  const a = await pass(1);
+  if (a.code === 'out_of_season') return;   // before the season start date the claim is refused
+  assert.equal(a.shard, 800);   // 500 starter + 300 (pass_v2 level 1)
+  assert.equal((await pass(1)).shard, 800);
+});
+
+test('claim land: milestone items from decor.json, needs the points, once', async () => {
+  const env = mkEnv();
+  await call(env, '/api/econ');
+  const land = (milestone, points) => j(call(env, '/api/econ/claim', 'POST', { kind: 'land', milestone, points }));
+  assert.equal((await land('m2', 5)).code, 'not_reached');
+  assert.equal((await land('nope', 50)).status, 400);
+  assert.deepEqual((await land('m1', 5)).owned, ['title:Gardener']);
+  assert.deepEqual((await land('m1', 5)).owned, ['title:Gardener']);
+  const m8 = await land('m8', 100);
+  assert.ok(m8.owned.includes('frame_l_sunburst') && m8.owned.includes('decor_trophy'));
+});
+
+test('reset M1: SQL deletes everything, leaves players/sessions, marks reset_id, starter is paid again', async () => {
+  const env = mkEnv();
+  await call(env, '/api/econ');
+  await call(env, '/api/econ/spend', 'POST', { sku: 'unlock:u_full', req_id: R(1) });
+  await call(env, '/api/save', 'PUT', { rev: 0, meta: { runs: 3 } });
+  assert.equal((await j(call(env, '/api/econ'))).reset_id, '');
+  const sql = readFileSync(new URL('../scripts/reset_m1.sql', import.meta.url), 'utf8').replaceAll('__RESET_ID__', 'T1').replaceAll('__NOW__', '1700000000');
+  env.DB.db.exec(sql);
+  const n = (t) => env.DB.db.prepare(`SELECT COUNT(*) n FROM ${t}`).get().n;
+  for (const t of ['saves', 'unlocks', 'wallets', 'runs', 'starter_claims']) assert.equal(n(t), 0, t);
+  assert.equal(n('players'), 2); assert.equal(n('sessions'), 2);
+  const s = await j(call(env, '/api/econ'));
+  assert.equal(s.reset_id, 'T1'); assert.equal(s.shard, 500); assert.deepEqual(s.unlocks, []);
+  assert.equal((await j(call(env, '/api/save'))).rev, 0, 'cloud save gone: another device sees no old numbers');
 });

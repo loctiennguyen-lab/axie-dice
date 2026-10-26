@@ -14,7 +14,10 @@ import echo from '../../godot/assets/data/economy/echobox.json' with { type: 'js
 import daily from '../../godot/assets/data/economy/daily.json' with { type: 'json' };
 import { shared } from './accounts.js';
 import { balanceOfCur } from './wallet.js';
+import pass from '../../godot/assets/data/economy/pass_v2.json' with { type: 'json' };
+import decor from '../../godot/assets/data/land/decor.json' with { type: 'json' };
 import { UNLOCKS, RUN_SHARD_MAX } from './econ_tables.js';
+import { tierStone, stoneDayCap } from './missions.js';
 
 const { json } = shared;
 const nowS = () => Math.floor(Date.now() / 1000);
@@ -81,7 +84,9 @@ async function state(env, pid) {
   for (const r of w.results) bal[r.currency] = r.balance;
   let pity = {};
   try { pity = es ? JSON.parse(es.pity_json) : {}; } catch { pity = {}; }
+  const rs = await env.DB.prepare(`SELECT idem_key FROM wallet_ledger WHERE player_id = ? AND idem_key LIKE 'op:reset:%' ORDER BY id DESC LIMIT 1`).bind(pid).first();
   return {
+    reset_id: rs ? rs.idem_key.slice('op:reset:'.length) : '',
     shard: bal.shard, stone: bal.stone, ticket: bal.ticket,
     unlocks: u.results.map((r) => r.unlock_id), owned: inv.results.map((r) => r.item_id),
     pity, opens: es ? es.opens : 0, buy_day: es ? es.buy_day : '', buy_count: es ? es.buy_count : 0,
@@ -152,6 +157,17 @@ async function buyUnlock(env, pid, id, req, at) {
 
 // ---------------------------------------------------------------- claims
 
+/** One idempotent reward bundle: {shards, stone, tickets, items[], unlocks[]} under marker `op:<key>`. */
+function bundle(env, pid, key, p, reason, at) {
+  const st = [];
+  if (p.shards > 0) st.push(...move(env, pid, 'shard', p.shards, reason, key, at));
+  if (p.stone > 0) st.push(...move(env, pid, 'stone', p.stone, reason, key, at));
+  if (p.tickets > 0) st.push(...move(env, pid, 'ticket', p.tickets, reason, key, at));
+  for (const i of p.items || []) st.push(env.DB.prepare('INSERT OR IGNORE INTO inventory (player_id, item_id, at) VALUES (?, ?, ?)').bind(pid, i, at));
+  for (const u of p.unlocks || []) st.push(env.DB.prepare('INSERT OR IGNORE INTO unlocks (player_id, unlock_id, at) VALUES (?, ?, ?)').bind(pid, u, at));
+  return runOp(env, pid, key, { shards: p.shards || 0, stone: p.stone || 0, tickets: p.tickets || 0, items: p.items || [] }, st, at);
+}
+
 const weekOf = (day) => Math.floor((day + 3) / 7);   // Monday-based week of a unix-day index
 // A run that counts for rewards: closed, played at least one battle, not a Mission run (those pay via escrow).
 // NOTE (Liam accepted until B3): `closed`, `battles_done` and summary are the client's claims, there is no verifier
@@ -199,6 +215,46 @@ async function claim(env, pid, b, at) {
       const amount = Math.max(0, Math.min(RUN_SHARD_MAX, Number.isSafeInteger(sum.shards) ? sum.shards : 0));
       if (amount === 0) return { ok: false, code: 'nothing_to_claim' };
       return grant({ shards: amount }, `claim:run:${b.run_id}`, 'run');
+    }
+    case 'mission': {   // Stone of a WON Mission run: from the settled escrow + the table, nothing from the client
+      if (typeof b.run_id !== 'string' || !/^[0-9a-f]{32}$/.test(b.run_id)) return { ok: false, code: 'bad_request' };
+      const e = await env.DB.prepare(`SELECT tier, state FROM mission_escrow WHERE run_id = ? AND player_id = ?`).bind(b.run_id, pid).first();
+      if (!e || e.state !== 'won') return { ok: false, code: 'run_not_closed' };
+      const d0 = Math.floor(at / 86400) * 86400;
+      const used = await env.DB.prepare(`SELECT COALESCE(SUM(delta), 0) AS n FROM wallet_ledger WHERE player_id = ? AND currency = 'stone' AND reason = 'mission_win' AND at >= ? AND at < ?`).bind(pid, d0, d0 + 86400).first();
+      const amount = Math.max(0, Math.min(tierStone(e.tier), stoneDayCap() - (used ? used.n : 0)));   // table's per-day Stone cap (design number, not a Shard payout cap)
+      if (amount === 0) return { ok: false, code: 'nothing_to_claim' };
+      return grant({ stone: amount }, `claim:mission:${b.run_id}`, 'mission_win');
+    }
+    case 'pass': {   // free reward of Pass level `level` (1..30). NOTE: Pass XP/level is still client-side, so the level is the
+      // client's claim; the server only checks the season window, the level's table row, and once per level. Proposed
+      // fix: move Pass XP to the server (needs run xp per closed run) before real stakes. Gem rewards are not paid here.
+      const lv = b.level;
+      if (!Number.isSafeInteger(lv) || lv < 1 || lv > pass.levels.length) return { ok: false, code: 'bad_request' };
+      const start = Date.parse(`${pass.start_day}T00:00:00Z`) / 1000;
+      if (at < start) return { ok: false, code: 'out_of_season' };
+      const free = pass.levels[lv - 1].free;
+      const pay = { shards: 0, stone: 0, tickets: 0, items: [], unlocks: [] };
+      for (const r of free) {
+        if (r.type === 'shard') pay.shards += r.value;
+        else if (r.type === 'stone') pay.stone += r.value;
+        else if (r.type === 'ticket') pay.tickets += r.value;
+        else if (r.type === 'cosmetic') pay.items.push(r.value);
+        else if (r.type === 'title') pay.items.push(`title:${r.value}`);
+        else if (r.type === 'unlock' && Object.hasOwn(UNLOCKS, r.value)) pay.unlocks.push(r.value);
+      }
+      if (pay.unlocks.length) {   // already owned -> Shard at shop price (ECO-13), same as the client rule
+        const have = new Set((await state(env, pid)).unlocks);
+        for (const u of pay.unlocks.splice(0)) { if (have.has(u)) pay.shards += UNLOCKS[u]; else pay.unlocks.push(u); }
+      }
+      return bundle(env, pid, `claim:pass:${pass.season_id}:${lv}`, pay, 'pass', at);
+    }
+    case 'land': {   // milestone items from decor.json; `points` is the client's Land score, must reach the milestone's number
+      const m = decor.milestones.find((x) => x.id === b.milestone);
+      if (!m || !Number.isSafeInteger(b.points)) return { ok: false, code: 'bad_request' };
+      if (b.points < m.points) return { ok: false, code: 'not_reached' };
+      const items = m.kind === 'multi' ? [...m.items, ...(m.decor ? [m.decor] : [])] : [m.item];
+      return bundle(env, pid, `claim:land:${m.id}`, { items }, 'land', at);
     }
     default: return { ok: false, code: 'bad_request' };
   }
@@ -318,7 +374,7 @@ async function readBody(request, max = 1024) {
   try { const t = await request.text(); return t.length <= max ? JSON.parse(t) : null; } catch { return null; }
 }
 const STATUS = { insufficient: 402, no_tickets: 402, conflict: 409, owned: 409, day_cap: 409, hold_cap: 409, unknown_sku: 400, bad_request: 400,
-  no_run_today: 409, nothing_to_claim: 409, run_not_closed: 409, not_enough_days: 409 };
+  no_run_today: 409, nothing_to_claim: 409, run_not_closed: 409, not_enough_days: 409, out_of_season: 409, not_reached: 409 };
 
 export async function handleEcon(request, env, url, opts = {}) {
   try {

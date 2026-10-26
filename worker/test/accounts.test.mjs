@@ -272,29 +272,29 @@ test('save round trip, partial updates, run clearing and conflicts', async () =>
 
   assert.deepEqual(await (await call('/api/save', { cookie: s })).json(), { rev: 0, meta: null, run: null, updated_at: null });
 
-  let r = await put({ rev: 0, meta: { shard_pool: 60, vault: [] }, run: { row: 3 } });
+  let r = await put({ rev: 0, meta: { runs: 60, vault: [] }, run: { row: 3 } });
   assert.equal(r.status, 200); assert.equal((await r.json()).rev, 1);
 
   // Meta only: the run is left alone.
-  r = await put({ rev: 1, meta: { shard_pool: 75, vault: [] } });
+  r = await put({ rev: 1, meta: { runs: 75, vault: [] } });
   assert.equal((await r.json()).rev, 2);
   let got = await (await call('/api/save', { cookie: s })).json();
-  assert.deepEqual(got.meta, { shard_pool: 75, vault: [] }); assert.deepEqual(got.run, { row: 3 }); assert.equal(got.rev, 2);
+  assert.deepEqual(got.meta, { runs: 75, vault: [] }); assert.deepEqual(got.run, { row: 3 }); assert.equal(got.rev, 2);
 
   // Another device still holding rev 1 tries to save -> 409 with the server copy to compare.
-  r = await put({ rev: 1, meta: { shard_pool: 1 } });
+  r = await put({ rev: 1, meta: { runs: 1 } });
   assert.equal(r.status, 409);
   const conflict = await r.json();
-  assert.equal(conflict.error, 'conflict'); assert.equal(conflict.server.rev, 2); assert.equal(conflict.server.meta.shard_pool, 75);
+  assert.equal(conflict.error, 'conflict'); assert.equal(conflict.server.rev, 2); assert.equal(conflict.server.meta.runs, 75);
 
   // A second "first write" is a conflict too, not an overwrite.
-  assert.equal((await put({ rev: 0, meta: { shard_pool: 1 } })).status, 409);
+  assert.equal((await put({ rev: 0, meta: { runs: 1 } })).status, 409);
 
   // Abandon/finish run: run: null clears it.
   r = await put({ rev: 2, run: null });
   assert.equal((await r.json()).rev, 3);
   got = await (await call('/api/save', { cookie: s })).json();
-  assert.equal(got.run, null); assert.equal(got.meta.shard_pool, 75);
+  assert.equal(got.run, null); assert.equal(got.meta.runs, 75);
 });
 
 test('saves are per player', async () => {

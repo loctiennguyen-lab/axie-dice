@@ -15,6 +15,10 @@ const nowS = () => Math.floor(Date.now() / 1000);
 
 // The table in force. Tests swap it for a 6-tier fixture; production never calls the setter.
 let T = table;
+/** Stone a won Mission tier pays (table `stone`) and the per-UTC-day Stone cap (table `stone_day_cap`). */
+export const tierStone = (tier) => (Object.hasOwn(T.tiers, tier) ? Number(T.tiers[tier].stone) || 0 : 0);
+export const stoneDayCap = () => Number(T.stone_day_cap) || 0;
+
 /** Test hook: replace (or with no argument restore) the mission table. */
 export const _setTableForTest = (t) => { T = t || table; };
 
