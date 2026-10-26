@@ -102,6 +102,17 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}, a
 		return _fail(ERR_BAD_HEADER, "A ranked run cannot switch the Core flow off.")
 	var params := {"team_keys": team, "mode": String(header.get("mode", "short")),
 		"ascension": int(header.get("ascension", 0)), "ranked": is_ranked, "loadout": lo}
+	# Mission runs: the mission header (tier + rules) and kind drive the M-rule mods, the Anchor gate and the map shape. The tape's own run_start
+	# header wins (a server writes it); a tape without one (local/sim epoch) falls back to the log header. Without this a Mission record replays
+	# as a normal run and diverges (soak 26/10: ~85% of Mission runs rejected).
+	var tape_hdr: Dictionary = (((tape[0] as Dictionary).get("extra", {}) as Dictionary).get("header", {}) as Dictionary)
+	var log_mission: Dictionary = header.get("mission", {}) as Dictionary
+	var tape_mission: Dictionary = tape_hdr.get("mission", {}) as Dictionary
+	if not tape_mission.is_empty() and JSON.stringify(tape_mission) != JSON.stringify(log_mission):
+		return _fail(ERR_BAD_HEADER, "The record's mission header differs from the one the server issued.")
+	if not log_mission.is_empty():
+		params["mission"] = log_mission
+		params["kind"] = "mission"
 	if lo.has("bonuses"):
 		params["bonuses"] = ActionLog._restore_ints(lo["bonuses"])
 	var tape_src := TapeEpochSource.new(tape)
