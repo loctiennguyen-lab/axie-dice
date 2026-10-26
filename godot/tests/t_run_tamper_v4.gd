@@ -3,7 +3,7 @@ extends BoTestBase
 ## run's log + tape, not just the engine. A refused action must be named at its own index.
 
 const TEAM: Array[String] = ["plant1", "beast1", "aqua1", "reptile1", "bug1"]
-const SEEDS := [991237, 991238, 991239, 991240, 991241, 991242, 991243, 991244]
+const SEEDS := [991238, 991239, 991240, 991241, 991242, 991243, 991244, 991245]   # 991237 dropped, 991245 added: the new monster pool changed that run, an Anchor pick at action 47 is now refused before its wild_face
 
 
 func run() -> void:

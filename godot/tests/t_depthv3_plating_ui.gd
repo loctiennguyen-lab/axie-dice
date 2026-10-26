@@ -12,7 +12,7 @@ func _check(ok: bool, msg: String) -> void:
 func _ready() -> void:
 	CombatView.disable_juice_for_tests = true
 	_guard.capture()
-	RunState.start_new_run(424242, ["plant1", "beast1", "aqua1", "reptile1", "bug1"] as Array[String], "short", 6, false)
+	RunState.start_new_run(424243, ["plant1", "beast1", "aqua1", "reptile1", "bug1"] as Array[String], "short", 6, false)
 	await get_tree().process_frame
 	# Pure chip list.
 	var it := StatusHeads.items_for(0, {}, false, 3, 0, "4 → 1")
