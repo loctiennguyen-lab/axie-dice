@@ -32,6 +32,12 @@ export const currentRules = (env) => {
   return list[list.length - 1];
 };
 
+const offTiers = (env) => String((env && env.MISSION_TIERS_OFF) || '').split(',').map((x) => x.trim());
+// A run on older rules is only refunded by the sweep once it is this old (D1 has no last-activity column, so
+// created_at bounds it): a Short run lasts well under an hour, 3 h leaves a still-playing tab alone and the
+// client's own abandon() refunds the rest straight away.
+export const BUMP_STALE_S = 3 * 3600;
+
 const tierNo = (id) => Number(id.slice(1));
 
 /** Wins per tier for a player: {N1: 2, ...}. */
@@ -58,10 +64,11 @@ const sameRules = (got, want) => {
  * -> {ok:true, tier, stake, mult} | {ok:false, status, error}.
  * Errors: 400 bad_request (shape) / mission_rules_mismatch (`rules` differ from the tier's fixed set; N2+ with
  * `rules: []` or no rules lands here), 403 tier_not_unlocked (previous tier not won yet), 409 stake_mismatch /
- * tier_mismatch. Rules check runs only for a tier whose table entry has a `rules` array (the beta table); an
- * entry without one (the old A/B rule_sets table) is not checked. A tier with `rules: []` accepts a missing
- * or empty `rules`. All six tiers are buyable (the old enabled/tier_locked lock is gone, Liam 26/10): the win
- * chain is the only gate. Async because the unlock check reads D1.
+ * tier_mismatch. The rules check is strict: a tier with `rules: []` (or no `rules` field) accepts only a missing
+ * or empty `rules`. This checks the client's CLAIM only; the Durable Object does not know which rules a run
+ * plays, so it is not enforcement. Kill switch per tier: table `enabled: false` (missing = on) or env
+ * MISSION_TIERS_OFF="N5,N6" (read at runtime) -> 403 tier_locked. Otherwise the win chain is the only gate.
+ * Async because the unlock check reads D1.
  */
 export async function validateMission(env, playerId, m, ascension) {
   const bad = { ok: false, status: 400, error: 'bad_request' };
@@ -71,10 +78,12 @@ export async function validateMission(env, playerId, m, ascension) {
   if (!t) return bad;
   if (m.stake !== t.stake) return { ok: false, status: 409, error: 'stake_mismatch' };
   if (ascension !== t.ascension) return { ok: false, status: 409, error: 'tier_mismatch' };
-  if (Array.isArray(t.rules)) {
-    const got = m.rules === undefined && t.rules.length === 0 ? [] : m.rules;
-    if (!sameRules(got, t.rules)) return { ok: false, status: 400, error: 'mission_rules_mismatch' };
-  }
+  if (t.enabled === false || offTiers(env).includes(m.tier)) return { ok: false, status: 403, error: 'tier_locked' };
+  // Strict: a tier without a `rules` array counts as `rules: []`, so a table that forgot the field never
+  // switches the check off silently (any rule the client sends is refused).
+  const want = Array.isArray(t.rules) ? t.rules : [];
+  const got = m.rules === undefined && want.length === 0 ? [] : m.rules;
+  if (!sameRules(got, want)) return { ok: false, status: 400, error: 'mission_rules_mismatch' };
   if (!isUnlocked(await winsByTier(env, playerId), m.tier)) return { ok: false, status: 403, error: 'tier_not_unlocked' };
   return { ok: true, tier: m.tier, stake: t.stake, mult: Number(t.m_base) * Number(t.m_scale ?? 1) };
 }
@@ -134,10 +143,11 @@ const pub = (r) => ({ run_id: r.run_id, tier: r.tier, stake: r.stake, state: r.s
  *  Per player when playerId is given, else everyone (cron). */
 export async function reconcileEscrows(env, playerId = null) {
   const q = `SELECT e.run_id, r.state AS rs, r.outcome AS ro, r.rules_version AS rv FROM mission_escrow e JOIN runs r ON r.run_id = e.run_id
-              WHERE e.state = 'open' AND r.state != 'pending' AND (r.state != 'open' OR r.rules_version != ?)${playerId ? ' AND e.player_id = ?' : ''} LIMIT 100`;
+              WHERE e.state = 'open' AND r.state != 'pending' AND (r.state != 'open' OR (r.rules_version != ? AND r.created_at < ?))${playerId ? ' AND e.player_id = ?' : ''} LIMIT 100`;
   const cur = currentRules(env);
   const st = env.DB.prepare(q);
-  const { results } = await (playerId ? st.bind(cur, playerId) : st.bind(cur)).all();
+  const stale = nowS() - BUMP_STALE_S;
+  const { results } = await (playerId ? st.bind(cur, stale, playerId) : st.bind(cur, stale)).all();
   for (const r of results) {
     // A run that played to its end (closed) keeps its result even on old rules; open/abandoned on old rules = refund.
     const closed = r.rs === 'closed';

@@ -7,7 +7,7 @@ import { setup, useFixture, OLD_RULES } from './_mission_harness.mjs';
 import { sweepPending } from '../src/runs.js';
 
 beforeEach(() => useFixture());
-const bump = (s, id) => s.DB.db.prepare('UPDATE runs SET rules_version = ? WHERE run_id = ?').run(OLD_RULES, id);
+const bump = (s, id, ageS = 4 * 3600) => s.DB.db.prepare('UPDATE runs SET rules_version = ?, created_at = ? WHERE run_id = ?').run(OLD_RULES, Math.floor(Date.now() / 1000) - ageS, id);   // default: a cold run
 const start = async (s, tier = 'N1', opts) => (await (await s.mission(tier, opts)).json()).run_id;
 const abandon = (s, id) => s.call(`/api/run/${id}/abandon`, { method: 'POST' });
 
@@ -99,4 +99,25 @@ test('infra_error and never-started refunds are unchanged', async () => {
   const id = await start(s);                               // no epoch answered
   await abandon(s, id);
   assert.equal(s.row(id).state, 'refunded');
+});
+
+test('a LIVE older-rules run (young) is not refunded by reconcile or cron: it can still win and pay', async () => {
+  const s = await setup();
+  const id = await start(s); s.enterBattle(id); bump(s, id, 10 * 60);    // bumped 10 min after it started
+  await s.escrow(); await sweepPending(s.env);
+  assert.equal(s.row(id).state, 'open');
+  await s.close(id, 'won');
+  assert.equal(s.row(id).state, 'won'); assert.equal(s.row(id).payout, 600);
+  assert.equal(s.DB.db.prepare('SELECT COUNT(*) AS n FROM mission_wins').get().n, 1);
+});
+
+test('the same run once it is cold (older than 3 h) is refunded by the sweep; abandon refunds at any age', async () => {
+  const s = await setup();
+  const id = await start(s); bump(s, id, 3 * 3600 + 60);
+  await sweepPending(s.env);
+  assert.equal(s.row(id).state, 'refunded');
+  const t = await setup();
+  const y = await start(t); t.enterBattle(y); bump(t, y, 60);
+  await abandon(t, y);
+  assert.equal(t.row(y).state, 'refunded');
 });

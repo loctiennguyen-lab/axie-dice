@@ -57,13 +57,14 @@ test('stake/ascension mismatches keep their own codes and come before the rules 
   assert.equal(await err(await s.mission('N2', { ascension: 4, mission: { rules: [] } })), 'tier_mismatch');
 });
 
-test('a tier whose table entry has no rules array is not rules-checked (old A/B table)', async () => {
+test('a tier whose table entry has no rules field counts as rules: [] (strict, never silently off)', async () => {
   useFixture({ N1: { mode: 'short', ascension: 0, stake: 300, m_base: 2.0, m_scale: 1.0 } });
   const s = await setup();
-  assert.equal((await s.mission('N1', { mission: { rules: ['anything'] } })).status, 200);
+  assert.equal(await err(await s.mission('N1', { mission: { rules: ['M6'] } })), 'mission_rules_mismatch');
+  assert.equal((await s.mission('N1', { mission: { rules: undefined } })).status, 200);
 });
 
-test('no tier_locked any more: N6 can be bought once the chain is won', async () => {
+test('no enabled flag needed: N6 can be bought once the chain is won', async () => {
   const s = await setup();
   for (const t of ['N1', 'N2', 'N3', 'N4', 'N5']) await s.play(t);
   const r = await s.mission('N6');
