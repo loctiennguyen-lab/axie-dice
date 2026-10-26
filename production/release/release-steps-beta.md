@@ -60,7 +60,7 @@ KHÔNG phải lệnh chạy sẵn. Mỗi đợt làn I (hoặc Liam) đi từ tr
       DÁN ba dòng này vào ghi chú đợt (`production/release/deploy-<ngày>.md`).
       Không để `-dirty` trong tên gói (nếu có: build lại từ cây sạch).
 - [ ] Build phải từ commit đang deploy. `publish_desktop.sh` từ chối gói build từ commit khác HEAD.
-- [ ] Cài thử: mở `AxieDice.app` từ zip (ad-hoc, chuột phải > Mở), và `AxieDice.exe` trên Windows nếu
+- [ ] Cài thử: mở `AxieDice.app` từ zip (ad-hoc; macOS 15+: System Settings > Privacy & Security > Open Anyway, hoặc `xattr -dr com.apple.quarantine AxieDice.app`), và `AxieDice.exe` trên Windows nếu
       có máy. Đăng nhập desktop, vào run, vào Nhiệm vụ.
 - [ ] Lấy manifest đang trên R2 để làm `--prev`, KHÔNG dùng bản local cũ:
       `npx wrangler@4.151.3 r2 object get axie-dice/downloads/latest.json --file build/old/latest.json --remote`
