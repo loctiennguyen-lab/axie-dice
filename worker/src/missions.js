@@ -88,6 +88,17 @@ export async function validateMission(env, playerId, m, ascension) {
   return { ok: true, tier: m.tier, stake: t.stake, mult: Number(t.m_base) * Number(t.m_scale ?? 1) };
 }
 
+/** The mission header the SERVER writes for a run (run_start tape header): tier + the tier's fixed rules, read from the table, never from the client.
+ *  `missionId` (the client's id, string <= 64) is echoed when we have it (creation); a resume does not know it, and the verifier then
+ *  compares tier + rules only. */
+export function missionHeader(tier, missionId) {
+  const t = Object.hasOwn(T.tiers, tier) ? T.tiers[tier] : null;
+  if (!t) return null;
+  const h = { tier, rules: Array.isArray(t.rules) ? [...t.rules] : [] };
+  if (typeof missionId === 'string' && missionId.length > 0 && missionId.length <= 64) h.mission_id = missionId;
+  return h;
+}
+
 /** Statements that open the escrow. They only insert when the run row of the same batch exists, so a refused
  *  run (cap, unique-open) leaves no escrow and no ledger row behind. */
 export function escrowStatements(env, { runId, playerId, tier, stake, mult, at }) {
