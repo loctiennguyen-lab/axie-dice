@@ -21,8 +21,17 @@ func _ready() -> void:
 	MetaState.runs = 8
 	MetaState.runs_with_battle = 8
 	var cfg: Dictionary = MissionBoard.config()
-	var want := {"N1": [0, "short", []], "N2": [1, "short", ["M6"]], "N3": [3, "short", ["M5", "M6"]],
-		"N4": [4, "short", ["M1", "M7"]], "N5": [6, "short", ["M2", "M4", "M5"]], "N6": [6, "full", ["M1", "M5", "M6", "M7"]]}
+	# the real table, read straight from the file (not through MissionBoard), so a wrong tier in config() is caught
+	var real: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/data/economy/missions.json"))["tiers"]
+	var want := {}
+	for id in real:
+		want[id] = [int(real[id]["ascension"]), String(real[id]["mode"]), real[id]["rules"]]
+	_ok(want.size() == 6 and want.has("N1") and want.has("N6"), "table has the six tiers N1..N6")
+	var prev_asc := -1
+	for id in ["N1", "N2", "N3", "N4", "N5", "N6"]:
+		_ok(int(want[id][0]) >= prev_asc, "%s ascension not below the previous tier" % id)
+		prev_asc = int(want[id][0])
+		_ok(String(want[id][1]) == ("full" if id == "N6" else "short"), "%s mode: only N6 is full" % id)
 	for id in want:
 		var t: Dictionary = cfg.tiers[id]
 		_ok(bool(t.enabled), "%s enabled" % id)

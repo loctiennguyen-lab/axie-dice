@@ -415,7 +415,15 @@ func test_mission_board() -> void:
 	for k in ["N1", "N2", "N3", "N4", "N5", "N6"]:
 		var tt: Dictionary = _Econ.get_table("missions")["tiers"][k]
 		want[k] = int(roundf(float(tt["stake"]) * float(tt["m_base"]) * float(tt["m_scale"]) / 5.0) * 5.0)
-	_assert(want["N1"] == 1080 and want["N6"] == 20000, "payout N1 1080 / N6 20000 (so tam brainstorm 4.1, thay bang so N-S)")
+	var cap := int(_Econ.get_table("missions").get("payout_cap", 20000))
+	var prev_pay := 0
+	for k in ["N1", "N2", "N3", "N4", "N5", "N6"]:
+		var tt2: Dictionary = _Econ.get_table("missions")["tiers"][k]
+		var raw := float(tt2["stake"]) * float(tt2["m_base"]) * float(tt2["m_scale"])
+		_assert(want[k] == mini(int(roundf(raw / 5.0) * 5.0), cap), "payout %s = min(stake x m, cap)" % k)
+		_assert(want[k] > prev_pay, "payout tăng đơn điệu: %s" % k)
+		_assert((want[k] >= cap) == (k == "N6"), "chỉ N6 chạm trần payout (%s: %d, cap %d)" % [k, want[k], cap])
+		prev_pay = want[k]
 	for k in want:
 		_assert(MissionBoard.payout(k) == want[k], "payout %s = %d, có %d" % [k, want[k], MissionBoard.payout(k)])
 	var s := Stub.new()
@@ -434,7 +442,9 @@ func test_mission_board() -> void:
 	var b := MissionBoard.offers("2026-11-09", s)
 	_assert(a == b, "không xoay bộ luật theo ngày")
 	var cfg_t: Dictionary = _Econ.get_table("missions")["tiers"]
-	_assert((a[0]["rules"] as Array).is_empty() and a[5]["rules"] == cfg_t["N6"]["rules"] and a[0]["stone"] == 4, "N1 chỉ luật chuẩn, N6 theo missions.json")
+	var ids6 := ["N1", "N2", "N3", "N4", "N5", "N6"]
+	for i in 6:
+		_assert(a[i]["rules"] == cfg_t[ids6[i]]["rules"] and a[i]["stone"] == int(cfg_t[ids6[i]]["stone"]), "rules + stone %s khớp missions.json" % ids6[i])
 	# nâng nhà: tắt ở L1
 	s.shard_pool = 99999
 	s.stone = 99999
@@ -815,7 +825,7 @@ func test_mission_stake() -> void:
 func _test_mission_stake_body(has_run: Array) -> void:
 	var m1 := ""
 	var new_id := ""
-	var pay := MissionBoard.payout("N1")   # 300 x 2.15 = 645 (approved doc 13/10)
+	var pay := MissionBoard.payout("N1")   # stake x m from missions.json
 	_fresh_meta(1000, 0)
 	m1 = MetaState.take_mission_stake("N1", 300)
 	_assert(m1 != "" and MetaState.shard_pool == 700 and int(MetaState.mission_escrow["stake"]) == 300, "take: trừ cược, ghi escrow")

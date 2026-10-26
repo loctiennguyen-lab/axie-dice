@@ -164,7 +164,7 @@ static func _validate_missions(errs: Array[String]) -> void:
 	var m := get_table("missions")
 	var tiers: Dictionary = m.get("tiers", {})
 	# Beta: 6 bậc. Cược cố định theo thiết kế; m/ascension/luật là số của sim (N-S) nên chỉ kiểm hình dạng.
-	var stakes := [300, 500, 800, 1200, 1800, 2500]
+	var stakes := [300, 500, 800, 1200, 1250, 2500]   # N5 1.250 (sim v2, 26/10): giữ payout N5 dưới trần 20.000
 	var rule_ids: Array = ["M1", "M2", "M3", "M4", "M5", "M6", "M7"]
 	var last_pay := 0
 	for i in 6:

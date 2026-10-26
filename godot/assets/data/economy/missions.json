@@ -1,85 +1,70 @@
 {
 	"version": 2,
-	"_source": "nhiem-vu-beta-brainstorm §2 (huong B, thang 6 bac, 1 bo luat co dinh/bac, mo bac theo chuoi thang). Liam 26/10: bat ca 6 bac.",
-	"_tmp": true,
-	"_tmp_note": "SO TAM (brainstorm 4.1, P1 RTP bot 0,65): m_base, est_win_pct, ascension, rules. KHONG deploy; lane I ghep so that tu N-S (production/qa/sim/mission-sim-v1.md) truoc R1 roi xoa moi '_tmp'. est_win_pct = % thang cua bot (hien tren the, ghi 'uoc tinh').",
+	"_source": "Beta R1 (26/10): sim v2 có Anchor, bot expert, ~16.000 run (production/qa/sim/mission-sim-v2.md). m = 0,65 / p_bot (P1, giữ \"heavy không lãi\"), payout = stake × m kẹp payout_cap 20.000; N5 stake 1.250 để chỉ N6 chạm trần; N6 là bậc danh hiệu. est_win_pct = % thắng của bot (thẻ ghi \"ước tính\").",
 	"tiers": {
 		"N1": {
 			"mode": "short",
 			"ascension": 0,
 			"stake": 300,
-			"m_base": 3.6,
+			"m_base": 5.3,
 			"m_scale": 1.0,
 			"stone": 4,
-			"unlock_wins": 1,
-			"rules": [],
-			"est_win_pct": 18,
-			"enabled": true,
-			"_tmp": true
-		},
-		"N2": {
-			"mode": "short",
-			"ascension": 1,
-			"stake": 500,
-			"m_base": 4.65,
-			"m_scale": 1.0,
-			"stone": 8,
 			"unlock_wins": 1,
 			"rules": [
 				"M6"
 			],
-			"est_win_pct": 14,
-			"enabled": true,
-			"_tmp": true
+			"est_win_pct": 12.3,
+			"enabled": true
+		},
+		"N2": {
+			"mode": "short",
+			"ascension": 2,
+			"stake": 500,
+			"m_base": 7.4,
+			"m_scale": 1.0,
+			"stone": 8,
+			"unlock_wins": 1,
+			"rules": [],
+			"est_win_pct": 8.8,
+			"enabled": true
 		},
 		"N3": {
 			"mode": "short",
 			"ascension": 3,
 			"stake": 800,
-			"m_base": 6.5,
+			"m_base": 9.05,
 			"m_scale": 1.0,
 			"stone": 14,
 			"unlock_wins": 1,
-			"rules": [
-				"M5",
-				"M6"
-			],
-			"est_win_pct": 10,
-			"enabled": true,
-			"_tmp": true
+			"rules": [],
+			"est_win_pct": 7.2,
+			"enabled": true
 		},
 		"N4": {
 			"mode": "short",
-			"ascension": 4,
+			"ascension": 3,
 			"stake": 1200,
-			"m_base": 9.3,
+			"m_base": 11.4,
 			"m_scale": 1.0,
 			"stone": 22,
 			"unlock_wins": 1,
 			"rules": [
-				"M1",
-				"M7"
+				"M4"
 			],
-			"est_win_pct": 7,
-			"enabled": true,
-			"_tmp": true
+			"est_win_pct": 5.7,
+			"enabled": true
 		},
 		"N5": {
 			"mode": "short",
-			"ascension": 6,
-			"stake": 1800,
-			"m_base": 9.0,
+			"ascension": 4,
+			"stake": 1250,
+			"m_base": 15.85,
 			"m_scale": 1.0,
 			"stone": 34,
 			"unlock_wins": 1,
-			"rules": [
-				"M2",
-				"M4",
-				"M5"
-			],
-			"est_win_pct": 5,
-			"enabled": true,
-			"_tmp": true
+			"rules": [],
+			"est_win_pct": 4.1,
+			"enabled": true
 		},
 		"N6": {
 			"mode": "full",
@@ -89,15 +74,9 @@
 			"m_scale": 1.0,
 			"stone": 60,
 			"unlock_wins": 1,
-			"rules": [
-				"M1",
-				"M5",
-				"M6",
-				"M7"
-			],
-			"est_win_pct": 2.5,
-			"enabled": true,
-			"_tmp": true
+			"rules": [],
+			"est_win_pct": 0.1,
+			"enabled": true
 		}
 	},
 	"rules_need_spike": [
