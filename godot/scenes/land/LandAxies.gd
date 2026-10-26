@@ -1,7 +1,6 @@
 class_name LandAxies
 extends RefCounted
-## LD-A 2/3: the Axies on the Land are the player's own. Source order: raid defence team, then
-## team preset 0, then random (the caller fills any gap with random bodies). Duplicates dropped.
+## LD-A 2/3: the Axies on the Land are the player's own. Source: team preset 0, then random (raid defence dropped for beta, Lane I) (the caller fills any gap with random bodies). Duplicates dropped.
 
 ## Starter gift (LD-A 3): ids from assets/data/land/decor.json.
 const GIFT_DECOR: Array = ["decor_sav_tree2", "decor_sav_rock2", "decor_for_plant"]
@@ -9,13 +8,6 @@ const _CLASS_COLOR := {"plant": 8, "beast": 3, "aqua": 14, "reptile": 30, "bug":
 const _CLASS_PART := {"plant": "Plant", "beast": "Beast", "aqua": "Aquatic", "reptile": "Reptile", "bug": "Bug", "bird": "Bird"}
 const _PARTS: Array[int] = [AxieTypes.Part.MOUTH, AxieTypes.Part.HORN, AxieTypes.Part.BACK,
 	AxieTypes.Part.TAIL, AxieTypes.Part.EAR, AxieTypes.Part.EYE]
-
-
-## Raid defence party. The defence team lives on the server and nothing local stores it yet, so this
-## reads an optional MetaState field and is empty until one exists.
-static func defense_keys() -> Array:
-	var v: Variant = MetaState.get("raid_defense_party")
-	return (v as Array) if v is Array else []
 
 
 static func preset0_keys() -> Array:
@@ -27,7 +19,7 @@ static func preset0_keys() -> Array:
 
 ## Up to `limit` distinct, known hero keys from the first source that has any.
 static func pick_keys(limit: int) -> Array[String]:
-	for src in [defense_keys(), preset0_keys()]:
+	for src in [preset0_keys()]:
 		var out: Array[String] = []
 		for k in src:
 			var s := String(k)

@@ -1,5 +1,5 @@
 extends Node
-## LD-A 2: Land Axies come from raid defence, then preset 0, deduped; light mode = 2.
+## LD-A 2: Land Axies come from preset 0, deduped; light mode = 2.
 var _fails: Array[String] = []
 var _checks := 0
 var _guard := SaveGuard.new()

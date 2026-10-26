@@ -41,6 +41,11 @@ func _ready() -> void:
 	var h2 := await _land()
 	_check(h2.find_child("TierBanner", true, false) == null, "no banner second time")
 	h2.queue_free()
+	# cloud apply path: the JSON goes through reload_from_store; seen never runs ahead of the tier
+	MetaState.land_tier_banner_seen = 2
+	MetaState.save_to_disk()
+	MetaState.reload_from_store()
+	_check(MetaState.land_tier_banner_seen == 2, "seen kept after reload_from_store")
 	MetaState.land_tier = 1
 	MetaState.land_tier_banner_seen = 1
 	var h3 := await _land()
