@@ -33,6 +33,12 @@ func _ready() -> void:
 	for code in ["version", "mission_needs_update"]:
 		var tx := UpdateRequired.texts_for(code)
 		_ok(String(tx[1]).find("Nothing was spent") >= 0 and String(tx[0]).find("_") < 0 and String(tx[1]).find("_") < 0 and String(tx[1]).find("409") < 0, "%s: plain text, no raw code" % code)
+	# Web build: the fix is a page reload, not a desktop download (R1 integration review)
+	UpdateRequired.web_override = 1
+	_ok(String(UpdateRequired.texts_for("version")[1]).find("Reload the page") >= 0, "web: body says reload")
+	UpdateRequired.web_override = 0
+	_ok(String(UpdateRequired.texts_for("version")[1]).find("Download it") >= 0, "desktop: body says download")
+	UpdateRequired.web_override = -1
 
 	# 1. NetNotice (in-run and Continue) shows the modal, not the toast plate
 	for code in ["version", "mission_needs_update"]:
