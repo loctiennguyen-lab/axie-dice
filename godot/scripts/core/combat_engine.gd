@@ -1380,12 +1380,6 @@ func use_die(unit_uid: int, target_uid: int) -> bool:
 
 ## No-op without a log, so nothing in combat has to know whether anyone is recording.
 func _log(fn: String, args: Array = []) -> void:
-	if OS.get_environment("AXIE_TRACE") != "":   # TEMP debug
-		var tf := FileAccess.open(OS.get_environment("AXIE_TRACE"), FileAccess.READ_WRITE if FileAccess.file_exists(OS.get_environment("AXIE_TRACE")) else FileAccess.WRITE)
-		tf.seek_end()
-		var rp: bool = action_log != null and action_log.replaying
-		tf.store_line(("R " if rp else "L ") + fn + " " + JSON.stringify(args) + " ||| " + JSON.stringify(_state_dict()) + " ||| " + JSON.stringify(RunState.to_data()) + " ||| " + str(_cond_given))
-		tf.close()
 	if action_log != null:
 		action_log.record(fn, args)
 

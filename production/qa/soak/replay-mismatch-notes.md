@@ -12,3 +12,8 @@ Kết quả:
 - Gambler/Crack: chưa phải thủ phạm ở điểm này (anchor_turn gb100=0, chưa Gamble lượt đó).
 - Nghi vấn tiếp theo: trạng thái ẩn dùng khi tính damage — static (CoreHooks.mute, core_hooks), field Unit không vào to_data, `_impact_at`, `core_emit`/`_chain_mute`; hoặc live bị ảnh hưởng bởi cặp thử+undo của bot (undo không phục hồi 1 thứ gì đó; KEEP_TRIALS=1 vẫn lệch nên khả năng là replay vs live khác nhau ở thứ không snapshot, kể cả khi trial replay cũng được chạy).
 - Việc kế: ghi thêm vào trace các field ngoài dict (Unit transient, CoreHooks.mute, _chain_mute, core_emit) và dmg breakdown của _exec_face tại action này.
+
+## KẾT LUẬN: (A) lỗi thật trong game — ĐÃ SỬA
+Nguyên nhân: `Unit.to_data()/from_data()` (godot/scripts/data_models/unit.gd) không lưu `g_oc_bonus` (bonus G của ascend/forge). `CombatEngine.undo_last` và save/load dựng lại unit từ dict nên mất bonus -> sau bất kỳ undo nào, damage live thấp hơn (3 thay vì 4), còn replay (không undo) giữ bonus. Người chơi thật có Axie ascend/forge + dùng Undo sẽ bị verifier từ chối (và mất +G sau load save giữa trận).
+Sửa: thêm "g_oc_bonus" vào to_data/from_data (save cũ thiếu key -> 0). File luật đổi: godot/scripts/data_models/unit.gd (lane I cân nhắc bump RULES_VERSION: kết quả run có Undo + ascend thay đổi). Test: tests/t_unit_g_oc_roundtrip (tests +1).
+Chạy lại: 5003/5004/5005 ok; 20 run expert (seed 5000, teams all, verify=1) 20/20 ok. Code trace TEMP đã gỡ.
