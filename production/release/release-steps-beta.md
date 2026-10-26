@@ -15,7 +15,7 @@ KHÔNG phải lệnh chạy sẵn. Mỗi đợt làn I (hoặc Liam) đi từ tr
 
 ## 1. Worker và D1 (trước web nếu đợt có migration hoặc bump)
 
-- [ ] `cd worker && node --test test/*.test.mjs` xanh (26/10: 307/307 sau khi thêm `download_route`).
+- [ ] `cd worker && node --test test/*.test.mjs` xanh (26/10: 310/310 sau khi thêm `download_route`).
 - [ ] `npx wrangler d1 migrations list axie-dice-db --remote`. Đọc SQL của mọi file chờ. Chỉ `apply`
       khi SQL chỉ ADD (CREATE, ALTER ADD COLUMN). Không có DROP, DELETE, UPDATE hàng loạt.
 - [ ] `npx wrangler d1 migrations apply axie-dice-db --remote`.
@@ -57,14 +57,17 @@ KHÔNG phải lệnh chạy sẵn. Mỗi đợt làn I (hoặc Liam) đi từ tr
 
 - [ ] `bash tools/build_desktop.sh all` (mac + Windows, ~140 s, dùng khoá with_lock). Log kiểm:
       `check_export_no_override: sạch` ở cả hai, `codesign verify: ok`, `PE check: x86_64 ok`.
+      DÁN ba dòng này vào ghi chú đợt (`production/release/deploy-<ngày>.md`).
       Không để `-dirty` trong tên gói (nếu có: build lại từ cây sạch).
 - [ ] Build phải từ commit đang deploy. `publish_desktop.sh` từ chối gói build từ commit khác HEAD.
 - [ ] Cài thử: mở `AxieDice.app` từ zip (ad-hoc, chuột phải > Mở), và `AxieDice.exe` trên Windows nếu
       có máy. Đăng nhập desktop, vào run, vào Nhiệm vụ.
-- [ ] `bash tools/publish_desktop.sh <tên gói> --prev <latest.json cũ>` (chỉ tạo manifest và in lệnh,
-      không upload). Lưu bản cũ `latest.json` vào `build/old/` trước khi chạy.
-- [ ] Làn I chạy các lệnh đã in, đúng thứ tự: lưu bản cũ vào `downloads/old/` -> up hai zip mới ->
-      up `latest.json` CUỐI -> xoá file cũ ở gốc `downloads/`.
+- [ ] Lấy manifest đang trên R2 để làm `--prev`, KHÔNG dùng bản local cũ:
+      `npx wrangler@4.151.3 r2 object get axie-dice/downloads/latest.json --file build/old/latest.json --remote`
+      Rồi `bash tools/publish_desktop.sh <tên gói> --prev build/old/latest.json` (chỉ tạo manifest và in lệnh,
+      không upload). Không có `--prev` thì script cảnh báo: KHÔNG có đường rollback desktop.
+- [ ] Làn I dán kế hoạch đã in (có `set -e`), đúng thứ tự: cmp manifest R2 với `--prev` -> lưu bản cũ vào
+      `downloads/old/` có kiểm sha -> up hai zip mới -> up `latest.json` CUỐI -> xoá file cũ ở gốc `downloads/`.
 - [ ] Kiểm sau khi up: `curl -sI https://axiedice.fun/download/<zip>` trả 200 và `Content-Length` đúng
       cỡ trong manifest; `https://axiedice.fun/download` hiện đúng version, sha256; tải một file và
       `shasum -a 256` khớp.
@@ -88,6 +91,7 @@ Nguyên tắc: không rollback D1 (chỉ ADD). Muốn lùi, lùi Worker, web, v�
   Lý do: client mới gửi luật mới, Worker cũ trả 409, và client cũ gặp 409 sẽ thấy màn "có bản mới" trỏ
   vào link đang chứa bản mới. Cách làm: `build/old/latest.json` là manifest cũ. Zip cũ nằm ở
   `downloads/old/`, copy về gốc `downloads/` rồi up `latest.json` cũ, sau khi rollback Worker xong.
+- **Kiểm sau rollback:** `curl -s https://axiedice.fun/download` phải hiện đúng version và sha256 của bản cũ.
 - **Desktop, khi không bump:** rollback web và Worker không cần đổi link desktop.
 - **Sửa tiến thay vì rollback:** đợt có bump thì ưu tiên hotfix (`hotfix/*` từ `main`), vì rollback
   Worker kéo theo cả link desktop.
@@ -99,5 +103,5 @@ Nguyên tắc: không rollback D1 (chỉ ADD). Muốn lùi, lùi Worker, web, v�
 2. `export-web.sh` và `deploy-r2.sh` nằm trong `.gitignore` ở cây chính. Đề xuất sửa được ghi ở trên, chưa áp.
 3. `.dmg` không đăng lên R2. Chỉ có zip. Liam quyết nếu cần dmg cho tester.
 4. Chưa có khoá link cố định ở Cloudflare (dùng đường dẫn `/download` trên Worker, không cần bucket public).
-5. Chưa ghim phiên bản wrangler trong `deploy-r2.sh` và `publish_desktop.sh` (xem mục 2).
+5. `publish_desktop.sh` đã ghim `wrangler@4.151.3`. `deploy-r2.sh` (gitignored) chưa, xem mục 2.
 6. Gói build hiện có (`build/`, b1639, commit 5ecc08f) chưa đăng. Build lại từ HEAD trước khi đăng.
