@@ -242,13 +242,14 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Pinned, 2026-10-26 (beta prelude, production/beta-plan.md): MetaState gained land_tier_banner_seen, land_gift_granted,
 ## mission_unlock_cache + grant_land_gift_once() / set_mission_unlocks(). Meta/save only, no rule or replay input. Run result: NO, stays -t.
 ## BUMPED, 2026-10-26: `ActionLog.RULES_VERSION` -> `godot-2026-10-26-u`. Beta R1 (int/r1): 6-tier Missions (per-tier rules, win-chain unlock),
-## Anchors allowed in Mission runs, Anchor round (Big Hand SET4/5 +0.90, Embers +2.25, rule text states the M 3.00 cap), stale tier comments.
+## Anchors allowed in Mission runs, Anchor round (Big Hand SET4/5 +0.90, Embers +2.25, rule text states the M 3.00 cap), stale tier comments, missions table from sim v2; N5 stake 1250.
 ## Same actions give a different run. Worker SUPPORTED_RULE_VERSIONS gained -u (keeps -t for the 7-day desktop window).
+
 ## Pinned, 2026-10-26 (R2 Land, int/r2): economy_db.gd total Land Stone 1.82M -> 1.8M (tier 2 = 20k). Meta/economy only,
 ## no combat or replay input. Run result: NO, stays -u.
 ## BUMPED, 2026-10-26: `ActionLog.RULES_VERSION` -> `godot-2026-10-26-v`. R-Atia (int/ra): 6 new Atia monsters in the normal/Elite
 ## pools change which monsters a seed draws. Same actions give a different run. Worker SUPPORTED_RULE_VERSIONS gained -v.
-const FINGERPRINT := "78dd0ab628f2c97c46ca81b09c03fd2333ff684a6c4e68fe81782cb7b027ef00"
+const FINGERPRINT := "6e770d6fd419a831ef0cf1be32102f2256e5b06075f4d635b4c64f282d767c89"
 
 
 func _ready() -> void:
