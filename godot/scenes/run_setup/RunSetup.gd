@@ -418,6 +418,8 @@ func begin() -> Dictionary:
 			begin_error = ""
 			set_state("open_run")
 			return r
+		if UpdateRequired.is_update_code(code) and is_inside_tree():
+			UpdateRequired.show(self, code)   # Begin refused by an old build: update modal, banner stays as the fallback
 		var msg := begin_error_text(code)
 		begin_error = msg[0]
 		_add_banner(msg[0], msg[1], false)
@@ -444,7 +446,7 @@ static func begin_error_text(code: String) -> Array:
 			return ["Ranked unlocks after 5 runs", "Play 5 runs with at least one fight first. Nothing was spent."]
 		"vault_banned":
 			return ["Imported Axies can't play Ranked", "Take them out of the party or pick another kind. Nothing was spent."]
-		"version":
+		"version", "mission_needs_update":
 			return ["Update the game", "This version is too old to start a run. Reload to get the latest. Nothing was spent."]
 		"offline":
 			return ["Can't reach the dice server", "Check your connection and try again. Nothing was spent."]

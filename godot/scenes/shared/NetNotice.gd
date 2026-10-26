@@ -19,7 +19,7 @@ static func text_for(code: String) -> String:
 			return "The server is slow to answer. Try again."
 		"expired", "unauthenticated":
 			return "Your session expired. Sign in again to continue this run."
-		"version":
+		"version", "mission_needs_update":
 			return "A new version is out. Update to keep playing."
 		"run_gone":
 			return RunState.GONE_MESSAGE
@@ -34,7 +34,7 @@ static func text_for(code: String) -> String:
 
 ## True when RETRY is pointless: the session itself is gone (the player must sign in again).
 static func is_fatal(code: String) -> bool:
-	return code == "expired" or code == "version" or code == "unauthenticated"
+	return code == "expired" or UpdateRequired.is_update_code(code) or code == "unauthenticated"
 
 
 ## Shows (or replaces) the notice on `host`. `retry` is called by the RETRY button (non-fatal codes only).
@@ -42,6 +42,11 @@ static func is_fatal(code: String) -> bool:
 static func show(host: Node, code: String, retry: Callable = Callable()) -> Node:
 	if host == null or not host.is_inside_tree():
 		return null
+	if UpdateRequired.is_update_code(code):
+		# "This build is too old": the one update modal, never the raw notice. Close = back to Land.
+		return UpdateRequired.show(host, code, func() -> void:
+			if host.is_inside_tree():
+				host.get_tree().change_scene_to_file(LandNav.LAND_SCENE))
 	var old := host.get_node_or_null(NODE_NAME)
 	if old != null:
 		host.remove_child(old)

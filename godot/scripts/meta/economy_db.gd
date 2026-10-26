@@ -163,21 +163,37 @@ static func _validate_pass(errs: Array[String]) -> void:
 static func _validate_missions(errs: Array[String]) -> void:
 	var m := get_table("missions")
 	var tiers: Dictionary = m.get("tiers", {})
-	var stakes := [300, 500, 800, 1200]
-	var ms := [2.15, 2.40, 3.60, 4.40]   # approved doc 13/10
-	for i in 4:
-		var t: Dictionary = tiers.get("N%d" % (i + 1), {})
-		if int(t.get("stake", 0)) != stakes[i] or absf(float(t.get("m_base", 0)) - ms[i]) > 0.0001:
-			errs.append("missions: N%d sai stake/m" % (i + 1))
-		if i < 3 and not bool(t.get("enabled", false)):
-			errs.append("missions: N%d phải bật ở L1" % (i + 1))
+	# Beta: 6 bậc. Cược cố định theo thiết kế; m/ascension/luật là số của sim (N-S) nên chỉ kiểm hình dạng.
+	var stakes := [300, 500, 800, 1200, 1800, 2500]
+	var rule_ids: Array = ["M1", "M2", "M3", "M4", "M5", "M6", "M7"]
+	var last_pay := 0
+	for i in 6:
+		var id := "N%d" % (i + 1)
+		var t: Dictionary = tiers.get(id, {})
+		if int(t.get("stake", 0)) != stakes[i] or float(t.get("m_base", 0)) <= 0.0:
+			errs.append("missions: %s sai stake/m" % id)
+		if int(t.get("unlock_wins", 1)) < 1:
+			errs.append("missions: %s unlock_wins phải >= 1" % id)
+		if not bool(t.get("enabled", false)):
+			errs.append("missions: %s phải bật (beta, Liam 26/10)" % id)
+		if typeof(t.get("rules", null)) != TYPE_ARRAY:
+			errs.append("missions: %s thiếu mảng rules (Worker kiểm chặt)" % id)
+		else:
+			var seen := {}
+			for r in (t["rules"] as Array):
+				if seen.has(String(r)):
+					errs.append("missions: %s luật trùng %s (Worker từ chối)" % [id, str(r)])
+				seen[String(r)] = true
+				if not rule_ids.has(String(r)):
+					errs.append("missions: %s luật lạ %s" % [id, str(r)])
+		var pay := int(roundf(float(t.get("stake", 0)) * float(t.get("m_base", 0)) * float(t.get("m_scale", 1.0)) / 5.0) * 5.0)
+		if pay < last_pay:
+			errs.append("missions: payout %s thấp hơn bậc trước" % id)
+		last_pay = pay
 	if bool(m.get("house_upgrade_enabled", true)):
 		errs.append("missions: nâng nhà phải tắt ở L1")
 	if bool((get_table("gem").get("vip_trial", {}) as Dictionary).get("enabled", true)):
 		errs.append("gem: vip_trial phải tắt ở L1")
-	for k in ["N4", "N5", "N6"]:
-		if bool((tiers.get(k, {}) as Dictionary).get("enabled", true)):
-			errs.append("missions: %s phải tắt ở L1" % k)
 
 
 ## Tier cap = highest tier row in land_tiers.json (6).
