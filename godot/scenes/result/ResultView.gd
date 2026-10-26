@@ -472,7 +472,8 @@ func _build_shard_card(s: Dictionary) -> Control:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 12)
 	card.add_child(col)
-	col.add_child(_card_caption(tr("Gene Shard earned")))
+	var mrun := bool(s.get("mission_run", false))
+	col.add_child(_card_caption(tr("Run reward (separate from your stake)") if mrun else tr("Gene Shard earned")))
 	var row := HBoxContainer.new()
 	row.custom_minimum_size.y = UI3Theme.size_of("row")
 	row.add_theme_constant_override("separation", 12)
@@ -492,7 +493,7 @@ func _build_shard_card(s: Dictionary) -> Control:
 	right.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_child(right)
 	var daily_bonus := ContentDB.DAILY_MISSION_SHARD if bool(s.get("daily_mission_granted", false)) else 0
-	var breakdown := UI3.label(tr("%d run payout") % (int(s["shards_this_run"]) - daily_bonus)
+	var breakdown := UI3.label((tr("%d from the run itself") if mrun else tr("%d run payout")) % (int(s["shards_this_run"]) - daily_bonus)
 		+ (" · " + tr("%d daily") % daily_bonus if daily_bonus > 0 else ""), "LabelMuted")
 	breakdown.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	breakdown.clip_text = true

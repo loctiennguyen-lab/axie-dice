@@ -163,7 +163,7 @@ func block_reason(tier_id: String, own_start := false) -> String:
 func lock_text(o: Dictionary) -> String:
 	match String(o.lock_reason):
 		"disabled":
-			return "Not in this build"
+			return "Closed for now"
 		"newcomer":
 			var need := int(_Econ.get_table("missions").get("newcomer_runs", 5))
 			return "Play %d runs first (you have %d)" % [need, MetaState.runs_with_battle]
@@ -559,7 +559,10 @@ func _draw_detail() -> void:
 	v.name = "DetailBody"
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_theme_constant_override("separation", UI3Theme.space("16"))
-	var sc := UI3Meta.scroll(v)
+	var pad := MarginContainer.new()   # keeps text off the scrollbar
+	pad.add_theme_constant_override("margin_right", 16)
+	pad.add_child(v)
+	var sc := UI3Meta.scroll(pad)
 	sc.name = "DetailScroll"
 	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	outer.add_child(sc)
@@ -594,12 +597,6 @@ func _draw_detail() -> void:
 		money.add_child(hb)
 	v.add_child(money)
 	v.add_child(_tinted("lose", "Lose or abandon", "You lose %s Shards. No refund, no Stone." % UI3.fmt(int(o.stake))))
-	# 3. estimate (bot) and the fixed warning
-	var est := UI3.label("Estimate (bot): about %s%% win, you get back about %d%% of the stake on average. Real players may do better or worse." % [
-		_num(float(o.est_win_pct)), roundi(float(o.est_return_pct))], "LabelMuted")
-	est.name = "Estimate"
-	est.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v.add_child(est)
 	var wt := warning_text(String(o.warning))
 	if wt != "":
 		var wl := UI3.label(wt)
@@ -607,6 +604,12 @@ func _draw_detail() -> void:
 		wl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		wl.add_theme_color_override("font_color", UI3Theme.color("anchor_price"))
 		v.add_child(wl)
+	# 3. estimate (bot) and the fixed warning
+	var est := UI3.label("Estimate (bot): about %s%% win, you get back about %d%% of the stake on average. Real players may do better or worse." % [
+		_num(float(o.est_win_pct)), roundi(float(o.est_return_pct))], "LabelMuted")
+	est.name = "Estimate"
+	est.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(est)
 	var nc := UI3.label("No Continue and no Aid.", "LabelMuted")
 	v.add_child(nc)
 	var why := block_reason(id)

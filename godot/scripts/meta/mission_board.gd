@@ -98,7 +98,8 @@ static func apply_unlocks(store: Object, resp: Variant) -> bool:
 		if typeof(e) != TYPE_DICTIONARY:
 			continue
 		var d: Dictionary = e
-		server_tiers[id] = {"unlocked": bool(d.get("unlocked", false)), "wins": int(d.get("wins", 0)), "needs": int(d.get("needs", 0))}
+		server_tiers[id] = {"unlocked": bool(d.get("unlocked", false)), "wins": int(d.get("wins", 0)), "needs": int(d.get("needs", 0)),
+			"locked_reason": String(d.get("locked_reason", ""))}
 		if bool(d.get("unlocked", false)):
 			ids.append(id)
 	store.set_mission_unlocks(ids)
@@ -145,8 +146,8 @@ static func offers(_day: String, store: Object) -> Array:
 
 ## "" nếu mua được; ngược lại "disabled" | "newcomer" | "chain" (chưa thắng bậc trước đủ số lần).
 static func lock_reason(tier_id: String, store: Object) -> String:
-	if not tier_enabled(tier_id):
-		return "disabled"
+	if not tier_enabled(tier_id) or String((server_tiers.get(tier_id, {}) as Dictionary).get("locked_reason", "")) == "tier_locked":
+		return "disabled"   # data off, or the server's kill switch ("Closed for now"), not a win-chain lock
 	if store.is_newcomer():
 		return "newcomer"
 	if not tier_unlocked(tier_id, store):

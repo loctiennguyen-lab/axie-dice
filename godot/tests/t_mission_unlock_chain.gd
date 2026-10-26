@@ -62,6 +62,10 @@ func _ready() -> void:
 	http_code[0] = 200
 	_ok(not MissionBoard.apply_unlocks(MetaState, "nope") and not MissionBoard.apply_unlocks(MetaState, {"x": 1}), "garbage answer refused")
 	_ok(MetaState.mission_unlock_cache == ["N1", "N2"], "garbage answer changes nothing")
+	# server kill switch: unlocked=false + locked_reason tier_locked reads "Closed for now", not a win-chain lock
+	MissionBoard.apply_unlocks(MetaState, {"tiers": {"N1": {"unlocked": true, "wins": 0, "needs": 0}, "N2": {"unlocked": false, "wins": 3, "needs": 1, "locked_reason": "tier_locked"}}})
+	_ok(MissionBoard.lock_reason("N2", MetaState) == "disabled", "tier_locked from the server = disabled, not chain")
+	MissionBoard.apply_unlocks(MetaState, board)
 	# lock text from the win counts (unlock_wins > 1 case and the plain one)
 	var s: MissionsScreen = load("res://scenes/missions/MissionsScreen.tscn").instantiate()
 	s.use_account = false
@@ -74,6 +78,9 @@ func _ready() -> void:
 	var fake := {"tier": "N3", "lock_reason": "chain", "unlock_prev": "N2", "unlock_need": 2, "unlock_wins": 1}
 	_ok(s.lock_text(fake) == "Win N2 2 times to unlock (1/2)", "lock text with 2 wins: " + s.lock_text(fake))
 	_ok(s.block_reason("N3") == "Win N2 to unlock", "disabled button reason")
+	MissionBoard.apply_unlocks(MetaState, {"tiers": {"N2": {"unlocked": false, "wins": 3, "needs": 1, "locked_reason": "tier_locked"}}})
+	_ok(s.lock_text(s.offer("N2")) == "Closed for now", "card says Closed for now: " + s.lock_text(s.offer("N2")))
+	MissionBoard.server_tiers = {}
 	s.queue_free()
 	MissionEscrowSync.transport_override = Callable()
 	MetaState.saved_run_probe = Callable()
