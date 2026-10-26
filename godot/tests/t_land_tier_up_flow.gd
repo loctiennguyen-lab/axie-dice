@@ -42,6 +42,8 @@ func _ready() -> void:
 	_check(int(h.get("_tier")) == 2, "Land opens on tier 2 with no reload")
 	var chip := h.find_child("UpgradeLand", true, false)
 	_check(chip != null, "chip opens the upgrade screen")
+	_check(h.find_child("TierBanner", true, false) != null, "banner after the upgrade")
+	h.call("_close_modal")
 	LandNav.last_path = ""
 	h.call("_on_land_pressed")
 	_check(LandNav.last_path.contains("land_upgrade"), "chip press goes to the upgrade screen")

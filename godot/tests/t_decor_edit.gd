@@ -11,6 +11,7 @@ func _ready() -> void:
 	MetaState.reload_from_store()
 	MetaState.tutorial_seen = true
 	MetaState.land_tier = 2
+	MetaState.land_tier_banner_seen = 2   # no banner modal in this test
 	MetaState.shard_pool = 100
 	var hub: LandHub = (load("res://scenes/land/Land.tscn") as PackedScene).instantiate()
 	add_child(hub)
