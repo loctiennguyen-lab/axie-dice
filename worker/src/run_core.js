@@ -21,7 +21,9 @@ export const BUCKET_PER_S = 5;
  * run_close sanity (SR0, WRITE-ONLY): the cheapest thing that catches "create a run, close it as won at once".
  * A failed check only marks the run (summary_json.srv.sanity + a 'close_sanity' log line); it never turns
  * `won` into `lost` and never holds a reward. TEMPORARY thresholds, deliberately low: tune them from the real
- * logs (query `summary_json -> srv.sanity`) before anything enforces. final_row = last boss row of the map
+ * logs (query `summary_json -> srv.sanity`) before anything enforces.
+ * HONEST LIMIT: this only catches the lazy (create, close as won at once). A client that waits ~2 min and sends fake
+ * enter_node/end_turn lines with its own hash chain passes. It does NOT stop a faked win; only the verifier (SR-V) does. final_row = last boss row of the map
  * mode (godot RunMapGenerator.MODE_CONFIG: short 18, full 30); the player walks one node per row.
  */
 export const CLOSE_SANITY = {

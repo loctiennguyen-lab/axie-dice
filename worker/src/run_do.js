@@ -36,7 +36,8 @@ export const CLOSE_SYNC_BUDGET_MS = 4_000;
  * logging out (cookie session deleted) or revoking the device (device_sessions.revoked) kills the token even
  * inside its 2 h TTL. Fails closed on a missing DB / jti. Cookie sessions: sessions.expires_at; desktop: a
  * non-revoked device_sessions row.
- * Not yet bound to the one session that minted the token (needs a `sid` claim minted in runs.js, N-W's file).
+ * ONLY "the player still has ANY login": NOT bound to the one session that minted the token (a stolen token survives
+ * a logout on device A while device B is logged in). TODO sid claim minted in runs.js (N-W's file), checked here.
  */
 export async function helloAllowed(env, claims, nowS = Math.floor(Date.now() / 1000)) {
   if (!env.DB || !claims || !claims.jti) return false;

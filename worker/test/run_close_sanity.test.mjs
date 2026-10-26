@@ -1,4 +1,4 @@
-// SR0: run_close sanity (WRITE-ONLY) + run token bound to a live login. Run from worker/:  node --test test/
+// SR0: run_close sanity (WRITE-ONLY; it only catches the LAZY, it does NOT stop a faked win) + run token bound to a live login. Run from worker/:  node --test test/
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -20,11 +20,12 @@ function fakeSql() {
 }
 
 /** A run walking `rows` nodes (one per row, last = boss unless noBoss), spending `secs` seconds, then run_close with `outcome`. */
-async function playAndClose({ mapMode = 'short', rows = 18, secs = 600, outcome = 'won', noBoss = false, padLog = 0, mode = 'normal' } = {}) {
+async function playAndClose({ mapMode = 'short', rows = 18, secs = 600, outcome = 'won', noBoss = false, padLog = 0, mode = 'normal', hook = null } = {}) {
   let t = 1_000_000;
   const events = [];
   const core = new RunCore(fakeSql(), { now: () => t, verifyToken: (tok) => verifyRunToken(ENV, tok), log: (e, d) => events.push([e, d]) });
   await core.init({ run_id: RUN, player_id: 'google:1', rules_version: RULES, mode });
+  if (hook) hook(core);
   const conn = { authed: false, epoch: 0 };
   const token = await signRunToken(ENV, { player_id: 'google:1', run_id: RUN, rules_version: RULES });
   await core.handle(conn, JSON.stringify({ t: 'hello', run_token: token, last_seq: 0 }));
@@ -99,6 +100,29 @@ test('closeSanity is null while the run is open', async () => {
 
 test('thresholds stay low and documented (tune from logs before enforcing)', () => {
   assert.ok(CLOSE_SANITY.min_enter_ratio <= 0.5 && CLOSE_SANITY.min_secs_per_row <= 10);
+});
+
+test('a sanity check that THROWS never blocks the close: reply ok, outcome and summary untouched', async () => {
+  const { core, out } = await playAndClose({ padLog: 30, hook: (c) => { c.closeSanity = () => { throw new Error('boom'); }; } });
+  assert.equal(out.t, 'closed');
+  assert.equal(core.meta().state, 'closed');
+  assert.equal(core.meta().outcome, 'won');
+  assert.equal(JSON.parse(core.meta().summary).battles_done, 18);
+});
+
+test('the D1 write-back survives a throwing sanity: same outcome row, no srv.sanity', async () => {
+  const { RunDO } = await import('../src/run_do.js');
+  const sockets = [];
+  const ctx = { storage: { sql: fakeSql(), getAlarm: async () => null, setAlarm: async () => {} }, getWebSockets: () => sockets, acceptWebSocket: () => {} };
+  const calls = [];
+  const d = new RunDO(ctx, { DB: { prepare: (q) => ({ bind: (...a) => ({ run: async () => { calls.push([q, a]); return { meta: { changes: 1 } }; } }) }) } });
+  await d.core.init({ run_id: RUN, player_id: 'p', rules_version: RULES });
+  d.core.sql.exec(`UPDATE meta SET state = 'closed', outcome = 'won', summary = '{"battles_done":3}' WHERE id = 1`);
+  d.core.closeSanity = () => { throw new Error('boom'); };
+  await d._syncClosed();
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][1][0], 'won');
+  assert.equal(JSON.parse(calls[0][1][3]).srv.sanity, undefined);
 });
 
 // ---------------------------------------------------------------- token bound to a live login
