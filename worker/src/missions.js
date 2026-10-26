@@ -36,7 +36,7 @@ const offTiers = (env) => String((env && env.MISSION_TIERS_OFF) || '').split(','
 // A run on older rules is only refunded by the sweep once it is this old (D1 has no last-activity column, so
 // created_at bounds it): a Short run lasts well under an hour, 3 h leaves a still-playing tab alone and the
 // client's own abandon() refunds the rest straight away.
-export const BUMP_STALE_S = 3 * 3600;
+export const BUMP_STALE_S = 12 * 3600;   // Full mode (N6) runs were never measured; 12h only delays refunds of truly abandoned runs (abandon() refunds at once). Tune after measuring Full.
 
 const tierNo = (id) => Number(id.slice(1));
 

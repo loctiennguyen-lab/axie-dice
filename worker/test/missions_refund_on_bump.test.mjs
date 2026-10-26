@@ -5,9 +5,10 @@ import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { setup, useFixture, OLD_RULES } from './_mission_harness.mjs';
 import { sweepPending } from '../src/runs.js';
+import { BUMP_STALE_S } from '../src/missions.js';
 
 beforeEach(() => useFixture());
-const bump = (s, id, ageS = 4 * 3600) => s.DB.db.prepare('UPDATE runs SET rules_version = ?, created_at = ? WHERE run_id = ?').run(OLD_RULES, Math.floor(Date.now() / 1000) - ageS, id);   // default: a cold run
+const bump = (s, id, ageS = BUMP_STALE_S + 3600) => s.DB.db.prepare('UPDATE runs SET rules_version = ?, created_at = ? WHERE run_id = ?').run(OLD_RULES, Math.floor(Date.now() / 1000) - ageS, id);   // default: a cold run
 const start = async (s, tier = 'N1', opts) => (await (await s.mission(tier, opts)).json()).run_id;
 const abandon = (s, id) => s.call(`/api/run/${id}/abandon`, { method: 'POST' });
 
@@ -111,9 +112,9 @@ test('a LIVE older-rules run (young) is not refunded by reconcile or cron: it ca
   assert.equal(s.DB.db.prepare('SELECT COUNT(*) AS n FROM mission_wins').get().n, 1);
 });
 
-test('the same run once it is cold (older than 3 h) is refunded by the sweep; abandon refunds at any age', async () => {
+test('the same run once it is cold (older than BUMP_STALE_S) is refunded by the sweep; abandon refunds at any age', async () => {
   const s = await setup();
-  const id = await start(s); bump(s, id, 3 * 3600 + 60);
+  const id = await start(s); bump(s, id, BUMP_STALE_S + 60);
   await sweepPending(s.env);
   assert.equal(s.row(id).state, 'refunded');
   const t = await setup();
