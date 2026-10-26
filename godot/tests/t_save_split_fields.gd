@@ -28,7 +28,7 @@ func _ready() -> void:
 	MetaState.starter_granted = true
 	MetaState.shard_pool = 500
 	MetaState.stone = 40
-	MetaState.unlocks.append("u_hp")
+	MetaState.unlocks.append("u_full")
 	MetaState.runs = 4
 	MetaState.save_to_disk()
 	svc._dirty = true
@@ -42,9 +42,9 @@ func _ready() -> void:
 	for k in MetaState.SERVER_FIELDS:
 		_check(not meta.has(k), "PUT body has no " + k)
 	# a cloud save with inflated money must not land
-	svc._apply_server({"rev": 5, "meta": {"shard_pool": 99999, "stone": 99999, "unlocks": ["u_all"], "runs": 7}, "run": null})
+	svc._apply_server({"rev": 5, "meta": {"save_version": 2, "shard_pool": 99999, "stone": 99999, "unlocks": ["u_all"], "runs": 7}, "run": null})
 	_check(MetaState.runs == 7, "non-money fields come from the cloud save")
-	_check(MetaState.shard_pool == 500 and MetaState.stone == 40 and MetaState.has_unlock("u_hp") and not MetaState.has_unlock("u_all"),
+	_check(MetaState.shard_pool == 500 and MetaState.stone == 40 and MetaState.has_unlock("u_full") and not MetaState.has_unlock("u_all"),
 		"money fields kept from the device cache, cloud values ignored")
 	svc.queue_free()
 	SaveStore.profile = ""
