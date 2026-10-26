@@ -18,6 +18,7 @@ extends Node
 ## Engine gaps handled here (no engine edits): bot rng, preview via engine.preview_damage, private
 ## engine._face_value for non-dmg values.
 
+const _Econ := preload("res://scripts/meta/economy_db.gd")
 const MAX_TURNS := 60
 const STUCK_TURNS := 20
 const MAX_NODES := 60
@@ -60,7 +61,7 @@ var _turns_total := 0
 var _team_keys: Array = []
 var _force_rule := ""      # --force_run_rule=<id>
 var _arg_error := ""       # set by parse_mission_args
-## Mission ladder from design/proposals/nhiem-vu-beta-brainstorm.md section 2 (Huong B). Sim input, not game data.
+## Fallback ladder (used only for a tier whose missions.json entry has no `rules` array) from design/proposals/nhiem-vu-beta-brainstorm.md section 2 (Huong B). Sim input, not game data.
 const LADDER := {
 	"N1": {"mode": "short", "asc": 0, "rules": []},
 	"N2": {"mode": "short", "asc": 1, "rules": ["M6"]},
@@ -185,6 +186,12 @@ func run_batch(args: Dictionary) -> Array:
 			variants.append({"label": "", "tier": "", "mode": String(args.get("mode", "short")), "asc": int(asc_s), "rules": [], "kind": ""})
 	else:
 		_anchor_mode = String(args.get("anchor", "auto"))
+		for cfg0 in variants:
+			if String(cfg0["kind"]) == "mission" and _anchor_mode != "auto" and _anchor_mode != "none":
+				var w := "sim_balance WARNING: --anchor=%s has no effect in a mission run (kind=mission: RunState.anchor_gate_reason blocks Anchors). Use --kind=normal to test Anchors." % _anchor_mode
+				push_warning(w)
+				print(w)
+				break
 		_stage = clampi(int(args.get("stage", 3)), 1, 3)
 	_force_rule = String(args.get("force_run_rule", ""))
 	if _force_rule != "":
@@ -238,6 +245,7 @@ func parse_mission_args(args: Dictionary) -> Dictionary:
 		if tiers.is_empty():
 			out["error"] = "--mission is empty"
 			return out
+	var table_tiers: Dictionary = ((args["_table"] if args.has("_table") else _Econ.get_table("missions")) as Dictionary).get("tiers", {})
 	var rules_o: Array = []
 	var has_rules := args.has("rules")
 	if has_rules:
@@ -257,11 +265,16 @@ func parse_mission_args(args: Dictionary) -> Dictionary:
 			asc_o.append(int(a))
 	for tid in tiers:
 		var base: Dictionary = LADDER.get(tid, {"mode": "short", "asc": 0, "rules": []})
+		var src := "brainstorm(bs)" if tid != "custom" else "custom"
+		var tt: Dictionary = (table_tiers.get(tid, {}) as Dictionary)
+		if tid != "custom" and tt.get("rules", null) is Array:   # new form: the table the game reads
+			base = {"mode": String(tt.get("mode", "short")), "asc": int(tt.get("ascension", 0)), "rules": (tt["rules"] as Array).map(func(x): return String(x))}
+			src = "missions.json"
 		var ascs: Array = asc_o if not asc_o.is_empty() else [int(base["asc"])]
 		for asc in ascs:
 			var rules: Array = rules_o.duplicate() if has_rules else (base["rules"] as Array).duplicate()
 			var mode := mode_o if has_mode else String(base["mode"])
-			var label := String(tid)
+			var label := String(tid) + ("(bs)" if src.begins_with("brainstorm") else "")
 			var mods: Array = []
 			if asc != int(base["asc"]):
 				mods.append("A%d" % asc)
@@ -273,7 +286,7 @@ func parse_mission_args(args: Dictionary) -> Dictionary:
 				label = "custom@A%d[%s]" % [asc, "+".join(rules) if not rules.is_empty() else "none"] + ("" if mode == "short" else "/" + mode)
 			elif not mods.is_empty():
 				label += "{" + ",".join(mods) + "}"
-			(out["configs"] as Array).append({"label": label, "tier": tid, "mode": mode, "asc": int(asc), "rules": rules, "kind": kind})
+			(out["configs"] as Array).append({"label": label, "tier": tid, "mode": mode, "asc": int(asc), "rules": rules, "kind": kind, "src": src})
 	return out
 
 
@@ -403,7 +416,7 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 		"trig": _trig.keys(), "m": _met.duplicate(),
 		"anchor": RunState.anchor_id, "aw_node": _anchor_aw_node, "aw_turn": _anchor_aw_turn,
 		"mut": _anchor_mut.duplicate(), "combos": RunState.combo_done.size(),
-		"cfg": cfg_label, "mode": String(cfg.get("mode", "short")), "rules": "+".join(cfg.get("rules", []) as Array)}
+		"cfg": cfg_label, "src": String(cfg.get("src", "")), "kind": String(cfg.get("kind", "")), "mode": String(cfg.get("mode", "short")), "rules": "+".join(cfg.get("rules", []) as Array)}
 
 
 # ---------------------------------------------------------------- rewards / cores

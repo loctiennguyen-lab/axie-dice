@@ -16,7 +16,7 @@ static func write(recs: Array, out_dir: String, tag: String, secs: float, catalo
 	var date := Time.get_date_string_from_system()
 	var base := out_dir.path_join("sim-%s-%s" % [date, tag])
 	var csv := FileAccess.open(base + ".csv", FileAccess.WRITE)
-	csv.store_line("seed,policy,core_policy,team,asc,won,death_kind,death_row,rule,cores,fights,offered,picked,trig,m_turns,m_dmg,m_v0,m_v1,m_dsq,boss_n,boss_turns,boss_won,boss_hp," + ",".join(MX_COLS) + ",anchor,aw_node,aw_turn,mut,combos,cfg,mode,rules")
+	csv.store_line("seed,policy,core_policy,team,asc,won,death_kind,death_row,rule,cores,fights,offered,picked,trig,m_turns,m_dmg,m_v0,m_v1,m_dsq,boss_n,boss_turns,boss_won,boss_hp," + ",".join(MX_COLS) + ",anchor,aw_node,aw_turn,mut,combos,cfg,mode,rules,src,kind")
 	for r in recs:
 		var fs: Array = []
 		for f in r["fights"]:
@@ -25,7 +25,7 @@ static func write(recs: Array, out_dir: String, tag: String, secs: float, catalo
 			r["asc"], 1 if r["won"] else 0, r["death_kind"], r["death_row"], r["rule"], ";".join(r["cores"]), ";".join(fs),
 			";".join(r["offered"]), ";".join(r["picked"]), ";".join(r["trig"]), _mcols(r)] + ",%s,%d,%d,%s,%d" % [r.get("anchor", ""), int(r.get("aw_node", -1)), int(r.get("aw_turn", -1)),
 			";".join((r.get("mut", {}) as Dictionary).keys().map(func(k): return "%s:%d" % [k, int(r["mut"][k])])), int(r.get("combos", 0))]
-			+ ",%s,%s,%s" % [str(r.get("cfg", "")).replace(",", ";"), r.get("mode", "short"), r.get("rules", "")])
+			+ ",%s,%s,%s,%s,%s" % [str(r.get("cfg", "")).replace(",", ";"), r.get("mode", "short"), r.get("rules", ""), r.get("src", ""), r.get("kind", "")])
 	csv.close()
 	var md := build_md(recs, tag, secs, catalog)
 	var f := FileAccess.open(base + ".md", FileAccess.WRITE)
@@ -287,6 +287,8 @@ static func read_csvs(paths: Array) -> Array:
 				out[-1].merge({"anchor": c[ai], "aw_node": int(c[ai + 1]), "aw_turn": int(c[ai + 2]), "mut": mut, "combos": int(c[ai + 4])})
 			if c.size() >= ai + 8:
 				out[-1].merge({"cfg": c[ai + 5].replace(";", ","), "mode": c[ai + 6], "rules": c[ai + 7]})
+			if c.size() >= ai + 10:
+				out[-1].merge({"src": c[ai + 8], "kind": c[ai + 9]})
 	return out
 
 
@@ -576,12 +578,25 @@ static func mission_section(recs: Array) -> String:
 			cell[k] = {}
 			if not order.has(c):
 				order.append(c)
-		(cell[k] as Dictionary)[int(r["seed"])] = 1 if r["won"] else 0
+		# key = seed + team + core policy (+ #n if the very same key repeats, e.g. two --from lots): nothing is overwritten.
+		var sk := "%d|%s|%s" % [int(r["seed"]), str(r.get("team", "")), str(r.get("core_policy", ""))]
+		var dup := 0
+		while (cell[k] as Dictionary).has(sk + ("" if dup == 0 else "#%d" % dup)):
+			dup += 1
+		(cell[k] as Dictionary)[sk + ("" if dup == 0 else "#%d" % dup)] = 1 if r["won"] else 0
 	var pols: Array = []
 	for r in recs:
 		if not pols.has(r["policy"]):
 			pols.append(r["policy"])
-	var out := "## Nhiem vu: ti le thang (CI 95% Wilson, SE = sqrt(p(1-p)/n))\n\n| cau hinh | chinh sach | n | thang | p | SE | CI 95% | mode | rules | Asc |\n|---|---|---|---|---|---|---|---|---|---|\n"
+	var srcs := {}
+	var kinds := {}
+	for r in recs:
+		if str(r.get("cfg", "")) != "":
+			srcs[str(r.get("src", "?"))] = true
+			kinds[str(r.get("kind", "?"))] = true
+	var out := "Nguon bang bac: %s. Kind: %s.%s\n\n" % [", ".join(srcs.keys()), ", ".join(kinds.keys()),
+		" Anchor: KHONG co trong run Nhiem vu (gate kind, RunState.anchor_gate_reason ~dong 2537), --anchor khong doi ket qua." if kinds.has("mission") else ""]
+	out += "## Nhiem vu: ti le thang (CI 95% Wilson, SE = sqrt(p(1-p)/n))\n\n| cau hinh | chinh sach | n | thang | p | SE | CI 95% | mode | rules | Asc |\n|---|---|---|---|---|---|---|---|---|---|\n"
 	var meta := {}
 	for r in recs:
 		var c2 := str(r.get("cfg", ""))
@@ -625,8 +640,11 @@ static func mission_section(recs: Array) -> String:
 				if n_pair == 0:
 					continue
 				var diff := float(b_only - a_only) / n_pair
-				var var_d := (float(a_only + b_only) / n_pair - diff * diff) / maxf(1.0, n_pair - 1.0)
+				# SE = sqrt(((a+b+1)/n - d^2) / (n-1)): the usual paired estimate with one extra discordant pair as a floor,
+				# so "no discordant pair" gives a small positive SE, never a zero-width CI. Few discordant pairs: reference only.
+				var var_d := (float(a_only + b_only + 1) / n_pair - diff * diff) / maxf(1.0, n_pair - 1.0)
 				var se := sqrt(maxf(0.0, var_d))
-				out += "| %s -> %s | %s | %d | %d | %d | %+.1f | %.1f | %+.1f..%+.1f |\n" % [order[i - 1], order[i], pol, n_pair, a_only, b_only,
-					100.0 * diff, 100.0 * se, 100.0 * (diff - 1.96 * se), 100.0 * (diff + 1.96 * se)]
+				var note := " (it lech < 10, tham khao)" if a_only + b_only < 10 else ""
+				out += "| %s -> %s | %s | %d | %d | %d | %+.1f | %.1f | %+.1f..%+.1f%s |\n" % [order[i - 1], order[i], pol, n_pair, a_only, b_only,
+					100.0 * diff, 100.0 * se, 100.0 * (diff - 1.96 * se), 100.0 * (diff + 1.96 * se), note]
 	return out + "\n"
