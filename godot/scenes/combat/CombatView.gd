@@ -1865,7 +1865,7 @@ func _anchor_die_mark(u: Unit) -> Dictionary:
 		if bool(_combat.call("_pf_ready", u)):
 			return {"text": TranslationServer.translate("FREE · 0 mana"), "house": house,
 				"tip": TranslationServer.translate("Passed Flame: this carried die joins any SET as a Temp Face, free of mana.")}
-		var add := float(_combat.call("_anchor_embers_add100", u)) / 100.0
+		var add := float(_combat.call("anchor_embers_real100", u)) / 100.0   # real value after the M cap, not the knob
 		var amt := String.num(add, 2).rstrip("0").rstrip(".")
 		return {"text": TranslationServer.translate("EMBER +%s") % amt, "house": house,
 			"tip": TranslationServer.translate("Carried Held die: +%s when used.") % String.num(add, 2)}

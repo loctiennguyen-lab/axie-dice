@@ -51,7 +51,7 @@ func run() -> void:
 	BoTestBase.force(b5, [1, 1, 1, 1, 1], all5)
 	var plain5 := _eng("")
 	BoTestBase.force(plain5, [1, 1, 1, 1, 1], all5)
-	eq(b5.m100_for(b5.party[0]), mini(plain5.m100_for(plain5.party[0]) + _k100("big_set45_add"), b5.bo_cap100()), "Big Hand: SET of 5 +0.40, capped")
+	eq(b5.m100_for(b5.party[0]), mini(plain5.m100_for(plain5.party[0]) + _k100("big_set45_add"), b5.bo_cap100()), "Big Hand: SET of 5 +big_set45_add, capped by the M cap")
 	# --- Embers ---
 	var m := _eng("a_embers")
 	eq(m.stash_cap(), 2, "Embers: Hold 2 dice")
@@ -72,6 +72,10 @@ func run() -> void:
 	BoTestBase.force(loose, [1, 1, 1, 2, 3], all5)
 	(loose.party[0] as Unit).stash_carry = true
 	eq(loose.m100_for(loose.party[0]), mini(130 + _k100("embers_add"), loose.bo_cap100()), "Embers: carried die in a SET stacks +embers_add (under the M cap)")
+	eq(loose.anchor_embers_real100(loose.party[0]), loose.bo_cap100() - 130, "Embers chip shows the real value after the M cap, not the knob")
+	ok(loose.party[0].stash_carry, "real-value probe leaves the carry flag as it was")
+	for aid in ["a_embers", "a_big_hand"]:
+		ok(String(Anchors.get_def(aid).get("rule_en", "")).contains("%.2f" % (loose.bo_cap100() / 100.0)), "%s rule text states the M cap" % aid)
 	ContentDB.combat_tune["bo"]["m_cap"] = 1.4
 	eq(loose.m100_for(loose.party[0]), 140, "Embers: cap holds")
 	set_knobs("default")

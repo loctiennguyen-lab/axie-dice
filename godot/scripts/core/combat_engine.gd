@@ -2167,6 +2167,18 @@ func _anchor_embers_add100(u: Unit) -> int:
 	return roundi(tune_knob("anchor", "embers_add", 0.50) * 100.0)
 
 
+## What the Embers bonus is really worth on this die after the M cap (x100): m100_for with the carry minus m100_for without it.
+## The knob can promise more than the cap lets through (die M 1.00 + 2.25 reads 3.25 but is capped at 3.00), so UI shows this, not the knob.
+func anchor_embers_real100(u: Unit) -> int:
+	if _anchor_embers_add100(u) == 0:
+		return 0
+	var with_carry := m100_for(u)
+	u.stash_carry = false
+	var without := m100_for(u)
+	u.stash_carry = true
+	return with_carry - without
+
+
 ## Passed Flame (awakened Embers): once per turn a carried Held die may take a Temp Face (Mat Tam) with no mana and no battle-limit cost.
 func _pf_ready(u: Unit) -> bool:
 	return anchor_awakened and anchor_id == "a_embers" and u != null and u.stash_carry and not bool(anchor_turn.get("pf_used", false))
