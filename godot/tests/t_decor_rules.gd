@@ -41,6 +41,12 @@ func _ready() -> void:
 	_ok(LandDecor.placement_block("decor_for_tree2", P, [], ctx, 1, rare).contains("tier 2"), "min_tier blocks placing on tier 1")
 	_ok(LandDecor.placement_block("decor_for_tree2", P, [], ctx, 2, rare) == "", "min_tier ok on tier 2")
 	_ok(LandDecor.sanitize([{"id": "decor_for_tree2", "x": 8.0, "z": -3.0, "rot": 0}], rare, 1).is_empty(), "sanitize drops above-tier decor")
+	var owned_before := rare.duplicate()
+	var save_placed := [{"id": "decor_for_tree2", "x": 8.0, "z": -3.0, "rot": 0}]
+	var cleaned := LandDecor.sanitize(save_placed, rare, 1)
+	_ok(cleaned.is_empty() and LandDecor.count_placed(cleaned, "decor_for_tree2") == 0, "Rare placed on T1 leaves placed")
+	_ok(rare == owned_before and int(rare["decor_for_tree2"]) == 1, "owned untouched by sanitize")
+	_ok(LandDecor.in_storage("decor_for_tree2", cleaned, rare) == 1, "the copy is back in storage, not deleted")
 	_ok(LandDecor.sanitize([{"id": "decor_for_tree2", "x": 8.0, "z": -3.0, "rot": 0}], rare, 2).size() == 1, "sanitize keeps it on tier 2")
 	_ok(LandDecor.craft_block("decor_trophy", 6, {}, 999) != "", "trophy not craftable")
 	for x in _f:
