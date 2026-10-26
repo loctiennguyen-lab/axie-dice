@@ -48,6 +48,7 @@ const FLY_TIME := 0.240
 const SHAKE_PX := 6.0
 const SHAKE_STEP := 0.080
 const SETTLE_TIMEOUT := 2.4
+const PENDING_NUDGE := 0.45   ## a die still waiting for its result gets a small hop this often once it is at rest
 const TILE_BIG := 88.0
 const TILE_SMALL := 56.0
 const IVORY := Color("FFE5B4")      # token kam-9
@@ -148,7 +149,7 @@ func roll(entries: Array, tray_target: Callable) -> void:
 			"crit": bool(e.get("crit", false)), "small": bool(e.get("small", false)),
 			"skin": _skin_of(e), "faces": _faces_of(e), "result_index": clampi(int(e.get("result_index", 0)), 0, 5),
 			"slot": e.get("slot_node"), "phase": 0, "t": 0.0, "air": 0.0, "tnext": 0.0,
-			"locked": false, "settled": false, "bounced": false,
+			"locked": false, "settled": false, "bounced": false, "pending": bool(e.get("pending", false)), "nudge": 0.0,
 			"body": null, "pivot": null, "face": null, "glyph": null, "num": null, "tile": null,
 		})
 	var in_use: Array = []
@@ -381,6 +382,43 @@ func _faces_of(e: Dictionary) -> Array:
 		return f
 	var one := {"type": String(e.get("face_type", "blank")), "value": int(e.get("value", 0))}
 	return [one, one, one, one, one, one]
+
+
+## "Throw first, decide later" (SR0 / PB): same as roll(), but the dice carry no result yet. They fly and
+## tumble now; none of them settles until resolve() has given it its result. entries need `slot_node` and
+## `faces` (the unit's real die); face_type / value / result_index are placeholders.
+func roll_pending(entries: Array, tray_target: Callable) -> void:
+	var marked: Array = []
+	for e in entries:
+		var m: Dictionary = (e as Dictionary).duplicate()
+		m["pending"] = true
+		marked.append(m)
+	roll(marked, tray_target)
+
+
+## Gives the dice of a roll_pending() their results (same entry shape as roll(), same order). The dice that
+## are already at rest turn to the result face on the next frame. Returns false when nothing is in the air.
+func resolve(entries: Array) -> bool:
+	if not _active or _dice.is_empty():
+		return false
+	for i in mini(entries.size(), _dice.size()):
+		var e: Dictionary = entries[i]
+		var d := _dice[i]
+		d["face_type"] = String(e.get("face_type", "blank"))
+		d["value"] = int(e.get("value", 0))
+		d["crit"] = bool(e.get("crit", false))
+		d["small"] = bool(e.get("small", false))
+		d["result_index"] = clampi(int(e.get("result_index", 0)), 0, 5)
+		d["pending"] = false
+	return true
+
+
+## True while at least one die of the current roll still waits for resolve().
+func has_pending() -> bool:
+	for d in _dice:
+		if bool(d.get("pending", false)):
+			return true
+	return false
 
 
 func _begin_physics(token: int) -> void:
@@ -662,6 +700,15 @@ func _step_air(d: Dictionary, delta: float) -> void:
 		_clamp_to_zone(body)
 	var rest := air > FLIGHT + 0.2 and body.linear_velocity.length() < 0.2 \
 		and body.angular_velocity.length() < 0.6
+	if bool(d.get("pending", false)):
+		# No result yet: keep the die alive with a small hop now and then instead of letting it lie still.
+		if rest or body.sleeping or air >= SETTLE_TIMEOUT:
+			d["nudge"] = float(d["nudge"]) + delta
+			if float(d["nudge"]) >= PENDING_NUDGE:
+				d["nudge"] = 0.0
+				body.apply_central_impulse(Vector3(_rng.randf_range(-0.5, 0.5), 1.6, _rng.randf_range(-0.5, 0.5)) * body.mass)
+				body.apply_torque_impulse(Vector3(_rng.randf_range(-1.5, 1.5), _rng.randf_range(-3.0, 3.0), _rng.randf_range(-1.5, 1.5)))
+		return
 	if rest or body.sleeping or air >= SETTLE_TIMEOUT:
 		body.freeze = true
 		d["settled"] = true

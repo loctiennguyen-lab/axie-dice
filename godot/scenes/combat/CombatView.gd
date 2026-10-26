@@ -2885,10 +2885,13 @@ func _do_reroll(uids: Array, rmode: int) -> void:
 			_reroll_prev[uid] = _combat.by_uid(uid).roll_face_index()
 	var gamble_on := rmode == 0 and _combat.depth_stage >= 2
 	_dm_audio.play("dm_gamble_arm" if gamble_on else ("dm_reroll_safe" if rmode != 0 else "dm_roll"))
+	_begin_pre_throw(uids, rmode)   # PB: the dice fly NOW, the seed lands while they roll
 	var rr: Dictionary = await _combat.request_reroll_dice(uids, false, rmode)
 	if not _still_running():
 		return
 	var ok := bool(rr["ok"])
+	if not ok:
+		_cancel_pre_throw()
 	if ok and gamble_on:
 		var cracked := 0
 		for uid in uids:
@@ -2904,6 +2907,7 @@ func _do_reroll(uids: Array, rmode: int) -> void:
 	_selected_die_uid = -1
 	# The rebuild sees the rerolled dice in _reroll_prev and throws them in 3D, like the first roll.
 	_rebuild_all()
+	_cancel_pre_throw()   # no-op when the rebuild handed the faces to the dice in the air
 	_save_run_progress()
 
 
@@ -4035,7 +4039,10 @@ func _start_dice_throw(fresh: Array) -> void:
 		for i in info:
 			_show_reroll_tags(i)
 		return
-	_land_dice_now()   # an older roll still in the air lands first (its arrivals reach the handler)
+	var live_pre := _pre_throw_matches(entries)
+	if not live_pre:
+		_cancel_pre_throw()
+		_land_dice_now()   # an older roll still in the air lands first (its arrivals reach the handler)
 	for i in info:
 		_dice_pending[int(i["uid"])] = true
 	if roller.die_arrived.is_connected(_on_throw_arrived):
@@ -4048,7 +4055,88 @@ func _start_dice_throw(fresh: Array) -> void:
 	for sl in slots:
 		(_die_slot_buttons[int(sl)] as Button).modulate.a = 0.0
 	roller.die_arrived.connect(_on_throw_arrived)
-	roller.roll(entries, _throw_tray_target)
+	if live_pre:
+		_pre_throw_uids.clear()
+		roller.resolve(entries)   # the dice are already in the air: they now get their faces
+	else:
+		roller.roll(entries, _throw_tray_target)
+
+
+## SR0 (PB, Liam 26/10): "throw first, decide later". Last pre-throw, read by tests:
+## {uids, thrown (a real 3D throw went up, false headless / reduced motion)}.
+var last_pre_throw: Dictionary = {}
+var _pre_throw_uids: Array = []   # uids of the dice in the air waiting for their seed; empty = none
+
+
+## Starts the 3D throw of `uids` before their seed is back. Only with an epoch source (the online path):
+## the local path has no wait. Visual only: the engine is untouched until the seed arrives, and
+## `_start_dice_throw` then hands the real faces to the SAME dice (DiceRoller3D.resolve), so the end
+## state and the action log are exactly what a seed that came at once would give.
+func _begin_pre_throw(uids: Array, rmode: int) -> void:
+	last_pre_throw = {}
+	_pre_throw_uids.clear()
+	if _combat._epoch == null or not _combat.can_reroll(uids, false, rmode):
+		return
+	var units: Array = []
+	var slots: Array = []
+	var party := _party_dice_units()
+	for i in party.size():
+		var u: Unit = party[i]
+		if uids.has(u.uid) and u.die.size() >= 1:
+			units.append(u)
+			slots.append(i)
+	if units.is_empty():
+		return
+	var entries: Array = []
+	for u in units:
+		var faces: Array = []
+		for k in (u as Unit).die.size():
+			faces.append({"type": String(((u as Unit).die[k] as Dictionary).get("type", "blank")),
+				"value": _live_face_value(u, k)})
+		entries.append({"slot_node": _stage3d.slot_node_of(u.uid) if is_instance_valid(_stage3d) else null,
+			"faces": faces, "result_index": 0, "face_type": String(faces[0]["type"]),
+			"value": int(faces[0]["value"]), "small": (u as Unit).is_token, "uid": u.uid})
+	last_pre_throw = {"uids": units.map(func(u): return (u as Unit).uid), "thrown": false}
+	if disable_juice_for_tests or not is_instance_valid(_stage3d) or MetaState.reduce_flash:
+		return
+	var roller := _stage3d.get_dice_roller()
+	if roller == null or roller.will_skip():
+		return
+	_land_dice_now()
+	_dm_audio.play("dm_roll")
+	for u in units:
+		_dice_pending[(u as Unit).uid] = true
+	if roller.die_arrived.is_connected(_on_throw_arrived):
+		roller.die_arrived.disconnect(_on_throw_arrived)
+	_throw_uids = units.map(func(u): return (u as Unit).uid)
+	_throw_slots = slots
+	_throw_info = []
+	for sl in slots:
+		(_die_slot_buttons[int(sl)] as Button).modulate.a = 0.0
+	roller.die_arrived.connect(_on_throw_arrived)
+	_pre_throw_uids = _throw_uids.duplicate()
+	last_pre_throw["thrown"] = true
+	roller.roll_pending(entries, _throw_tray_target)
+
+
+## True when the dice in the air are exactly the ones `entries` is about (same uids, same order).
+func _pre_throw_matches(entries: Array) -> bool:
+	if _pre_throw_uids.is_empty() or entries.size() != _pre_throw_uids.size():
+		return false
+	if not is_instance_valid(_stage3d) or _stage3d.get_dice_roller() == null or not _stage3d.get_dice_roller().is_rolling():
+		return false
+	for i in entries.size():
+		if int(entries[i]["uid"]) != int(_pre_throw_uids[i]):
+			return false
+	return true
+
+
+## The seed failed (or the throw does not match): the waiting dice land at once, their cards come back.
+func _cancel_pre_throw() -> void:
+	if _pre_throw_uids.is_empty():
+		return
+	_pre_throw_uids.clear()
+	_land_dice_now()
 
 
 func _throw_tray_target(i: int) -> Vector2:

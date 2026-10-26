@@ -31,6 +31,9 @@ var _gate_queue: Array = []   # {op, reply} of _gated() callers, served one at a
 var _gate_busy := false
 ## reconnect() gives up after this long (the HTTP call may never settle) and settles "offline". Tests shorten it.
 var reconnect_timeout_s: float = RECONNECT_TIMEOUT_S
+## Round trip (ms) of every epoch / aid request of this session, send -> reply. Memory only, never sent anywhere.
+## Read in the browser console via the "[epoch_rtt]" lines; `rtt_stats()` gives p50 / p95.
+var _rtt_ms: Array[int] = []
 
 
 func _init(p_session: RunSession = null, rules_version: String = "") -> void:
@@ -46,6 +49,22 @@ static func flag_on() -> bool:
 
 func is_remote() -> bool:
 	return true
+
+
+## Records one request's round trip and prints it (browser console). `elapsed_ms` = reply time - send time.
+func note_rtt(kind: String, elapsed_ms: int) -> void:
+	_rtt_ms.append(maxi(elapsed_ms, 0))
+	print("[epoch_rtt] ms=%d kind=%s" % [elapsed_ms, kind])
+
+
+## {n, p50, p95} over this session's requests (nearest-rank); zeros when there is none yet.
+func rtt_stats() -> Dictionary:
+	if _rtt_ms.is_empty():
+		return {"n": 0, "p50": 0, "p95": 0}
+	var a := _rtt_ms.duplicate()
+	a.sort()
+	return {"n": a.size(), "p50": a[clampi(ceili(0.5 * a.size()) - 1, 0, a.size() - 1)],
+		"p95": a[clampi(ceili(0.95 * a.size()) - 1, 0, a.size() - 1)]}
 
 
 ## params = RunParams (contract 3.6): mode short|full, ascension, kind, loadout, mission_offer_id.
@@ -168,8 +187,10 @@ func _request_now(kind: String, args: Dictionary) -> EpochReply:
 		"log_delta": _delta_entries(int(peek["log_len"])), "h": String(peek["h"]), "log_len": int(peek["log_len"])}
 	_stamp_stage(msg)
 	var inner := EpochReply.new()
+	var t0 := Time.get_ticks_msec()
 	session.submit(msg, inner)
 	_when_done(inner, func() -> void:
+		note_rtt(kind, Time.get_ticks_msec() - t0)
 		if not inner.ok:
 			reply.settle(false, 0, inner.code)
 			return
@@ -202,8 +223,10 @@ func _aid_now(aid_id: String, args: Dictionary) -> EpochReply:
 		"log_delta": _delta_entries(int(peek["log_len"])), "h": String(peek["h"]), "log_len": int(peek["log_len"])}
 	_stamp_stage(msg)
 	var inner := EpochReply.new()
+	var t0 := Time.get_ticks_msec()
 	session.submit(msg, inner)
 	_when_done(inner, func() -> void:
+		note_rtt("aid", Time.get_ticks_msec() - t0)
 		if not inner.ok:
 			reply.settle(false, 0, inner.code)
 			return
