@@ -1300,6 +1300,9 @@ func _overcast_state(executing: bool) -> Dictionary:
 
 ## Overcast: pays mana and powers the picked die up (engine `overcast`, logged as `overcast [uid]`).
 func _on_overcast_pressed() -> void:
+	# SR0: one seed request in flight = no other dice action (never queue a second action on an unknown result)
+	if _combat.epoch_pending:
+		return
 	_land_dice_now()
 	if _is_animating or _gated("overcast") or _selected_die_uid == -1:
 		return
@@ -1311,6 +1314,9 @@ func _on_overcast_pressed() -> void:
 
 ## Hold: parks the picked die (engine `stash`, logged as `stash [uid]`).
 func _on_hold_pressed() -> void:
+	# SR0: one seed request in flight = no other dice action (never queue a second action on an unknown result)
+	if _combat.epoch_pending:
+		return
 	_land_dice_now()
 	if _is_animating or _gated("hold") or _selected_die_uid == -1:
 		return
@@ -2711,6 +2717,9 @@ func set_tutorial_gate(allows: Callable) -> void:
 
 
 func _on_die_slot_pressed(slot_index: int) -> void:
+	# SR0: one seed request in flight = no other dice action (never queue a second action on an unknown result)
+	if _combat.epoch_pending:
+		return
 	_land_dice_now()
 	if _is_animating:
 		return
@@ -2795,6 +2804,9 @@ func _play_active_now(relic_id: String, target_uid: int) -> void:
 
 
 func _on_target_clicked(uid: int) -> void:
+	# SR0: one seed request in flight = no other dice action (never queue a second action on an unknown result)
+	if _combat.epoch_pending:
+		return
 	if _is_animating:
 		return
 	if _gated("target:%d" % uid):
@@ -3124,6 +3136,9 @@ func _on_log_toggle_pressed() -> void:
 ## already-public engine API this pass simply exposes in the UI; no new gameplay rule added here
 ## (file-header: "NEVER contains game rules itself").
 func _on_undo_pressed() -> void:
+	# SR0: one seed request in flight = no other dice action (never queue a second action on an unknown result)
+	if _combat.epoch_pending:
+		return
 	_land_dice_now()   # dice still in the air land first: no tags / pending cards for an undone roll
 	_exit_rr_mode(false)
 	_reroll_prev.clear()
@@ -4710,6 +4725,9 @@ func _wild_pick_die(uid: int) -> void:
 
 
 func _on_wild_chosen(slot: int) -> void:
+	# SR0: one seed request in flight = no other dice action (never queue a second action on an unknown result)
+	if _combat.epoch_pending:
+		return
 	if not _wild_mode or _wild_uid == -1:
 		return
 	if _combat.wild_face(_wild_uid, slot):
