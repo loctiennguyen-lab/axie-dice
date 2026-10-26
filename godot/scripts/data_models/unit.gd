@@ -37,7 +37,7 @@ var heavy: bool = false         # current rolled face has the `heavy` keyword �
                                  # every roll, blocks reroll (JS u.heavy)
 
 ## 6 faces, each {part: String, type: String, value: int, keywords: Array[String], rarity: int}.
-## `rarity` (0..4, COMMON..MYTHIC) is carried through even though the minimum spec only asked
+## `rarity` (0..4, COMMON..LEGENDARY; Mythic is tier 5 and cosmetic only) is carried through even though the minimum spec only asked
 ## for {type,value,part,keywords} — it's free to keep (straight copy from HEROES data) and is
 ## needed later for "Golden/Cosmic Die" visual tier (rule spec §11); dropping it would mean
 ## re-adding it as a schema change once that UI ships.

@@ -26,7 +26,13 @@ func _port_open(port: int) -> bool:
 		c.poll()
 		var st := c.get_status()
 		if st == StreamPeerTCP.STATUS_CONNECTED:
-			ok = true
+			# macOS reports a REFUSED loopback connect as CONNECTED for one frame, then NONE (measured with a probe:
+			# closed port -> [CONNECTING, CONNECTED, NONE, ...]; real listener -> CONNECTED stays). So "connected" only
+			# counts if it is still connected a few frames later. The assert itself is unchanged.
+			for _k in 6:
+				await get_tree().process_frame
+				c.poll()
+			ok = c.get_status() == StreamPeerTCP.STATUS_CONNECTED
 			break
 		if st == StreamPeerTCP.STATUS_ERROR or st == StreamPeerTCP.STATUS_NONE:
 			break
