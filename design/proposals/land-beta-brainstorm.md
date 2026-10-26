@@ -2,6 +2,137 @@
 
 > **Liam duyệt 26/10 (trả lời từng câu):** (1) nâng nhà Nhiệm vụ: HOÃN, nhà giữ cấp 1, mở bậc bằng chuỗi thắng. (2) KHOÁ SỐ theo sim bot luôn, KHÔNG chờ Liam chơi ~30 run hiệu chuẩn. (3) BẬT cược Shard (cả các bậc, không chờ server kiểm hết; việc Worker kiểm rules/mở bậc vẫn làm nhưng không chặn bật). (4) GIỮ "heavy không lãi N1-N4"; N6 bậc danh hiệu. (5) Gói beta Land: CÓ. (6) Beta chạy CHỦ YẾU DESKTOP; SẼ XOÁ TIẾN ĐỘ sau beta (→ được hạ tier 2 xuống 20k; web nhẹ ưu tiên thấp hơn). (7) Reroll: PB (xúc xắc bay ngay, kết quả về lúc lăn) sau khi đo RTT thật từ VN; RTT quá cao thì PA (gửi trước cả lượt). (8) Số dư Shard/Stone/unlock: RESET (M1). (9) KHÔNG trần payout theo ngày (Liam chấp nhận rủi ro mint giữa B1-B3; chỉ còn kiểm tối thiểu ở run_close). (10) Khách: chỉ tutorial + run thường, không ranked/Nhiệm vụ, đăng ký chỉ mang lịch sử run.
 
+## Số chốt LD-D (26/10)
+
+Economy-designer, làn LD-D trong `production/beta-plan.md`. Chưa code, chưa sửa JSON; LD-B sửa data theo bảng dưới. Số tính tay từ công thức `land_decor.gd:178-193` + `decor.json` + `economy-v2.md` §6.3, chưa chạy sim (không cần sim: Land không có yếu tố ngẫu nhiên). Cần systems-designer review.
+
+### 1. Giá tier
+
+| Tier | Biome | Giá cũ (bước) | **Giá mới (bước)** | Tổng cộng dồn mới |
+|---|---|---|---|---|
+| 1 | Savannah | 0 | 0 | 0 |
+| 2 | Forest | 40.000 | **20.000** | 20.000 |
+| 3 | Arctic | 100.000 | 100.000 | 120.000 |
+| 4 | Mystic | 180.000 | 180.000 | 300.000 |
+| 5 | Genesis | 500.000 | 500.000 | 800.000 |
+| 6 | Luna | 1.000.000 | 1.000.000 | 1.800.000 |
+
+Tier 3-6 giữ nguyên. Lý do: (1) Liam chỉ chốt tier 2, các số còn lại là thang dài hạn và beta xoá tiến độ nên không ai dùng tới tier 4+; (2) giữ nguyên thì đường ~1 năm của heavy chỉ nhẹ đi 20k/1.82M = 1,1% (52,3 -> ~51,7 tuần), không phải sim lại; (3) tier 3 (cộng dồn 120k) vẫn là mục tiêu thật cho tester chơi đều, không bị mở trong tuần đầu. Hệ quả cần biết: bước tier 2 -> 3 từ gấp 2,5 thành gấp 5, đúng vùng chết đã ghi ở mục 1, nhưng 2 Rare tier 2 lo phần điểm (mục 2 dưới).
+
+Phương án tôi không chọn: hạ tier 3 xuống 60k (cộng dồn 80k) để tester regular thấy tier 3 trong ~5 tuần. Chỉ nên làm nếu Liam cho beta > 6 tuần; còn không thì tier 3 vẫn chỉ heavy chạm. Báo Liam nếu muốn.
+
+**Thời gian tới tier** (Stone/tuần §6.3: casual 12.398-14.462, regular 15.737-17.826, heavy 33.798-35.968; lấy dải theo hành vi mùa không/nửa/đủ):
+
+| | Tier 2 (20k) | Tier 3 (120k) |
+|---|---|---|
+| Casual | 1,4-1,6 tuần (~10-11 ngày) | 8,3-9,7 tuần |
+| Regular | 1,1-1,3 tuần (~8-9 ngày) | 6,7-7,6 tuần |
+| Heavy | 0,56-0,59 tuần (~4 ngày) | 3,3-3,6 tuần (~23-25 ngày) |
+
+Số trung bình cả hành trình; tuần đầu thực tế thấp hơn một chút (tái chế vé tăng dần), cộng thêm vài ngày. Với beta vài tuần: mọi người thấy tier 2 trong tuần 1-2; tier 3 chỉ heavy (và regular nếu beta >= 7 tuần). Nên beta được đánh giá trên tier 1-2, đúng giả định cũ, chỉ nhanh hơn.
+
+### 2. Điểm tối đa theo tier và thang mốc
+
+Tính theo công thức: điểm = sum(điểm_hiếm x min(số bản, 3)) + 2 x số biome; số món đặt <= `tier_caps` (10/16/24/32/42/54); mỗi id chỉ tính tối đa 3 bản và bị chặn bởi `max_own` (E của Luna `max_own` 2). Bộ mới = 7 common cũ + 8 common mới (đều Savannah/Forest nên không thêm biome) + 2 Rare `min_tier 2` (mỗi id Rare 3 điểm x 3 bản).
+
+| Tier | Cap | Điểm tối đa CŨ | Điểm tối đa MỚI | Cách ra số mới |
+|---|---|---|---|---|
+| 1 | 10 | 14 | 14 | 10 common + 2 biome x2 |
+| 2 | 16 | 20 | **32** | 6 Rare (18) + 10 common (10) + 4 |
+| 3 | 24 | 42 | **54** | 12 Rare (36: 2+2 id) + 12 common + 6 (3 biome) |
+| 4 | 32 | 64 | **76** | 18 Rare (54) + 14 common + 8 |
+| 5 | 42 | 76 | **94** | 21 Rare (63) + 21 common + 10 |
+| 6 | 54 | 143 | **163** (155 chưa có Trophy) | 24 Rare (72) + 6 E x2 bản (48) + Trophy (8) + 23 common + 12 |
+
+Ghi chú: bảng cũ trong mục "Việc cho bước plan" ghi tier 5 cũ là 82; tính lại theo công thức ra 76. Số MỚI 54/76/94 khớp với doc cũ, nên kết luận không đổi. Chênh lệch tier 6 (143 -> 163) chủ yếu do 2 Rare mới và 2 slot common thêm vì có nhiều id common hơn.
+
+Mốc cũ 5/12/20/30/42/55/70/90, mỗi mốc tới được ở tier nào:
+
+| Mốc | Điểm cũ | Tier tới được (cũ) | (a) giữ nguyên số | (b) nâng m6-m8 = 60/80/100 |
+|---|---|---|---|---|
+| m1 | 5 | 1 | 1 | 1 |
+| m2 | 12 | 1 | 1 | 1 |
+| m3 | 20 | 2 | 2 | 2 |
+| m4 | 30 | 3 | **2** (32) | **2** (32) |
+| m5 | 42 | 3 | 3 (54) | 3 (54) |
+| m6 | 55 | 4 | **4** (T3 max 54, thiếu 1) | 4 (T3 54 < 60 <= T4 76) |
+| m7 | 70 | 5 | **4** (76) | 5 (T4 76 < 80 <= T5 94) |
+| m8 | 90 | 6 | **5** (94) | 6 (T5 94 < 100 <= T6 155) |
+
+Chọn **(b)**: m6 = 60, m7 = 80, m8 = 100; m1-m5 giữ nguyên. Lý do:
+- (a) dồn m6 + m7 vào tier 4 và m8 vào tier 5, tier 6 (bước 1.000.000 Stone, lớn nhất cả thang) không còn mốc nào để đuổi. Tiến triển dài hạn phẳng đúng chỗ đắt nhất. Ngoài ra m6 chỉ hơn trần tier 3 có 1 điểm, tester dễ hiểu nhầm là "lỡ một chút".
+- (b) giữ nguyên ánh xạ gốc: m4 T2, m5 T3, m6 T4, m7 T5, m8 T6, mỗi tier mở đúng một mốc mới (trừ T1 hai mốc dễ). Tỷ lệ mốc/trần: m4 30/32 (94%), m5 42/54 (78%), m6 60/76 (79%), m7 80/94 (85%), m8 100/155 (65%): mỗi mốc cần lấp phần lớn ô của tier, không rỗng.
+- Tier 2 là chỗ tester thật sự ở (mục 1): m4 30 vs trần 32 là sát nhưng đạt được (chỉ cần đủ 2 Rare x3 + 10 common mỗi loại 1 bản + cả 2 biome), chi phí Shard chỉ ~800 (xem dưới), nên m4 là "mục tiêu tier 2" rõ ràng chứ không bị khoá bằng Shard.
+
+**Mốc mới (LD-B ghi vào `decor.json`):**
+
+| id | Điểm | Đổi? | Phần thưởng (giữ nguyên, LD-R lo trùng pool) |
+|---|---|---|---|
+| m1 | 5 | không | title:Gardener |
+| m2 | 12 | không | frame_u_vine |
+| m3 | 20 | không | die_u_moss |
+| m4 | 30 | không | title:Landscaper |
+| m5 | 42 | không | frame_r_snowglobe |
+| m6 | **60** | 55 -> 60 | die_e_spore |
+| m7 | **80** | 70 -> 80 | title:Land Architect |
+| m8 | **100** | 90 -> 100 | frame_l_sunburst + decor_trophy |
+
+Việc theo sau (LD-B / I): `t_decor_milestones.gd:30` (`"m8 needs 90"` -> 100, sửa cả thông báo), kiểm `t_decor_score` còn xanh với dữ liệu mới. Nhớ: Trophy (E, 8 điểm, thưởng từ m8) nằm trong số 163 của tier 6, nên m8 = 100 nhận được trước khi có Trophy (155 >= 100).
+
+Shard để đạt trần tier 2 (32 điểm): 3 x 80 + 3 x 90 (Rare) = 510; 10 common mỗi id 1 bản, 10 id rẻ nhất ~25 trung bình = ~250; tổng ~760-820 Shard, tức ~3-4 vé (vé TB 220-278 Shard, §2). Rẻ so với thu nhập Shard (6.4k-26k/tuần), nên **mốc Land bị chặn bởi Stone (tier), không bởi Shard**; không phá cân bằng Shard/vé của economy-v2.
+
+### 3. Decor mới
+
+Nguồn scene: `asset-library/godot-ready/scenes/HomeLand_Asset/...` (đã liệt kê bằng glob, đều có thật). Cột "Có sẵn" = đã có bản trong `godot/assets/land/homeland/scenes/HomeLand_Asset/` (đang load được, `Land.gd` BIOMES dùng); "Chép" = chưa có, LD-B chép cả thư mục dependencies cần thiết. `scene` trong json bỏ tiền tố `HomeLand_Asset/`, giống bản cũ. `footprint_r` và `scale` là số tạm lấy theo món cùng loại, LD-B chỉnh khi nhìn trong Land (không phải số kinh tế).
+
+8 common (`rarity C`, `min_tier 1`, 1 điểm, `craftable true`):
+
+| id | Tên | Biome | Giá Shard | max_own | Scene nguồn | Có sẵn | footprint / scale tạm |
+|---|---|---|---|---|---|---|---|
+| decor_sav_tree2 | Savannah Tree B | savannah | 40 | 6 | Environment/Savannah/Tree/S_Tree02_Allside | Có sẵn | như decor_sav_tree (0.85 / 0.4678) |
+| decor_sav_tree3 | Savannah Tree C | savannah | 40 | 6 | Environment/Savannah/Tree/S_Tree03_Allside | Có sẵn | như decor_sav_tree |
+| decor_sav_shrub2 | Dry Shrub | savannah | 20 | 8 | Environment/Savannah/Shrub/S_Shrub02_Allside | Có sẵn | như decor_sav_shrub (0.7 / 0.339) |
+| decor_sav_shrub3 | Round Shrub | savannah | 20 | 8 | Environment/Savannah/Shrub/S_Shrub03_Allside | Chép | như decor_sav_shrub |
+| decor_sav_rock2 | Savannah Rock B | savannah | 25 | 6 | Environment/Savannah/Rock/SavannahRock_02 | Có sẵn | như decor_sav_rock (0.75 / 0.5357) |
+| decor_for_shrub1 | Forest Bush | forest | 20 | 8 | Environment/Forest/Shrub/F_Shrub01_Allside | Có sẵn | 0.7 / 0.6 (xem lại) |
+| decor_for_shrub2 | Fern Bush | forest | 20 | 8 | Environment/Forest/Shrub/F_Shrub02_Allside | Có sẵn | 0.7 / 0.6 (xem lại) |
+| decor_for_plant | Forest Plant | forest | 25 | 8 | Environment/Forest/Decoration/Plant01/F_Plant01 | Chép | 0.5 / 1.0 (xem lại) |
+
+2 Rare (`rarity R`, **`min_tier 2`**, 3 điểm, `craftable true`, `max_own 4`):
+
+| id | Tên | Biome | Giá Shard | Scene nguồn | Có sẵn | footprint / scale tạm |
+|---|---|---|---|---|---|---|
+| decor_for_tree2 | Elder Forest Tree | forest | 80 | Environment/Forest/Tree/F_Tree2_AllSide | Có sẵn | 0.65 / 0.5728 (như decor_for_tree) |
+| decor_sav_tree3a | Grand Savannah Tree | savannah | 90 | Environment/Savannah/Tree/S_Tree03a_Allside | Có sẵn | 0.85 / 0.4678 (như decor_sav_tree) |
+
+Lý do giá Rare 80/90: nằm giữa common cao nhất (40) và Rare Arctic tier 3 (90/100), giữ thứ tự giá theo tier. Chỉ Shard, không Stone, không sức mạnh combat.
+
+Rủi ro art để technical-artist kiểm: `S_Tree03` (common) và `S_Tree03a` (Rare) có thể nhìn gần giống nhau, vì Rare phải "trông hiếm hơn". Nếu giống thì đổi common `decor_sav_tree3` sang món khác (ví dụ `S_Shrub01` biến thể) hoặc Rare sang `Environment/Forest/Quarry/F_Quarry_01` (cần chép). Không đổi số điểm.
+
+Tổng sau khi thêm: 27 entry (16 craftable cũ + 8 + 2 + Trophy). `t_decor_data.gd:7` đang kiểm `defs.size() != 17`, đổi thành 27 và sửa thông báo.
+
+**Món khởi đầu (90 Shard giá trị):** `MetaState.grant_land_gift_once(decor_id)` (`MetaState.gd:331`) hiện cấp **đúng 1 bản của 1 id** rồi đặt `land_gift_granted`, nên không cho ra 3 món/90 Shard được. Hai cách:
+- **Khuyến nghị:** I đổi hàm nhận `Array` id (cấp mỗi id 1 bản, một cờ), vì thay đổi nhỏ và cùng một chủ file. Bộ quà: `decor_sav_tree2` (40) + `decor_sav_rock2` (25) + `decor_for_plant` (25) = **90 Shard** đúng số Liam chốt. Cả 3 `min_tier 1`, common 1 điểm, thấy ngay ở Land tier 1. Điểm: quà này cho 3 điểm + biome, tức tặng m1 nửa đường; chấp nhận được, m1 (5) là mốc dễ.
+- Nếu không đổi hàm: cấp 1 món, `decor_sav_tree2` (40 Shard, giá trị thật là 40 chứ không phải 90). Vẫn hợp lệ nhưng nên báo Liam số 90 không còn đúng.
+Quà là decor (không phải Shard/Stone), nên không thêm tiền tệ mới, hợp với quy tắc "không thêm nguồn".
+
+### 4. Kiểm INV-1..7 (`build-spec.md`) và nguồn Stone
+
+- INV-1..5 (part, tier part, mutation, ngân sách part): không đụng. Land không có field part/power.
+- INV-6 (tiền thật không ra sức mạnh): decor/tier chỉ cho thẩm mỹ, mốc ra title/cosmetic; không SKU mới. Giữ nguyên.
+- INV-7 (run thường không bị gate): không đụng; Stone/Shard chỉ dùng cho Land.
+- Không thêm nguồn Stone: chỉ giảm giá một sink (tier 2). Tốc độ Stone/tuần theo §6.3 không đổi. Nhà Nhiệm vụ hoãn nâng nên không có sink 46k tranh với tier 2 trong beta.
+- Quà khởi đầu là decor một lần, không phải faucet lặp; Rare chỉ mua bằng Shard.
+
+**Việc đổi theo cho làn LD-B / I (không phải tôi sửa):**
+1. `godot/assets/data/economy/land_tiers.json`: tier 2 `cost_stone` 40000 -> 20000; sửa `_source` (tổng 1.800.000).
+2. **`godot/scripts/meta/economy_db.gd:208-209`** kiểm `total != 1820000` -> phải đổi 1.800.000, nếu không economy_db báo lỗi. File này nằm trong fingerprint (`scripts/meta/`): ghim lại FINGERPRINT, "Run result: NO", không bump.
+3. `godot/tests/t_land_upgrade.gd`: dòng 51 (`land_tier_cost(1) == 40000` -> 20000, kiểm cả chỗ tier 1/2), dòng 65-69 (`stone = 40000`, `-40000` -> 20000), dòng 85 (`stone = 1820000` -> 1800000, kiểm ngữ cảnh). Grep thêm `40000` / `140000` trong `godot/` trước khi merge (còn chỗ nào trích số cũ).
+4. `decor.json`: 10 entry mới + m6/m7/m8 = 60/80/100; test `t_decor_data` (17 -> 27), `t_decor_milestones` (m8 100), và nên thêm assert "aesthetic tier 2 đạt 32, tier 3 đạt 54" (theo bảng trên) vào `t_decor_score` hoặc `t_land_milestones`.
+5. LD-A khi sửa `ADDS` (`LandUpgradeScreen`): ghi tier 2 = trần 16 món + 2 Rare mới mở.
+
+---
+
 Ngày 26/10/2026. Game-designer. Chỉ brainstorm, chưa plan, chưa code, chưa sửa GDD. Số trong doc là số thô từ `economy-v2.md`, `decor.json`, `land_decor.gd`, chưa sim lại.
 
 **Đã sửa theo review 26/10** (`land-beta-brainstorm-review.md`, APPROVE WITH CHANGES):
