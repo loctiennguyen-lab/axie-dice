@@ -252,7 +252,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Pinned, 2026-10-26 (R3 SR1, int/r3): server economy client side (MetaState SERVER_FIELDS / apply_server_econ / wipe for
 ## reset, AccountService remote econ, RunState offline removed + run claim retry). Meta/wallet only, no combat or replay
 ## input. Run result: NO, stays -v.
-const FINGERPRINT := "d5e48fe493717cd63c995a8f26ad9e035f9c73f67493c0f51318698efbc2fad9"
+## Pinned, 2026-10-26 (R3, verifier): run_verifier.gd replays Mission runs with the mission header + kind (server mode compares
+## field-wise with the tape, ranked+mission refused, empty-tape guard). Replay/verifier only, live play unchanged. Run result: NO, stays -v.
+const FINGERPRINT := "6c51e620b68b225830667c91186c139925c3584cf0d498c41705068bb9fb5277"
 
 
 func _ready() -> void:
