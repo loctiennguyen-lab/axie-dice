@@ -27,10 +27,14 @@ func _ready() -> void:
 	svc.account = {"id": "google:1"}
 	svc.sync_guest_wallet_flag()
 	_check(not MetaState.guest_no_wallet, "signed in -> wallet allowed")
+	# The release project sets [axie] econ="remote" (R3); a local-economy dev build needs both switches off.
+	var econ_before: Variant = ProjectSettings.get_setting("axie/econ", "local")
+	ProjectSettings.set_setting("axie/econ", "local")
 	svc.remote_econ_enabled = false
 	svc.account = {}
 	svc.sync_guest_wallet_flag()
 	_check(not MetaState.guest_no_wallet, "local economy (tests/dev) -> unchanged")
+	ProjectSettings.set_setting("axie/econ", econ_before)
 	svc.free()
 	MetaState.guest_no_wallet = false
 	_guard.restore()
