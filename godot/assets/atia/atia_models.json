@@ -473,6 +473,7 @@
    "kind": "glb",
    "path": "res://assets/atia/e_golem/e_golem.tscn",
    "height_m": 2.8,
+   "fit_width_m": 3.0,
    "max_width_m": 4.2,
    "facing_deg": 0,
    "anims": {
