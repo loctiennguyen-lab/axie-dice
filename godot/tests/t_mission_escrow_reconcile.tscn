@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/t_mission_escrow_reconcile.gd" id="1"]
+
+[node name="TMissionEscrowReconcile" type="Node"]
+script = ExtResource("1")
