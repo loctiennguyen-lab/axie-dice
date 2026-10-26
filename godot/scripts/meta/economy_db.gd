@@ -172,12 +172,18 @@ static func _validate_missions(errs: Array[String]) -> void:
 		var t: Dictionary = tiers.get(id, {})
 		if int(t.get("stake", 0)) != stakes[i] or float(t.get("m_base", 0)) <= 0.0:
 			errs.append("missions: %s sai stake/m" % id)
+		if int(t.get("unlock_wins", 1)) < 1:
+			errs.append("missions: %s unlock_wins phải >= 1" % id)
 		if not bool(t.get("enabled", false)):
 			errs.append("missions: %s phải bật (beta, Liam 26/10)" % id)
 		if typeof(t.get("rules", null)) != TYPE_ARRAY:
 			errs.append("missions: %s thiếu mảng rules (Worker kiểm chặt)" % id)
 		else:
+			var seen := {}
 			for r in (t["rules"] as Array):
+				if seen.has(String(r)):
+					errs.append("missions: %s luật trùng %s (Worker từ chối)" % [id, str(r)])
+				seen[String(r)] = true
 				if not rule_ids.has(String(r)):
 					errs.append("missions: %s luật lạ %s" % [id, str(r)])
 		var pay := int(roundf(float(t.get("stake", 0)) * float(t.get("m_base", 0)) * float(t.get("m_scale", 1.0)) / 5.0) * 5.0)

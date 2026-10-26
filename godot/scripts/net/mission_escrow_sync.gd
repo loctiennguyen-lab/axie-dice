@@ -87,8 +87,10 @@ static func settle_dead_run_mirror(done: Callable = Callable()) -> void:
 		return
 	# The saved run was made under other rules (a bump): the client can never resume it. The server refunds such
 	# a run when it is abandoned, so abandon it there (the stake is not lost for our bump), then read the result.
-	var stale_rules := String(RunState.saved_run_status().get("reason", "")) == "rules"
+	# ONLY when the old-rules save IS the run the mirror follows (same run_id). A mirror can come from another
+	# device through the cloud save: abandoning that run would forfeit a live stake on current rules.
 	var run_id := String(MetaState.mission_escrow.get("run_id", ""))
+	var stale_rules := run_id != "" and _stale_save_run_id() == run_id
 	reconcile_status(func(st: String) -> void:
 		if st == "open" and stale_rules and not run_id.is_empty():
 			abandon_on_server(run_id, func() -> void:
@@ -102,6 +104,17 @@ static func settle_dead_run_mirror(done: Callable = Callable()) -> void:
 			MetaState.settle_mission_stake(false, true)
 		if done.is_valid():
 			done.call(st))
+
+
+## run_id inside the local run save when that save was made under other rules (cannot be resumed), else "".
+static func _stale_save_run_id() -> String:
+	if String(RunState.saved_run_status().get("reason", "")) != "rules":
+		return ""
+	var parsed: Variant = JSON.parse_string(SaveStore.read_text(RunState.SAVE_PATH))
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return ""
+	var run: Variant = (parsed as Dictionary).get("run", {})
+	return String((run as Dictionary).get("run_id", "")) if typeof(run) == TYPE_DICTIONARY else ""
 
 
 ## POST /api/run/<id>/abandon for a run this device can no longer play. done() runs whatever the answer was

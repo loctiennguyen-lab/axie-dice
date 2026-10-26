@@ -191,7 +191,7 @@ func test_round_two_cards_stake_title_and_offline() -> void:
 	# Mission run, lost: the stake line says it is gone.
 	RunState.start_new_run(777002, TEAM, "short", 0, false)
 	RunState.mission = {"mission_id": "m_test", "condition": ""}
-	MetaState.mission_escrow = {"mission_id": "m_test", "tier": "t1", "stake": 25, "payout": 60, "stone": 0}
+	MetaState.mission_escrow = {"mission_id": "m_test", "tier": "N3", "stake": 25, "payout": 60, "stone": 0}
 	RunState.set_phase(RunState.RunPhase.LOST)
 	var v2: Node = (load("res://scenes/result/Result.tscn") as PackedScene).instantiate()
 	get_tree().root.add_child.call_deferred(v2)
@@ -199,6 +199,9 @@ func test_round_two_cards_stake_title_and_offline() -> void:
 	await get_tree().process_frame
 	_assert(v2.find_child("StakeBox", true, false) != null, "a lost Mission run shows no stake settlement")
 	_assert(_all_text(v2).contains("lose your 25 Shard stake"), "stake loss line is missing")
+	_assert(_all_text(v2).contains("(-25 Shards). No payout, no Stone."), "loss line: Shards lost, no Stone")
+	_assert(_all_text(v2).contains("N4 stays locked until you win N3.") or _all_text(v2).contains("N4 is still open."), "loss line: what happens to the next tier")
+	_assert((v2.find_child("BackButton", true, false) as Button).text == "Back to Missions" and (v2.find_child("RunAgain", true, false) as Button).text == "Play a normal run", "Mission result: two clear buttons")
 	_assert(_all_text(v2).contains("Defeated"), "a loss does not say Defeated")
 	v2.queue_free()
 	await get_tree().process_frame

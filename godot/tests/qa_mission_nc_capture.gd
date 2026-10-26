@@ -39,5 +39,14 @@ func _ready() -> void:
 	await _snap("missions_n6_locked")
 	UpdateRequired.show(self, "version")
 	await _snap("update_modal")
+	ms.queue_free()
+	get_node("UpdateRequired").queue_free()
+	RunState.start_new_run(777002, ["plant1", "beast1", "aqua1", "reptile1", "bug1"], "short", 3, false)
+	RunState.mission = {"mission_id": "m_q", "tier": 3}
+	MetaState.mission_escrow = {"mission_id": "m_q", "tier": "N3", "stake": 800, "payout": 5200, "stone": 14}
+	RunState.set_phase(RunState.RunPhase.LOST)
+	var rv: Node = (load("res://scenes/result/Result.tscn") as PackedScene).instantiate()
+	add_child(rv)
+	await _snap("result_lost")
 	_guard.restore()
 	get_tree().quit(0)

@@ -50,7 +50,7 @@ func _ready() -> void:
 	_ok(not bool(s.offer("N3").unlocked) and s.offer("N3").lock_reason == "chain", "N3 locked: N2 not won yet")
 	_ok(s.offer("N4").lock_reason == "chain" and s.offer("N6").lock_reason == "chain" and bool(s.offer("N6").enabled), "N4/N6 enabled, locked by the chain")
 	_ok(s.find_child("LockNote", true, false) != null, "lock note shown")
-	_ok((s.find_child("UpgradeHouse", true, false) as Button).disabled, "house upgrade disabled in L1")
+	_ok(s.find_child("HousePlate", true, false) == null and s.find_child("UpgradeHouse", true, false) == null, "house upgrade UI hidden (deferred)")
 	# real escrow path: stake is taken from MetaState, id goes into the mission header
 	MetaState.mission_escrow = {}
 	MetaState.starter_shard_locked = 0
@@ -125,8 +125,8 @@ func _ready() -> void:
 	_ok(s.rule_lines(s.offer("N2")).size() == 1 + (s.offer("N2").rules as Array).size(), "rule lines: standard + extras")
 	var fake := {"rules": ["M6", "M7"]}
 	var rl: Array = s.rule_lines(fake)
-	_ok(String(rl[1]) == "Sturdy foes: Normal enemy HP x1.2", "M6 named: " + String(rl[1]))
-	_ok(String(rl[2]) == "Fierce elites: Elite fight dice values x1.25 (damage, shields, heals)", "M7 named: " + String(rl[2]))
+	_ok(String(rl[1]) == "Sturdy foes: Normal enemy HP ×1.2", "M6 named: " + String(rl[1]))
+	_ok(String(rl[2]) == "Fierce elites: Elite fight dice values ×1.25 (damage, shields, heals)", "M7 named: " + String(rl[2]))
 	s.close_modal()
 	# insufficient Shard
 	MetaState.shard_pool = int(cfg.tiers.N1.stake) - 50

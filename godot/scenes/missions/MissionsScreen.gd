@@ -44,7 +44,6 @@ var _banner_host: VBoxContainer
 var _modal_layer: Control
 var _balance: Label
 var _table_host: VBoxContainer
-var _house_host: HBoxContainer
 var _detail: PanelContainer
 
 
@@ -171,6 +170,8 @@ func lock_text(o: Dictionary) -> String:
 		"chain":
 			var need := int(o.get("unlock_need", 1))
 			var prev := String(o.get("unlock_prev", ""))
+			if prev != "" and not MissionBoard.tier_unlocked(prev, MetaState):
+				return "Unlock %s first" % prev
 			if need <= 1:
 				return "Win %s to unlock" % prev
 			return "Win %s %d times to unlock (%d/%d)" % [prev, need, int(o.get("unlock_wins", 0)), need]
@@ -191,15 +192,15 @@ func rule_lines(o: Dictionary) -> Array:
 func _mods_text(m: Dictionary) -> String:
 	var bits: Array[String] = []
 	if m.has("enemy_dmg"):
-		bits.append("enemy damage x%s" % _num(float(m.enemy_dmg)))
+		bits.append("enemy damage ×%s" % _num(float(m.enemy_dmg)))
 	if m.has("elite_hp"):
-		bits.append("elite HP x%s" % _num(float(m.elite_hp)))
+		bits.append("elite HP ×%s" % _num(float(m.elite_hp)))
 	if m.has("boss_hp"):
-		bits.append("boss HP x%s" % _num(float(m.boss_hp)))
+		bits.append("boss HP ×%s" % _num(float(m.boss_hp)))
 	if m.has("normal_hp"):
-		bits.append("Normal enemy HP x%s" % _num(float(m.normal_hp)))
+		bits.append("Normal enemy HP ×%s" % _num(float(m.normal_hp)))
 	if m.has("elite_dmg"):
-		bits.append("Elite fight dice values x%s (damage, shields, heals)" % _num(float(m.elite_dmg)))
+		bits.append("Elite fight dice values ×%s (damage, shields, heals)" % _num(float(m.elite_dmg)))
 	if m.has("extra_elite"):
 		bits.append("+%d elites" % int(m.extra_elite))
 	if m.has("spike_period_delta"):
@@ -339,7 +340,7 @@ func open_confirm(tier_id: String) -> void:
 	for line in rule_lines(o):
 		lines.append(String(line))
 	lines.append("")
-	lines.append("Win: %s Shard back (x%s), net %s. Lose or abandon: you lose all %s, no refund." % [
+	lines.append("Win: %s Shard back (×%s), net %s. Lose or abandon: you lose all %s, no refund." % [
 		UI3.fmt(int(o.payout)), _num(float(o.m)), _signed(int(o.net)), UI3.fmt(int(o.stake))])
 	lines.append("Estimate (bot): about %s%% to win." % _num(float(o.est_win_pct)))
 	lines.append("No Continue and no Aid in a mission run.")
@@ -364,14 +365,14 @@ func close_modal() -> void:
 
 # ---------------------------------------------------------------- build
 
-const COLS := [["TIER", 120, false], ["MODE", 140, false], ["STAKE", 160, true], ["PAY IF YOU WIN", 160, true],
+const COLS := [["TIER", 120, false], ["MODE", 140, false], ["STAKE", 160, true], ["WIN BACK", 160, true],
 	["STONE", 120, true], ["RULES", 0, false]]
 const ROW_H := 96
 const DETAIL_W := 440
 
 
 func _build() -> void:
-	_shell = UI3Meta.build(self, "Missions", "Stake Shards on a hard Short run", _on_back)
+	_shell = UI3Meta.build(self, "Missions", "Stake Shards on a hard run", _on_back)
 	_banner_host = _shell["banner_host"]
 	(_shell["panel"] as Control).name = "PlateHost"   # t_ui_laws L0
 	_modal_layer = _shell["modal_layer"]
@@ -381,10 +382,17 @@ func _build() -> void:
 	var nrow := HBoxContainer.new()
 	nrow.add_theme_constant_override("separation", UI3Theme.space("24"))
 	note.add_child(nrow)
-	var ex := UI3.label("Win a hard Short run to get your stake back with a bonus. Lose it and the stake is gone.", "LabelMuted")
-	ex.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var exv := VBoxContainer.new()
+	exv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	exv.add_theme_constant_override("separation", UI3Theme.space("8"))
+	var ex := UI3.label("Win a hard run to get your stake back with a bonus. Lose it and the stake is gone.", "LabelMuted")
 	ex.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	nrow.add_child(ex)
+	exv.add_child(ex)
+	var gl := UI3.label("A = Ascension (extra difficulty). Estimate (bot) = win chance measured with a bot. Stone = Land currency. Starter Shard can't be staked.", "LabelMuted")
+	gl.name = "Glossary"
+	gl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	exv.add_child(gl)
+	nrow.add_child(exv)
 	_balance = UI3.label("", "LabelTitle")
 	_balance.name = "Balance"
 	nrow.add_child(_balance)
@@ -403,14 +411,6 @@ func _build() -> void:
 	_table_host.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_table_host.add_theme_constant_override("separation", UI3Theme.space("8"))
 	left.add_child(_table_host)
-	var hp := UI3.plate(&"plate")
-	hp.name = "HousePlate"
-	hp.size_flags_vertical = Control.SIZE_SHRINK_END
-	_house_host = HBoxContainer.new()
-	_house_host.name = "HouseStrip"
-	_house_host.add_theme_constant_override("separation", UI3Theme.space("16"))
-	hp.add_child(_house_host)
-	left.add_child(hp)
 	_detail = UI3.plate(&"plate")
 	_detail.name = "Detail"
 	_detail.custom_minimum_size = Vector2(DETAIL_W, 0)
@@ -450,7 +450,6 @@ func _refresh() -> void:
 	var usable := usable_shards()
 	_balance.text = "Stakeable %s · Starter %s (can't be staked)" % [
 		UI3.fmt(usable), UI3.fmt(maxi(MetaState.shard_pool - usable, 0))]
-	_refresh_house()
 	UI3Meta.clear(_table_host)
 	if state == "loading":
 		for i in 4:
@@ -478,26 +477,6 @@ func _refresh() -> void:
 	sc.name = "Scroll"
 	_table_host.add_child(sc)
 	_draw_detail()
-
-
-func _refresh_house() -> void:
-	UI3Meta.clear(_house_host)
-	var cfg := _Econ.get_table("missions")
-	var ht := UI3.label("Mission House Lv %d" % MissionBoard.house_level(MetaState), "LabelTitle")
-	ht.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_house_host.add_child(ht)
-	var parts: Array[String] = []
-	for h in cfg.get("house", []):
-		var d: Dictionary = h
-		parts.append("Lv %d: %d Shard + %d Stone" % [int(d.level), int(d.cost_shards), int(d.cost_stone)])
-	var costs := _cell("   ".join(parts), 0, "LabelMuted")
-	costs.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART   # wraps, never truncated
-	_house_host.add_child(costs)
-	var up := UI3.button("Upgrade", &"secondary", &"S")
-	up.name = "UpgradeHouse"
-	if not bool(cfg.get("house_upgrade_enabled", false)):
-		UI3.set_disabled_reason(up, "Not in this build")
-	_house_host.add_child(up)
 
 
 func _rule_names(o: Dictionary) -> String:
@@ -537,10 +516,9 @@ func _row(o: Dictionary) -> Control:
 	h.add_child(_cell("%s (×%s)" % [UI3.fmt(int(o.payout)), _num(float(o.m))], 160, "", true))
 	h.add_child(_cell("+%d" % int(o.stone), 120, "", true))
 	if locked:
-		var lk := _cell("Locked: " + lock_text(o), 0, "LabelMuted")
+		var lk := _cell("Locked: " + lock_text(o), 0)
 		lk.name = "LockNote"
 		h.add_child(lk)
-		b.modulate.a = 0.75
 	else:
 		var rl := _cell(_rule_names(o), 0)
 		rl.name = "Rules"
@@ -602,9 +580,11 @@ func _draw_detail() -> void:
 	money.name = "Money"
 	money.add_theme_constant_override("separation", UI3Theme.space("8"))
 	for row in [["Stake", "%s Shards" % UI3.fmt(int(o.stake)), "StakeValue"],
-			["Win back", "%s Shards (x%s)" % [UI3.fmt(int(o.payout)), _num(float(o.m))], "PayValue"],
-			["Net if you win", "%s Shards, +%d Stone" % [_signed(int(o.net)), int(o.stone)], "NetValue"]]:
+			["Win back", "%s Shards (×%s)" % [UI3.fmt(int(o.payout)), _num(float(o.m))], "PayValue"],
+			["Net if you win", "%s Shards" % _signed(int(o.net)), "NetValue"],
+			["Stone if you win", "+%d" % int(o.stone), "StoneValue"]]:
 		var hb := HBoxContainer.new()
+		hb.add_theme_constant_override("separation", UI3Theme.space("16"))
 		var kl := UI3.label(String(row[0]), "LabelMuted")
 		kl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		hb.add_child(kl)

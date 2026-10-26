@@ -78,6 +78,7 @@ func _ready() -> void:
 	SaveStore.write_text(RunState.SAVE_PATH, JSON.stringify({"version": RunState.SAVE_VERSION, "rules_version": "old-rules", "run": {"run_id": "rb"}}))
 	_ok(String(RunState.saved_run_status().get("reason", "")) == "rules", "fixture: save has other rules")
 	var phase := [0]
+	var open_id := ["rb"]
 	log.clear()
 	MissionEscrowSync.transport_override = func(method: String, path: String, _b: String, done: Callable) -> void:
 		log.append(method + " " + path)
@@ -86,7 +87,7 @@ func _ready() -> void:
 			done.call(200, "{}")
 		elif path == "/api/missions/escrow":
 			if phase[0] == 0:
-				done.call(200, JSON.stringify({"open": {"run_id": "rb", "tier": "N2", "stake": 500}, "settled": []}))
+				done.call(200, JSON.stringify({"open": {"run_id": open_id[0], "tier": "N2", "stake": 500}, "settled": []}))
 			else:
 				done.call(200, JSON.stringify({"open": null, "settled": [{"run_id": "rb", "state": "refunded", "payout": 500}]}))
 		else:
@@ -97,6 +98,16 @@ func _ready() -> void:
 	_ok(log.has("POST /api/run/rb/abandon"), "abandoned on the server: " + str(log))
 	_ok(MetaState.mission_escrow.is_empty() and MetaState.shard_pool == p0 + 500, "stake refunded, mirror closed")
 	_ok(String(MissionEscrowSync.take_applied().get("state", "")) == "refunded", "applied settlement recorded as refunded")
+	# machine A/B: old-rules save of run "rx", but the mirror (from the cloud) follows run "rb2" of another device
+	SaveStore.write_text(RunState.SAVE_PATH, JSON.stringify({"version": RunState.SAVE_VERSION, "rules_version": "old-rules", "run": {"run_id": "rx"}}))
+	MetaState.mission_escrow = {"tier": "N2", "mission_id": "ms_d", "stake": 500, "payout": 2325, "stone": 8, "t": 1, "run_id": "rb2"}
+	log.clear()
+	phase[0] = 0
+	open_id[0] = "rb2"
+	MissionEscrowSync.settle_dead_run_mirror()
+	await get_tree().process_frame
+	_ok(log.filter(func(l): return l.begins_with("POST")).is_empty(), "other device's run is never abandoned: " + str(log))
+	_ok(not MetaState.mission_escrow.is_empty(), "its mirror stays open (the server still holds it)")
 	# same situation but the save is a CURRENT-rules run lost some other way: never abandoned by us
 	SaveStore.erase(RunState.SAVE_PATH)
 	MetaState.mission_escrow = {"tier": "N2", "mission_id": "ms_c", "stake": 500, "payout": 2325, "stone": 8, "t": 1, "run_id": "rc"}
