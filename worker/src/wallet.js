@@ -10,10 +10,11 @@ const CUR = 'gem';
 const nowS = () => Math.floor(Date.now() / 1000);
 const utcDay = (s) => new Date(s * 1000).toISOString().slice(0, 10);
 
-export async function balanceOf(env, playerId) {
-  const r = await env.DB.prepare('SELECT balance FROM wallets WHERE player_id = ? AND currency = ?').bind(playerId, CUR).first();
+export async function balanceOfCur(env, playerId, cur) {
+  const r = await env.DB.prepare('SELECT balance FROM wallets WHERE player_id = ? AND currency = ?').bind(playerId, cur).first();
   return r ? r.balance : 0;
 }
+export const balanceOf = (env, playerId) => balanceOfCur(env, playerId, CUR);
 
 const isUnique = (e) => /UNIQUE/i.test(String((e && e.message) || e));
 
@@ -23,23 +24,27 @@ async function replay(env, playerId, idem) {
 }
 
 /** Apply delta (+grant / -spend). Returns {ok, balance, dup?} or {ok:false, code:'insufficient'|'error'}. */
-export async function applyDelta(env, playerId, delta, reason, idem, at = nowS()) {
+export const applyDelta = (env, playerId, delta, reason, idem, at = nowS()) => applyDeltaCur(env, playerId, CUR, delta, reason, idem, at);
+
+/** Same as applyDelta for any currency ('gem' | 'shard' | 'stone' | 'ticket'). The idem key is unique per player
+ *  across ALL currencies, so callers put the currency in the key. */
+export async function applyDeltaCur(env, playerId, cur, delta, reason, idem, at = nowS()) {
   if (!Number.isSafeInteger(delta) || delta === 0) return { ok: false, code: 'bad_amount' };
   const first = await replay(env, playerId, idem);
-  if (first) return first;
+  if (first) return { ...first, balance: await balanceOfCur(env, playerId, cur) };
   try {
     await env.DB.batch([
-      env.DB.prepare('INSERT OR IGNORE INTO wallets (player_id, currency, balance) VALUES (?, ?, 0)').bind(playerId, CUR),
+      env.DB.prepare('INSERT OR IGNORE INTO wallets (player_id, currency, balance) VALUES (?, ?, 0)').bind(playerId, cur),
       env.DB.prepare('INSERT INTO wallet_ledger (player_id, currency, delta, reason, idem_key, at) VALUES (?, ?, ?, ?, ?, ?)')
-        .bind(playerId, CUR, delta, reason, idem, at),
-      env.DB.prepare('UPDATE wallets SET balance = balance + ? WHERE player_id = ? AND currency = ?').bind(delta, playerId, CUR),
+        .bind(playerId, cur, delta, reason, idem, at),
+      env.DB.prepare('UPDATE wallets SET balance = balance + ? WHERE player_id = ? AND currency = ?').bind(delta, playerId, cur),
     ]);
   } catch (e) {
     if (isUnique(e)) return (await replay(env, playerId, idem)) || { ok: false, code: 'error' };
     if (/CHECK/i.test(String(e && e.message || e))) return { ok: false, code: 'insufficient' };
     throw e;
   }
-  return { ok: true, balance: await balanceOf(env, playerId) };
+  return { ok: true, balance: await balanceOfCur(env, playerId, cur) };
 }
 
 /** Grant up to `amount`, clipped so the balance never exceeds `cap`. The clip is computed INSIDE the batch from the

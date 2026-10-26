@@ -1,6 +1,7 @@
 import { handleLegal } from './legal.js';
 import { handleAccounts, isAccountsPath } from './accounts.js';
 import { handleWallet, isWalletPath } from './wallet.js';
+import { handleEcon, isEconPath } from './economy.js';
 import { handleRuns, isRunsPath, sweepPending } from './runs.js';
 import { handleMissions, isMissionsPath } from './missions.js';
 import { handleLeaderboard, isLeaderboardPath } from './leaderboard.js';
@@ -382,6 +383,7 @@ export default {
     if (url.pathname === '/terms' || url.pathname === '/privacy') return handleLegal(url);
     if (isAccountsPath(url.pathname)) return handleAccounts(request, env, url);
     if (isWalletPath(url.pathname)) return handleWallet(request, env, url);
+    if (isEconPath(url.pathname)) return handleEcon(request, env, url);
     if (isRunsPath(url.pathname)) return handleRuns(request, env, url);
     if (isMissionsPath(url.pathname)) return handleMissions(request, env, url);
     if (isLeaderboardPath(url.pathname)) return handleLeaderboard(request, env, url);
