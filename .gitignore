@@ -266,3 +266,6 @@ godot/override.cfg.tmp.*
 design/handoffs/ui-03-redesign/send/
 design/handoffs/ui-03-redesign/*.zip
 design/handoffs/ui-03-redesign/send-r2/
+
+# Reset snapshots hold every player's data: never commit
+reset-snapshot-*.sql
