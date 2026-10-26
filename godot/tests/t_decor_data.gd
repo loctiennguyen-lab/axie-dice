@@ -4,8 +4,8 @@ func _ready() -> void:
 	var fails: Array[String] = []
 	var ids := {}
 	var defs := LandDecor.all_defs()
-	if defs.size() != 17:
-		fails.append("expected 16 craftable + trophy, got %d" % defs.size())
+	if defs.size() != 27:
+		fails.append("expected 26 craftable + trophy, got %d" % defs.size())
 	for d in defs:
 		var id := String(d["id"])
 		if ids.has(id) or not id.begins_with("decor_"):

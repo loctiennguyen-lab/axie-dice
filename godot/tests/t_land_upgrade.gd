@@ -48,7 +48,7 @@ func _ready() -> void:
 	TeamPresets.tier_override = 0
 	_reset()
 	_ok(Eco.land_max_tier() == 6, "max tier 6")
-	_ok(Eco.land_tier_cost(1) == 40000 and Eco.land_tier_cost(5) == 1000000 and Eco.land_tier_cost(6) == -1, "costs from data")
+	_ok(Eco.land_tier_cost(1) == 20000 and Eco.land_tier_cost(5) == 1000000 and Eco.land_tier_cost(6) == -1, "costs from data")
 	_ok(Eco.land_upgrade_enabled(), "L1 default: upgrade live")
 	_switch(false)
 
@@ -58,15 +58,15 @@ func _ready() -> void:
 	_switch(true)
 
 	# short
-	MetaState.stone = 39999
-	_ok(not MetaState.upgrade_land(false) and MetaState.land_tier == 1 and MetaState.stone == 39999 and MetaState.ledger.is_empty(), "short by 1 -> refused, nothing spent")
+	MetaState.stone = 19999
+	_ok(not MetaState.upgrade_land(false) and MetaState.land_tier == 1 and MetaState.stone == 19999 and MetaState.ledger.is_empty(), "short by 1 -> refused, nothing spent")
 
 	# exact cost
-	MetaState.stone = 40000
+	MetaState.stone = 20000
 	_ok(MetaState.upgrade_land(false), "exact cost upgrades")
 	_ok(MetaState.land_tier == 2 and MetaState.stone == 0, "tier 2, stone 0")
 	var last: Dictionary = MetaState.ledger.back()
-	_ok(last["c"] == "stone" and int(last["d"]) == -40000 and String(last["r"]) == "land_tier_2" and int(last["b"]) == 0, "ledger row")
+	_ok(last["c"] == "stone" and int(last["d"]) == -20000 and String(last["r"]) == "land_tier_2" and int(last["b"]) == 0, "ledger row")
 	_ok(not MetaState.upgrade_land(false) and MetaState.land_tier == 2, "second call with 0 stone refused (no double tier)")
 
 	# one tier per call even with a lot of Stone
@@ -80,13 +80,13 @@ func _ready() -> void:
 	MetaState.land_tier = 1
 	_ok(TeamPresets.slot_count() == 3, "tier 1 -> 3 slots")
 
-	# walk to max, total matches the design (1,820,000), then refuses
+	# walk to max, total matches the design (1,800,000), then refuses
 	_reset()
-	MetaState.stone = 1820000
+	MetaState.stone = 1800000
 	var n := 0
 	while MetaState.upgrade_land(false):
 		n += 1
-	_ok(n == 5 and MetaState.land_tier == 6 and MetaState.stone == 0, "five upgrades to LunaLanding spend exactly 1,820,000")
+	_ok(n == 5 and MetaState.land_tier == 6 and MetaState.stone == 0, "five upgrades to LunaLanding spend exactly 1,800,000")
 	MetaState.stone = 99999999
 	_ok(not MetaState.upgrade_land(false) and MetaState.land_tier == 6 and MetaState.stone == 99999999, "max tier refuses")
 
@@ -112,7 +112,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 
 	_switch(true)
-	MetaState.stone = 41200
+	MetaState.stone = 21200
 	s = await _screen()
 	var b2 := s.find_child("Tier2", true, false).find_child("Btn", true, false) as Button
 	_ok(not b2.disabled and b2.text == "Upgrade", "can afford: Upgrade enabled")

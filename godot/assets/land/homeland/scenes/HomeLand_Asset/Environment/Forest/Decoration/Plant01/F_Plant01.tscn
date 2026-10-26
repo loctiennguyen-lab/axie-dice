@@ -1,0 +1,93 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://assets/land/homeland/src/HomeLand_Asset/Environment/Forest/Decoration/Plant01/Source/Plant01.fbx" id="1_3hvy3"]
+[ext_resource type="Material" path="res://assets/land/homeland/materials/HomeLand_Asset/Environment/Forest/Decoration/Plant01/Source/M_Plant01.tres" id="2_un5om"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_84oux"]
+resource_name = "lambert4"
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.6651851, 0.6651851, 0.6651851, 1)
+emission_enabled = true
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_vpfo0"]
+_surfaces = [{
+"aabb": AABB(-1.2595224, 1.2349406e-16, -1.2468555, 2.6466413, 1.9413009, 2.4262388),
+"format": 34359742465,
+"index_count": 21,
+"index_data": PackedByteArray("AAABAAIAAgADAAAAAgABAAQABQAEAAEABgAFAAEAAQAHAAYACAAHAAEA"),
+"name": "lambert4",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 9,
+"vertex_data": PackedByteArray("uSiQvwrXIyX0ylu/CDihv4R8+D/D5ny/ClR5P4R8+D8I9pY/ClR5PwNhDiUI9pY/IbecP4N8+D9XDVY/HY2xP4V8+D/NZgo9gS6uP4Z8+D82BUu/yfqXP4l8+D+MFIm/Os9cP4x8+D/2mJ+/")
+}]
+blend_shape_mode = 0
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_gr5rf"]
+resource_name = "Plant01_shadow"
+_surfaces = [{
+"aabb": AABB(-1.2595224, 1.2349406e-16, -1.2468555, 2.6466413, 1.9413009, 2.4262388),
+"attribute_data": PackedByteArray("AAAAAAAAgD/WBymzAAAAAAAAgD8AAAAAAACAPwAAgD+g8eM+QCjtPLNfaT/IdKQ+jPJoP9otuD5Lw2k//nWSPlh2Pj+wNeY+ZJ4MPzwbDj/v8ek+3tgQPw=="),
+"format": 34359742487,
+"index_count": 21,
+"index_data": PackedByteArray("AAABAAIAAgADAAAABAAFAAYABwAFAAQABgAIAAQACAAJAAQACgAEAAkA"),
+"material": SubResource("StandardMaterial3D_84oux"),
+"name": "lambert4",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 11,
+"vertex_data": PackedByteArray("uSiQvwrXIyX0ylu/CDihv4R8+D/D5ny/ClR5P4R8+D8I9pY/ClR5PwNhDiUI9pY/CDihv4R8+D/D5ny/yfqXP4l8+D+MFIm/gS6uP4Z8+D82BUu/Os9cP4x8+D/2mJ+/HY2xP4V8+D/NZgo9IbecP4N8+D9XDVY/ClR5P4R8+D8I9pY/9kD/f/XA/7/2QP9/9cD/v/ZA/3/1wP+/9kD/f/XA/7//f/7//v+k4v9//v/+/9Lu/3/+//7/z+T/f/7/AAD39v9//v/+/+jc/3/+//7/ct3/f/7//v+5nw==")
+}]
+blend_shape_mode = 0
+shadow_mesh = SubResource("ArrayMesh_vpfo0")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4sji2"]
+resource_name = "lambert2"
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.6651851, 0.6651851, 0.6651851, 1)
+emission_enabled = true
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_8078i"]
+_surfaces = [{
+"aabb": AABB(-1.1783218, -0.07102178, -1.2369909, 2.6197395, 2.1269948, 2.5285656),
+"format": 34359742465,
+"index_count": 30,
+"index_data": PackedByteArray("AAABAAIAAgADAAAAAgABAAQABAAFAAIABgABAAAABAABAAYAAAAHAAYABgAIAAQABwAJAAYACQAIAAYA"),
+"name": "lambert2",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 10,
+"vertex_data": PackedByteArray("QNOWv999pz9SUqU/jLarP999pz8FtZ8/wWSgP95zkb2+v5Q/XNmMv95zkb02fJQ/YIC4P999pz+4VZ6/QE+kP95zkb02fJS/V62aPwHQ8z+JSY4/oVePv60d+T/s+4c/Sg6bP9oW+T+G8pa/XNmMvxCVA0A2fJS/")
+}]
+blend_shape_mode = 0
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_pvwpj"]
+resource_name = "Plant01"
+_surfaces = [{
+"aabb": AABB(-1.1783218, -0.07102178, -1.2369909, 2.6197395, 2.1269948, 2.5285656),
+"attribute_data": PackedByteArray("3RALPaIJxz7KtgM/0vAgP4qrAz/qVHc/To2BPabiLT/+jHs/Xr/KPmUMdD9Kry8/xOMDP9bV/T79eLM9zFiHPr7hbT/sD4s+apIAPwAM9bs="),
+"format": 34359742487,
+"index_count": 30,
+"index_data": PackedByteArray("AAABAAIAAgADAAAAAgABAAQABAAFAAIABgABAAAABAABAAYAAAAHAAYABgAIAAQABwAJAAYACQAIAAYA"),
+"material": SubResource("StandardMaterial3D_4sji2"),
+"name": "lambert2",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 10,
+"vertex_data": PackedByteArray("QNOWv999pz9SUqU/jLarP999pz8FtZ8/wWSgP95zkb2+v5Q/XNmMv95zkb02fJQ/YIC4P999pz+4VZ6/QE+kP95zkb02fJS/V62aPwHQ8z+JSY4/oVePv60d+T/s+4c/Sg6bP9oW+T+G8pa/XNmMvxCVA0A2fJS/yYBHhDbW4tV/vQeD3/+G3yK6PXa5/3KgAoG6dhrObteG+UeDFdemgaTywnX3LgWBjp+4v2j/3N84geDRJu452gCswNHO7t+R3oMR+O7/xt8=")
+}]
+blend_shape_mode = 0
+shadow_mesh = SubResource("ArrayMesh_8078i")
+
+[node name="F_Plant01" type="Node3D" unique_id=1695616041]
+
+[node name="F_Plant01" parent="." unique_id=165976864 instance=ExtResource("1_3hvy3")]
+
+[node name="Plant01_shadow" parent="F_Plant01" index="0" unique_id=1146111129]
+mesh = SubResource("ArrayMesh_gr5rf")
+
+[node name="Plant01" parent="F_Plant01" index="1" unique_id=1679593056]
+mesh = SubResource("ArrayMesh_pvwpj")
+surface_material_override/0 = ExtResource("2_un5om")
+
+[editable path="F_Plant01"]
