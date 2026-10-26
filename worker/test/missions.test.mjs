@@ -6,13 +6,16 @@ import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import worker from '../src/index.js';
 import { RunCore } from '../src/run_core.js';
-import { settleEscrow, payoutFor, PAYOUT_CAP } from '../src/missions.js';
+import { settleEscrow, payoutFor, PAYOUT_CAP, _setTableForTest } from '../src/missions.js';
 import { sweepPending, PENDING_TTL_S } from '../src/runs.js';
 import { RunDO, SUPPORTED_RULE_VERSIONS } from '../src/run_do.js';
 
 const RULES = SUPPORTED_RULE_VERSIONS.at(-1);   // mission runs only take the current rules version
 const mig = (f) => readFileSync(new URL(`../migrations/${f}`, import.meta.url), 'utf8');
-const table = JSON.parse(readFileSync(new URL('../../godot/assets/data/economy/missions.json', import.meta.url), 'utf8'));
+// Frozen fixture (the 10/2026 L1 numbers the expectations below are written for), not the live missions.json,
+// which lane N-C rewrites for the beta ladder.
+const table = { payout_cap: 20000, tiers: {"N1": {"mode": "short", "ascension": 3, "stake": 300, "m_base": 2.15, "m_scale": 1.0}, "N2": {"mode": "short", "ascension": 4, "stake": 500, "m_base": 2.4, "m_scale": 1.0}, "N3": {"mode": "short", "ascension": 6, "stake": 800, "m_base": 3.6, "m_scale": 1.0}, "N4": {"mode": "short", "ascension": 7, "stake": 1200, "m_base": 4.4, "m_scale": 1.0}, "N5": {"mode": "short", "ascension": 9, "stake": 1800, "m_base": 7.85, "m_scale": 0.9}, "N6": {"mode": "full", "ascension": 9, "stake": 2500, "m_base": 8.0, "m_scale": 1.0}} };
+_setTableForTest(table);
 
 class Stmt {
   constructor(db, sql) { this.db = db; this.sql = sql; this.args = []; }

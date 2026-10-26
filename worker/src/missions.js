@@ -172,7 +172,11 @@ async function escrowInfo(env, player) {
 async function unlocksInfo(env, player) {
   const wins = await winsByTier(env, player.id);
   const tiers = {};
-  for (const id of Object.keys(T.tiers)) tiers[id] = { unlocked: isUnlocked(wins, id), wins: wins[id] || 0, needs: winsNeeded(id) };
+  const off = offTiers(env);
+  for (const id of Object.keys(T.tiers)) {
+    const locked = T.tiers[id].enabled === false || off.includes(id);   // kill switch, same rule as validateMission
+    tiers[id] = { unlocked: !locked && isUnlocked(wins, id), wins: wins[id] || 0, needs: winsNeeded(id), ...(locked ? { locked_reason: 'tier_locked' } : {}) };
+  }
   return json({ tiers });
 }
 

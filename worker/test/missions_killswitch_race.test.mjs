@@ -51,3 +51,14 @@ test('src/ never imports the test-only table hook', () => {
     assert.ok(!readFileSync(new URL(`../src/${f}`, import.meta.url), 'utf8').includes('_setTableForTest'), f);
   }
 });
+
+test('GET /unlocks shows a killed tier as unlocked:false + locked_reason tier_locked, wins/needs kept', async () => {
+  useFixture({ N2: { mode: 'short', ascension: 1, stake: 500, m_base: 2.4, m_scale: 1.0, rules: ['M6'], enabled: false } });
+  const s = await setup({ env: { MISSION_TIERS_OFF: 'N3' } });
+  await s.play('N1'); await s.play('N2', 'won', { mission: {} }).catch(() => {});
+  s.DB.db.prepare(`INSERT INTO mission_wins (run_id, player_id, tier, at) VALUES ('w2', 'google:1', 'N2', 1)`).run();
+  const t = (await s.unlocks()).tiers;
+  assert.deepEqual(t.N2, { unlocked: false, wins: 1, needs: 1, locked_reason: 'tier_locked' });
+  assert.deepEqual([t.N3.unlocked, t.N3.locked_reason], [false, 'tier_locked']);   // chain open, env switch wins
+  assert.equal(t.N1.unlocked, true); assert.equal('locked_reason' in t.N1, false);
+});
