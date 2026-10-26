@@ -326,12 +326,17 @@ func upgrade_land(save: bool = true) -> bool:
 	return true
 
 
-## Beta prelude: hands out the one-time Land starter gift (one decor item) the first time it is called for this
-## save. Returns false, changing nothing, once it was already granted or the id is empty.
-func grant_land_gift_once(decor_id: String, save: bool = true) -> bool:
-	if land_gift_granted or decor_id.is_empty():
+## Beta prelude: hands out the one-time Land starter gift (one copy of each decor id) the first time it is called
+## for this save. Returns false, changing nothing, once it was already granted or no non-empty id was given.
+func grant_land_gift_once(decor_ids: Array, save: bool = true) -> bool:
+	var ids: Array[String] = []
+	for d in decor_ids:
+		if not str(d).is_empty():
+			ids.append(str(d))
+	if land_gift_granted or ids.is_empty():
 		return false
-	land_decor_owned[decor_id] = int(land_decor_owned.get(decor_id, 0)) + 1
+	for id in ids:
+		land_decor_owned[id] = int(land_decor_owned.get(id, 0)) + 1
 	land_gift_granted = true
 	if save:
 		save_to_disk()

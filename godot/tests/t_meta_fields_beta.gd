@@ -65,15 +65,18 @@ func test_meta_land_gift_granted_only_once() -> void:
 	MetaState.land_gift_granted = false
 	MetaState.land_decor_owned = {}
 	# Act
-	var first: bool = MetaState.grant_land_gift_once("decor_test_gift", false)
-	var second: bool = MetaState.grant_land_gift_once("decor_test_gift", false)
-	var empty_id: bool = MetaState.grant_land_gift_once("", false)
+	var empty_id: bool = MetaState.grant_land_gift_once([""], false)
+	var flag_after_empty: bool = MetaState.land_gift_granted
+	var first: bool = MetaState.grant_land_gift_once(["decor_test_gift", "decor_test_b"], false)
+	var second: bool = MetaState.grant_land_gift_once(["decor_test_gift"], false)
 	# Assert
 	_check(first, "first grant_land_gift_once returned false")
 	_check(not second, "second grant_land_gift_once returned true")
 	_check(not empty_id, "grant_land_gift_once accepted an empty id")
+	_check(not flag_after_empty, "an empty gift call burned the one-time flag")
 	_check(int(MetaState.land_decor_owned.get("decor_test_gift", 0)) == 1,
 		"gift granted %d times, expected 1" % int(MetaState.land_decor_owned.get("decor_test_gift", 0)))
+	_check(int(MetaState.land_decor_owned.get("decor_test_b", 0)) == 1, "second id of the gift was not granted")
 
 
 func test_meta_beta_fields_reset_for_empty_save() -> void:
