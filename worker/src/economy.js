@@ -90,8 +90,11 @@ async function state(env, pid) {
 
 /** First sight of an account: the fixed starter grant (daily.json `starter`), once, under marker `op:starter:v1`. */
 export async function ensureStarter(env, pid, at = nowS()) {
+  if (await priorOp(env, pid, 'starter:v1')) return { ok: true, dup: true };   // one cheap SELECT, no batch per request
   const s = daily.starter || {};
-  const stmts = [];
+  // N4: once per durable identity (players.id = google:<sub>), kept in starter_claims WITHOUT a foreign key, so a
+  // deleted-and-re-registered account cannot collect the starter again. UNIQUE failure rolls the batch back.
+  const stmts = [env.DB.prepare('INSERT INTO starter_claims (identity, at) VALUES (?, ?)').bind(pid, at)];
   if (s.shards > 0) stmts.push(...move(env, pid, 'shard', s.shards, 'starter', 'starter:v1', at));
   if (s.tickets > 0) stmts.push(...move(env, pid, 'ticket', s.tickets, 'starter', 'starter:v1', at));
   stmts.push(env.DB.prepare('INSERT OR IGNORE INTO echobox_state (player_id) VALUES (?)').bind(pid));
@@ -150,10 +153,14 @@ async function buyUnlock(env, pid, id, req, at) {
 // ---------------------------------------------------------------- claims
 
 const weekOf = (day) => Math.floor((day + 3) / 7);   // Monday-based week of a unix-day index
+// A run that counts for rewards: closed, played at least one battle, not a Mission run (those pay via escrow).
+// NOTE (Liam accepted until B3): `closed`, `battles_done` and summary are the client's claims, there is no verifier
+// yet, so this cannot stop a forged run. It only stops the cheap cases (empty runs, double pay, Mission double pay).
+const VALID_RUN = `state = 'closed' AND battles_done >= 1 AND mode != 'mission'`;
 async function closedRunToday(env, pid, at, mode) {
   const d0 = Math.floor(at / 86400) * 86400;
   const r = await env.DB.prepare(
-    `SELECT COUNT(*) AS n FROM runs WHERE player_id = ? AND state = 'closed' AND closed_at >= ? AND closed_at < ?${mode ? ' AND mode = ?' : ''}`,
+    `SELECT COUNT(*) AS n FROM runs WHERE player_id = ? AND ${VALID_RUN} AND closed_at >= ? AND closed_at < ?${mode ? ' AND mode = ?' : ''}`,
   ).bind(...(mode ? [pid, d0, d0 + 86400, mode] : [pid, d0, d0 + 86400])).first();
   return !!r && r.n > 0;
 }
@@ -183,13 +190,15 @@ async function claim(env, pid, b, at) {
       if (!r || r.n < daily.weekly_bonus.min_days) return { ok: false, code: 'not_enough_days' };
       return grant(daily.weekly_bonus, `claim:weekly:${w}`, 'daily_weekly');
     }
-    case 'run': {   // Shard reward of one closed run, once per run id
+    case 'run': {   // Shard reward of ONE closed run, once per run id. The amount is computed HERE from what the run
+      // recorded at close (summary_json.shards), never taken from the request, and clamped to RUN_SHARD_MAX.
       if (typeof b.run_id !== 'string' || !/^[0-9a-f]{32}$/.test(b.run_id)) return { ok: false, code: 'bad_request' };
-      if (!Number.isSafeInteger(b.amount) || b.amount < 0 || b.amount > RUN_SHARD_MAX) return { ok: false, code: 'bad_request' };
-      const run = await env.DB.prepare(`SELECT state FROM runs WHERE run_id = ? AND player_id = ?`).bind(b.run_id, pid).first();
-      if (!run || run.state !== 'closed') return { ok: false, code: 'run_not_closed' };
-      if (b.amount === 0) return { ok: true, answer: { shards: 0, stone: 0 } };
-      return grant({ shards: b.amount }, `claim:run:${b.run_id}`, 'run');
+      const run = await env.DB.prepare(`SELECT summary_json FROM runs WHERE run_id = ? AND player_id = ? AND ${VALID_RUN}`).bind(b.run_id, pid).first();
+      if (!run) return { ok: false, code: 'run_not_closed' };
+      let sum = {}; try { sum = JSON.parse(run.summary_json || '{}') || {}; } catch { sum = {}; }
+      const amount = Math.max(0, Math.min(RUN_SHARD_MAX, Number.isSafeInteger(sum.shards) ? sum.shards : 0));
+      if (amount === 0) return { ok: false, code: 'nothing_to_claim' };
+      return grant({ shards: amount }, `claim:run:${b.run_id}`, 'run');
     }
     default: return { ok: false, code: 'bad_request' };
   }
@@ -309,7 +318,7 @@ async function readBody(request, max = 1024) {
   try { const t = await request.text(); return t.length <= max ? JSON.parse(t) : null; } catch { return null; }
 }
 const STATUS = { insufficient: 402, no_tickets: 402, conflict: 409, owned: 409, day_cap: 409, hold_cap: 409, unknown_sku: 400, bad_request: 400,
-  no_run_today: 409, run_not_closed: 409, not_enough_days: 409 };
+  no_run_today: 409, nothing_to_claim: 409, run_not_closed: 409, not_enough_days: 409 };
 
 export async function handleEcon(request, env, url, opts = {}) {
   try {

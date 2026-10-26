@@ -36,3 +36,10 @@ BEGIN SELECT RAISE(ABORT, 'HOLD_CAP exceeded'); END;
 CREATE TRIGGER echobox_buy_day_cap BEFORE UPDATE ON echobox_state
 WHEN NEW.buy_count > 30
 BEGIN SELECT RAISE(ABORT, 'DAY_CAP exceeded'); END;
+
+-- One starter grant per durable identity (players.id = google:<sub>). No foreign key on purpose: deleting an
+-- account and registering again must not hand out the starter a second time.
+CREATE TABLE starter_claims (
+  identity TEXT PRIMARY KEY,
+  at       INTEGER NOT NULL
+);

@@ -8,28 +8,7 @@ import worker from '../src/index.js';
 import { openNormal, ticketPrice, ticketCost, poolIds } from '../src/economy.js';
 import echo from '../../godot/assets/data/economy/echobox.json' with { type: 'json' };
 
-const mig = (f) => readFileSync(new URL(`../migrations/${f}`, import.meta.url), 'utf8');
-class Stmt {
-  constructor(db, sql) { this.db = db; this.sql = sql; this.args = []; }
-  bind(...a) { this.args = a; return this; }
-  async first() { return this.db.prepare(this.sql).get(...this.args) ?? null; }
-  async all() { return { results: this.db.prepare(this.sql).all(...this.args) }; }
-  async run() { const r = this.db.prepare(this.sql).run(...this.args); return { success: true, meta: { changes: Number(r.changes) } }; }
-}
-class TxD1 {
-  constructor() { this.db = new DatabaseSync(':memory:'); this.db.exec('PRAGMA foreign_keys = ON;'); for (const f of ['0001_accounts.sql', '0002_runs.sql', '0009_depth_stage.sql', '0003_wallet.sql', '0011_economy.sql']) this.db.exec(mig(f)); }
-  prepare(s) { return new Stmt(this.db, s); }
-  batch(stmts) { const run = (this.q || Promise.resolve()).then(() => this._batch(stmts)); this.q = run.catch(() => {}); return run; }
-  async _batch(stmts) { this.db.exec('BEGIN'); try { const o = []; for (const s of stmts) o.push(await s.run()); this.db.exec('COMMIT'); return o; } catch (e) { this.db.exec('ROLLBACK'); throw e; } }
-}
-export const mkEnv = () => {
-  const DB = new TxD1();
-  DB.db.prepare(`INSERT INTO players (id, display_name, created_at, last_login_at) VALUES ('p1', 'p', 1, 1), ('p2', 'q', 1, 1)`).run();
-  for (const [tok, id] of [['tok1', 'p1'], ['tok2', 'p2']]) {
-    DB.db.prepare('INSERT INTO sessions (id_hash, player_id, created_at, expires_at) VALUES (?, ?, 1, 9999999999)').run(createHash('sha256').update(tok).digest('base64url'), id);
-  }
-  return { DB };
-};
+import { mkEnv } from './_econ_harness.mjs';
 const call = (env, path, method = 'GET', body, tok = 'tok1') => worker.fetch(new Request(`https://axiedice.fun${path}`, {
   method, headers: { cookie: `ad_session=${tok}`, 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined }), env);
 const j = async (p) => { const r = await p; return { status: r.status, ...(await r.json()) }; };
@@ -111,7 +90,7 @@ test('economy: daily claim needs a closed run today, pays once per day; weekly n
   await call(env, '/api/econ');
   assert.equal((await j(call(env, '/api/econ/claim', 'POST', { kind: 'daily' }))).code, 'no_run_today');
   const now = Math.floor(Date.now() / 1000);
-  env.DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, rules_version, state, created_at, closed_at, outcome) VALUES (?, 'p1', 'normal', 'x', 'closed', ?, ?, 'won')`).run('a'.repeat(32), now - 5, now - 1);
+  env.DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, rules_version, state, created_at, closed_at, outcome, battles_done) VALUES (?, 'p1', 'normal', 'x', 'closed', ?, ?, 'won', 3)`).run('a'.repeat(32), now - 5, now - 1);
   const c = await j(call(env, '/api/econ/claim', 'POST', { kind: 'daily' }));
   assert.equal(c.ok, true); assert.equal(c.shard, 560); assert.equal(c.stone, 500);
   const again = await j(call(env, '/api/econ/claim', 'POST', { kind: 'daily' }));
@@ -120,19 +99,55 @@ test('economy: daily claim needs a closed run today, pays once per day; weekly n
   assert.equal((await j(call(env, '/api/econ/claim', 'POST', { kind: 'daily_run' }))).code, 'no_run_today');
 });
 
-test('economy: run reward is once per closed run id and bounded', async () => {
+const insRun = (env, id, pid, mode, battles, shards) => env.DB.db.prepare(
+  `INSERT INTO runs (run_id, player_id, mode, rules_version, state, created_at, closed_at, battles_done, summary_json) VALUES (?, ?, ?, 'x', 'closed', 1, 2, ?, ?)`)
+  .run(id, pid, mode, battles, JSON.stringify({ shards }));
+
+test('economy C1/C2: run reward is computed on the server, once per run, own closed non-mission runs only', async () => {
   const env = mkEnv();
   await call(env, '/api/econ');
-  const id = 'b'.repeat(32);
-  const claim = (amount, run_id = id) => j(call(env, '/api/econ/claim', 'POST', { kind: 'run', run_id, amount }));
-  assert.equal((await claim(100)).code, 'run_not_closed');
-  env.DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, rules_version, state, created_at) VALUES (?, 'p1', 'normal', 'x', 'closed', 1)`).run(id);
-  assert.equal((await claim(99999)).status, 400);
-  assert.equal((await claim(100)).shard, 600);
-  assert.equal((await claim(100)).shard, 600, 'replay');
-  assert.equal((await claim(2000)).shard, 600, 'a second claim for the same run changes nothing');
-  env.DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, rules_version, state, created_at) VALUES (?, 'p2', 'normal', 'x', 'closed', 1)`).run('c'.repeat(32));
-  assert.equal((await claim(100, 'c'.repeat(32))).code, 'run_not_closed', "someone else's run");
+  const claim = (run_id, extra = {}) => j(call(env, '/api/econ/claim', 'POST', { kind: 'run', run_id, ...extra }));
+  assert.equal((await claim('b'.repeat(32))).code, 'run_not_closed');
+  insRun(env, 'b'.repeat(32), 'p1', 'normal', 4, 120);
+  const r = await claim('b'.repeat(32), { amount: 99999 });   // the amount in the request is ignored
+  assert.equal(r.shard, 620);
+  assert.equal((await claim('b'.repeat(32))).shard, 620, 'replay: no second payment');
+  insRun(env, 'c'.repeat(32), 'p1', 'normal', 4, 999999);     // absurd recorded value is clamped
+  assert.equal((await claim('c'.repeat(32))).shard, 620 + 3000);
+  insRun(env, 'd'.repeat(32), 'p1', 'mission', 4, 500);       // C2: Mission runs pay through escrow only
+  assert.equal((await claim('d'.repeat(32))).code, 'run_not_closed');
+  insRun(env, 'e'.repeat(32), 'p1', 'normal', 0, 500);        // no battle played
+  assert.equal((await claim('e'.repeat(32))).code, 'run_not_closed');
+  insRun(env, 'f'.repeat(32), 'p2', 'normal', 4, 500);        // someone else's run
+  assert.equal((await claim('f'.repeat(32))).code, 'run_not_closed');
+  insRun(env, '1'.repeat(32), 'p1', 'normal', 4, 0);
+  assert.equal((await claim('1'.repeat(32))).code, 'nothing_to_claim');
+});
+
+test('economy N1: daily claim uses the same valid-run gate (battles >= 1, not Mission)', async () => {
+  const env = mkEnv();
+  await call(env, '/api/econ');
+  const now = Math.floor(Date.now() / 1000);
+  const ins = (id, mode, b) => env.DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, rules_version, state, created_at, closed_at, battles_done) VALUES (?, 'p1', ?, 'x', 'closed', ?, ?, ?)`).run(id, mode, now - 5, now - 1, b);
+  ins('a'.repeat(32), 'normal', 0); ins('b'.repeat(32), 'mission', 5);
+  assert.equal((await j(call(env, '/api/econ/claim', 'POST', { kind: 'daily' }))).code, 'no_run_today');
+  ins('c'.repeat(32), 'normal', 1);
+  assert.equal((await j(call(env, '/api/econ/claim', 'POST', { kind: 'daily' }))).ok, true);
+});
+
+test('economy N3/N4: starter runs no batch after the first time, and never twice for the same identity', async () => {
+  const env = mkEnv();
+  await call(env, '/api/econ');
+  let batches = 0; const ob = env.DB.batch.bind(env.DB); env.DB.batch = (x) => { batches++; return ob(x); };
+  await call(env, '/api/econ'); await call(env, '/api/econ');
+  assert.equal(batches, 0);
+  // delete the account and register it again under the same durable id: no second starter
+  env.DB.db.exec('PRAGMA foreign_keys = ON');
+  env.DB.db.prepare(`DELETE FROM players WHERE id = 'p1'`).run();
+  env.DB.db.prepare(`INSERT INTO players (id, display_name, created_at, last_login_at) VALUES ('p1', 'p', 1, 1)`).run();
+  env.DB.db.prepare('INSERT INTO sessions (id_hash, player_id, created_at, expires_at) VALUES (?, ?, 1, 9999999999)').run((await import('node:crypto')).createHash('sha256').update('tok1').digest('base64url'), 'p1');
+  const s = await j(call(env, '/api/econ'));
+  assert.equal(s.shard, 0); assert.equal(s.ticket, 0);
 });
 
 // ------------------------------------------------------------ Echo Box
