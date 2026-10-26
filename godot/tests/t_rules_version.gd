@@ -249,7 +249,10 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## no combat or replay input. Run result: NO, stays -u.
 ## BUMPED, 2026-10-26: `ActionLog.RULES_VERSION` -> `godot-2026-10-26-v`. R-Atia (int/ra): 6 new Atia monsters in the normal/Elite
 ## pools change which monsters a seed draws. Same actions give a different run. Worker SUPPORTED_RULE_VERSIONS gained -v.
-const FINGERPRINT := "6e770d6fd419a831ef0cf1be32102f2256e5b06075f4d635b4c64f282d767c89"
+## Pinned, 2026-10-26 (R3 SR1, int/r3): server economy client side (MetaState SERVER_FIELDS / apply_server_econ / wipe for
+## reset, AccountService remote econ, RunState offline removed + run claim retry). Meta/wallet only, no combat or replay
+## input. Run result: NO, stays -v.
+const FINGERPRINT := "d5e48fe493717cd63c995a8f26ad9e035f9c73f67493c0f51318698efbc2fad9"
 
 
 func _ready() -> void:
