@@ -16,7 +16,7 @@ static func write(recs: Array, out_dir: String, tag: String, secs: float, catalo
 	var date := Time.get_date_string_from_system()
 	var base := out_dir.path_join("sim-%s-%s" % [date, tag])
 	var csv := FileAccess.open(base + ".csv", FileAccess.WRITE)
-	csv.store_line("seed,policy,core_policy,team,asc,won,death_kind,death_row,rule,cores,fights,offered,picked,trig,m_turns,m_dmg,m_v0,m_v1,m_dsq,boss_n,boss_turns,boss_won,boss_hp," + ",".join(MX_COLS) + ",anchor,aw_node,aw_turn,mut,combos,cfg,mode,rules,src,kind")
+	csv.store_line("seed,policy,core_policy,team,asc,won,death_kind,death_row,rule,cores,fights,offered,picked,trig,m_turns,m_dmg,m_v0,m_v1,m_dsq,boss_n,boss_turns,boss_won,boss_hp," + ",".join(MX_COLS) + ",anchor,aw_node,aw_turn,mut,combos,cfg,mode,rules,src,kind,end,verify,vdetail")
 	for r in recs:
 		var fs: Array = []
 		for f in r["fights"]:
@@ -25,7 +25,8 @@ static func write(recs: Array, out_dir: String, tag: String, secs: float, catalo
 			r["asc"], 1 if r["won"] else 0, r["death_kind"], r["death_row"], r["rule"], ";".join(r["cores"]), ";".join(fs),
 			";".join(r["offered"]), ";".join(r["picked"]), ";".join(r["trig"]), _mcols(r)] + ",%s,%d,%d,%s,%d" % [r.get("anchor", ""), int(r.get("aw_node", -1)), int(r.get("aw_turn", -1)),
 			";".join((r.get("mut", {}) as Dictionary).keys().map(func(k): return "%s:%d" % [k, int(r["mut"][k])])), int(r.get("combos", 0))]
-			+ ",%s,%s,%s,%s,%s" % [str(r.get("cfg", "")).replace(",", ";"), r.get("mode", "short"), r.get("rules", ""), r.get("src", ""), r.get("kind", "")])
+			+ ",%s,%s,%s,%s,%s" % [str(r.get("cfg", "")).replace(",", ";"), r.get("mode", "short"), r.get("rules", ""), r.get("src", ""), r.get("kind", "")]
+			+ ",%s,%s,%s" % [r.get("end", ""), r.get("verify", ""), str(r.get("vdetail", "")).replace(",", ";")])
 	csv.close()
 	var md := build_md(recs, tag, secs, catalog)
 	var f := FileAccess.open(base + ".md", FileAccess.WRITE)
@@ -45,10 +46,34 @@ static func _mcols(r: Dictionary) -> String:
 		int(m.get("boss_won", 0)), float(m.get("boss_hp", 0.0)), ",".join(mx)]
 
 
+## Soak (--verify): end states, replay verdicts, and every bad run with the seed that reproduces it.
+static func soak_section(recs: Array) -> String:
+	var ends := {}
+	var ver := {}
+	var bad: Array = []
+	for r in recs:
+		var e := String(r.get("end", ""))
+		var v := String(r.get("verify", ""))
+		if e != "":
+			ends[e] = int(ends.get(e, 0)) + 1
+		if v != "":
+			ver[v.get_slice(":", 0) if v.begins_with("diff") else v] = int(ver.get(v.get_slice(":", 0) if v.begins_with("diff") else v, 0)) + 1
+		var bad_end := e.begins_with("STUCK")
+		var bad_ver := v != "" and v != "ok" and v != "skip_forced"
+		if bad_end or bad_ver:
+			bad.append("seed=%d policy=%s team=%s asc=%d cfg=%s kind=%s mode=%s anchor=%s rule=%s end=%s verify=%s %s" % [r["seed"], r["policy"], r["team"], r["asc"],
+				r.get("cfg", ""), r.get("kind", ""), r.get("mode", ""), r.get("anchor", ""), r.get("rule", ""), e, v, r.get("vdetail", "")])
+	var out := "## Soak\n\n- end: %s\n- verify: %s\n- run xau (STUCK hoac verify khac ok/skip_forced): %d\n" % [str(ends), str(ver), bad.size()]
+	for b in bad.slice(0, 40):
+		out += "  - %s\n" % b
+	return out + "\n"
+
+
 static func build_md(recs: Array, tag: String, secs: float, catalog: Array = []) -> String:
 	var L: Array = []
 	L.append("# Sim balance %s\n" % tag)
 	L.append("Runs: %d, wall %.1fs (%.2fs/run).\n" % [recs.size(), secs, secs / maxf(1.0, recs.size())])
+	L.append(soak_section(recs))
 	# win-rate by policy x asc, policy x team, core policy
 	if _has_cfg(recs):
 		L.append(mission_section(recs))
@@ -289,6 +314,8 @@ static func read_csvs(paths: Array) -> Array:
 				out[-1].merge({"cfg": c[ai + 5].replace(";", ","), "mode": c[ai + 6], "rules": c[ai + 7]})
 			if c.size() >= ai + 10:
 				out[-1].merge({"src": c[ai + 8], "kind": c[ai + 9]})
+			if c.size() >= ai + 13:
+				out[-1].merge({"end": c[ai + 10], "verify": c[ai + 11], "vdetail": c[ai + 12]})
 	return out
 
 

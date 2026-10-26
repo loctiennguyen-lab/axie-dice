@@ -61,6 +61,9 @@ var _turns_total := 0
 var _team_keys: Array = []
 var _force_rule := ""      # --force_run_rule=<id>
 var _arg_error := ""       # set by parse_mission_args
+var _dump_fail := ""       # --dump_fail=<dir>: write the action log + tape of every run that fails verify (feed it to tools/verify_run.tscn)
+var _verify := false       # --verify=1: after each run replay its action log through RunVerifier and compare (soak)
+var _forced_mut := false   # this run had a forced Anchor / Run Rule that was NOT in the natural offer (replay cannot rebuild it)
 ## Fallback ladder (used only for a tier whose missions.json entry has no `rules` array) from design/proposals/nhiem-vu-beta-brainstorm.md section 2 (Huong B). Sim input, not game data.
 const LADDER := {
 	"N1": {"mode": "short", "asc": 0, "rules": []},
@@ -188,6 +191,8 @@ func run_batch(args: Dictionary) -> Array:
 		_anchor_mode = String(args.get("anchor", "auto"))
 		_stage = clampi(int(args.get("stage", 3)), 1, 3)
 	_force_rule = String(args.get("force_run_rule", ""))
+	_verify = int(args.get("verify", 0)) == 1
+	_dump_fail = String(args.get("dump_fail", ""))
 	if _force_rule != "":
 		var fd = RelicRegistry.get_def(_force_rule)
 		if fd == null or String(fd.core_axis) != "run_rule":
@@ -309,6 +314,7 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 	_anchor_aw_turn = -1
 	_anchor_mut = {}
 	_turns_total = 0
+	_forced_mut = false
 	var team: Array[String] = []
 	var keys: Array = TEAMS[team_name] if TEAMS.has(team_name) else Array(team_name.split("+"))   # "a+b+c+d+e" = explicit heroes
 	for k in keys:
@@ -341,7 +347,7 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 			"battle", "elite", "boss":
 				var eng := CombatEngine.new()
 				eng.setup_new(RunState.pending_combat)
-				eng.action_log = null   # trial moves use undo_last(), which would spam the shared log; sim never verifies
+				eng.action_log = RunState.action_log if _verify else null   # trial moves go through _undo(), which drops the trial pair from the log; without --verify nothing is logged
 				var aff := ""
 				if node.node_type == "elite" and not eng.enemies.is_empty():
 					aff = String((eng.enemies[0] as Unit).custom_state.get("affix", ""))
@@ -404,13 +410,82 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 		var d = RelicRegistry.get_def(String(id))
 		if d != null and String(d.id).begins_with("c_"):
 			cores.append(String(id) + "@" + String(d.core_axis))
+	var end_state := "WON" if won else ("LOST" if RunState.phase == RunState.RunPhase.LOST else "STUCK")
+	if end_state == "STUCK":
+		end_state = "STUCK_NODES" if walked >= MAX_NODES else "STUCK_PHASE%d" % int(RunState.phase)
+	for fgt in _fights:   # a fight the bot could not finish inside MAX_TURNS (hang candidate), whatever the run did afterwards
+		if int((fgt as Dictionary)["turns"]) >= MAX_TURNS:
+			end_state = "STUCK_TURNS"
+	var vres := _verify_run(won, seed_value) if _verify else ["", ""]
 	return {"seed": seed_value, "policy": policy, "core_policy": core_policy, "team": team_name, "asc": asc,
+		"end": end_state, "verify": vres[0], "vdetail": vres[1],
 		"won": won, "death_kind": death_kind, "death_row": death_row, "rule": RunState.run_rule,
 		"cores": cores, "fights": _fights.duplicate(true), "offered": _offered.keys(), "picked": _picked.duplicate(),
 		"trig": _trig.keys(), "m": _met.duplicate(),
 		"anchor": RunState.anchor_id, "aw_node": _anchor_aw_node, "aw_turn": _anchor_aw_turn,
 		"mut": _anchor_mut.duplicate(), "combos": RunState.combo_done.size(),
 		"cfg": cfg_label, "src": String(cfg.get("src", "")), "kind": String(cfg.get("kind", "")), "mode": String(cfg.get("mode", "short")), "rules": "+".join(cfg.get("rules", []) as Array)}
+
+
+
+## Soak (--verify=1): the run just played is replayed through RunVerifier from its own action log + epoch tape. "ok" = the replay accepted
+## every action AND reached the same end state (won, score, phase, power, relics, nodes, shards); "skip_forced" = a forced Anchor / Run Rule the
+## verifier cannot rebuild; "diff:<field>" / "rejected:<error>@<index>" = a real mismatch (bug candidate). Runs AFTER the record is read from RunState,
+## because the verifier takes RunState over.
+func _verify_run(won: bool, seed_value: int) -> Array:
+	if _forced_mut:
+		return ["skip_forced", ""]
+	var log: ActionLog = RunState.action_log
+	if log == null:
+		return ["no_log", ""]
+	var live := {"phase": int(RunState.phase), "power_level": RunState.power_level, "relics": RunState.owned_relic_ids.duplicate(),
+		"visited": RunState.visited_node_ids.duplicate(), "shards": RunState.shards_this_run, "score": RunState.compute_run_xp(won)}
+	var tape: Array = RunState.epoch.tape() if RunState.epoch != null else []
+	var bundle := log.to_data()
+	bundle["tape"] = tape
+	var copy := ActionLog.from_data(bundle)
+	var v := RunVerifier.verify(copy, tape, {}, true)
+	if _dump_fail != "" and (not bool(v.get("ok", false)) or _verify_diff(v, live, won) != ""):
+		DirAccess.make_dir_recursive_absolute(_dump_fail)
+		var f := FileAccess.open(_dump_fail.path_join("log_%d_%s_%s.json" % [seed_value, _policy, _team_keys[0] if not _team_keys.is_empty() else "x"]), FileAccess.WRITE)
+		if f != null:
+			f.store_string(JSON.stringify(bundle))
+			f.close()
+	if not bool(v.get("ok", false)):
+		return ["rejected:%s@%d" % [String(v.get("error", "?")), int(v.get("action_index", -1))], String(v.get("message", "")).replace(",", ";").replace("\n", " ")]
+	var dd := _verify_diff(v, live, won)
+	if dd != "":
+		return [dd.get_slice("|", 0), dd.get_slice("|", 1)]
+	return ["ok", ""]
+
+
+## "" when the replay verdict `v` matches the live end state, else "diff:<field>|<detail>".
+func _verify_diff(v: Dictionary, live: Dictionary, won: bool) -> String:
+	var st: Dictionary = v.get("state", {}) as Dictionary
+	if bool(v.get("won", false)) != won:
+		return "diff:won|live=%s replay=%s" % [str(won), str(v.get("won"))]
+	if int(v.get("score", -1)) != int(live["score"]):
+		return "diff:score|live=%d replay=%d" % [int(live["score"]), int(v.get("score", -1))]
+	for k in [["phase", "phase"], ["power_level", "power_level"], ["relics", "owned_relic_ids"], ["visited", "visited_node_ids"], ["shards", "shards_this_run"]]:
+		if JSON.stringify(live[k[0]]) != JSON.stringify(st.get(k[1])):
+			return ("diff:%s|live=%s replay=%s" % [String(k[0]), JSON.stringify(live[k[0]]), JSON.stringify(st.get(k[1]))]).replace(",", ";")
+	return ""
+
+
+const _UNDOABLE := ["use_die", "overcast", "wild_face", "play_active", "stash"]
+
+
+## eng.undo_last() for the bot's THINKING (trial move + undo). With --verify the trial pair is cut out of the action log again, so the log holds only
+## real decisions (a trial search would otherwise blow the 3000-action cap) and the replay does not play trials.
+func _undo(eng: CombatEngine) -> bool:
+	var ok := eng.undo_last()
+	if _verify and ok and eng.action_log != null and OS.get_environment("AXIE_SOAK_KEEP_TRIALS") != "1":
+		var en: Array = eng.action_log.entries
+		var n := en.size()
+		if n >= 2 and String((en[n - 1] as Dictionary).get("fn", "")) == "undo_last" and _UNDOABLE.has(String((en[n - 2] as Dictionary).get("fn", ""))):
+			en.pop_back()
+			en.pop_back()
+	return ok
 
 
 # ---------------------------------------------------------------- rewards / cores
@@ -426,6 +501,7 @@ func _anchor_step() -> void:
 	var pick := String(offer[0])
 	if _anchor_mode != "auto":
 		if not offer.has(_anchor_mode):   # 6 Anchors, 3 offered: a forced run must really hold the forced Anchor
+			_forced_mut = true
 			offer[0] = _anchor_mode
 			RunState.anchor_offer = offer
 		pick = _anchor_mode
@@ -498,6 +574,12 @@ func _drain_core_offers() -> void:
 		var card: Dictionary = cards[0]
 		if bool(card.get("rule", false)) and _force_rule != "":
 			# --force_run_rule: the offer becomes just this rule (valid or not, even `disabled`); no bot rng is drawn.
+			var natural_hit := false
+			for c0 in cards:
+				if String((c0 as Dictionary).get("key", "")) == _force_rule:
+					natural_hit = true
+			if not (cards.size() == 1 and natural_hit):
+				_forced_mut = true
 			card = CoreOffer.rule_card_of(RelicRegistry.get_def(_force_rule), 0)
 			RunState.pending_rewards = [card]
 		elif bool(card.get("rule", false)):
@@ -1144,7 +1226,7 @@ func _plan_turn_inner(eng: CombatEngine, ready: Array, foes: Array) -> Array:
 					for tid in _candidates(eng, u, eng.alive_enemies()):
 						if eng.use_die(u.uid, tid):
 							var sc := _eval(eng)
-							eng.undo_last()
+							_undo(eng)
 							var ns: Array = seq.duplicate()
 							ns.append([u.uid, tid])
 							var keys: Array = []
@@ -1156,7 +1238,7 @@ func _plan_turn_inner(eng: CombatEngine, ready: Array, foes: Array) -> Array:
 								seen[key] = true
 								nxt.append({"seq": ns, "score": sc})
 			for k in applied:
-				eng.undo_last()
+				_undo(eng)
 		if nxt.is_empty():
 			break
 		nxt.sort_custom(func(x, y): return x["score"] > y["score"])
@@ -1457,7 +1539,7 @@ func _try_weak_reroll(eng: CombatEngine) -> bool:
 		for tid in _candidates(eng, u, eng.alive_enemies()):
 			if eng.use_die(u.uid, tid):
 				bd = maxf(bd, _eval(eng) - base)
-				eng.undo_last()
+				_undo(eng)
 		if bd < 2.5 and not u.frozen and not u.held:
 			weak.append(u.uid)
 	if weak.is_empty():
@@ -1496,7 +1578,7 @@ func _expert_wild(eng: CombatEngine) -> void:
 				continue
 			if eng.wild_face(u.uid, sl):
 				var g := _turn_value(eng) - base
-				eng.undo_last()
+				_undo(eng)
 				if g > best_g:
 					best_g = g
 					best = [u.uid, sl]
@@ -1523,7 +1605,7 @@ func _expert_overcast(eng: CombatEngine) -> void:
 			continue
 		if eng.overcast(u.uid):
 			var g := _turn_value(eng) - base
-			eng.undo_last()
+			_undo(eng)
 			if g > best_g:
 				best_g = g
 				best = u.uid

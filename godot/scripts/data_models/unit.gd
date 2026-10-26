@@ -175,7 +175,7 @@ func to_data() -> Dictionary:
 		"die": die.duplicate(true),
 		"growth": growth.duplicate(true),
 		"rolled": rolled.duplicate(true),
-		"roster_index": roster_index, "slot": slot,
+		"roster_index": roster_index, "slot": slot, "g_oc_bonus": g_oc_bonus,
 		"custom_state": custom_state.duplicate(true),
 		"intent": intent.duplicate(true),
 		"_dead": _dead,
@@ -220,6 +220,7 @@ static func from_data(d: Dictionary) -> Unit:
 	u.rolled = (d.get("rolled", []) as Array).duplicate(true)
 	u.roster_index = int(d.get("roster_index", -1))
 	u.slot = int(d.get("slot", -1))
+	u.g_oc_bonus = float(d.get("g_oc_bonus", 0.0))   # was dropped: undo_last / save-load rebuilt the unit and lost the ascend/forge G bonus (replay mismatch, seed 5004)
 	u.custom_state = (d.get("custom_state", {}) as Dictionary).duplicate(true)
 	u.intent = (d.get("intent", {}) as Dictionary).duplicate(true)
 	u._dead = bool(d.get("_dead", false))
