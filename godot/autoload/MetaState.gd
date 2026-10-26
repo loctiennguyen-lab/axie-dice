@@ -147,6 +147,12 @@ var land_tier: int = 1
 var land_decor_placed: Array = []
 var land_decor_owned: Dictionary = {}
 var land_milestones_claimed: Array[String] = []
+## Beta (production/beta-plan.md prelude): highest tier whose "new tier" banner was shown (shown once per tier),
+## and whether the one-time Land starter gift was handed out. Distinct from `starter_granted` (economy starter).
+var land_tier_banner_seen: int = 1
+var land_gift_granted: bool = false
+## Mission tiers the server says are unlocked (cache of GET /missions/unlocks; the server is the source of truth).
+var mission_unlock_cache: Array[String] = []
 ## Profile (R3 M12): last RUN_LOG_MAX finished runs, newest first. Each {"date","kind","mode","asc","won",
 ## "aid","mission"}. Written only by record_run_outcome. `profile_stats` = lifetime {pure_wins, ms_played, ms_won}.
 var run_log: Array = []
@@ -318,6 +324,28 @@ func upgrade_land(save: bool = true) -> bool:
 	if save:
 		save_to_disk()
 	return true
+
+
+## Beta prelude: hands out the one-time Land starter gift (one decor item) the first time it is called for this
+## save. Returns false, changing nothing, once it was already granted or the id is empty.
+func grant_land_gift_once(decor_id: String, save: bool = true) -> bool:
+	if land_gift_granted or decor_id.is_empty():
+		return false
+	land_decor_owned[decor_id] = int(land_decor_owned.get(decor_id, 0)) + 1
+	land_gift_granted = true
+	if save:
+		save_to_disk()
+	return true
+
+
+## Beta prelude: replaces the cached list of unlocked Mission tiers with what the server returned.
+func set_mission_unlocks(tier_ids: Array, save: bool = true) -> void:
+	mission_unlock_cache.clear()
+	for t in tier_ids:
+		if not str(t).is_empty() and not mission_unlock_cache.has(str(t)):
+			mission_unlock_cache.append(str(t))
+	if save:
+		save_to_disk()
 
 
 ## Ghi một dòng sổ cái (chưa save; người gọi tự save). `c` = "shard"|"stone"|"gem"|"ticket".
@@ -743,6 +771,9 @@ func _reset_economy_fields() -> void:
 	land_decor_placed = []
 	land_decor_owned = {}
 	land_milestones_claimed.clear()
+	land_tier_banner_seen = 1
+	land_gift_granted = false
+	mission_unlock_cache.clear()
 	run_log = []
 	profile_stats = {"pure_wins": 0, "ms_played": 0, "ms_won": 0}
 
@@ -863,6 +894,13 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 		for m in (parsed.get("land_milestones_claimed", []) as Array):
 			if not land_milestones_claimed.has(str(m)):
 				land_milestones_claimed.append(str(m))
+	land_tier_banner_seen = clampi(int(parsed.get("land_tier_banner_seen", 1)), 1, land_tier)   # never ahead of the tier actually owned
+	land_gift_granted = bool(parsed.get("land_gift_granted", false))
+	mission_unlock_cache.clear()
+	if parsed.get("mission_unlock_cache", []) is Array:
+		for mu in (parsed.get("mission_unlock_cache", []) as Array):
+			if not mission_unlock_cache.has(str(mu)):
+				mission_unlock_cache.append(str(mu))
 	run_log = _sanitize_run_log(parsed.get("run_log", []))
 	var ps2 = parsed.get("profile_stats", {})
 	profile_stats = {"pure_wins": 0, "ms_played": 0, "ms_won": 0}
@@ -1090,6 +1128,9 @@ func save_to_disk() -> void:
 		"land_decor_placed": land_decor_placed,
 		"land_decor_owned": land_decor_owned,
 		"land_milestones_claimed": land_milestones_claimed,
+		"land_tier_banner_seen": land_tier_banner_seen,
+		"land_gift_granted": land_gift_granted,
+		"mission_unlock_cache": mission_unlock_cache,
 		"run_log": run_log,
 		"profile_stats": profile_stats,
 	}

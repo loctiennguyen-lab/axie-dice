@@ -239,7 +239,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## BUMPED, 2026-10-26: `ActionLog.RULES_VERSION` -> `godot-2026-10-26-t`. v5 (int/v5): Anchors Kin / Embers / Big Hand, 11 Cores + 4 Run Rules
 ## (Set Is King, Pilot Light off until sim), low-fire Core fixes, Resonant Shell on Elite/boss from stage 2, new combos in houses, Anchor tuning
 ## round 3, High Stakes needs stage 2. Same actions give a different run. Worker SUPPORTED_RULE_VERSIONS gained -t.
-const FINGERPRINT := "b2896237e70f1a825a5682cb6e5172ff5e640b408ce390809dbfb86356bb5523"
+## Pinned, 2026-10-26 (beta prelude, production/beta-plan.md): MetaState gained land_tier_banner_seen, land_gift_granted,
+## mission_unlock_cache + grant_land_gift_once() / set_mission_unlocks(). Meta/save only, no rule or replay input. Run result: NO, stays -t.
+const FINGERPRINT := "2a966e73685c0b45a94ce391eaac32b556db076040c20b1afe84acd7016da381"
 
 
 func _ready() -> void:

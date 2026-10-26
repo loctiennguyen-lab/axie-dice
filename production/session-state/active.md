@@ -1,5 +1,34 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (26/10) — CHIỀU SÂU ĐỦ CHO BETA; LÀM HỆ THỐNG LỚN → VIỆC NHỎ V5 → QA KỸ → LIAM POLISH
+Liam chơi v5 (24/10): "game đã có chiều sâu hơn, nhiều cái phải tính toán và phải làm hơn" → đủ cho beta, ngừng thêm chiều sâu.
+Không nhớ đã chọn Anchor nào (dấu hiệu Anchor chưa đủ nổi); gặp "lỗi khó hiểu" nhưng quên → QA phải săn chỗ khó hiểu như bug.
+Thứ tự Liam chốt 26/10 (mỗi hệ thống đi brainstorm → plan → Liam duyệt → làm):
+1. Nhiệm vụ bản cực khó · 2. Land (tier + Land 3D sống) · 3. Quái Atia 3D · 4. Server tung xúc xắc (P0–P5) · 6. Khung cosmetics.
+5 (Store tiền thật / monetization) TẠM BỎ QUA.
+Sau đó: việc nhỏ v5 (cân Anchor/Embers, sim 2 Luật run + Magma Seed đang tắt, comment file luật, SaveGuard tool, t_desktop_signin)
+→ QA thật kỹ (qa-lead viết plan trước) → Liam polish.
+QA luồng thật trên production: Liam CHO PHÉP dùng tài khoản của Liam (26/10).
+Liam trả lời 14 câu (26/10):
+- Brainstorm 5 hệ thống song song, duyệt một lượt; chi tiết nhỏ agent tự quyết có số liệu + ghi lý do. Xong hệ thống nào (review + QA)
+  thì commit + push axiedice + DEPLOY hệ thống đó (đã cho phép). Được xoá worktree cũ, phải kiểm kỹ chỉ xoá rác.
+- Nhiệm vụ: bậc cao nhất người giỏi thắng <5%, bậc thấp nhất ~15–25%; giữ risk-to-earn (cọc Shard, không tiền thật); tên M6/M7 + chữ: agent đặt.
+- Land: không sức mạnh combat; web bản nhẹ (ít Axie, ít decor), desktop đầy đủ.
+- Atia 3D: đổi HẾT quái (5 boss Chimera đã có model 3D + màn giới thiệu boss từ trước, giữ). Budget web +60 MB tối đa, texture quái web thu nhỏ.
+- Server RNG: bắt buộc online mọi chế độ kể cả desktop; không chờ mỗi lần tung: server gửi trước kết quả cả lượt (khoá mã băm), client hiện
+  ngay, cuối run server kiểm.
+- Khung cosmetics: mình viết prompt → Liam dán Claude Design → gửi zip về.
+Kiểm hiện trạng 26/10 (sửa ghi chú cũ): Nhiệm vụ bản cực khó ĐÃ viết 12/10 (Liam duyệt 13/10), N1-N3 live, N4-N6 + nâng nhà tắt, chưa sim,
+cần chỉnh lại theo mục tiêu 26/10. Land: 6 tier 3D + decor + raid có; thiếu web nhẹ, Stone/tier chỉ client, nâng không đổi cảnh, Gallery.
+Atia: 27/27 quái ĐÃ 3D (21 Atia + 5 Chimera boss); 3 thư mục boss cũ `assets/atia/{frost_lord,mirror,plague_mother}` là rác trong pck → hỏi Liam
+"đổi hết quái" nghĩa là gì. Server RNG: P0-P2 xong, P4 một phần, P3 (verifier server) + P5 chưa; RemoteEpochSource chờ từng request.
+Khung cosmetics: 27 khung trong game (21 + 6 Reef), round 4 đã sửa cắt mép; "19 khung vẽ lại" là ghi chú cũ. Còn: Legendary không có khung
+trong pool Echo Box, khung mốc Land mượn, pool 223 id placeholder.
+Brainstorm XONG + review 2 vòng APPROVE (26/10), CHỜ LIAM DUYỆT: `design/proposals/nhiem-vu-beta-brainstorm.md` (+ `-review.md`,
+economy-designer), `design/proposals/land-beta-brainstorm.md` (+ `-review.md`, creative-director),
+`docs/architecture/server-rng-beta-brainstorm.md` (+ `-review.md`, security-engineer). LIAM DUYỆT 26/10 từng câu (dòng đầu mỗi doc): hoãn nhà; khoá số theo sim, không hiệu chuẩn; bật cược; giữ heavy không lãi; Land gói beta; DESKTOP chính + XOÁ tiến độ sau beta; PB→PA nếu RTT cao; RESET số dư; KHÔNG trần payout; khách như khuyến nghị. Atia = THÊM quái mới (brainstorm `design/proposals/atia-roster-expansion-brainstorm.md`, 12 con, review APPROVE); khung cosmetics = 8 khung (`design/proposals/cosmetics-frames-round6-brainstorm.md`, prompt `design/handoffs/cosmetics-3d/PROMPT-ROUND-6.md`, APPROVE). PLAN `production/beta-plan.md` (+ `-review.md`, producer APPROVE vòng 2) LIAM DUYỆT 26/10 (sim đêm OK; desktop link cố định + màn có bản mới; RESET HẾT KHÔNG ĐỂ LẠI GÌ kể cả Gem + lịch sử run; Atia trễ thì SR1 trước; Atia hướng B). ĐANG TRIỂN KHAI: prelude (MetaState 3 field + t_meta_fields_beta; suite 236, 235 xanh, chỉ t_desktop_signin) → đợt 1: N-S, N-W, SR0, V5, CL, LD-D. Tiếp: plan beta `production/beta-plan.md`. Đã xoá 42 worktree cũ (đều đã merge, nhánh giữ nguyên); file chưa commit duy nhất
+không có ở cây chính (sim thô SA/LF + sweep B) đã sao lưu `../my-game-wt/_archive-2026-10-26/`.
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (23/10 tối) — V5 ĐÃ VÀO GODOT-PORT (78346be), RULES -t, DEPLOY (xem cuối mục)
 Liam giao 5 việc (23/10): (1) thêm Lõi + Luật run mới, (2) spam < 10%, (3) sửa Lõi ít kích hoạt, (4) thêm Anchor cho đa dạng, (5) polish để cuối.
 Đã làm (mỗi phần review độc lập + QA luồng thật):
