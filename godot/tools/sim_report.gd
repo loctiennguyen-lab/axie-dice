@@ -16,7 +16,7 @@ static func write(recs: Array, out_dir: String, tag: String, secs: float, catalo
 	var date := Time.get_date_string_from_system()
 	var base := out_dir.path_join("sim-%s-%s" % [date, tag])
 	var csv := FileAccess.open(base + ".csv", FileAccess.WRITE)
-	csv.store_line("seed,policy,core_policy,team,asc,won,death_kind,death_row,rule,cores,fights,offered,picked,trig,m_turns,m_dmg,m_v0,m_v1,m_dsq,boss_n,boss_turns,boss_won,boss_hp," + ",".join(MX_COLS) + ",anchor,aw_node,aw_turn,mut,combos")
+	csv.store_line("seed,policy,core_policy,team,asc,won,death_kind,death_row,rule,cores,fights,offered,picked,trig,m_turns,m_dmg,m_v0,m_v1,m_dsq,boss_n,boss_turns,boss_won,boss_hp," + ",".join(MX_COLS) + ",anchor,aw_node,aw_turn,mut,combos,cfg,mode,rules")
 	for r in recs:
 		var fs: Array = []
 		for f in r["fights"]:
@@ -24,7 +24,8 @@ static func write(recs: Array, out_dir: String, tag: String, secs: float, catalo
 		csv.store_line("%d,%s,%s,%s,%d,%d,%s,%d,%s,%s,%s,%s,%s,%s,%s" % [r["seed"], r["policy"], r["core_policy"], r["team"],
 			r["asc"], 1 if r["won"] else 0, r["death_kind"], r["death_row"], r["rule"], ";".join(r["cores"]), ";".join(fs),
 			";".join(r["offered"]), ";".join(r["picked"]), ";".join(r["trig"]), _mcols(r)] + ",%s,%d,%d,%s,%d" % [r.get("anchor", ""), int(r.get("aw_node", -1)), int(r.get("aw_turn", -1)),
-			";".join((r.get("mut", {}) as Dictionary).keys().map(func(k): return "%s:%d" % [k, int(r["mut"][k])])), int(r.get("combos", 0))])
+			";".join((r.get("mut", {}) as Dictionary).keys().map(func(k): return "%s:%d" % [k, int(r["mut"][k])])), int(r.get("combos", 0))]
+			+ ",%s,%s,%s" % [str(r.get("cfg", "")).replace(",", ";"), r.get("mode", "short"), r.get("rules", "")])
 	csv.close()
 	var md := build_md(recs, tag, secs, catalog)
 	var f := FileAccess.open(base + ".md", FileAccess.WRITE)
@@ -49,6 +50,8 @@ static func build_md(recs: Array, tag: String, secs: float, catalog: Array = [])
 	L.append("# Sim balance %s\n" % tag)
 	L.append("Runs: %d, wall %.1fs (%.2fs/run).\n" % [recs.size(), secs, secs / maxf(1.0, recs.size())])
 	# win-rate by policy x asc, policy x team, core policy
+	if _has_cfg(recs):
+		L.append(mission_section(recs))
 	L.append(_goals(recs))
 	L.append(anchor_section(recs))
 	L.append(_funnel(recs))
@@ -282,6 +285,8 @@ static func read_csvs(paths: Array) -> Array:
 				for q in String(c[ai + 3]).split(";", false):
 					mut[q.get_slice(":", 0)] = int(q.get_slice(":", 1))
 				out[-1].merge({"anchor": c[ai], "aw_node": int(c[ai + 1]), "aw_turn": int(c[ai + 2]), "mut": mut, "combos": int(c[ai + 4])})
+			if c.size() >= ai + 8:
+				out[-1].merge({"cfg": c[ai + 5].replace(";", ","), "mode": c[ai + 6], "rules": c[ai + 7]})
 	return out
 
 
@@ -532,4 +537,96 @@ static func anchor_section(recs: Array) -> String:
 			var hid := String(h["id"])
 			out += "| %s | %s | %.1f%% | %.1f%% |\n" % [pol, hid, 100.0 * int(h1.get(hid, 0)) / maxi(n2, 1), 100.0 * int(h2.get(hid, 0)) / maxi(n2, 1)]
 		out += "| %s | combos formed avg | %.2f | |\n" % [pol, cb / maxi(n2, 1)]
+	return out + "\n"
+
+
+# ---------------------------------------------------------------- mission sim (N-S)
+
+static func _has_cfg(recs: Array) -> bool:
+	for r in recs:
+		if str(r.get("cfg", "")) != "":
+			return true
+	return false
+
+
+## Wilson score interval 95% for w wins of n. Returns [lo, hi] as fractions.
+static func wilson(w: int, n: int) -> Array:
+	if n <= 0:
+		return [0.0, 1.0]
+	var z := 1.96
+	var p := float(w) / n
+	var z2 := z * z
+	var den := 1.0 + z2 / n
+	var centre := (p + z2 / (2.0 * n)) / den
+	var half := z * sqrt(p * (1.0 - p) / n + z2 / (4.0 * n * n)) / den
+	return [maxf(0.0, centre - half), minf(1.0, centre + half)]
+
+
+## Per (config, policy): n, wins, p, SE, Wilson CI. Then paired differences between consecutive configs (same policy,
+## runs matched by seed): d = p(B) - p(A), SE from the discordant pairs. Config order = first appearance.
+static func mission_section(recs: Array) -> String:
+	var order: Array = []
+	var cell := {}   # "cfg|policy" -> {seed: won}
+	for r in recs:
+		var c := str(r.get("cfg", ""))
+		if c == "":
+			continue
+		var k := "%s|%s" % [c, r["policy"]]
+		if not cell.has(k):
+			cell[k] = {}
+			if not order.has(c):
+				order.append(c)
+		(cell[k] as Dictionary)[int(r["seed"])] = 1 if r["won"] else 0
+	var pols: Array = []
+	for r in recs:
+		if not pols.has(r["policy"]):
+			pols.append(r["policy"])
+	var out := "## Nhiem vu: ti le thang (CI 95% Wilson, SE = sqrt(p(1-p)/n))\n\n| cau hinh | chinh sach | n | thang | p | SE | CI 95% | mode | rules | Asc |\n|---|---|---|---|---|---|---|---|---|---|\n"
+	var meta := {}
+	for r in recs:
+		var c2 := str(r.get("cfg", ""))
+		if c2 != "" and not meta.has(c2):
+			meta[c2] = [str(r.get("mode", "short")), str(r.get("rules", "")), int(r["asc"])]
+	for c in order:
+		for pol in pols:
+			var k2 := "%s|%s" % [c, pol]
+			if not cell.has(k2):
+				continue
+			var d: Dictionary = cell[k2]
+			var n := d.size()
+			var w := 0
+			for sd in d:
+				w += int(d[sd])
+			var p := float(w) / maxf(1.0, n)
+			var ci := wilson(w, n)
+			out += "| %s | %s | %d | %d | %.1f%% | %.1f | %.1f-%.1f%% | %s | %s | A%d |\n" % [c, pol, n, w, 100.0 * p,
+				100.0 * sqrt(p * (1.0 - p) / maxf(1.0, n)), 100.0 * ci[0], 100.0 * ci[1], meta[c][0], meta[c][1] if meta[c][1] != "" else "-", meta[c][2]]
+	if order.size() > 1:
+		out += "\n### So cap theo seed chung (B - A, diem phan tram)\n\n| A -> B | chinh sach | cap chung | A thang B thua | A thua B thang | d | SE cap | CI 95% |\n|---|---|---|---|---|---|---|---|\n"
+		for i in range(1, order.size()):
+			for pol in pols:
+				var ka := "%s|%s" % [order[i - 1], pol]
+				var kb := "%s|%s" % [order[i], pol]
+				if not cell.has(ka) or not cell.has(kb):
+					continue
+				var da: Dictionary = cell[ka]
+				var db: Dictionary = cell[kb]
+				var n_pair := 0
+				var b_only := 0   # A lost, B won
+				var a_only := 0   # A won, B lost
+				for sd in da:
+					if not db.has(sd):
+						continue
+					n_pair += 1
+					if int(da[sd]) == 1 and int(db[sd]) == 0:
+						a_only += 1
+					elif int(da[sd]) == 0 and int(db[sd]) == 1:
+						b_only += 1
+				if n_pair == 0:
+					continue
+				var diff := float(b_only - a_only) / n_pair
+				var var_d := (float(a_only + b_only) / n_pair - diff * diff) / maxf(1.0, n_pair - 1.0)
+				var se := sqrt(maxf(0.0, var_d))
+				out += "| %s -> %s | %s | %d | %d | %d | %+.1f | %.1f | %+.1f..%+.1f |\n" % [order[i - 1], order[i], pol, n_pair, a_only, b_only,
+					100.0 * diff, 100.0 * se, 100.0 * (diff - 1.96 * se), 100.0 * (diff + 1.96 * se)]
 	return out + "\n"
