@@ -71,6 +71,14 @@ var _kind_btns: Dictionary = {}
 var _panel: PanelContainer
 var _body: VBoxContainer
 var _footer_msg: Label
+## True from the Start click until the server answers (can take ~15 s when an old run has to be closed first).
+var _busy := false
+var _busy_text := ""
+var _busy_gen := 0
+## Screen-side guard: RunSession gives up after 3 x 8 s, so a hung start is released a bit later than that.
+var start_timeout_s := 35.0
+## Tests only: scene path to try instead of the run map.
+var run_map_override := ""
 var _begin_btn: Button
 var _party_row: HBoxContainer
 var _party_label: Label
@@ -348,6 +356,8 @@ func _refresh_kind() -> void:
 
 ## Why Begin is disabled, or "" when it is allowed.
 func begin_block_reason() -> String:
+	if _busy:
+		return _busy_text
 	if state == "guest" and remote_on:
 		return "Sign in to play"
 	if state == "offline" and remote_on:
@@ -399,14 +409,33 @@ func set_state(s: String) -> void:
 func begin() -> Dictionary:
 	if use_account and state in ["normal", "loading", "offline", "guest"] and account_state() != state:
 		set_state(account_state())
+	if _busy:
+		return {"ok": false, "code": "busy"}
 	if begin_block_reason() != "":
 		return {"ok": false, "code": "blocked"}
 	var params := start_params()
 	var r: Dictionary
+	_set_busy(true, tr("Starting…"))
+	_busy_gen += 1
+	var gen := _busy_gen
+	if is_inside_tree():
+		get_tree().create_timer(start_timeout_s).timeout.connect(func() -> void:
+			if _busy and gen == _busy_gen:
+				_set_busy(false)
+				_add_banner("Couldn't start — try again", "Nothing was spent.", false))
+	var sess: RunSession = null
+	if not start_hook.is_valid() and RemoteEpochSource.flag_on():
+		sess = RunState.run_session()
+		sess.phase_changed.connect(_on_start_phase)
 	if start_hook.is_valid():
 		r = await start_hook.call(params)
 	else:
 		r = await RunState.begin_run(params)
+	if sess != null and is_instance_valid(sess):
+		sess.phase_changed.disconnect(_on_start_phase)
+	var leaving: bool = r.get("ok", false) and not no_scene_change and is_inside_tree()
+	if not leaving and gen == _busy_gen:
+		_set_busy(false)   # success that changes scene stays busy: no second click while the map loads
 	if not r.get("ok", false):
 		if String(r.get("code", "")) == "unauthenticated":
 			# Session expired or revoked after the screen opened: same message as a guest, no retry banner.
@@ -426,8 +455,27 @@ func begin() -> Dictionary:
 		return r
 	begin_error = ""
 	if not no_scene_change and is_inside_tree():
-		get_tree().change_scene_to_file(RUN_MAP)
+		var err := get_tree().change_scene_to_file(run_map_override if run_map_override != "" else RUN_MAP)
+		if err != OK:
+			_set_busy(false)
+			begin_error = "Couldn't open the run map"
+			_add_banner("Couldn't open the run map", "Try Start run again.", false)
 	return r
+
+
+func _set_busy(on: bool, text := "") -> void:
+	_busy = on
+	_busy_text = text if on else ""
+	if is_inside_tree() and _footer_msg != null:
+		_refresh_footer()
+
+
+## RunSession tells us which step the server call is on (RemoteEpochSource._recover_open_run).
+func _on_start_phase(phase: String) -> void:
+	if _busy and phase == "closing_old":
+		_set_busy(true, tr("Closing your old run…"))
+	elif _busy and phase == "creating":
+		_set_busy(true, tr("Starting…"))
 
 
 ## [title, detail] shown when Begin fails with `code` (RunState.begin_run -> RemoteEpochSource create error).
@@ -1198,6 +1246,10 @@ func _refresh_footer() -> void:
 	var summary := "Party %d of %d · %s · A%d" % [filled_count(), PARTY_SIZE, mode.capitalize(), ascension]
 	if kind != "normal":
 		summary += " · " + kind.capitalize()
+	if _busy:
+		_footer_msg.text = "%s\n%s" % [summary, tr("This can take a few seconds. Please wait.")]
+		UI3.set_disabled_reason(_begin_btn, why)
+		return
 	_footer_msg.text = summary if why == "" else "%s\n%s" % [summary, why]
 	if why == "":
 		UI3.clear_disabled_reason(_begin_btn)

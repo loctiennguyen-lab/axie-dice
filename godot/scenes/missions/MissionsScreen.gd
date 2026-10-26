@@ -150,7 +150,7 @@ func block_reason(tier_id: String, own_start := false) -> String:
 	if _syncing:
 		return "Checking your last mission..."
 	if _starting and not own_start:
-		return "Starting..."
+		return tr("Starting…")
 	if _account_blocks():
 		return "Needs a connection" if state == "offline" else "Sign in to stake Shard"
 	if not bool(o.unlocked):
@@ -241,7 +241,7 @@ func start(tier_id: String) -> Dictionary:
 	if _starting:
 		return {"ok": false, "code": "busy"}
 	_starting = true
-	_refresh()   # block_reason() reports "Starting..." so every stake button is disabled
+	_refresh()   # block_reason() reports "Starting…" so every stake button is disabled
 	var res := await _start_inner(tier_id)
 	_starting = false
 	if is_inside_tree():
