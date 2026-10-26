@@ -1,0 +1,1 @@
+Raw sim CSVs are not committed. Rounds: R0 start, R1 Big Hand 0.90, R2 Embers 2.25, RULES (base / set_is_king / pilot_light / magma), P3 (3 policies). See ../v5-tail-2026-10.md. Scripts: godot/tools/_v5_anchor_round.sh, _v5_rules_sim.sh.

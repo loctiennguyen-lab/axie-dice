@@ -1,149 +1,82 @@
 {
-	"version": 1,
-	"_source": "nhiem-vu-risk-to-earn §3.2-3.6; L1: N1-N4 bật, N5/N6 tắt",
+	"version": 2,
+	"_source": "Beta R1 (26/10): sim v2 có Anchor, bot expert, ~16.000 run (production/qa/sim/mission-sim-v2.md). m = 0,65 / p_bot (P1, giữ \"heavy không lãi\"), payout = stake × m kẹp payout_cap 20.000; N5 stake 1.250 để chỉ N6 chạm trần; N6 là bậc danh hiệu. est_win_pct = % thắng của bot (thẻ ghi \"ước tính\").",
 	"tiers": {
 		"N1": {
 			"mode": "short",
-			"ascension": 3,
+			"ascension": 0,
 			"stake": 300,
-			"m_base": 2.15,
+			"m_base": 5.3,
 			"m_scale": 1.0,
 			"stone": 4,
-			"unlock_win_asc": 3,
-			"house_level": 1,
+			"unlock_wins": 1,
+			"rules": [
+				"M6"
+			],
+			"est_win_pct": 12.3,
 			"enabled": true
 		},
 		"N2": {
 			"mode": "short",
-			"ascension": 4,
+			"ascension": 2,
 			"stake": 500,
-			"m_base": 2.4,
+			"m_base": 7.4,
 			"m_scale": 1.0,
 			"stone": 8,
-			"unlock_win_asc": 4,
-			"house_level": 1,
+			"unlock_wins": 1,
+			"rules": [],
+			"est_win_pct": 8.8,
 			"enabled": true
 		},
 		"N3": {
 			"mode": "short",
-			"ascension": 6,
+			"ascension": 3,
 			"stake": 800,
-			"m_base": 3.6,
+			"m_base": 9.05,
 			"m_scale": 1.0,
 			"stone": 14,
-			"unlock_win_asc": 6,
-			"house_level": 1,
+			"unlock_wins": 1,
+			"rules": [],
+			"est_win_pct": 7.2,
 			"enabled": true
 		},
 		"N4": {
 			"mode": "short",
-			"ascension": 7,
+			"ascension": 3,
 			"stake": 1200,
-			"m_base": 4.4,
+			"m_base": 11.4,
 			"m_scale": 1.0,
 			"stone": 22,
-			"unlock_win_asc": 7,
-			"house_level": 2,
-			"enabled": false
+			"unlock_wins": 1,
+			"rules": [
+				"M4"
+			],
+			"est_win_pct": 5.7,
+			"enabled": true
 		},
 		"N5": {
 			"mode": "short",
-			"ascension": 9,
-			"stake": 1800,
-			"m_base": 7.85,
-			"m_scale": 0.9,
+			"ascension": 4,
+			"stake": 1250,
+			"m_base": 15.85,
+			"m_scale": 1.0,
 			"stone": 34,
-			"unlock_win_asc": 9,
-			"house_level": 3,
-			"enabled": false
+			"unlock_wins": 1,
+			"rules": [],
+			"est_win_pct": 4.1,
+			"enabled": true
 		},
 		"N6": {
 			"mode": "full",
-			"ascension": 9,
+			"ascension": 6,
 			"stake": 2500,
 			"m_base": 8.0,
 			"m_scale": 1.0,
 			"stone": 60,
-			"unlock_win_asc": 9,
-			"unlock_full_a9": true,
-			"house_level": 4,
-			"enabled": false
-		}
-	},
-	"rule_sets": {
-		"N1": {
-			"A": [
-				"M5",
-				"M6"
-			],
-			"B": [
-				"M1",
-				"M7"
-			]
-		},
-		"N2": {
-			"A": [
-				"M5",
-				"M6"
-			],
-			"B": [
-				"M1",
-				"M7"
-			]
-		},
-		"N3": {
-			"A": [
-				"M2",
-				"M3",
-				"M4"
-			],
-			"B": [
-				"M1",
-				"M2",
-				"M4"
-			]
-		},
-		"N4": {
-			"A": [
-				"M1",
-				"M5",
-				"M6"
-			],
-			"B": [
-				"M5",
-				"M6",
-				"M7"
-			]
-		},
-		"N5": {
-			"A": [
-				"M1",
-				"M5",
-				"M6",
-				"M7"
-			],
-			"B": [
-				"M2",
-				"M4",
-				"M5",
-				"M6"
-			]
-		},
-		"N6": {
-			"A": [
-				"M1",
-				"M4",
-				"M5",
-				"M6",
-				"M7"
-			],
-			"B": [
-				"M1",
-				"M4",
-				"M5",
-				"M6",
-				"M7"
-			]
+			"unlock_wins": 1,
+			"rules": [],
+			"est_win_pct": 0.1,
+			"enabled": true
 		}
 	},
 	"rules_need_spike": [
@@ -176,5 +109,5 @@
 	"payout_cap": 20000,
 	"newcomer_gate": true,
 	"house_upgrade_enabled": false,
-	"_note_l1": "L1 (Liam): chỉ N1-N3; nhà không nâng cấp (giữ dữ liệu, tắt)"
+	"_note_l1": "Nha Nhiem vu: HOAN (Liam 26/10), giu cap 1; mo bac bang chuoi thang tu server (unlock_wins thang o bac truoc, mac dinh 1)."
 }

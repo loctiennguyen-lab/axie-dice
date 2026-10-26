@@ -46,12 +46,12 @@ func run() -> void:
 	BoTestBase.force(b4, [1, 1, 1, 1, 3], all5)
 	var plain4 := _eng("")
 	BoTestBase.force(plain4, [1, 1, 1, 1, 3], all5)
-	eq(b4.m100_for(b4.party[0]), plain4.m100_for(plain4.party[0]) + _k100("big_set45_add"), "Big Hand: SET of 4 +big_set45_add")
+	eq(b4.m100_for(b4.party[0]), mini(plain4.m100_for(plain4.party[0]) + _k100("big_set45_add"), b4.bo_cap100()), "Big Hand: SET of 4 +big_set45_add")
 	var b5 := _eng("a_big_hand")
 	BoTestBase.force(b5, [1, 1, 1, 1, 1], all5)
 	var plain5 := _eng("")
 	BoTestBase.force(plain5, [1, 1, 1, 1, 1], all5)
-	eq(b5.m100_for(b5.party[0]), mini(plain5.m100_for(plain5.party[0]) + _k100("big_set45_add"), b5.bo_cap100()), "Big Hand: SET of 5 +0.40, capped")
+	eq(b5.m100_for(b5.party[0]), mini(plain5.m100_for(plain5.party[0]) + _k100("big_set45_add"), b5.bo_cap100()), "Big Hand: SET of 5 +big_set45_add, capped by the M cap")
 	# --- Embers ---
 	var m := _eng("a_embers")
 	eq(m.stash_cap(), 2, "Embers: Hold 2 dice")
@@ -67,11 +67,15 @@ func run() -> void:
 	var loose := _eng("a_embers")
 	BoTestBase.force(loose, [0, 1, 2, 3, 4], all5)
 	(loose.party[0] as Unit).stash_carry = true
-	eq(loose.m100_for(loose.party[0]), 100 + _k100("embers_add"), "Embers: carried die +embers_add")
+	eq(loose.m100_for(loose.party[0]), mini(100 + _k100("embers_add"), loose.bo_cap100()), "Embers: carried die +embers_add (under the M cap)")
 	eq(loose.m100_for(loose.party[1]), 100, "Embers: not carried = nothing")
 	BoTestBase.force(loose, [1, 1, 1, 2, 3], all5)
 	(loose.party[0] as Unit).stash_carry = true
-	eq(loose.m100_for(loose.party[0]), 130 + _k100("embers_add"), "Embers: carried die in a SET stacks +0.50")
+	eq(loose.m100_for(loose.party[0]), mini(130 + _k100("embers_add"), loose.bo_cap100()), "Embers: carried die in a SET stacks +embers_add (under the M cap)")
+	eq(loose.anchor_embers_real100(loose.party[0]), loose.bo_cap100() - 130, "Embers chip shows the real value after the M cap, not the knob")
+	ok(loose.party[0].stash_carry, "real-value probe leaves the carry flag as it was")
+	for aid in ["a_embers", "a_big_hand"]:
+		ok(String(Anchors.get_def(aid).get("rule_en", "")).contains("%.2f" % (loose.bo_cap100() / 100.0)), "%s rule text states the M cap" % aid)
 	ContentDB.combat_tune["bo"]["m_cap"] = 1.4
 	eq(loose.m100_for(loose.party[0]), 140, "Embers: cap holds")
 	set_knobs("default")
@@ -89,7 +93,7 @@ func run() -> void:
 	eq(m2.stash_cap(), 2, "stage 2 Embers: Hold 2")
 	BoTestBase.force(m2, [0, 1, 2, 3, 4], all5)
 	(m2.party[0] as Unit).stash_carry = true
-	eq(m2.m100_for(m2.party[0]), 100 + _k100("embers_add"), "stage 2 Embers: carried die +embers_add")
+	eq(m2.m100_for(m2.party[0]), mini(100 + _k100("embers_add"), m2.bo_cap100()), "stage 2 Embers: carried die +embers_add")
 
 	# --- Kin + Concord: Concord counts one die per class, so Kin's miss penalty is waived; Concord is not offered under Kin ---
 	var kc := _eng("a_kin", 0, false, 3, ["c_concord"])

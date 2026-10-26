@@ -126,7 +126,14 @@ func _case(c: Dictionary) -> void:
 		_check(pick_uid >= 0, "a_mana_mine: found a natural SET turn (%d rolls)" % tried)
 		if pick_uid >= 0:
 			var mine_mana := int(CombatEngine.tune_knob("anchor", "mine_mana", 1.0))
-			_check(gain == mine_mana, "a_mana_mine: natural SET on the first roll pays +mine_mana (%d, want %d)" % [gain, mine_mana])
+			# roll_all also resolves cantrip faces, and a rolled Mana face adds to the same counter (Mission-run merge moved the rng,
+			# the found turn had +3 from faces). So the natural roll must pay at least mine_mana, and the Mine's own payout is
+			# measured exactly by firing it again with nothing else in between.
+			_check(gain >= mine_mana, "a_mana_mine: natural SET on the first roll pays at least +mine_mana (%d, want >= %d)" % [gain, mine_mana])
+			var m_pre := e.mana
+			e.anchor_turn["mine"] = false
+			e._anchor_mine_roll()
+			_check(e.mana - m_pre == mine_mana, "a_mana_mine: the Mine itself pays exactly +mine_mana (%d, want %d)" % [e.mana - m_pre, mine_mana])
 			e.mana = 10
 			_check(e.overcast_cost() == 1, "a_mana_mine: Overcast costs 1 after the SET")
 			_check(e.overcast(pick_uid) and e.mana == 9, "a_mana_mine: first Overcast paid 1 (mana %d)" % e.mana)

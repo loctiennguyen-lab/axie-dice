@@ -53,8 +53,9 @@ static func relic_desc(def: RelicDef) -> String:
 	return def.description if def.description != "" else "Archetype: %s" % def.archetype
 
 
-## src/data.js RELIC_SHOP_COST, verbatim — indexed by rarity 0..4 (Common..Mythic). This
-## vertical slice's relics only reach rarity 3 (Legendary) (relic_def.gd's rarity comment),
+## src/data.js RELIC_SHOP_COST, verbatim — indexed by rarity 0..4 (Common, Uncommon, Rare, Epic,
+## Legendary). Tier 5 (Mythic) is cosmetic only and has no shop price. This
+## vertical slice's relics only reach rarity 3 (Epic) (relic_def.gd's rarity comment),
 ## so index 4 is unreachable today but kept for parity with the source table.
 const RELIC_SHOP_COST := [45, 75, 120, 180, 260]
 

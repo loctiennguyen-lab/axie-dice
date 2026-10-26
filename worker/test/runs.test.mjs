@@ -7,7 +7,9 @@ import worker from '../src/index.js';
 import { RunCore } from '../src/run_core.js';
 import { sweepPending, PENDING_TTL_S } from '../src/runs.js';
 
+import { SUPPORTED_RULE_VERSIONS } from '../src/run_do.js';
 const RULES = 'godot-2026-09-21-a';
+const CURRENT = SUPPORTED_RULE_VERSIONS.at(-1);   // mission runs only take the current rules
 const mig = (f) => readFileSync(new URL(`../migrations/${f}`, import.meta.url), 'utf8');
 
 class Stmt {
@@ -18,7 +20,7 @@ class Stmt {
   async run() { const r = this.db.prepare(this.sql).run(...this.args); return { success: true, meta: { changes: Number(r.changes) } }; }
 }
 class FakeD1 {
-  constructor() { this.db = new DatabaseSync(':memory:'); this.db.exec('PRAGMA foreign_keys = ON;'); this.db.exec(mig('0001_accounts.sql')); this.db.exec(mig('0002_runs.sql')); this.db.exec(mig('0009_depth_stage.sql')); this.db.exec(mig('0003_wallet.sql')); this.db.exec(mig('0007_mission_escrow.sql')); this.db.exec(mig('0005_token_revocation.sql')); this.db.exec(mig('0006_leaderboard.sql')); }
+  constructor() { this.db = new DatabaseSync(':memory:'); this.db.exec('PRAGMA foreign_keys = ON;'); this.db.exec(mig('0001_accounts.sql')); this.db.exec(mig('0002_runs.sql')); this.db.exec(mig('0009_depth_stage.sql')); this.db.exec(mig('0003_wallet.sql')); this.db.exec(mig('0007_mission_escrow.sql')); this.db.exec(mig('0005_token_revocation.sql')); this.db.exec(mig('0006_leaderboard.sql')); this.db.exec(mig('0010_mission_unlock.sql')); }
   prepare(s) { return new Stmt(this.db, s); }
   async batch(stmts) { const out = []; for (const s of stmts) out.push(await s.run()); return out; }
 }
@@ -207,7 +209,7 @@ test('daily cap counts neither mission nor infra_error runs', async () => {
   const capped = await create(call);
   assert.equal(capped.status, 429);
   // a mission run is not capped
-  assert.equal((await create(call, { kind: 'mission', ascension: 3, mission: { tier: 'N1', stake: 300 } })).status, 200);
+  assert.equal((await create(call, { kind: 'mission', rules_version: CURRENT, ascension: 0, mission: { tier: 'N1', stake: 300, rules: ['M6'] } })).status, 200);
   // infra_error runs do not count: turn one of the earlier runs into one and a slot reopens
   DB.db.prepare(`UPDATE runs SET state = 'abandoned' WHERE mode = 'mission'`).run();
   DB.db.prepare(`UPDATE runs SET state = 'infra_error' WHERE mode = 'normal' AND rowid = (SELECT MIN(rowid) FROM runs WHERE mode = 'normal')`).run();

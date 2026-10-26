@@ -164,6 +164,8 @@ var core_tier_chain: Array[int] = []      ## tier of each Core pick, drawn once 
 var anchor_id: String = ""                 ## chosen Anchor ("" = none); locked for the run
 var anchor_awakened: bool = false          ## latched the first time >= 2 house Cores are owned; never turns off
 var anchor_offer: Array = []               ## the 3 offered ids (kept after the pick so a resume shows the same cards)
+## Run kinds that may carry an Anchor (Liam 26/10: Missions too, so the lowest tier plays like a normal run).
+const ANCHOR_KINDS: Array[String] = ["normal", "mission"]
 var anchor_wanted: bool = false            ## opt-in: params.anchor == true (the UI sets it; default off keeps old flows untouched)
 var _anchor_waiting: bool = false          ## pick 1 is held back until pick_anchor() / decline_anchor()
 var core_pick_index: int = 0              ## Core offers opened so far (the next one is index core_pick_index)
@@ -551,10 +553,11 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 	loadout["bonuses"] = meta_bonus.duplicate(true)
 	loadout["boon_id"] = boon_id
 	loadout["rules_on"] = bool(loadout.get("rules_on", params.get("rules_on", MetaState.runs > 0)))
-	# Anchor opt-in rides in the header loadout so a replay holds back pick 1 exactly like the live run did. Only a normal
-	# unranked run can carry it (the gate shuts every other kind), and the key is absent otherwise so old headers stay byte-identical.
+	# Anchor opt-in rides in the header loadout so a replay holds back pick 1 exactly like the live run did. Only an unranked
+	# normal or Mission run can carry it (Liam 26/10: Missions play like a normal run, Anchor included; the gate shuts
+	# ranked and daily), and the key is absent otherwise so old headers stay byte-identical.
 	var want_anchor := bool(params.get("anchor", false)) or bool(loadout.get("anchor", false))
-	if want_anchor and not ranked and p_kind == "normal":
+	if want_anchor and not ranked and p_kind in ANCHOR_KINDS:
 		loadout["anchor"] = true
 	else:
 		loadout.erase("anchor")
@@ -2539,7 +2542,7 @@ func anchor_gate_reason() -> String:
 		return "off"
 	if ranked or run_kind == "ranked":
 		return "ranked"
-	if run_kind != "normal":
+	if not (run_kind in ANCHOR_KINDS):
 		return "kind"
 	if depth_stage < 2:   # Liam 22/10: Anchors from stage 2 (was 3)
 		return "stage"

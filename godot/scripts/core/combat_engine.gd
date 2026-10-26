@@ -1068,7 +1068,7 @@ func effective_rmode(from_aid: bool, rmode: int) -> int:
 		return 1
 	if depth_stage >= 2 and CoreHooks.RelicHooks_has(self, "rule_high_stakes"):
 		return 0   # High Stakes (R16): every paid reroll is a Gamble. Stage 1 has no Gamble (reroll_refusal), so it stays Safe;
-		# at integration the rule gets requires stage_min:2 (token from lane NC).
+		# the stage >= 2 test above is a second guard: the rule itself already needs stage_min 2 (see run_rules in the catalog).
 	return 0 if rmode == 0 else 1
 
 
@@ -2165,6 +2165,18 @@ func _anchor_embers_add100(u: Unit) -> int:
 	if anchor_id != "a_embers" or not u.stash_carry:
 		return 0
 	return roundi(tune_knob("anchor", "embers_add", 0.50) * 100.0)
+
+
+## What the Embers bonus is really worth on this die after the M cap (x100): m100_for with the carry minus m100_for without it.
+## The knob can promise more than the cap lets through (die M 1.00 + 2.25 reads 3.25 but is capped at 3.00), so UI shows this, not the knob.
+func anchor_embers_real100(u: Unit) -> int:
+	if _anchor_embers_add100(u) == 0:
+		return 0
+	var with_carry := m100_for(u)
+	u.stash_carry = false
+	var without := m100_for(u)
+	u.stash_carry = true
+	return with_carry - without
 
 
 ## Passed Flame (awakened Embers): once per turn a carried Held die may take a Temp Face (Mat Tam) with no mana and no battle-limit cost.

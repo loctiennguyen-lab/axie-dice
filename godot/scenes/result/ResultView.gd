@@ -472,7 +472,8 @@ func _build_shard_card(s: Dictionary) -> Control:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 12)
 	card.add_child(col)
-	col.add_child(_card_caption(tr("Gene Shard earned")))
+	var mrun := bool(s.get("mission_run", false))
+	col.add_child(_card_caption(tr("Run reward (separate from your stake)") if mrun else tr("Gene Shard earned")))
 	var row := HBoxContainer.new()
 	row.custom_minimum_size.y = UI3Theme.size_of("row")
 	row.add_theme_constant_override("separation", 12)
@@ -492,7 +493,7 @@ func _build_shard_card(s: Dictionary) -> Control:
 	right.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_child(right)
 	var daily_bonus := ContentDB.DAILY_MISSION_SHARD if bool(s.get("daily_mission_granted", false)) else 0
-	var breakdown := UI3.label(tr("%d run payout") % (int(s["shards_this_run"]) - daily_bonus)
+	var breakdown := UI3.label((tr("%d from the run itself") if mrun else tr("%d run payout")) % (int(s["shards_this_run"]) - daily_bonus)
 		+ (" · " + tr("%d daily") % daily_bonus if daily_bonus > 0 else ""), "LabelMuted")
 	breakdown.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	breakdown.clip_text = true
@@ -685,14 +686,31 @@ func _build_stake_box(s: Dictionary) -> Control:
 	if not bool(s.get("mission_run", false)) or stake <= 0:
 		return null
 	var box: PanelContainer
+	var won := bool(s.get("mission_won", false))
+	var next_line := _next_tier_line(String(e.get("tier", "")), won)
 	if bool(s.get("stake_open", false)):
 		box = UI3.trade_box(&"gain", tr("Your %d Shard stake settles with the server. Check Missions.") % stake)
-	elif bool(s.get("mission_won", false)):
-		box = UI3.trade_box(&"gain", tr("Mission won. Your %d Shard stake comes back as %d Shards.") % [stake, int(e.get("payout", 0))])
+	elif won:
+		box = UI3.trade_box(&"gain", (tr("Mission won. Your %d Shard stake comes back as %d Shards, +%d Stone.") % [stake, int(e.get("payout", 0)), int(e.get("stone", 0))]) + next_line)
 	else:
-		box = UI3.trade_box(&"cost", tr("Mission lost. You lose your %d Shard stake.") % stake)
+		box = UI3.trade_box(&"cost", (tr("Mission lost. You lose your %d Shard stake (-%d Shards). No payout, no Stone.") % [stake, stake]) + next_line)
 	box.name = "StakeBox"
 	return box
+
+
+## "\nN4 is still locked until you win N3." / "\nN4 is open." / "" for the last tier or an unknown id.
+## After a loss nothing changes, so it reads the unlock cache as it is; after a win the server opens the next one.
+func _next_tier_line(tier: String, won: bool) -> String:
+	var ids := MissionBoard.tier_ids()
+	var i := ids.find(tier)
+	if i < 0 or i >= ids.size() - 1:
+		return ""
+	var nxt := String(ids[i + 1])
+	if won:
+		return "\n" + tr("%s opens once the server confirms the win.") % nxt
+	if MissionBoard.tier_unlocked(nxt, MetaState):
+		return "\n" + tr("%s is still open.") % nxt
+	return "\n" + tr("%s stays locked until you win %s.") % [nxt, tier]
 
 
 # ---------------------------------------------------------------------------
@@ -745,7 +763,8 @@ func _build_actions() -> Control:
 	var host := HBoxContainer.new()
 	host.name = "Footer"
 	host.add_theme_constant_override("separation", 16)
-	var again := UI3.button(tr("Run again"), &"secondary", &"M")
+	var mission_run := bool(_snap.get("mission_run", false))
+	var again := UI3.button(tr("Play a normal run") if mission_run else tr("Run again"), &"secondary", &"M")
 	again.name = "RunAgain"
 	again.custom_minimum_size.y = UI3Theme.size_of("btn_l")
 	again.pressed.connect(_on_menu_pressed)
@@ -755,10 +774,10 @@ func _build_actions() -> Control:
 	copy.custom_minimum_size.y = UI3Theme.size_of("btn_l")
 	copy.pressed.connect(_on_copy_card.bind(copy))
 	host.add_child(copy)
-	_back = UI3.button(tr("Back to Land"), &"primary", &"L")
+	_back = UI3.button(tr("Back to Missions") if mission_run else tr("Back to Land"), &"primary", &"L")
 	_back.name = "BackButton"
 	_back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_back.pressed.connect(_on_menu_pressed)
+	_back.pressed.connect(_on_missions_pressed if mission_run else _on_menu_pressed)
 	host.add_child(_back)
 	return host
 
@@ -775,6 +794,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		if is_inside_tree():   # a handler above may have changed scene
 			get_viewport().set_input_as_handled()
 		_on_menu_pressed()
+
+
+func _on_missions_pressed() -> void:
+	LandNav.open(&"missions")
 
 
 func _on_menu_pressed() -> void:

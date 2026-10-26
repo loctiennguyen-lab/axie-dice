@@ -28,6 +28,9 @@ class Stub extends RefCounted:
 		return runs < 5
 	var asc_wins := {}
 	var full_a9_won := false
+	var mission_unlock_cache: Array = []
+	func set_mission_unlocks(ids: Array, _save: bool = true) -> void:
+		mission_unlock_cache = ids.duplicate()
 	var mission_house_level := 0
 	var saves := 0
 	var ledger: Array = []
@@ -122,7 +125,7 @@ func test_data_validates() -> void:
 	_assert(bool(_Econ.get_table("echobox")["boxes"]["season"]["enabled"]), "hộp mùa bật (19/10)")
 	_assert(not bool(g["vip_trial"]["enabled"]), "VIP thử tắt ở L1")
 	var tiers: Dictionary = _Econ.get_table("missions")["tiers"]
-	_assert(tiers["N3"]["enabled"] and not tiers["N4"]["enabled"], "Nhiệm vụ chỉ N1-N3 ở L1")
+	_assert(tiers["N3"]["enabled"] and tiers["N6"]["enabled"], "Nhiệm vụ bật cả 6 bậc (beta)")
 
 
 func test_ticket_price_curve() -> void:
@@ -412,31 +415,36 @@ func test_mission_board() -> void:
 	for k in ["N1", "N2", "N3", "N4", "N5", "N6"]:
 		var tt: Dictionary = _Econ.get_table("missions")["tiers"][k]
 		want[k] = int(roundf(float(tt["stake"]) * float(tt["m_base"]) * float(tt["m_scale"]) / 5.0) * 5.0)
-	_assert(want["N1"] == 645 and want["N6"] == 20000, "payout N1 645 / N6 20000 (approved doc 13/10)")
+	var cap := int(_Econ.get_table("missions").get("payout_cap", 20000))
+	var prev_pay := 0
+	for k in ["N1", "N2", "N3", "N4", "N5", "N6"]:
+		var tt2: Dictionary = _Econ.get_table("missions")["tiers"][k]
+		var raw := float(tt2["stake"]) * float(tt2["m_base"]) * float(tt2["m_scale"])
+		_assert(want[k] == mini(int(roundf(raw / 5.0) * 5.0), cap), "payout %s = min(stake x m, cap)" % k)
+		_assert(want[k] > prev_pay, "payout tăng đơn điệu: %s" % k)
+		_assert((want[k] >= cap) == (k == "N6"), "chỉ N6 chạm trần payout (%s: %d, cap %d)" % [k, want[k], cap])
+		prev_pay = want[k]
 	for k in want:
 		_assert(MissionBoard.payout(k) == want[k], "payout %s = %d, có %d" % [k, want[k], MissionBoard.payout(k)])
 	var s := Stub.new()
 	s.runs = 2
 	var offers := MissionBoard.offers("2026-11-03", s)
-	_assert(offers.size() == 6, "6 dòng (N4-N6 tắt hiện xám)")
+	_assert(offers.size() == 6, "6 dòng, cả 6 bậc bật")
 	_assert(offers[0]["lock_reason"] == "newcomer", "chưa qua 5 run: khoá newcomer")
 	s.runs = 5
-	_assert(MissionBoard.lock_reason("N1", s) == "asc_win", "N1 cần thắng A3")
-	s.asc_wins["3"] = 1
-	_assert(MissionBoard.lock_reason("N1", s) == "", "đã thắng A3: N1 mở")
-	s.asc_wins["7"] = 1
+	_assert(MissionBoard.lock_reason("N1", s) == "", "N1 luôn mở")
+	_assert(MissionBoard.lock_reason("N2", s) == "chain", "N2 cần thắng N1 (cache server rỗng)")
+	s.set_mission_unlocks(["N1", "N2"])
+	_assert(MissionBoard.lock_reason("N2", s) == "" and MissionBoard.lock_reason("N3", s) == "chain", "cache mở N2, N3 vẫn khoá")
 	for k in ["N4", "N5", "N6"]:
-		_assert(MissionBoard.lock_reason(k, s) == "disabled", "%s tắt ở L1 (chỉ N1-N3)" % k)
+		_assert(MissionBoard.tier_enabled(k) and MissionBoard.lock_reason(k, s) == "chain", "%s bật, khoá bằng chuỗi thắng" % k)
 	var a := MissionBoard.offers("2026-11-03", s)
-	var b := MissionBoard.offers("2026-11-03", s)
-	_assert(a == b, "bảng cùng ngày giống nhau")
-	var ruleset_days := {}
-	for d in range(1, 29):
-		ruleset_days[MissionBoard.rule_set_key("2026-11-%02d" % d, "N2")] = true
-	_assert(ruleset_days.size() == 2, "bộ luật A/B đổi theo ngày")
-	# approved doc 13/10: N1 now carries 2 rules (A=M5+M6 / B=M1+M7), taken from missions.json
-	var n1_sets: Dictionary = _Econ.get_table("missions")["rule_sets"]["N1"]
-	_assert((a[0]["rules"] as Array).size() == 2 and (a[0]["rules"] == n1_sets["A"] or a[0]["rules"] == n1_sets["B"]) and a[0]["stone"] == 4, "N1 hai luật theo missions.json, 4 Stone")
+	var b := MissionBoard.offers("2026-11-09", s)
+	_assert(a == b, "không xoay bộ luật theo ngày")
+	var cfg_t: Dictionary = _Econ.get_table("missions")["tiers"]
+	var ids6 := ["N1", "N2", "N3", "N4", "N5", "N6"]
+	for i in 6:
+		_assert(a[i]["rules"] == cfg_t[ids6[i]]["rules"] and a[i]["stone"] == int(cfg_t[ids6[i]]["stone"]), "rules + stone %s khớp missions.json" % ids6[i])
 	# nâng nhà: tắt ở L1
 	s.shard_pool = 99999
 	s.stone = 99999
@@ -817,7 +825,7 @@ func test_mission_stake() -> void:
 func _test_mission_stake_body(has_run: Array) -> void:
 	var m1 := ""
 	var new_id := ""
-	var pay := MissionBoard.payout("N1")   # 300 x 2.15 = 645 (approved doc 13/10)
+	var pay := MissionBoard.payout("N1")   # stake x m from missions.json
 	_fresh_meta(1000, 0)
 	m1 = MetaState.take_mission_stake("N1", 300)
 	_assert(m1 != "" and MetaState.shard_pool == 700 and int(MetaState.mission_escrow["stake"]) == 300, "take: trừ cược, ghi escrow")
@@ -857,7 +865,7 @@ func _test_mission_stake_body(has_run: Array) -> void:
 	_fresh_meta(800, 500)
 	_assert(MetaState.take_mission_stake("N1") != "" and MetaState.shard_pool == 500 and MetaState.starter_shard_locked == 500, "đủ phần dùng được: cược không đụng starter")
 	_fresh_meta(5000, 0)
-	_assert(MetaState.take_mission_stake("N4") == "" and MetaState.take_mission_stake("N1", 999) == "" and MetaState.take_mission_stake("ZZ") == "", "tier tắt/lạ, sai stake: từ chối")
+	_assert(MetaState.take_mission_stake("N7") == "" and MetaState.take_mission_stake("N1", 999) == "" and MetaState.take_mission_stake("ZZ") == "", "tier tắt/lạ, sai stake: từ chối")
 	# spend thường tiêu starter trước
 	_fresh_meta(800, 500)
 	MetaState.spend("shard", 100, "t")

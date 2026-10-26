@@ -85,7 +85,7 @@
   "enabled": true,
   "name_en": "Embers",
   "name_vi": "Giữ Lửa",
-  "rule_en": "You may Hold 2 dice; a Held die used next turn gets +1.50.",
+  "rule_en": "You may Hold 2 dice; a Held die used next turn gets +2.25 (a die's M never goes above 3.00).",
   "cost_en": "Only Held dice carry over.",
   "house_id": "h_embers",
   "house_cores": [
@@ -105,7 +105,7 @@
   "enabled": true,
   "name_en": "Big Hand",
   "name_vi": "Bàn Tay Lớn",
-  "rule_en": "A SET of four or five gets +0.60.",
+  "rule_en": "A SET of four or five gets +0.90 (a die's M never goes above 3.00).",
   "cost_en": "A SET of three (the most common) gets no bonus.",
   "house_id": "h_big_hand",
   "house_cores": [

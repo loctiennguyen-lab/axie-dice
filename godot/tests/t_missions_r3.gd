@@ -34,8 +34,7 @@ func _ready() -> void:
 	MetaState.saved_run_probe = func() -> bool: return false   # never depend on the real user dir
 	MetaState.runs = 8
 	MetaState.runs_with_battle = 8
-	MetaState.asc_wins = {"3": 1, "4": 1}
-	MetaState.full_a9_won = false
+	MetaState.set_mission_unlocks(["N1", "N2"], false)
 	MetaState.starter_granted = false
 	MetaState.shard_pool = 5000
 	var cfg: Dictionary = (load("res://scripts/meta/economy_db.gd") as Script).get_table("missions")
@@ -47,11 +46,11 @@ func _ready() -> void:
 		_ok(int(o.stake) == int(cfg.tiers[id].stake), "%s stake from data" % id)
 		_ok(int(o.payout) == MissionBoard.payout(id), "%s payout from MissionBoard" % id)
 	# unlock gates from MetaState
-	_ok(bool(s.offer("N1").unlocked) and bool(s.offer("N2").unlocked), "N1/N2 unlocked by asc wins")
-	_ok(not bool(s.offer("N3").unlocked) and s.offer("N3").lock_reason == "asc_win", "N3 locked: no A6 win")
-	_ok(s.offer("N4").lock_reason == "disabled" and s.offer("N6").lock_reason == "disabled", "N4/N6 not in this build")
+	_ok(bool(s.offer("N1").unlocked) and bool(s.offer("N2").unlocked), "N1/N2 unlocked by the server win chain")
+	_ok(not bool(s.offer("N3").unlocked) and s.offer("N3").lock_reason == "chain", "N3 locked: N2 not won yet")
+	_ok(s.offer("N4").lock_reason == "chain" and s.offer("N6").lock_reason == "chain" and bool(s.offer("N6").enabled), "N4/N6 enabled, locked by the chain")
 	_ok(s.find_child("LockNote", true, false) != null, "lock note shown")
-	_ok((s.find_child("UpgradeHouse", true, false) as Button).disabled, "house upgrade disabled in L1")
+	_ok(s.find_child("HousePlate", true, false) == null and s.find_child("UpgradeHouse", true, false) == null, "house upgrade UI hidden (deferred)")
 	# real escrow path: stake is taken from MetaState, id goes into the mission header
 	MetaState.mission_escrow = {}
 	MetaState.starter_shard_locked = 0
@@ -126,8 +125,8 @@ func _ready() -> void:
 	_ok(s.rule_lines(s.offer("N2")).size() == 1 + (s.offer("N2").rules as Array).size(), "rule lines: standard + extras")
 	var fake := {"rules": ["M6", "M7"]}
 	var rl: Array = s.rule_lines(fake)
-	_ok(String(rl[1]) == "Sturdy foes: Normal enemy HP x1.2", "M6 named: " + String(rl[1]))
-	_ok(String(rl[2]) == "Fierce elites: Elite fight dice values x1.25 (damage, shields, heals)", "M7 named: " + String(rl[2]))
+	_ok(String(rl[1]) == "Sturdy foes: Normal enemy HP ×1.2", "M6 named: " + String(rl[1]))
+	_ok(String(rl[2]) == "Fierce elites: Elite fight dice values ×1.25 (damage, shields, heals)", "M7 named: " + String(rl[2]))
 	s.close_modal()
 	# insufficient Shard
 	MetaState.shard_pool = int(cfg.tiers.N1.stake) - 50
@@ -175,45 +174,23 @@ func _ready() -> void:
 		get_tree().quit(1)
 
 
-## B5: L1 = only N1-N3. N4-N6 refused on every path; house stays lv1; N1 flow end to end (local run start).
+## Beta: all six tiers are enabled in data; the win chain (server cache) is the only gate; house stays lv1.
 func _l1_n1_to_n3_only(s: MissionsScreen, cfg: Dictionary) -> void:
 	MetaState.runs = 8
 	MetaState.runs_with_battle = 8
-	MetaState.asc_wins = {"3": 1, "4": 1, "6": 1, "7": 1, "9": 1}
-	MetaState.full_a9_won = true
+	MetaState.set_mission_unlocks(["N1", "N2", "N3", "N4", "N5", "N6"], false)
 	MetaState.shard_pool = 9000
 	MetaState.starter_shard_locked = 0
 	MetaState.mission_escrow = {}
 	MetaState.mission_house_level = 4   # even a tampered save cannot lift the house
 	s.set_state("normal")
 	s.remote_on = false
-	var big := ["N4", "N5", "N6"]
-	for id in ["N1", "N2", "N3"]:
+	for id in ["N1", "N2", "N3", "N4", "N5", "N6"]:
 		_ok(bool(cfg.tiers[id].enabled) and MissionBoard.tier_enabled(id), "%s enabled in data" % id)
-		var rs: Dictionary = cfg.rule_sets[id]
-		for k in ["A", "B"]:
-			# approved doc 13/10: rule count per tier matches doc (N1-N2 = 2, N3 = 3), not "<=1"
-			_ok((rs[k] as Array).size() == {"N1": 2, "N2": 2, "N3": 3}[id],
-				"%s set %s rule count matches missions.json/doc" % [id, k])
+		_ok(bool(s.offer(id).unlocked) and s.block_reason(id) == "", "%s buyable with the chain open" % id)
 	_ok(MissionBoard.house_level(MetaState) == 1, "house stays lv1 even with level 4 in the save")
 	_ok(MissionBoard.upgrade_house(MetaState) == "disabled", "house upgrade refused")
-	for id in big:
-		_ok(not bool(cfg.tiers[id].enabled) and not MissionBoard.tier_enabled(id), "%s disabled in data" % id)
-		var o := s.offer(id)
-		_ok(not bool(o.enabled) and not bool(o.unlocked) and o.lock_reason == "disabled" and s.lock_text(o) == "Not in this build", "%s offer locked, Not in this build" % id)
-		_ok(s.block_reason(id) == "Not in this build", "%s block_reason" % id)
-		_ok(MetaState.take_mission_stake(id, int(cfg.tiers[id].stake)) == "" and MetaState.mission_escrow.is_empty() and MetaState.shard_pool == 9000, "%s: stake refused, nothing spent" % id)
-		var hit := [0]
-		s.start_hook = func(_p: Dictionary) -> Dictionary:
-			hit[0] += 1
-			return {"ok": true, "code": ""}
-		var r: Dictionary = await s.start(id)
-		_ok(not r.ok and hit[0] == 0 and MetaState.shard_pool == 9000, "%s: screen start refused" % id)
-		# direct API: forged header, no stake needed
-		var forged := {"team_keys": ["axie_aquatic"], "mode": "short", "ascension": 9, "ranked": false, "kind": "mission",
-			"mission": {"mission_id": "forged", "tier": int(id.substr(1)), "rules": [], "stake": 0, "m_base": 1.0, "m_scale": 1.0, "m_eff": 1.0}}
-		var fr: Dictionary = await RunState.begin_run(forged)
-		_ok(not fr.ok and String(fr.code) == "tier_disabled", "%s: RunState.begin_run refuses" % id)
+	MetaState.set_mission_unlocks([], false)
 	# N1 end to end: stake -> begin_run (real, local) with the header -> win -> payout + Stone
 	var stake := int(cfg.tiers.N1.stake)
 	var pay := MissionBoard.payout("N1")

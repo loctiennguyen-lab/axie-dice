@@ -77,7 +77,13 @@ func _runs(sim) -> void:
 	_check(r3.size() == 1 and r3[0]["cfg"] == "N3" and r3[0]["asc"] == 3 and r3[0]["src"] == "missions.json" and r3[0]["kind"] == "mission", "N3 record carries cfg and asc")
 	_check(RunState.ascension == 3 and RunState.mission_rules() == ["M5", "M6"] and RunState.run_kind == "mission" and RunState.mode == "short",
 		"RunState holds Ascension 3, rules M5 M6, kind mission, short")
-	_check(RunState.anchor_id == "" and String(r3[0]["anchor"]) == "", "mission kind: no Anchor (RunState gate), --anchor=auto notwithstanding")
+	# Liam 26/10: a Mission run carries an Anchor like a normal run (sim default stage 3), none below stage 2
+	_check(String(r3[0]["anchor"]) != "", "mission at stage 3 (default): Anchor picked (gate allows kind mission)")
+	var a1: Dictionary = base.duplicate()
+	a1["mission"] = "N3"
+	a1["stage"] = 1
+	var r31: Array = sim.run_batch(a1)
+	_check(r31.size() == 1 and String(r31[0]["anchor"]) == "", "mission at stage 1: no Anchor (stage gate)")
 	# the rule mods really reach combat: same setup, rules [] vs M5+M6 -> enemies get more HP (boss x1.25 / normal x1.2)
 	var setup: Dictionary = RunState.pending_combat.duplicate(true)
 	var hp := {}
