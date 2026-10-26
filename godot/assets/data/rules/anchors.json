@@ -105,7 +105,7 @@
   "enabled": true,
   "name_en": "Big Hand",
   "name_vi": "Bàn Tay Lớn",
-  "rule_en": "A SET of four or five gets +0.60.",
+  "rule_en": "A SET of four or five gets +0.90.",
   "cost_en": "A SET of three (the most common) gets no bonus.",
   "house_id": "h_big_hand",
   "house_cores": [
