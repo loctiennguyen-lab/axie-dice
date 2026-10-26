@@ -184,6 +184,8 @@ func _ready() -> void:
 	ensure_vault_heroes.call_deferred()
 
 func add_shards(amount: int, reason: String = "earn", save: bool = true) -> void:
+	if guest_no_wallet:
+		return
 	if _econ != null and reason == "earn":
 		return   # run reward: the server pays it through econ_claims_after_run
 	shard_pool += amount
@@ -194,6 +196,8 @@ func add_shards(amount: int, reason: String = "earn", save: bool = true) -> void
 
 ## Land Stone. n > 0. Vào sổ cái.
 func add_stone(n: int, reason: String = "earn", save: bool = true) -> void:
+	if guest_no_wallet:
+		return
 	if n <= 0:
 		return
 	stone += n
@@ -204,6 +208,8 @@ func add_stone(n: int, reason: String = "earn", save: bool = true) -> void:
 
 ## Trừ `n` của `currency` ("shard" | "stone" | "gem"). false (không trừ gì) nếu không đủ.
 func spend(currency: String, n: int, reason: String, save: bool = true) -> bool:
+	if guest_no_wallet:
+		return false
 	if n < 0:
 		return false
 	match currency:
@@ -278,6 +284,10 @@ static func strip_server_fields(meta: Dictionary) -> Dictionary:
 func apply_server_econ(snap: Dictionary, save: bool = true) -> void:
 	var rid := String(snap.get("reset_id", ""))
 	if rid != "" and rid != econ_reset_seen:
+		if RunState.phase != RunState.RunPhase.MENU:
+			# Never wipe under a running game: keep the snapshot, wipe when the run is over (RunState.reset()).
+			_pending_reset = snap.duplicate(true)
+			return
 		wipe_for_server_reset(rid)
 	shard_pool = int(snap.get("shard", shard_pool))
 	stone = int(snap.get("stone", stone))
@@ -299,6 +309,20 @@ func apply_server_econ(snap: Dictionary, save: bool = true) -> void:
 		echobox_pity = p
 	if save:
 		save_to_disk()
+
+
+var _pending_reset: Dictionary = {}
+## Guest on a build that needs the server: no wallet at all (nothing earned, nothing spent). Set by AccountService.
+var guest_no_wallet: bool = false
+
+
+## Runs the wipe that apply_server_econ postponed because a run was open. Called by RunState.reset().
+func apply_pending_reset() -> void:
+	if _pending_reset.is_empty() or RunState.phase != RunState.RunPhase.MENU:
+		return
+	var snap := _pending_reset
+	_pending_reset = {}
+	apply_server_econ(snap)
 
 
 ## Server says everything was reset (M1: Shard, Stone, tickets, Gem, run history, saves). Drops every local value
@@ -1401,6 +1425,8 @@ func unlock_def(id: String) -> Dictionary:
 
 ## Spends shards on a permanent unlock. Returns "" on success or the reason it was refused.
 func buy_unlock(id: String) -> String:
+	if guest_no_wallet:
+		return "Sign in to use the wallet."
 	if _econ != null:
 		return "Unlocks are bought through the server (buy_unlock_async)."
 	if has_unlock(id):

@@ -131,6 +131,7 @@ func start(net: Callable) -> void:
 		_load_sync()
 		status = Status.CHECKING
 	SaveStore.on_changed = _on_store_changed
+	sync_guest_wallet_flag()
 	if SaveStore.is_web():
 		_read_url_flags()
 	check.call_deferred()
@@ -261,6 +262,7 @@ static func error_message(code: String) -> String:
 
 func _on_me(code: int, text: String) -> void:
 	_session_known = true
+	server_unreachable = code <= 0 or code >= 500
 	if code == 200:
 		_close_welcome()
 		var me: Variant = JSON.parse_string(text)
@@ -551,8 +553,35 @@ var remote_econ_enabled := false
 var _remote_econ: RemoteEcon = null
 
 
+func econ_flag_on() -> bool:
+	return remote_econ_enabled or String(ProjectSettings.get_setting("axie/econ", "local")) == "remote"
+
+
+## B4: the game needs the server. True in a release build (epoch_source = remote) and never under AXIE_TEST_NO_NET.
+func online_required() -> bool:
+	return not NetGuard.blocked() and (online_required_override or String(ProjectSettings.get_setting("axie/epoch_source", "local")) == "remote")
+
+
+var online_required_override := false
+## True while the last /api/me got no answer (or a 5xx). Guests count too: every mode needs the server.
+var server_unreachable := false
+
+
+## "" = the game may open; otherwise the reason the opening gate shows. Offline = the last /api/me never answered.
+func gate_reason() -> String:
+	if online_required() and server_unreachable:
+		return "offline"
+	return ""
+
+
+## Guests have no wallet when the economy lives on the server.
+func sync_guest_wallet_flag() -> void:
+	MetaState.guest_no_wallet = econ_flag_on() and account.is_empty()
+
+
 func _attach_remote_econ() -> void:
-	if not (remote_econ_enabled or String(ProjectSettings.get_setting("axie/econ", "local")) == "remote"):
+	sync_guest_wallet_flag()
+	if not econ_flag_on():
 		return
 	if _remote_econ != null:
 		return
@@ -562,6 +591,7 @@ func _attach_remote_econ() -> void:
 
 
 func _detach_remote_econ() -> void:
+	sync_guest_wallet_flag()
 	if _remote_econ == null:
 		return
 	_remote_econ = null

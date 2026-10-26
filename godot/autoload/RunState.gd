@@ -365,6 +365,10 @@ func reset() -> void:
 	event_key = ""
 	_shop_rng = null
 	_event_rng = null
+	if phase == RunPhase.MENU:
+		var meta := get_node_or_null("/root/MetaState")
+		if meta != null:
+			meta.apply_pending_reset()   # SR1: a server reset that arrived mid-run lands now
 
 ## COMPATIBILITY ENTRY (L1 contract 1.4): the old synchronous start. `p_seed` becomes the secret of a
 ## LocalEpochSource, so the same seed still gives the same run (it is just a different run than before
@@ -407,6 +411,14 @@ func run_session() -> RunSession:
 	return session
 
 
+## Tests that call begin_run() without AXIE_TEST_NO_NET set this; the game never does.
+var allow_local_epoch: bool = false
+
+
+func local_epoch_allowed() -> bool:
+	return allow_local_epoch or NetGuard.blocked()
+
+
 ## Async start used by the real menu flow (L/M wire it before the remote flag is switched on).
 ## Returns {ok, code}. Source = project setting `axie/epoch_source` ("local" by default).
 func begin_run(params: Dictionary) -> Dictionary:
@@ -417,6 +429,10 @@ func begin_run(params: Dictionary) -> Dictionary:
 	if String(params.get("kind", "")) == "mission" or not m_hdr.is_empty():
 		if not MissionBoard.tier_enabled("N%d" % int(m_hdr.get("tier", 0))):
 			return {"ok": false, "code": "tier_disabled"}
+	# B4 (SR1): no offline play. The local source exists for tests/tools only (AXIE_TEST_NO_NET, or a test that sets
+	# allow_local_epoch); a release build whose flag is off refuses instead of quietly playing without the server.
+	if not RemoteEpochSource.flag_on() and not local_epoch_allowed():
+		return {"ok": false, "code": "offline_removed"}
 	var src: EpochSource = RemoteEpochSource.new(run_session()) if RemoteEpochSource.flag_on() \
 			else LocalEpochSource.new(PackedByteArray(), randi())
 	reset()
