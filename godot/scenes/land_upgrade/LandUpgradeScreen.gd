@@ -10,7 +10,7 @@ const _Eco := preload("res://scripts/meta/economy_db.gd")
 const TIER_NAMES: Array[String] = ["Savannah", "Forest", "Arctic", "Mystic", "Genesis", "LunaLanding"]
 ## Tier gates that Land.gd reads from houses.json are listed here only by name.
 const ADDS: Dictionary = {
-	2: "+3 preset slots · new decor set",
+	2: "+3 preset slots · new decor set · +2 Rare decor",
 	3: "+3 preset slots · Mastery house",
 	4: "New decor set",
 	5: "Gallery",
@@ -328,6 +328,9 @@ func confirm_upgrade(target: int) -> bool:
 	var ok := target == MetaState.land_tier + 1 and MetaState.upgrade_land()
 	if ok:
 		_toast("Your Land is now %s" % TIER_NAMES[MetaState.land_tier - 1])
+		if not no_scene_change and is_inside_tree():
+			LandNav.back_to_land()   # Land reads the new tier in _ready and shows the banner once
+			return true
 	else:
 		_toast("Could not upgrade")
 	_redraw()
