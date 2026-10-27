@@ -149,13 +149,14 @@ func _recap_grid(d: Dictionary) -> Control:
 	g.add_theme_constant_override("h_separation", UI3Theme.space("24"))
 	g.add_theme_constant_override("v_separation", UI3Theme.space("8"))
 	# 2 columns x 3 rows of cells (spec 30): each cell is a muted label over a Rowdies 18 value. Labels are our copy.
-	var rows := [
-		["Fell on turn", str(int(d.get("turn", 0)))],
-		["Enemies left", str(int(d.get("enemies_left", 0)))],
-		["Aid used", "%d of %d" % [int(d.get("aid_used", 0)), int(d.get("aid_cap", 6))]],
-		["Party", "%d Axies" % (d.get("party", []) as Array).size()],
-		["Fight", String(d.get("kind_label", "Fight"))],
-		["Ascension", "A%d" % int(d.get("asc", 0))]]
+	var mission := bool(d.get("mission", false))
+	var rows := [["Fell on turn", str(int(d.get("turn", 0)))], ["Enemies left", str(int(d.get("enemies_left", 0)))]]
+	if not mission:   # a mission run has no Aid, so "Aid used 0 of 6" would be a lie
+		rows.append(["Aid used", "%d of %d" % [int(d.get("aid_used", 0)), int(d.get("aid_cap", 6))]])
+	rows.append(["Party", "%d Axies" % (d.get("party", []) as Array).size()])
+	if not mission:   # the title line already says the fight kind; on a mission the tile only repeated "Fight"
+		rows.append(["Fight", String(d.get("kind_label", "Fight"))])
+	rows.append(["Ascension", "A%d" % int(d.get("asc", 0))])
 	for r in rows:
 		var cell := UI3.plate(&"row")
 		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL

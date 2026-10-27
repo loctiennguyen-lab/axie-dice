@@ -508,7 +508,8 @@ func _build_shard_card(s: Dictionary) -> Control:
 	pool.clip_text = true
 	pool.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	right.add_child(pool)
-	col.add_child(_build_ranked_caption(s))
+	if not mrun:   # a staked mission is never Ranked: "no verifiable score" would be the wrong message
+		col.add_child(_build_ranked_caption(s))
 	return card
 
 

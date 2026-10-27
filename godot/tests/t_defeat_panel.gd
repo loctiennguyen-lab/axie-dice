@@ -78,6 +78,11 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_check(_texts(dp, []).has("Mission lost: your 800 Shard stake is gone. Mission runs have no Continue."), "mission: stake line with the real stake")
 	_check(dp.find_child("EndRun", true, false).theme_type_variation == "ButtonPrimaryM", "mission: End run primary")
+	var mt := _texts(dp, [])
+	_check(not mt.has("Aid used") and not mt.has("Fight") and mt.has("Party") and mt.has("Fell on turn"), "mission: no Aid / Fight tiles")
+	dp.show_defeat(base)
+	await get_tree().process_frame
+	_check(_texts(dp, []).has("Aid used"), "normal run keeps the Aid tile")
 
 	# Busy: Reviving, input locked, restored afterwards.
 	dp.show_defeat(base)

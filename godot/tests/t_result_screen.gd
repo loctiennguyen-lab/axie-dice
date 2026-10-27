@@ -203,6 +203,7 @@ func test_round_two_cards_stake_title_and_offline() -> void:
 	_assert(_all_text(v2).contains("N4 stays locked until you win N3.") or _all_text(v2).contains("N4 is still open."), "loss line: what happens to the next tier")
 	_assert((v2.find_child("BackButton", true, false) as Button).text == "Back to Missions" and (v2.find_child("RunAgain", true, false) as Button).text == "Play a normal run", "Mission result: two clear buttons")
 	_assert(_all_text(v2).contains("Defeated"), "a loss does not say Defeated")
+	_assert(v2.find_child("RankedCaption", true, false) == null and not _all_text(v2).contains("not Ranked"), "a Mission run never says it was not Ranked")
 	v2.queue_free()
 	await get_tree().process_frame
 	RunState.mission = {}

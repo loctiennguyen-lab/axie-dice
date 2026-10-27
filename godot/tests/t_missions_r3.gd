@@ -157,6 +157,36 @@ func _ready() -> void:
 		s.remote_on = false
 		s.set_state(st)
 		_ok(s.block_reason("N1") == "" and s.find_child("Banner", true, false) != null, "local: %s info banner only" % st)
+	# S3-20 guest view: no Shard numbers, an active sign-in button that works, a sign-in button in the banner
+	s.remote_on = true
+	s.select_tier("N1")
+	s.set_state("guest")
+	_ok(s.is_guest_view() and s.find_child("Balance", true, false).text == "Sign in to see your Shards", "guest: no Shard numbers")
+	var gb := s.find_child("Stake", true, false) as Button
+	_ok(not gb.disabled and gb.text == "Sign in to stake Shard" and gb.theme_type_variation == "ButtonPrimaryM", "guest: sign-in button looks active (primary)")
+	gb.pressed.emit()
+	_ok(s.sign_in_calls == 1, "guest: the button signs in")
+	var gbn := s.find_child("SignIn", true, false) as Button
+	_ok(gbn != null and not gbn.disabled, "guest: banner has a sign-in button")
+	if gbn != null:
+		gbn.pressed.emit()
+	_ok(s.sign_in_calls == 2, "guest: banner button signs in")
+	_ok(s.block_reason("N1") != "", "guest: still cannot stake")
+	s.set_state("offline")
+	_ok(not s.is_guest_view() and s.find_child("Balance", true, false).text.begins_with("Stakeable"), "offline: numbers stay")
+	s.remote_on = false
+	s.set_state("guest")
+	_ok(not s.is_guest_view() and s.find_child("Balance", true, false).text.begins_with("Stakeable"), "local guest: numbers stay")
+	# S3-2 lock text = the full condition
+	MetaState.runs = 2
+	MetaState.runs_with_battle = 2
+	MetaState.set_mission_unlocks([], false)
+	var lt: String = s.lock_text(s.offer("N2"))
+	_ok(lt.begins_with("Play 5 runs first (you have 2)") and lt.contains("win N1 to unlock"), "newcomer + chain both in the text: " + lt)
+	_ok(s.lock_text(s.offer("N1")) == "Play 5 runs first (you have 2)", "N1 newcomer only")
+	MetaState.runs = 8
+	MetaState.runs_with_battle = 8
+	MetaState.set_mission_unlocks(["N1", "N2"], false)
 	s.set_state("loading")
 	_ok(s.find_child("Grid", true, false) == null, "loading renders no cards")
 	await _l1_n1_to_n3_only(s, cfg)
