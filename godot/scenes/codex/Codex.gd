@@ -329,7 +329,7 @@ func _close_anchor_detail() -> void:
 		d.queue_free()
 
 
-const TierWords := ["Moss", "Amber", "Crystal"]
+const TierWords := ["Common", "Rare", "Epic"]
 
 
 func _tile(node_name: String, seen: bool, title: String, sub: String) -> Control:

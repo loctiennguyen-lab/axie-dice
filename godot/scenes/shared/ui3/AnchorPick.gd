@@ -6,6 +6,17 @@ extends Control
 
 signal picked(anchor_id: String)
 
+## One plain line per Anchor, shown at the top of its card (UI-side wording; the exact rule stays below).
+const SUMMARY := {
+	"a_volley": "A matching group of 3+ dice also hits every enemy.",
+	"a_gambler": "Safer rerolls (Gambles) that make your groups stronger.",
+	"a_mana_mine": "Make a group on your first roll and get extra Mana.",
+	"a_kin": "Groups of the same class hit harder, mixed groups hit weaker.",
+	"a_embers": "Keep 2 dice for next turn and they hit much harder.",
+	"a_big_hand": "Groups of 4 or 5 dice hit harder, groups of 3 get nothing."}
+## Jargon explained once, on the screen (SET etc. are never defined elsewhere before the first pick).
+const GLOSSARY := "SET = 3+ dice that match and fire together. M = a die's damage multiplier. Cracked = a die broken by a risky reroll (Gamble). Held = a die you keep for next turn. Temp Face = a die that joins any SET for one turn. House Cores = the 5 Cores tied to an Anchor."
+
 const CARD_W := 480.0
 const CARD_H := 560.0
 
@@ -33,9 +44,16 @@ func setup(ids: Array, first_time := true) -> void:
 	t.name = "AnchorTitle"
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	head.add_child(t)
-	var sub := UI3.label(tr("Anchor = a rule that stays all run. Hold 2 of its House Cores to awaken it."), "LabelMuted")
+	var sub := UI3.label(tr("Anchor = a rule that stays all run. Hold 2 of its House Cores to awaken it. Click a card to choose."), "LabelMuted")
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	head.add_child(sub)
+	var gl := UI3.label(tr(GLOSSARY), "LabelMuted")
+	gl.name = "AnchorGlossary"
+	gl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	gl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	gl.custom_minimum_size.x = 1200
+	gl.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	head.add_child(gl)
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -118,6 +136,12 @@ func _build_card(id: String, idx: int) -> PanelContainer:
 	names.add_child(hn)
 	top.add_child(names)
 	col.add_child(top)
+	if SUMMARY.has(id):
+		var sm := UI3.label(tr(String(SUMMARY[id])), "LabelTitle")
+		sm.name = "AnchorSummary"
+		sm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		sm.custom_minimum_size.x = CARD_W - 48.0
+		col.add_child(sm)
 	add_text_blocks(col, id)
 	var hcap := HBoxContainer.new()
 	hcap.add_theme_constant_override("separation", 8)
@@ -243,7 +267,7 @@ func _refresh_take() -> void:
 	if selected < 0:
 		take_button.text = tr("Take")
 		take_button.disabled = true
-		UI3.set_disabled_reason(take_button, tr("Pick one Anchor."))
+		UI3.set_disabled_reason(take_button, tr("Pick an Anchor"))
 	else:
 		UI3.clear_disabled_reason(take_button)
 		take_button.disabled = false

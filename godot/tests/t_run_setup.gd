@@ -165,7 +165,7 @@ func _ready() -> void:
 	_ok(sg.begin_block_reason() == "Sign in to play", "guest: Begin reason")
 	_ok((sg.find_child("Begin", true, false) as Button).disabled, "guest: Begin disabled")
 	for k in ["daily", "ranked"]:
-		_ok(sg.kind_block_reason(k) == "Sign in to play", "guest: %s reason" % k)
+		_ok(sg.kind_block_reason(k) == "Sign in to play " + k.capitalize(), "guest: %s reason" % k)
 	var sib := sg.find_child("SignInButton", true, false) as Button
 	_ok(sib != null, "guest: Sign in button")
 	if sib != null:
@@ -301,7 +301,12 @@ func _kind_tests() -> void:
 	s4.remote_on = false
 	add_child(s4)
 	await get_tree().process_frame
-	_ok(s4.kind_block_reason("daily") == "Needs the online build" and s4.begin_block_reason() == "", "local build: Daily/Ranked locked, Normal fine")
+	s4.account_status_hook = func() -> int: return AccountService.Status.OFFLINE
+	_ok(s4.kind_block_reason("daily") == "Needs a connection" and s4.begin_block_reason() == "", "local build: Daily/Ranked locked, Normal fine")
+	s4.account_status_hook = func() -> int: return AccountService.Status.GUEST
+	_ok(s4.kind_block_reason("ranked") == "Sign in to play Ranked", "local build, signed out: says sign in")
+	_ok(s4.find_child("AnchorLine", true, false) != null and (s4.find_child("AnchorLine", true, false) as Label).text.begins_with("Anchor:"), "S3-3: Anchor line under Mode")
+	_ok(s4.find_child("AscLockLine", true, false) != null, "S3-6: ascension lock line")
 	s4.queue_free()
 	# Daily-run reward: once per UTC day, ledgered, survives reload
 	var sh0 := MetaState.shard_pool
