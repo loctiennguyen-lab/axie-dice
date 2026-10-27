@@ -59,8 +59,28 @@ static func shown_plate(tree: SceneTree) -> Control:
 	return l.plate if l != null and l.plate != null and l.plate.visible else null
 
 
+## True while a modal overlay (tutorial welcome curtain, starter card, skip confirm) is up. Controls under it
+## cannot be hovered or focused by the player, so they must not raise a tooltip (BUG-0005). Modals join the group
+## "ui3_modal"; only a visible member counts.
+static func modal_open(tree: SceneTree) -> bool:
+	for n in tree.get_nodes_in_group("ui3_modal"):
+		if n is CanvasItem and (n as CanvasItem).is_visible_in_tree():
+			return true
+	return false
+
+
+## Hides whatever tooltip is up and cancels any pending hover timer. Call when a modal opens.
+static func hide_all(tree: SceneTree) -> void:
+	_gen += 1
+	var l := tree.root.get_node_or_null(LAYER_NAME) as TooltipLayer
+	if l != null:
+		l.hide_plate()
+
+
 static func _show(c: Control, from_focus := false) -> void:
 	if not c.is_inside_tree() or not c.has_meta("ui3_tip") or not c.is_visible_in_tree():
+		return
+	if modal_open(c.get_tree()):
 		return
 	_layer(c).show_for(c, String(c.get_meta("ui3_tip")), from_focus)
 

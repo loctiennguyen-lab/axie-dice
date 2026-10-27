@@ -63,8 +63,16 @@ func _ready() -> void:
 	var s := await _make()
 	_ok(s.filled_count() == 5, "default party has 5")
 	_ok(s.get_node_or_null("Panel/Col/Scroll") == null and s.find_child("PartyRow", true, false) != null, "party row exists")
-	_ok(s.find_child("KitBoon", true, false) != null, "Kit/Boon shown when not newcomer")
-	_ok(s.find_child("Fairness", true, false) != null, "fairness line present")
+	_ok(not RunSetup.setup_aid_enabled(), "beta: setup_aid_enabled is off in aid_prices.json")
+	_ok(s.find_child("KitBoon", true, false) == null and s.find_child("Fairness", true, false) == null \
+		and s.find_child("NotInBuild", true, false) == null, "BUG-0001: Aid panel hidden while store/Aid is off")
+	var tbl: Dictionary = preload("res://scripts/meta/economy_db.gd").get_table("aid_prices")
+	tbl["setup_aid_enabled"] = true   # the cached table; restored below
+	var son := await _make()
+	_ok(son.find_child("KitBoon", true, false) != null, "Kit/Boon shown when not newcomer and the switch is on")
+	_ok(son.find_child("Fairness", true, false) != null, "fairness line present when the switch is on")
+	son.queue_free()
+	tbl["setup_aid_enabled"] = false
 	# Locked ascension
 	_ok(not s.select_ascension(4), "A4 locked refused")
 	_ok(s.ascension == 0, "ascension unchanged after refused pick")

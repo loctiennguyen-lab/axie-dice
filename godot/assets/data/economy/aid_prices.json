@@ -76,5 +76,6 @@
 		]
 	},
 	"vip_boon_per_day": 1,
-	"ranked_allows_kit_boon": true
+	"ranked_allows_kit_boon": true,
+	"setup_aid_enabled": false
 }
