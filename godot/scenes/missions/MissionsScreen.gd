@@ -166,7 +166,7 @@ func lock_text(o: Dictionary) -> String:
 			return "Closed for now"
 		"newcomer":
 			var need := int(_Econ.get_table("missions").get("newcomer_runs", 5))
-			return "Play %d runs first (you have %d)" % [need, MetaState.runs_with_battle]
+			return "Play %d runs first (you have %d)" % [need, MetaState.gate_runs_with_battle()]
 		"chain":
 			var need := int(o.get("unlock_need", 1))
 			var prev := String(o.get("unlock_prev", ""))

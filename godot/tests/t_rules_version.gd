@@ -256,7 +256,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## field-wise with the tape, ranked+mission refused, empty-tape guard). Replay/verifier only, live play unchanged. Run result: NO, stays -v.
 ## Pinned, 2026-10-27 (hotfix BUG-0004): MetaState.apply_server_econ always applies server balances, wipe deferred only inside a
 ## live run; dead run save dropped. Meta/wallet only, no combat or replay input. Run result: NO, stays -v.
-const FINGERPRINT := "b90dc5a3bda3f0c72e1230000c49350fbf165a49092cf24fa01df6a4272db67d"
+## Pinned, 2026-10-27 (BUG-0008): MetaState reads newcomer / depth stage / runs count / Daily tries from the server's GET /api/econ `gates`
+## while the economy is remote (session-only cache). Gate display + Run Setup only, no combat or replay input. Run result: NO, stays -v.
+const FINGERPRINT := "14e0c35ca59978af11aba1e9983cf82bca5a2f406ae0327a472ec2037cae6517"
 
 
 func _ready() -> void:

@@ -160,6 +160,7 @@ func has_modal() -> bool:
 func _on_account_changed() -> void:
 	if use_account and state in ["normal", "loading", "offline", "guest"] and account_state() != state:
 		set_state(account_state())
+		load_daily_tries()   # BUG-0008: the first fetch ran before sign-in finished and was never repeated
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
@@ -282,6 +283,8 @@ func load_daily_tries() -> void:
 	var cb := func(ok: bool, data: Dictionary) -> void:
 		if ok:
 			daily_tries = {"used": int(data.get("used", 0)), "max": int(data.get("max", 3))}
+		elif not MetaState.server_daily().is_empty():
+			daily_tries = MetaState.server_daily()   # BUG-0008: the /api/econ copy when /api/run/daily failed
 		_refresh_kind()
 		_refresh_footer()
 	if daily_info_hook.is_valid():
@@ -312,7 +315,7 @@ func kind_block_reason(k: String) -> String:
 		return ""
 	if is_newcomer():
 		var need := int(EconomyDBScript.get_table("missions").get("newcomer_runs", 5))
-		return "Opens after %d runs · %d of %d" % [need, mini(MetaState.runs_with_battle, need), need]
+		return "Opens after %d runs · %d of %d" % [need, mini(MetaState.gate_runs_with_battle(), need), need]
 	if MetaState.depth_stage() < 3:
 		return "Ranked opens at depth stage 3"
 	if _party_has_vault():
