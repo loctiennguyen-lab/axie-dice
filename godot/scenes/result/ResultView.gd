@@ -455,11 +455,13 @@ func _mutation_line(tiers: Dictionary) -> Control:
 			continue
 		var nm := String(AnchorAdapter.mutation_of(String(h))["name"])
 		if nm != "":
-			parts.append("%s (T%d)" % [nm, t])
+			parts.append("%s (%s %d)" % [nm, tr("level"), t])
 	if parts.is_empty():
 		return null
 	var l := UI3.label(tr("Mutations") + ": " + ", ".join(parts), "LabelMuted")
 	l.name = "MutationsLine"
+	l.mouse_filter = Control.MOUSE_FILTER_STOP
+	UI3Tooltip.bind(l, tr("Mutations are upgrades to your Anchor's House. Each time you held more of its Cores this run, a mutation went up one level."))
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return l
 

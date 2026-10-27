@@ -91,7 +91,7 @@ func _ready() -> void:
 	_check(ar != null and (ar.find_child("AnchorState", true, false) as Label).text == "Awakened", "Result: Anchor row Awakened")
 	_check(ar != null and (ar.find_child("AnchorName", true, false) as Label).text.contains("Volley"), "Result: Anchor name")
 	var ml: Label = v._mutation_line({"h_volley": 2, "h_kin": 0}) as Label
-	_check(ml != null and ml.text.begins_with("Mutations: ") and ml.text.contains("(T2)") and not ml.text.contains("(T0)"), "Mutations line")
+	_check(ml != null and ml.text.begins_with("Mutations: ") and ml.text.contains("(level 2)") and not ml.text.contains("(level 0)"), "Mutations line")
 	_check(v._mutation_line({}) == null, "no mutations: no line")
 	v.queue_free()
 	_guard.restore()

@@ -91,6 +91,9 @@ var _asc_tip: Label
 var _short_btn: Button
 var _full_btn: Button
 var _mode_detail: Label
+var _anchor_lbl: Label
+var _asc_lock: Label
+const ANCHOR_STAGE := 2   ## mirrors RunState.anchor_gate_reason (depth_stage >= 2)
 var _banner_host: VBoxContainer
 var _modal_layer: Control
 var _picker_slot := -1
@@ -304,14 +307,32 @@ func _party_has_vault() -> bool:
 	return MetaState.team_has_vault_pick(party)
 
 
+## True when the account is a guest or its session expired (works with or without remote dice).
+func _signed_out() -> bool:
+	var svc: Node = account_service if account_service != null else AccountService
+	var st: int = account_status_hook.call() if account_status_hook.is_valid() else svc.status
+	return st == AccountService.Status.GUEST or st == AccountService.Status.EXPIRED
+
+
+## One line under Mode: Anchors exist, when they unlock, and whether they are open now.
+func anchor_line() -> String:
+	var open := MetaState.depth_stage() >= ANCHOR_STAGE
+	if kind != "normal":
+		return tr("Anchor: only in Normal runs.")
+	if open:
+		return tr("Anchor: unlocked. You pick one at the start of the run.")
+	return tr("Anchor: locked. You pick one at the start of the run once you reach stage %d.") % ANCHOR_STAGE
+
+
 ## Why `k` ("daily" | "ranked") cannot be picked right now, or "" when it can.
 func kind_block_reason(k: String) -> String:
 	if k == "normal":
 		return ""
 	if not remote_on:
-		return "Needs the online build"
+		# Real reason, not dev wording: signed out -> sign in; otherwise no connection.
+		return "Sign in to play %s" % String(k).capitalize() if _signed_out() else "Needs a connection"
 	if state == "guest":
-		return "Sign in to play"
+		return "Sign in to play %s" % String(k).capitalize()
 	if state == "offline":
 		return "Needs a connection"
 	if k == "daily":
@@ -362,6 +383,8 @@ func _refresh_kind() -> void:
 		b.text = "%s · %s" % [String(k).capitalize(), _kind_sub(k)]
 		b.set_pressed_no_signal(kind == k)
 		_mark_selected(b, kind == k)
+	if _anchor_lbl != null:
+		_anchor_lbl.text = anchor_line()
 
 
 ## Why Begin is disabled, or "" when it is allowed.
@@ -371,7 +394,7 @@ func begin_block_reason() -> String:
 	if state == "guest" and remote_on:
 		return "Sign in to play"
 	if state == "offline" and remote_on:
-		return "Needs a connection to roll dice"
+		return "Needs a connection to the server"
 	if state == "loading":
 		return "Signing you in…" if use_account and account_state() == "loading" else "Loading…"
 	if kind != "normal":
@@ -405,13 +428,13 @@ func set_state(s: String) -> void:
 	elif s == "open_run":
 		_build_open_run()
 	elif s == "guest":
-		_add_banner("Sign in to play", "Dice are rolled on the server, so runs need an account.", false, true)
+		_add_banner("Sign in to play", "Runs are played on the server, so they need an account.", false, true)
 	elif s == "offline":
 		if remote_on:
-			_add_banner("Can't reach the dice server", "Last updated %s. Dice are rolled on the server in this build."
+			_add_banner("Can't reach the server", "Last updated %s. Runs are played on the server in this build."
 				% Time.get_time_string_from_system().substr(0, 5), true)
 		else:
-			_add_banner("You're offline", "Dice roll on this device for now; progress syncs when you reconnect.", false)
+			_add_banner("You're offline", "Runs play on this device for now; progress syncs when you reconnect.", false)
 	_refresh_footer()
 
 
@@ -507,8 +530,8 @@ static func begin_error_text(code: String) -> Array:
 		"version", "mission_needs_update":
 			return ["Update the game", "This version is too old to start a run. Reload to get the latest. Nothing was spent."]
 		"offline":
-			return ["Can't reach the dice server", "Check your connection and try again. Nothing was spent."]
-	return ["Could not roll dice, try again.", "Nothing was spent. Code: %s" % code]
+			return ["Can't reach the server", "Check your connection and try again. Nothing was spent."]
+	return ["Could not start the run, try again.", "Nothing was spent. Code: %s" % code]
 
 
 func open_picker(slot: int) -> void:
@@ -1112,6 +1135,12 @@ func _build_mode_col() -> void:
 	_mode_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_mode_detail.custom_minimum_size.x = 384
 	_body.add_child(_mode_detail)
+	_anchor_lbl = _lbl("", "LabelMuted")
+	_anchor_lbl.name = "AnchorLine"
+	_anchor_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_anchor_lbl.custom_minimum_size.x = 384
+	_body.add_child(_anchor_lbl)
+	_anchor_lbl.text = anchor_line()
 
 
 func _refresh_mode() -> void:
@@ -1158,6 +1187,13 @@ func _build_asc_col() -> void:
 			grid.add_child(b)
 			_tight(b)
 			_asc_chips.append(b)
+	_asc_lock = _lbl("", "LabelMuted")
+	_asc_lock.name = "AscLockLine"
+	_asc_lock.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_asc_lock.custom_minimum_size.x = 384
+	_asc_lock.visible = false
+	if not is_newcomer():
+		_body.add_child(_asc_lock)
 	_asc_title = _lbl("", "LabelTitle")
 	_body.add_child(_asc_title)
 	_asc_mult = _lbl("", "LabelMuted")
@@ -1184,8 +1220,11 @@ func _on_asc_pressed(n: int) -> void:
 func _refresh_asc() -> void:
 	if _asc_title == null:
 		return
-	_asc_tip.text = ""
 	var ceil := ascension_ceiling()
+	_asc_tip.text = ""
+	if _asc_lock != null:
+		_asc_lock.text = tr("A%d unlocks after you win A%d.") % [ceil + 1, ceil] if ceil < ASC_MAX else ""
+		_asc_lock.visible = _asc_lock.text != ""
 	for n in _asc_chips.size():
 		var b := _asc_chips[n]
 		var locked := n > ceil

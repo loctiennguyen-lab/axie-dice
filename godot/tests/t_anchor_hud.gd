@@ -38,14 +38,14 @@ func _ready() -> void:
 	_ok(slots.get_child(0) == p.anchor_slot and p.anchor_slot.custom_minimum_size == Vector2(56, 56), "Anchor tile first, 56 px")
 	_ok(slots.get_child(1) is VSeparator, "thin divider after the tile")
 	var chip := p.find_child("HouseChip", true, false)
-	_ok(chip != null and (chip.find_child("Text", true, false) as Label).text.begins_with("House Cores 0/2 · awakens "), "chip out of combat: House Cores 0/2")
+	_ok(chip != null and (chip.find_child("Text", true, false) as Label).text.contains("House Cores 0/2 · awakens "), "chip out of combat: House Cores 0/2")
 	_ok(p.find_children("CoreSlot_*", "PanelContainer", true, false).size() == 6, "the 6 Core slots keep their count")
 	# 1 house Core -> ring + glyph on that slot only
 	RunState.owned_relic_ids.append("c_sonic_shield")
 	RunState.owned_relic_ids.append("c_mana_pool")
 	st["owned"] = ["c_sonic_shield", "c_mana_pool"]
 	p.refresh()
-	_ok((p.find_child("HouseChip", true, false).find_child("Text", true, false) as Label).text.begins_with("House Cores 1/2 · awakens "), "chip counts 1/2")
+	_ok((p.find_child("HouseChip", true, false).find_child("Text", true, false) as Label).text.contains("House Cores 1/2 · awakens "), "chip counts 1/2")
 	var marked := 0
 	for s in p.find_children("CoreSlot_*", "PanelContainer", true, false):
 		if s.find_child("HouseRing", true, false) != null:
@@ -127,7 +127,7 @@ func _ready() -> void:
 		_ok(p2.anchor_slot != null, "%s tile shown" % aid)
 		var house := AnchorAdapter.house_id(aid)
 		_ok(p2.anchor_slot.find_child("HouseGlyph", true, false) != null or p2.anchor_slot.find_children("*", "TextureRect", true, false).size() > 0, "%s tile has a glyph" % aid)
-		_ok((p2.find_child("HouseChip", true, false).find_child("Text", true, false) as Label).text.begins_with("House Cores 1/2"), "%s chip 1/2" % aid)
+		_ok((p2.find_child("HouseChip", true, false).find_child("Text", true, false) as Label).text.contains("House Cores 1/2"), "%s chip 1/2" % aid)
 		var ring := 0
 		for s2 in p2.find_children("CoreSlot_*", "PanelContainer", true, false):
 			if s2.find_child("HouseRing", true, false) != null:

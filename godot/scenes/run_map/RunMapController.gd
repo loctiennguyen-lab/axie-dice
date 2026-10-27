@@ -396,12 +396,31 @@ func _reward_rarity(r: Dictionary) -> int:
 	return int(r.get("rar", 0))
 
 
-## Depth v3 Core tiers (RelicDef.rarity 0/1/2 -> Moss / Amber / Crystal) and axes. Colour token per tier;
+## Depth v3 Core tiers (RelicDef.rarity 0/1/2 -> Common / Rare / Epic) and axes. Colour token per tier;
 ## the tier WORD always sits beside it. Spec: design/ux/depth-v3/core-offer.md
-const _CORE_TIER_NAME := ["Moss", "Amber", "Crystal"]
+const _CORE_TIER_NAME := ["Common", "Rare", "Epic"]
 const _CORE_TIER_TOKEN := ["rarity_rare", "rarity_legendary", "rarity_epic"]
 const _CORE_AXIS_NAME := {"stat": "Stat", "dice": "Dice faces", "pos": "Position", "mana": "Mana",
 	"quest": "Quest", "rule": "Rule change", "run_rule": "Run rule"}
+
+
+## S3-11: the cost of each Run rule on its own PRICE line (UI-side wording; the rule text stays in the data and is shown as-is).
+const _RULE_PRICE := {
+	"rule_starfall": "+15% enemy HP all run", "rule_heavy_finish": "Enemies deal 10% more damage",
+	"rule_pilot_light": "Turn 1 damage is 0; normal and elite enemies +10% HP", "rule_cheap_mana": "No free reroll; max 5 rerolls a turn",
+	"rule_tundra": "No free reroll (rerolls cost 2 Mana)", "rule_set_is_king": "A die in no SET gets -2; no free reroll",
+	"rule_hard_shell": "Every enemy has Armor 2", "rule_dry_steppe": "Leftover Mana is lost at end of turn",
+	"rule_balance": "From the 3rd damage face each turn, damage faces deal 2 less", "rule_old_forest": "Enemies have +30% HP too",
+	"rule_pack_alpha": "The biggest enemy is a Pack Alpha (+25% HP) that shields the others",
+	"rule_upside_down": "Enemy attacks hit your back row first",
+	"rule_wasteland": "Only 3 Core picks", "rule_high_stakes": "Paid rerolls can Crack dice (20% each)",
+	"rule_quick_beat": "Boss Strike turns hit 20% harder", "rule_crow": "An Axie falling drops that pick one tier"}
+const _RULE_TINTS := ["house_volley", "house_gambler", "house_mana_mine", "house_kin", "house_embers", "house_big_hand"]
+
+
+## A tint per rule (stable from its key) so two Run rule cards never look identical.
+static func rule_tint(key: String) -> Color:
+	return UI3Theme.color(_RULE_TINTS[absi(key.hash()) % _RULE_TINTS.size()])
 
 
 func _is_core_card(r: Dictionary) -> bool:
@@ -558,6 +577,16 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 	icon.offset_bottom = icon_px * 0.5
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	btn.add_child(icon)
+	if show_lock:
+		# S4-4: a node not reached yet reads "unknown", not "locked".
+		icon.visible = false
+		var q := UI3.label("?", "LabelTitle")
+		q.name = "UnknownMark"
+		q.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		q.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		q.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		q.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		btn.add_child(q)
 	if node.reward_kind != "" and not show_lock:
 		var rk := TextureRect.new()
 		rk.name = "RewardKind"
@@ -769,7 +798,9 @@ func _rebuild_left() -> void:
 	titles.add_theme_constant_override("separation", 0)
 	head.add_child(titles)
 	var total_rows := _graph.rows.size() if _graph != null else 0
-	titles.add_child(UI3.label(tr("Floor %d of %d") % [maxi(_current_row(), 0), total_rows], "LabelTitle"))
+	# S4-4: floor numbers match the side card (node.row, 1-based); before the first node it says Start, not "Floor 0".
+	var cur_row := _current_row()
+	titles.add_child(UI3.label(tr("Floor %d of %d") % [cur_row, total_rows] if cur_row > 0 else tr("Start · %d floors") % total_rows, "LabelTitle"))
 	titles.add_child(UI3.label(tr("Ascension %d · Shards %d") % [RunState.ascension, RunState.shards_this_run]))
 
 	for entry in RunState.roster:
@@ -787,12 +818,21 @@ func _rebuild_left() -> void:
 	var rcol := VBoxContainer.new()
 	rcol.add_theme_constant_override("separation", 8)
 	bottom.add_child(rcol)
-	rcol.add_child(UI3.label(tr("Cores · %d") % RunState.owned_relic_ids.size(), "LabelTitle"))
+	# S3-10: count only the Cores in the Core slots (Anchor and Run rule are shown beside them, not in the count).
+	var n_cores := RelicSlots.owned_cores(RunState.owned_relic_ids).size()
+	rcol.add_child(UI3.label(tr("Cores · %d") % n_cores, "LabelTitle"))
 	var core_panel := CorePanel.new()
 	core_panel.slot_px = 40
 	_core_panel = core_panel
 	rcol.add_child(core_panel)
 	core_panel.visible = core_panel.refresh()
+	if RunState.run_rule != "":
+		var rr = RelicRegistry.get_def(RunState.run_rule)
+		if rr != null:
+			var rl := UI3.label(tr("Run rule: %s") % String(rr.name), "LabelMuted")
+			rl.name = "RunRuleLine"
+			rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			rcol.add_child(rl)
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.get_v_scroll_bar().custom_minimum_size.x = UI3Theme.SCROLL_W
@@ -1631,12 +1671,27 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 		col.add_child(UI3.trade_box(&"gain", String(tp["gain"])))
 		col.add_child(UI3.trade_box(tp["cost_kind"], String(tp["cost"])))
 		return card
+	var is_rule_card := is_core and bool(r.get("rule", false)) and String(r.get("key", "")) != "rule_none"
+	if is_rule_card:
+		col.add_child(UI3.label(tr("Rule"), "LabelMuted"))
+		icon.modulate = rule_tint(String(r.get("key", "")))
 	var desc := UI3.label(body_text)
 	desc.name = "RewardDesc"
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.custom_minimum_size.x = (_REWARD_CARD_W_WIDE if wide else _REWARD_CARD_W) - 48.0
 	desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	col.add_child(desc)
+	if is_rule_card and _RULE_PRICE.has(String(r.get("key", ""))):
+		var pb := VBoxContainer.new()
+		pb.name = "RulePrice"
+		pb.add_child(UI3.label(tr("Price"), "LabelMuted"))
+		var pl := UI3.label("− " + tr(String(_RULE_PRICE[String(r.get("key", ""))])), "LabelDisplay")
+		pl.name = "PriceText"
+		pl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		pl.custom_minimum_size.x = (_REWARD_CARD_W_WIDE if wide else _REWARD_CARD_W) - 48.0
+		pl.add_theme_color_override("font_color", UI3Theme.color("anchor_price"))
+		pb.add_child(pl)
+		col.add_child(pb)
 	if is_core and not bool(r.get("rule", false)):
 		var rr := UI3.button(tr("Reroll"), &"secondary", &"M")
 		rr.name = "CardReroll%d" % idx

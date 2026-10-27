@@ -4,7 +4,7 @@ extends VBoxContainer
 ## unfinished quest Core with its step progress. Pure read of RunState; call refresh() whenever it changes.
 ## Slot colour = tier token, tier WORD in the tooltip. Spec: design/ux/depth-v3/core-offer.md
 
-const TIER_NAME := ["Moss", "Amber", "Crystal"]
+const TIER_NAME := ["Common", "Rare", "Epic"]
 const TIER_TOKEN := ["rarity_rare", "rarity_legendary", "rarity_epic"]
 
 ## Axis -> icon (assets/ui3/icons) and word. One glyph per axis so the axis never relies on colour alone.
@@ -326,12 +326,13 @@ static func house_chip(short := false) -> PanelContainer:
 	var id := AnchorAdapter.current_id()
 	var house := AnchorAdapter.house_id(id)
 	if AnchorAdapter.awakened():
-		var c := UI3.icon_chip(TranslationServer.translate("Awakened"), UI3.icon(AWAKEN_ICON), UI3Theme.color("anchor_awake"), "HouseChip")
+		var aw_txt: String = TranslationServer.translate("Awakened") if short else "%s · %s" % [AnchorAdapter.name_of(id), TranslationServer.translate("Awakened")]
+		var c := UI3.icon_chip(aw_txt, UI3.icon(AWAKEN_ICON), UI3Theme.color("anchor_awake"), "HouseChip")
 		c.set_meta("state", "awakened")
 		return c
 	var txt := "%d/%d" % [AnchorAdapter.house_count(), Anchors.AWAKEN_NEED]
 	if not short:
-		txt = "%s %s" % [TranslationServer.translate("House Cores"), txt]
+		txt = "%s · %s %s" % [AnchorAdapter.name_of(id), TranslationServer.translate("House Cores"), txt]
 		txt += " · %s %s" % [TranslationServer.translate("awakens"), AnchorAdapter.awaken_name(id)]
 	var chip := UI3.icon_chip(txt, UI3.icon(AnchorAdapter.house_icon(house)), AnchorAdapter.house_color(house), "HouseChip")
 	chip.set_meta("state", "count")
