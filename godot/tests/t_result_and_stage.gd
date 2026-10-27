@@ -45,7 +45,7 @@ const RESULT_SCENE := "res://scenes/result/Result.tscn"
 ## ResultView.gd now builds — see that file's `_build_card_row()` comment. So this file no
 ## longer asserts relics-before-currency; it only checks that all three cards are still present.
 const EXPECTED_BAND_ORDER: Array[String] = ["PartyRow", "StatRibbon", "CardRow", "Footer"]
-const EXPECTED_CARD_ROW_CAPTIONS: Array[String] = ["GENE SHARD", "LUNACIA PASS", "CORES"]
+const EXPECTED_CARD_ROW_CAPTIONS: Array[String] = ["GENE SHARD", "SEASON PASS", "CORES"]
 
 const EXPECTED_TESTS: Array[String] = [
 	"test_every_spawned_unit_gets_a_ground_shadow",
