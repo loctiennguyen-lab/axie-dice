@@ -69,3 +69,8 @@ Reply `{"ok":true,"state":"ok|mismatch|error","verdict":"match|outcome_mismatch|
 ## Auth
 Headers `X-Verify-Ts` (unix s, +-120 s) and `X-Verify-Sig` = hex HMAC-SHA256(`VERIFY_HMAC_KEY`, `${ts}\n${METHOD}\n${path}\n${body}`).
 POST /api/verify/next, POST /api/verify/result, GET /api/verify/stats (body empty, query not signed). No key configured = 404.
+
+## Queue housekeeping (b5cedf6)
+- `/next` dọn trước khi nhận job (tối đa 50 dòng mỗi lệnh): job đã thử ≥ 3 lần và hết lease → `error/attempts_exhausted`; job chờ quá 14 ngày → `error/expired`; payload của job đã xong được xoá sau 7 ngày (kết quả vẫn nằm trong `verify_results`).
+- Payload tối đa 900 000 byte (đếm byte, không đếm ký tự); lớn hơn thì job được lưu là `error/payload_too_large`.
+- `/result` chỉ nhận khi lease còn hạn (`claimed_at >= now - 300`), không thì 409. Body > 4096 byte → 413.
