@@ -43,6 +43,19 @@ export async function depthStage(env, playerId) {
   return (await newcomer(env, playerId)) ? 1 : 3;
 }
 
+/** Gate numbers for the client (BUG-0008): the same counts the server enforces, so a second device shows the same gates.
+ *  Reuses newcomer() / depthStage() / dailyUsed(); only the one extra COUNT for runs_with_battle. */
+export async function gateInfo(env, playerId, nowS = Math.floor(Date.now() / 1000)) {
+  const r = await env.DB.prepare('SELECT COUNT(*) AS n FROM runs WHERE player_id = ? AND battles_done >= 1').bind(playerId).first();
+  const dayStart = nowS - (nowS % 86400);
+  return {
+    runs_with_battle: r.n,
+    newcomer: await newcomer(env, playerId),
+    depth_stage: await depthStage(env, playerId),
+    daily: { used: await dailyUsed(env, playerId, dayStart), max: Number(env.DAILY_TRIES) || DAILY_TRIES_DEFAULT, resets_at: dayStart + 86400 },
+  };
+}
+
 async function createRun(request, env, url, player) {
   if (request.headers.get('Origin') && !shared.isAllowedOrigin(request.headers.get('Origin'), url)) return json({ error: 'forbidden' }, 403);
   let body;
