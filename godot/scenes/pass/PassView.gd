@@ -232,7 +232,7 @@ func season_text() -> String:
 	return "Season 1 · ends %s" % fmt_day(String(c.get("end_day", "")))
 
 
-func reward_text(r: Dictionary) -> String:
+static func reward_text(r: Dictionary) -> String:
 	var v = r.get("value")
 	match String(r.get("type", "")):
 		"shard": return "%d Shard" % int(v)
@@ -259,7 +259,7 @@ static func unlock_name(id: String) -> String:
 	return "Permanent unlock"
 
 
-func _thousands(n: int) -> String:
+static func _thousands(n: int) -> String:
 	var s := str(n)
 	return s if n < 1000 else "%s,%s" % [s.substr(0, s.length() - 3), s.substr(s.length() - 3)]
 
@@ -274,7 +274,7 @@ const TILE_H := 132
 
 
 func _build() -> void:
-	_shell = UI3Meta.build(self, "Season Pass", "", _on_back)
+	_shell = UI3Meta.build(self, PassSummary.NAME, "", _on_back)
 	(_shell["panel"] as Control).name = "PlateHost"   # t_ui_laws L0
 	_banner_host = _shell["banner_host"]
 	_modal_layer = _shell["modal_layer"]

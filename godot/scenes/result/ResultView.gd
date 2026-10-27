@@ -52,7 +52,8 @@ func _ready() -> void:
 		"action_log": RunState.action_log,
 		# Taken BEFORE end_run() pushes this run's XP in, so the "+N levels" pill can say how
 		# many levels THIS run bought rather than what level the player happens to be.
-		"pass_level_before": MetaState.bp_level(),
+		"pass_xp_before": int(MetaState.pass_season.get("xp", 0)),
+		"pass_season_before": String(MetaState.pass_season.get("id", "")),
 		"best_before": MetaState.best,
 		"power_level": RunState.power_level,
 		"stake_before": MetaState.mission_escrow.duplicate(),
@@ -63,8 +64,11 @@ func _ready() -> void:
 	snapshot["mission_won"] = bool(RunState.mission_outcome(won)["won"])
 
 	RunState.end_run(won)   # pushes shards + XP into MetaState
-	snapshot["xp_gained"] = RunState.last_run_xp
-	snapshot["pass_level"] = MetaState.bp_level()
+	# Pass XP granted this run: local = change in the Pass v2 state (day cap applied, 0 outside the season);
+	# remote = the server counts it later, so no number is claimed (-1).
+	var pass_after := int(MetaState.pass_season.get("xp", 0))
+	snapshot["pass_xp_gained"] = -1 if MetaState.econ_remote() != null else (
+		maxi(pass_after - int(snapshot["pass_xp_before"]), 0) if String(MetaState.pass_season.get("id", "")) == String(snapshot["pass_season_before"]) else 0)
 	snapshot["daily_mission_granted"] = RunState.daily_mission_granted
 	snapshot["new_titles"] = MetaState.last_run_new_titles.duplicate()   # C7: only this run's grants
 	snapshot["stake_open"] = not MetaState.mission_escrow.is_empty()   # server-settled stakes close later
@@ -547,15 +551,10 @@ func _build_pass_card(s: Dictionary) -> Control:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 12)
 	col.add_child(head)
-	var cap := _card_caption(tr("Lunacia Pass"))
+	var cap := _card_caption(tr(PassSummary.NAME))
 	cap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(cap)
-	var gained: int = maxi(int(s.get("pass_level", 0)) - int(s.get("pass_level_before", 0)), 0)
-	if gained > 0:
-		var pill := UI3.chip(tr("Lv %d · +%d this run") % [int(s.get("pass_level", 0)), gained])
-		pill.name = "LevelsPill"
-		head.add_child(pill)
-	var prog: Dictionary = MetaState.bp_progress()
+	var info: Dictionary = PassSummary.info(MetaState.pass_season)
 	var row := HBoxContainer.new()
 	row.custom_minimum_size.y = UI3Theme.size_of("row")
 	row.add_theme_constant_override("separation", 12)
@@ -573,9 +572,8 @@ func _build_pass_card(s: Dictionary) -> Control:
 	xl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	xp.add_child(xl)
 	row.add_child(xp)
-	row.add_child(UI3.label(tr("Lv %d") % int(prog["level"]), "LabelTitle"))
-	var line := UI3.label(_pass_xp_line(int(prog["level"]), int(prog["into_level"]), int(prog["needed"]),
-		int(s.get("xp_gained", 0))), "LabelMuted")
+	row.add_child(UI3.label(tr("Lv %d") % int(info["level"]), "LabelTitle"))
+	var line := UI3.label(PassSummary.line(info, int(s.get("pass_xp_gained", -1))), "LabelMuted")
 	line.name = "PassXpLine"
 	line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -591,23 +589,10 @@ func _build_pass_card(s: Dictionary) -> Control:
 	var fill := ColorRect.new()
 	fill.color = UI3Theme.color("accent")
 	fill.set_anchors_preset(Control.PRESET_LEFT_WIDE)
-	fill.anchor_right = clampf(float(prog.get("percent", 0.0)) / 100.0, 0.0, 1.0)
+	fill.anchor_right = clampf(float(info["percent"]) / 100.0, 0.0, 1.0)
 	fill.offset_right = 0.0
 	track.add_child(fill)
 	return card
-
-
-## "380 / 500 XP · Lv 8 pays 80 shard", from this build's own BP track; the tail only claims a shard payout
-## when the next milestone really is one.
-func _pass_xp_line(level: int, into: int, needed: int, xp_gained: int) -> String:
-	if needed <= 0:
-		return tr("Max level") + " · " + tr("+%d XP this run") % xp_gained
-	var head := "%d / %d XP" % [into, needed]
-	for entry in ContentDB.BP_TRACK:
-		var e: Dictionary = entry
-		if int(e.get("lv", 0)) == level + 1 and String(e.get("type", "")) == "shard":
-			return "%s · %s" % [head, tr("Lv %d pays %d shard") % [level + 1, int(e.get("value", 0))]]
-	return "%s · %s" % [head, tr("+%d XP this run") % xp_gained]
 
 
 ## Depth v3: the run's Cores plus the Run Rule it played under (the old "Relics carried" card).
