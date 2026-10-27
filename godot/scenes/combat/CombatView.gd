@@ -1388,7 +1388,7 @@ func _on_aid_purchase(aid_id: String) -> void:
 	if not _still_running():
 		return
 	if not bool(res["ok"]) and String(res["code"]) == "net":
-		NetNotice.show(self, String(res.get("net_code", "offline")), _on_aid_purchase.bind(aid_id))
+		NetNotice.show(self, String(res.get("net_code", "offline")), _on_aid_purchase.bind(aid_id), "Could not buy that Aid")
 	_append_log("[aid] %s : %s" % [aid_id, "ok (-%d Gem)" % int(res["charged"]) if bool(res["ok"]) else String(res["code"])])
 	if bool(res["ok"]):
 		_selected_die_uid = -1
@@ -2911,7 +2911,7 @@ func _do_reroll(uids: Array, rmode: int) -> void:
 	if not ok:
 		_reroll_prev.clear()
 		if String(rr["code"]) not in ["illegal", "busy"]:
-			NetNotice.show(self, String(rr["code"]), _on_reroll_pressed)
+			NetNotice.show(self, String(rr["code"]), _on_reroll_pressed, "Could not reroll your dice")
 	_selected_die_uid = -1
 	# The rebuild sees the rerolled dice in _reroll_prev and throws them in 3D, like the first roll.
 	_rebuild_all()
@@ -3104,7 +3104,7 @@ func _on_end_turn_pressed() -> void:
 		_end_turn_button_lock(false)
 		_update_hud()
 		if String(et["code"]) not in ["illegal", "busy"]:
-			NetNotice.show(self, String(et["code"]), _on_end_turn_pressed)
+			NetNotice.show(self, String(et["code"]), _on_end_turn_pressed, "Could not send your turn")
 		return
 	_rebuild_all()   # the phase flip and the turn banner go up BEFORE the first enemy moves
 	await _run_enemy_phase()
@@ -4465,7 +4465,7 @@ func _finish(won: bool) -> void:
 		# Nothing was applied: re-arm for EVERY code so the same result can be tried again (RETRY), or, when
 		# the session is gone, NetNotice offers SIGN IN / BACK TO MENU. Never a dead screen.
 		_result_shown = false
-		NetNotice.show(self, String(applied["code"]), func(): _finish(won))
+		NetNotice.show(self, String(applied["code"]), func(): _finish(won), "Could not save the fight result")
 		return
 	if won:
 		# Juice pass B: let the surviving party actually march off the field before cutting to
@@ -4593,7 +4593,7 @@ func _on_defeat_continue() -> void:
 	if is_inside_tree() and _defeat != null:
 		_defeat.set_busy(false)
 	if is_inside_tree() and not bool(res["ok"]) and String(res["code"]) == "net":
-		NetNotice.show(self, String(res.get("net_code", "offline")), _on_defeat_continue)
+		NetNotice.show(self, String(res.get("net_code", "offline")), _on_defeat_continue, "Could not use Continue")
 	_append_log("[aid] continue : %s" % ("ok (-%d Gem)" % int(res["charged"]) if bool(res["ok"]) else String(res["code"])))
 	if not bool(res["ok"]):
 		return
