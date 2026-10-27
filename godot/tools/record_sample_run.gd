@@ -3,7 +3,7 @@ extends Node
 ## tested against, and the smoke test for a deployed referee.
 ##
 ## USAGE
-##   Godot --headless --path godot res://tools/record_sample_run.tscn -- --seed=991237 \
+##   Godot --headless --path godot res://tools/record_sample_run.tscn -- --seed=991237 [--mode=short|full] [--asc=N] \
 ##       --out=/tmp/run_log.json
 ##
 ## Then feed it back:
@@ -25,7 +25,7 @@ func _ready() -> void:
 	var seed_value := int(args.get("seed", 991237))
 	var out_path := String(args.get("out", "user://sample_run_log.json"))
 
-	var played := RunBot.play_run(seed_value)
+	var played := RunBot.play_run(seed_value, RunBot.DEFAULT_TEAM, String(args.get("mode", "short")), int(args.get("asc", 0)))
 	var log: ActionLog = played["log"]
 	var f := FileAccess.open(out_path, FileAccess.WRITE)
 	if f == null:

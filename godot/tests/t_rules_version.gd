@@ -261,7 +261,10 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## BUG-0008 follow-up: gate helpers take max(local, server) so a run finished here counts before the next refetch. Run result: NO.
 ## BUG-0006 (same day): AccountService adopts the server rev when the cloud copy has the same content; MetaState.reset_notice_id
 ## (one-time beta reset notice, kept per device like the server fields). Save sync + UI only. Run result: NO, stays -v.
-const FINGERPRINT := "b192ca579f67222ac695807e87d8ebbf80b811029535054bba986d012ace945e"
+## Pinned, 2026-10-27 (SR-V): MetaState.run_bonuses adds no Pass perks while the economy is remote (server-owned; after the M1 reset
+## nobody holds perks, the old Pass that granted them is gone, and a server replay cannot see them). Local econ and tests unchanged.
+## Run result: NO, stays -v.
+const FINGERPRINT := "53196a9af2391ed77d61a11d1ac56d2f4ae00e8515da4ddb3873506971b52538"
 
 
 func _ready() -> void:

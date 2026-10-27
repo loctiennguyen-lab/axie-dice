@@ -1,0 +1,45 @@
+{
+  "rows": {
+    "full-42": {
+      "nodes": 15,
+      "ok": true,
+      "played_score": 290,
+      "score": 290,
+      "state_sha": "996c586dc9c96c7afc77d6256225fd48ee75ccdcdd1291d958fe59d171228365",
+      "won": false
+    },
+    "full-9": {
+      "nodes": 6,
+      "ok": true,
+      "played_score": 110,
+      "score": 110,
+      "state_sha": "545e8b92129a6bfb86688daede5e8d2d42cc9f86f760489b2a9022054c211715",
+      "won": false
+    },
+    "short-5": {
+      "nodes": 5,
+      "ok": true,
+      "played_score": 60,
+      "score": 60,
+      "state_sha": "6957300e128899d84568797179bfade15733cd498f897547de37e1b736438981",
+      "won": false
+    },
+    "short-77": {
+      "nodes": 8,
+      "ok": true,
+      "played_score": 150,
+      "score": 150,
+      "state_sha": "5c0773706f3c3611154f29a3857e3cfde5507945e5c29f25484f3d86be4d07cc",
+      "won": false
+    },
+    "short-991237": {
+      "nodes": 18,
+      "ok": true,
+      "played_score": 310,
+      "score": 310,
+      "state_sha": "f5c1cf392e40e69c7753574d5df4b0142c2fce9ac8787c174eb280ab18c01ffd",
+      "won": false
+    }
+  },
+  "rules_version": "godot-2026-10-26-t"
+}
