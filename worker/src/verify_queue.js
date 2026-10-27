@@ -20,7 +20,7 @@ const OUTCOMES = new Set(['won', 'lost', 'rejected', 'invalid']);
 const RESULT_KEYS = ['ok', 'reason', 'rules_version', 'outcome', 'score', 'nodes', 'log_len', 'ms'];
 /** Rejections that say "the verifier could not judge this record" rather than "the record is wrong". */
 const NOT_A_VERDICT = new Set(['rules_version_mismatch', 'content_version_mismatch', 'bad_header', 'log_incomplete',
-  'bad_json', 'bad_tape', 'input_too_large', 'log_too_long', 'no_input', 'unreadable_input']);
+  'bad_json', 'bad_tape', 'input_too_large', 'log_too_long', 'no_input', 'unreadable_input', 'timeout', 'bad_job']);
 
 const enc = new TextEncoder();
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json' } });
