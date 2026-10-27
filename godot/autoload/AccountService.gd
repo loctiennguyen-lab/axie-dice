@@ -372,9 +372,15 @@ func _reconcile(server: Dictionary) -> void:
 		pass
 	elif srev > _rev:
 		if _dirty:
-			_conflict(server)
-			return
-		_apply_server(server)
+			if same_content(_snapshot(String(account["id"])), server):
+				# A push was in flight when the page closed: the server applied it (rev + 1) but this device never
+				# stored the new rev. Same data on both sides, so nothing to ask: just take the server's rev.
+				_set_sync(srev, false)
+			else:
+				_conflict(server)
+				return
+		else:
+			_apply_server(server)
 	else:
 		# The server is behind this device (a restored or reset database). This device holds
 		# the newer copy; send it on top of whatever the server has now.
@@ -382,6 +388,22 @@ func _reconcile(server: Dictionary) -> void:
 		_dirty = true
 		_save_sync()
 	_after_reconcile()
+
+
+## True when a local snapshot and a server copy hold the same save, ignoring what the server never stores
+## (server-owned money fields) and timestamps.
+static func same_content(local: Dictionary, server: Dictionary) -> bool:
+	var lm: Variant = local.get("meta")
+	var sm: Variant = server.get("meta")
+	if typeof(lm) != TYPE_DICTIONARY or typeof(sm) != TYPE_DICTIONARY:
+		return false
+	if MetaState.strip_server_fields(lm) != MetaState.strip_server_fields(sm):
+		return false
+	var lr: Variant = local.get("run")
+	var sr: Variant = server.get("run")
+	if lr == null and sr == null:
+		return true
+	return typeof(lr) == TYPE_DICTIONARY and typeof(sr) == TYPE_DICTIONARY and lr == sr
 
 
 func _conflict(server: Dictionary) -> void:

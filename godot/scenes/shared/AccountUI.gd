@@ -383,11 +383,15 @@ static func _save_card(title: String, when: String, s: Dictionary) -> PanelConta
 	col.add_child(UI3.label(title, "LabelTitle"))
 	if not when.is_empty():
 		col.add_child(UI3.label(when, "LabelMuted"))
-	for r in [["Gene Shards", str(int(s.get("shards", 0)))],
-			["XP", str(int(s.get("xp", 0)))],
+	# Remote economy: Shards are the server's, the cloud save never carries them, so the row would always differ.
+	var rows: Array = []
+	if MetaState.econ_remote() == null:
+		rows.append(["Gene Shards", str(int(s.get("shards", 0)))])
+	rows.append_array([["XP", str(int(s.get("xp", 0)))],
 			["Vault", "%d / 20" % int(s.get("vault", 0))],
 			["Runs · wins", "%d · %d" % [int(s.get("runs", 0)), int(s.get("wins", 0))]],
-			["Run in progress", String(s.get("run", "")) if not String(s.get("run", "")).is_empty() else "—"]]:
+			["Run in progress", String(s.get("run", "")) if not String(s.get("run", "")).is_empty() else "—"]])
+	for r in rows:
 		var row := HBoxContainer.new()
 		var k := UI3.label(r[0], "LabelMuted")
 		k.size_flags_horizontal = Control.SIZE_EXPAND_FILL
