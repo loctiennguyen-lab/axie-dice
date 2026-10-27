@@ -70,6 +70,12 @@ func _ready() -> void:
 	hud.update_right({"enabled": true}, {"n": 1, "max": 3, "enabled": true}, {"sub": "5 dice unused", "enabled": true, "resolving": false})
 	_ok(hud._hint.text == "5 dice unused", "hint has no key prefix")
 	_ok(hud._end_cap.visible and hud._end_cap_label.text != "", "key cap shown")
+	hud.layout()
+	var sbx: StyleBox = e1.get_theme_stylebox("normal")
+	var capw: float = hud._end_cap.get_combined_minimum_size().x
+	_ok(sbx.content_margin_right >= capw + 20.0, "End label keeps 8 px + edge before the cap")
+	var tw: float = e1.get_theme_font("font").get_string_size(e1.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 24).x
+	_ok(tw + sbx.content_margin_right + maxf(sbx.content_margin_left, 0.0) <= e1.size.x, "End label fits left of cap (%.0f + %.0f in %.0f)" % [tw, sbx.content_margin_right, e1.size.x])
 	hud.set_seed_wait(true)
 	_ok(hud._hint.text == "Waiting for server…", "seed wait still works")
 	hud.set_seed_wait(false)

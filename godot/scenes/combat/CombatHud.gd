@@ -752,7 +752,8 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary, hold: D
 		_end_cap_label.text = KeyBindings.text(KeyBindings.COMBAT_END_TURN)
 		_end_cap.visible = not resolving
 		# text goes left while the cap sits on the right ("Space" is wide), centred again for "Enemy turn"
-		end_turn_button.alignment = HORIZONTAL_ALIGNMENT_CENTER if resolving else HORIZONTAL_ALIGNMENT_LEFT
+		end_turn_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_pad_end_for_cap(not resolving)
 	_apply_seed_wait()
 	layout()
 
@@ -784,6 +785,22 @@ func _apply_seed_wait() -> void:
 
 ## Hold already used (Holding n/n): the button reads as a switched-on toggle (wood-3 fill, 4 px cream outline,
 ## check glyph), not as a greyed-out one. Pressing it again does nothing (CombatView gates it).
+## Keeps the End turn label centred in the width left of the key cap, with at least 8 px between label and cap:
+## the button's right content margin is widened by cap width + 12 px edge + 8 px gap (centred text then sits in the rest).
+func _pad_end_for_cap(on: bool) -> void:
+	for st in ["normal", "hover", "pressed", "disabled", "focus", "hover_pressed"]:
+		if not on:
+			end_turn_button.remove_theme_stylebox_override(st)
+			continue
+		var base: StyleBox = end_turn_button.get_theme_stylebox(st)
+		if base == null:
+			continue
+		var sb: StyleBox = base.duplicate()
+		sb.content_margin_left = 8.0   # base padding is wide; the label still has to fit left of the cap
+		sb.content_margin_right = _end_cap.get_combined_minimum_size().x + 12.0 + 8.0
+		end_turn_button.add_theme_stylebox_override(st, sb)
+
+
 func _style_hold_on(on: bool) -> void:
 	for st in ["normal", "hover", "pressed", "disabled", "hover_pressed"]:
 		if on:
