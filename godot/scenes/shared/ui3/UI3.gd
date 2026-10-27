@@ -279,15 +279,14 @@ static func fmt(v: int) -> String:
 ## Currency order everywhere (Land hub order): Gene Shard, Land Stone, Lunar Gem. Entries for
 ## `currency_pill`; `loading` shows "···" instead of numbers.
 static func currency_entries(loading := false) -> Array:
-	var f := func(field: String) -> String:
-		if loading:
-			return "···"
-		var v: Variant = MetaState.get(field)
-		return fmt(int(v) if v != null else 0)
+	# Gem lives in the Gem wallet (local cache or server mirror), not in a MetaState field: the old
+	# MetaState.get("lunar_gem") never existed, so the chip always read 0.
+	var f := func(v: int) -> String:
+		return "···" if loading else fmt(v)
 	return [
-		{"icon": "cur_shard", "value": f.call("shard_pool")},
-		{"icon": "cur_stone", "value": f.call("stone")},
-		{"icon": "cur_gem", "value": f.call("lunar_gem")}]
+		{"icon": "cur_shard", "value": f.call(MetaState.shard_pool)},
+		{"icon": "cur_stone", "value": f.call(MetaState.stone)},
+		{"icon": "cur_gem", "value": f.call(MetaState.gem_wallet().balance())}]
 
 
 ## Tab (meta screens): a toggle Button, h 56. Selection = pressed state. `key` adds a key-hint chip
@@ -697,6 +696,10 @@ static func modal(title: String, body: String, actions: Array, focus_index := 0)
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_STOP
 	root.name = "Modal"
+	root.add_to_group("ui3_modal")   # UI3Tooltip stays quiet while any modal is up (BUG-0005)
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree != null:
+		UI3Tooltip.hide_all(tree)
 	var scrim := ColorRect.new()
 	scrim.name = "Scrim"
 	scrim.color = UI3Theme.color("scrim")

@@ -192,6 +192,13 @@ func is_full_unlocked() -> bool:
 	return MetaState.has_unlock("u_full")
 
 
+## BUG-0001: the "Aid for this run" panel (Starting Boon / Run Kit, Gem prices) only shows when buying Aid on
+## this screen exists in the build. Switch: `setup_aid_enabled` in assets/data/economy/aid_prices.json (false in
+## the beta, store off). Turn it on and the panel comes back as it was.
+static func setup_aid_enabled() -> bool:
+	return bool(EconomyDBScript.get_table("aid_prices").get("setup_aid_enabled", false))
+
+
 func is_newcomer() -> bool:
 	return MetaState.is_newcomer()
 
@@ -903,7 +910,7 @@ func _build() -> void:
 	_party_row.add_theme_constant_override("separation", 88)
 	area.add_child(_party_row)
 
-	if not is_newcomer():
+	if not is_newcomer() and setup_aid_enabled():
 		var kit := _build_kit_col()
 		kit.set_anchors_preset(Control.PRESET_TOP_LEFT)   # under the party block, same left edge
 		kit.offset_left = 480

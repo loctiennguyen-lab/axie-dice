@@ -118,7 +118,7 @@ func set_nick(nick: String, original: String) -> void:
 		return
 	_name_label.text = nick if nick != "" else original
 	if _click_catcher != null:
-		_click_catcher.tooltip_text = "%s (%s)" % [nick, original] if nick != "" else ""
+		UI3Tooltip.bind(_click_catcher, "%s (%s)" % [nick, original] if nick != "" else "")
 
 
 func _ready() -> void:
@@ -524,9 +524,10 @@ func set_intent(intent: Dictionary) -> void:
 		return
 	_intent_icon.texture = UI3.icon(String(UI3.FACE_ICON.get(TrayColumn.ui3_face(String(intent.get("type", "blank"))), "face_blank")))
 	_intent_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	_intent_panel.tooltip_text = "Next: %s %d%s\nEnemy intent is public: this is the number that lands, with enrage, attrition and big hits already included." % [
+	# UI3 plate, not the native tooltip: a native one is an OS-level popup that no overlay can cover (BUG-0005).
+	UI3Tooltip.bind(_intent_panel, "Next: %s %d%s\nEnemy intent is public: this is the number that lands, with enrage, attrition and big hits already included." % [
 		String(intent.get("label", "")), int(intent.get("num", 0)),
-		(" on " + String(intent.get("target", ""))) if String(intent.get("target", "")) != "" else ""]
+		(" on " + String(intent.get("target", ""))) if String(intent.get("target", "")) != "" else ""])
 	_intent_num.text = str(int(intent.get("num", 0)))
 	_intent_action.text = "ACTING" if _acting else String(intent.get("label", ""))
 	var tgt := String(intent.get("target", ""))

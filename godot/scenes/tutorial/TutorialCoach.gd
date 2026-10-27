@@ -151,6 +151,7 @@ func _build_curtain() -> void:
 	_curtain.color = UI3Theme.color("bg")   # 37: full-screen neutral-1
 	_curtain.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_curtain.mouse_filter = Control.MOUSE_FILTER_STOP
+	_curtain.add_to_group("ui3_modal")   # no HUD tooltip while the welcome / end / starter screens are up (BUG-0005)
 	_root.add_child(_curtain)
 
 	var center := CenterContainer.new()
@@ -317,6 +318,7 @@ func show_curtain(title: String, body: String, cta: String) -> void:
 	_starter.visible = false
 	_skip.visible = true
 	_curtain.visible = true
+	UI3Tooltip.hide_all(get_tree())   # a plate raised by the HUD just before the curtain must not stay on top of it
 	_curtain_cta.grab_focus.call_deferred()
 
 
