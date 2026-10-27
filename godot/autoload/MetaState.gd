@@ -265,6 +265,9 @@ func use_remote_gem_wallet(w: GemWallet) -> void:
 const SERVER_FIELDS: Array[String] = ["shard_pool", "stone", "tickets", "unlocks", "echobox_pity", "starter_granted", "starter_shard_locked", "pending_run_claims", "pass_season"]
 ## Id of the last server reset (M1) this device has wiped for. "" = none seen yet.
 var econ_reset_seen: String = ""
+## Reset id whose "beta reset" notice the player has not dismissed yet ("" = nothing to show). Land shows it once.
+var reset_notice_id: String = ""
+signal reset_notice_due
 var _econ: RemoteEcon = null
 ## BUG-0008: gate numbers the server counted (GET /api/econ `gates`: runs_with_battle, newcomer, depth_stage, daily).
 ## Session-only cache, never saved, reset by reload_from_store(). While the economy is remote and this is filled,
@@ -418,7 +421,17 @@ func wipe_for_server_reset(reset_id: String) -> void:
 	gems_cache = int(_gem_wallet.balance()) if _gem_wallet != null else 0
 	pending_run_claims.clear()
 	econ_reset_seen = reset_id
+	reset_notice_id = reset_id
 	save_to_disk()
+	if reset_id != "":
+		reset_notice_due.emit()
+
+
+## Player pressed OK on the reset notice.
+func dismiss_reset_notice() -> void:
+	if reset_notice_id != "":
+		reset_notice_id = ""
+		save_to_disk()
 
 
 ## Run end (remote economy): Shard reward of the closed run, daily claims. Fire-and-forget; the answer lands in the
@@ -1017,6 +1030,7 @@ func _reset_economy_fields() -> void:
 	save_version = SAVE_VERSION
 	starter_granted = false
 	econ_reset_seen = ""
+	reset_notice_id = ""
 	pending_run_claims = []
 	stone = 0
 	gems_cache = 0
@@ -1186,6 +1200,7 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 			profile_stats[k] = maxi(0, int((ps2 as Dictionary).get(k, 0)))
 	starter_granted = bool(parsed.get("starter_granted", false))
 	econ_reset_seen = String(parsed.get("econ_reset_seen", ""))
+	reset_notice_id = String(parsed.get("reset_notice_id", ""))
 	pending_run_claims = []
 	var prc: Variant = parsed.get("pending_run_claims", [])
 	if prc is Array:
@@ -1409,6 +1424,7 @@ func save_to_disk() -> void:
 		"save_version": SAVE_VERSION,
 		"starter_granted": starter_granted,
 		"econ_reset_seen": econ_reset_seen,
+		"reset_notice_id": reset_notice_id,
 		"pending_run_claims": pending_run_claims,
 		"stone": stone,
 		"gems_cache": gems_cache,

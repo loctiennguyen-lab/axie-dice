@@ -219,7 +219,34 @@ func _grant_gift() -> bool:
 
 ## Starter-gift toast, then the "new tier" banner (once per tier, MetaState.land_tier_banner_seen).
 func _notices_on_enter() -> void:
+	if not MetaState.reset_notice_due.is_connected(_show_reset_notice):
+		MetaState.reset_notice_due.connect(_show_reset_notice)
+	if MetaState.reset_notice_id != "":
+		_show_reset_notice()   # the gift toast and tier banner wait until OK (see _after_reset_notice)
+		return
+	_gift_and_tier_notices()
+
+
+## Beta reset notice (once per reset id). Queued ahead of the welcome-gift toast and the tier banner.
+func _show_reset_notice() -> void:
+	if MetaState.reset_notice_id == "" or _modal != null:
+		return
+	var ok := UI3.button("OK", &"primary")
+	ok.name = "ResetNoticeOk"
+	ok.pressed.connect(func() -> void:
+		MetaState.dismiss_reset_notice()
+		_close_modal()
+		_gift_and_tier_notices())
+	var m := UI3.modal("Beta reset", "Beta reset: everyone starts fresh. Shards, Stone, tickets, unlocks and run history were cleared. Your account and sign-in are kept.", [ok], 0)
+	m.name = "ResetNotice"
+	m.cancelled.connect(ok.pressed.emit)
+	_modal = m
+	_ui.add_child(_modal)
+
+
+func _gift_and_tier_notices() -> void:
 	if _gift_given:
+		_gift_given = false
 		_show_toast("Welcome gift: 3 decor in your storage — press E (Edit Land) to place them", 6.0)
 	if MetaState.land_tier_banner_seen < _tier and not has_modal():
 		MetaState.land_tier_banner_seen = _tier

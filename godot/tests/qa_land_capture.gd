@@ -19,6 +19,8 @@ func _ready() -> void:
 				LandHub.qa[kv.get_slice(":", 0)] = kv.get_slice(":", 1) != "0"
 		elif a.begins_with("--frame="):
 			MetaState.equipped_frame = a.get_slice("=", 1)   # in memory only
+		elif a == "--reset-notice":
+			pass
 		elif a == "--run":
 			with_run = true
 	MetaState.tutorial_seen = true   # in memory only, never saved
@@ -26,6 +28,8 @@ func _ready() -> void:
 	if with_run:
 		hub.set("_force_run", true)
 	add_child(hub)
+	if "--reset-notice" in OS.get_cmdline_user_args():
+		MetaState.reset_notice_id = "qa"   # in memory only, set after _ready so nothing reloads it
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	Engine.max_fps = 0
 	var frames := 0

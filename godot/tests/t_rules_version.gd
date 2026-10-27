@@ -259,7 +259,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Pinned, 2026-10-27 (BUG-0008): MetaState reads newcomer / depth stage / runs count / Daily tries from the server's GET /api/econ `gates`
 ## while the economy is remote (session-only cache). Gate display + Run Setup only, no combat or replay input. Run result: NO, stays -v.
 ## BUG-0008 follow-up: gate helpers take max(local, server) so a run finished here counts before the next refetch. Run result: NO.
-const FINGERPRINT := "0315cad7ae6038d6b5ab0def46800e471d5909936ed40505b7d84b942d986ea3"
+## BUG-0006 (same day): AccountService adopts the server rev when the cloud copy has the same content; MetaState.reset_notice_id
+## (one-time beta reset notice). Save sync + UI only. Run result: NO, stays -v.
+const FINGERPRINT := "f8a6adbaceeac1a957ddfc3dd297e74451274cfa287f64ad9fdbe091ebc60489"
 
 
 func _ready() -> void:
