@@ -4,7 +4,7 @@ extends VBoxContainer
 ## unfinished quest Core with its step progress. Pure read of RunState; call refresh() whenever it changes.
 ## Slot colour = tier token, tier WORD in the tooltip. Spec: design/ux/depth-v3/core-offer.md
 
-const TIER_NAME := ["Common", "Rare", "Epic"]
+const TIER_NAME := ["Moss", "Amber", "Crystal"]
 const TIER_TOKEN := ["rarity_rare", "rarity_legendary", "rarity_epic"]
 
 ## Axis -> icon (assets/ui3/icons) and word. One glyph per axis so the axis never relies on colour alone.
@@ -315,6 +315,8 @@ func _slot(def, is_rule: bool, empty_name: String) -> PanelContainer:
 	if filled:
 		var head := String(def.name) if is_rule else "%s · %s" % [String(def.name), TranslationServer.translate(TIER_NAME[tier])]
 		tip = "%s\n%s" % [head, UI3.player_text(String(def.description))]
+		if not is_rule:
+			tip += "\n" + TranslationServer.translate("Core tier: Moss → Amber → Crystal (strongest)")
 	UI3Tooltip.bind(s, tip)
 	s.mouse_filter = Control.MOUSE_FILTER_STOP
 	s.focus_mode = Control.FOCUS_ALL

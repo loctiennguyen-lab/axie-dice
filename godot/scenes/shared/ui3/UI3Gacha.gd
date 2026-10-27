@@ -6,7 +6,7 @@ extends RefCounted
 const TIMING_PATH := "res://assets/data/ui/gacha_timing.json"
 const TIER_KEY := ["moss", "amber", "crystal"]
 const TIER_TOKEN := ["rarity_rare", "rarity_legendary", "rarity_epic"]
-const TIER_WORD := ["Common", "Rare", "Epic"]
+const TIER_WORD := ["Moss", "Amber", "Crystal"]
 
 ## -1 auto (instant only under CombatView.disable_juice_for_tests), 0 force animated, 1 force instant.
 static var instant_override := -1

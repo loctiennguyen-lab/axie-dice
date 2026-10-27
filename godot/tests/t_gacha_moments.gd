@@ -231,7 +231,7 @@ func _near_miss() -> void:
 			cov = rc.find_child("CardBack", true, false) as Control
 			break
 	_check(cov != null and cov.find_child("ReasonLine", true, false) != null, "cover carries the reason line")
-	_check(cov != null and (cov.find_child("TierWord", true, false) as Label).text == "Epic", "cover starts as the capped tier")
+	_check(cov != null and (cov.find_child("TierWord", true, false) as Label).text == "Crystal", "cover starts as the capped tier")
 	await _wait(1.8)
 	_check(rm._reveal.events.has("crack"), "crack happens before the flip")
 	var st: StyleBoxFlat = (rm._reveal._covers[0] as Control).get_meta("style") if not rm._reveal._covers.is_empty() else null

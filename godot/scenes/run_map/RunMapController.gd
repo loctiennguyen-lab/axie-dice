@@ -396,9 +396,10 @@ func _reward_rarity(r: Dictionary) -> int:
 	return int(r.get("rar", 0))
 
 
-## Depth v3 Core tiers (RelicDef.rarity 0/1/2 -> Common / Rare / Epic) and axes. Colour token per tier;
+## Depth v3 Core tiers (RelicDef.rarity 0/1/2 -> Moss / Amber / Crystal) and axes. Colour token per tier;
 ## the tier WORD always sits beside it. Spec: design/ux/depth-v3/core-offer.md
-const _CORE_TIER_NAME := ["Common", "Rare", "Epic"]
+const CORE_TIER_HINT := "Core tier: Moss → Amber → Crystal (strongest)"
+const _CORE_TIER_NAME := ["Moss", "Amber", "Crystal"]
 const _CORE_TIER_TOKEN := ["rarity_rare", "rarity_legendary", "rarity_epic"]
 const _CORE_AXIS_NAME := {"stat": "Stat", "dice": "Dice faces", "pos": "Position", "mana": "Mana",
 	"quest": "Quest", "rule": "Rule change", "run_rule": "Run rule"}
@@ -1333,6 +1334,10 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	var title_lbl := UI3.label(tr(title), "LabelScreenTitle")
 	title_lbl.name = "RewardTitle"
 	head.add_child(title_lbl)
+	if _core_offer_active() and not core_rule:
+		var tier_line := UI3.label(tr(CORE_TIER_HINT), "LabelMuted")   # S3-9: say what the tier words mean
+		tier_line.name = "CoreTierHint"
+		head.add_child(tier_line)
 	# Gacha pack: the NEXT pick's tier is never shown anywhere (Liam 22/10).
 	head.add_child(UI3.currency_pill([{"icon": "cur_shard", "value": str(RunState.shards_this_run)}]))
 
@@ -1650,7 +1655,10 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 		chips.add_theme_constant_override("h_separation", 8)
 		chips.add_theme_constant_override("v_separation", 8)
 		if not bool(r.get("rule", false)):
-			chips.add_child(CorePanel.word_chip(tr(_CORE_TIER_NAME[tier]), "", accent, "TierChip"))
+			var tier_chip := CorePanel.word_chip(tr(_CORE_TIER_NAME[tier]), "", accent, "TierChip")
+			tier_chip.mouse_filter = Control.MOUSE_FILTER_STOP
+			UI3Tooltip.bind(tier_chip, tr(CORE_TIER_HINT))
+			chips.add_child(tier_chip)
 		chips.add_child(CorePanel.word_chip(tr(String(CorePanel.AXIS_NAME.get(axis, "Core"))),
 			String(CorePanel.AXIS_ICON.get(axis, "face_buff")), UI3Theme.color("text_muted"), "AxisChip"))
 		if not bool(r.get("rule", false)):
