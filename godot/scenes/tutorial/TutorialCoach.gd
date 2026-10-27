@@ -20,6 +20,9 @@ class_name TutorialCoach
 
 signal cta_pressed
 signal reward_chosen(index: int)
+## What skipping loses, said in the corner button tooltip and in the confirm.
+const SKIP_WHAT := "You miss the step-by-step tips on rolling dice, picking targets and Cores."
+
 signal skip_pressed
 
 var _DIM := Color(0.02, 0.025, 0.04, 0.72)   # replaced by the UI3 scrim token in _ready
@@ -135,7 +138,7 @@ func _build_card() -> void:
 	row.alignment = BoxContainer.ALIGNMENT_END
 	row.add_theme_constant_override("separation", 16)
 	col.add_child(row)
-	_card_skip = UI3.button("Skip tutorial", &"quiet")
+	_card_skip = UI3.button("Skip tutorial", &"secondary", &"S")   # S3-21: readable, not a muted underline
 	_card_skip.name = "SkipInCard"
 	_card_skip.focus_mode = Control.FOCUS_NONE
 	_card_skip.pressed.connect(_ask_skip)
@@ -208,7 +211,8 @@ func _build_curtain() -> void:
 ## A quiet way out, in the corner, on every step. A mandatory tutorial with no exit is the
 ## thing players complain about; one that is easy to find but easy to ignore is not.
 func _build_skip() -> void:
-	_skip = UI3.button("Skip tutorial", &"quiet")
+	_skip = UI3.button("Skip tutorial", &"secondary", &"S")   # S3-21: readable, not a muted underline
+	_skip.tooltip_text = SKIP_WHAT
 	_skip.focus_mode = Control.FOCUS_NONE
 	_skip.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	_skip.offset_left = -196.0
@@ -225,7 +229,7 @@ func _ask_skip() -> void:
 		return
 	var keep := UI3.button("Keep going", &"secondary")
 	var go := UI3.button("Skip tutorial", &"primary")
-	var m := UI3.modal("Skip the tutorial?", "You can replay it any time from Settings.", [keep, go], 0)
+	var m := UI3.modal("Skip the tutorial?", SKIP_WHAT + " You can replay it any time from Settings.", [keep, go], 0)
 	m.name = "SkipConfirm"
 	_skip_modal = m
 	keep.pressed.connect(func(): m.queue_free())

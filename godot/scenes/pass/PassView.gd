@@ -303,7 +303,7 @@ func refresh() -> void:
 	(_shell["sub"] as Label).text = season_text()
 	match state:
 		"offline":
-			UI3Meta.banner(_banner_host, "Can't reach the dice server" if remote_on else "You're offline",
+			UI3Meta.banner(_banner_host, "Can't reach the server" if remote_on else "You're offline",
 				"Gem gifts need a connection." if remote_on else "Your pass progress is kept on this device.")
 		"guest":
 			UI3Meta.banner(_banner_host, "You're signed out", "Pass progress is kept on this device. Sign in to keep it.")

@@ -144,7 +144,7 @@ func set_state(s: String) -> void:
 	UI3Meta.clear(_banner_host)
 	match s:
 		"offline":
-			UI3Meta.banner(_banner_host, "Can't reach the dice server" if remote_on else "You're offline",
+			UI3Meta.banner(_banner_host, "Can't reach the server" if remote_on else "You're offline",
 				"Spending Gem needs a connection; nothing is spent." if remote_on else "Gem purchases run on this device for now.")
 		"guest":
 			UI3Meta.banner(_banner_host, "Sign in to spend Gem" if remote_on else "You're signed out",

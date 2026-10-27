@@ -83,12 +83,20 @@ static func build(host: Control, title: String, sub: String, on_back: Callable) 
 static func currency_plate(entries: Array = [], loading := false, hidden := false) -> PanelContainer:
 	var p := UI3.currency_pill(entries if not entries.is_empty() else UI3.currency_entries(loading))
 	p.name = "Currencies"
-	p.visible = not hidden
+	p.visible = not hidden and not (entries.is_empty() and guest_remote())
+	if entries.is_empty() and not hidden and not p.visible:
+		p.set_meta("guest_hid", true)
 	if entries.is_empty() and not loading:
 		var ws := WalletSync.new()
 		ws.name = "WalletSync"
 		p.add_child(ws)   # default wallet follows MetaState on every meta screen (BUG: stale chips after a claim / pull)
 	return p
+
+
+## True for a signed-out player on the server build: balances belong to the account, so a guest sees none
+## (the header plate hides; local-econ builds and signed-in players are unchanged).
+static func guest_remote() -> bool:
+	return not AccountService.is_signed_in() and String(ProjectSettings.get_setting("axie/epoch_source", "")) == "remote"
 
 
 ## Keeps a default wallet plate in step with MetaState. MetaState has no balance signal (and sits in the
@@ -109,6 +117,13 @@ class WalletSync extends Node:
 		var plate := get_parent()
 		if plate == null:
 			return
+		# Sign-in / sign-out while the screen is open: hide for a remote guest, show again after sign-in.
+		if UI3Meta.guest_remote():
+			(plate as Control).visible = false
+			plate.set_meta("guest_hid", true)
+		elif plate.has_meta("guest_hid"):
+			(plate as Control).visible = true
+			plate.remove_meta("guest_hid")
 		for e in UI3.currency_entries():
 			var l := plate.find_child("value_" + String(e["icon"]), true, false) as Label
 			if l != null and l.text != String(e["value"]):

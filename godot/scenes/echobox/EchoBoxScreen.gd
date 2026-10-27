@@ -292,7 +292,7 @@ func set_state(s: String) -> void:
 		_build_skeleton()
 	elif s == "offline":
 		if remote_on:
-			_banner("Can't reach the dice server", "Opening needs a connection; nothing is spent. Cached counts are greyed.", true)
+			_banner("Can't reach the server", "Opening needs a connection; nothing is spent. Cached counts are greyed.", true)
 		else:
 			_banner("You're offline", "Boxes open on this device for now; progress syncs when you reconnect.", false)
 	elif s == "guest":

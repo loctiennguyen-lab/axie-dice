@@ -127,7 +127,7 @@ func set_state(s: String) -> void:
 		return
 	UI3Meta.clear(_banner_host)
 	if s == "offline":
-		_banner("You are offline" if not remote_on else "Can't reach the dice server",
+		_banner("You are offline" if not remote_on else "Can't reach the server",
 			"Claims run on this device for now." if not remote_on else "Claims need a connection.")
 	elif s == "guest":
 		_banner("You're signed out" if not remote_on else "Sign in to claim",
