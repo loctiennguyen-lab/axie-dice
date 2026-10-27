@@ -68,7 +68,7 @@ func _ready() -> void:
 		if bool(o.unlocked):
 			_ok(not b.disabled and b.text == "Stake %d and play" % int(o.stake), "%s button enabled" % id)
 		else:
-			_ok(b.disabled and b.text == (("Win %s to unlock" if MissionBoard.tier_unlocked(String(o.unlock_prev), MetaState) else "Unlock %s first") % String(o.unlock_prev)), "%s disabled with the reason: %s" % [id, b.text])
+			_ok(b.disabled and b.text == s.lock_text(o) and b.text.begins_with("Win ") and b.text.ends_with(" to unlock") and b.text.contains(String(o.unlock_prev)), "%s disabled with the reason: %s" % [id, b.text])
 	_ok(s.find_child("DetailScroll", true, false) != null, "detail card scrolls instead of cutting rows")
 	# not enough Shard: the reason says how much
 	s.select_tier("N2")

@@ -2888,10 +2888,14 @@ func _do_reroll(uids: Array, rmode: int) -> void:
 	if gamble_on or rmode != 0:
 		_dm_audio.play("dm_gamble_arm" if gamble_on else "dm_reroll_safe")
 	_begin_pre_throw(uids, rmode)   # PB: the dice fly NOW, the seed lands while they roll
+	if _hud_frame != null:
+		_hud_frame.set_seed_wait(true)
 	var rr: Dictionary = await _combat.request_reroll_dice(uids, false, rmode)
 	if not _still_running():
 		_cancel_pre_throw()
 		return
+	if _hud_frame != null:
+		_hud_frame.set_seed_wait(false)
 	var ok := bool(rr["ok"])
 	if not ok:
 		_cancel_pre_throw()
@@ -3079,6 +3083,8 @@ func _show_reroll_tags(info: Dictionary) -> void:
 func _end_turn_button_lock(on: bool) -> void:
 	if _end_turn_button != null:
 		_end_turn_button.disabled = on
+	if _hud_frame != null:
+		_hud_frame.set_seed_wait(on)
 
 
 func _on_end_turn_pressed() -> void:
@@ -3091,8 +3097,11 @@ func _on_end_turn_pressed() -> void:
 	var et: Dictionary = await _combat.request_begin_end_turn()
 	if not _still_running():
 		return
+	if _hud_frame != null:
+		_hud_frame.set_seed_wait(false)
 	if not bool(et["ok"]):
 		_end_turn_button_lock(false)
+		_update_hud()
 		if String(et["code"]) not in ["illegal", "busy"]:
 			NetNotice.show(self, String(et["code"]), _on_end_turn_pressed)
 		return

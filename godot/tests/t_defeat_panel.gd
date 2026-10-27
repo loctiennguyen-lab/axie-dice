@@ -72,7 +72,11 @@ func _ready() -> void:
 	dp.show_defeat(mis)
 	await get_tree().process_frame
 	_check(dp.find_child("Continue", true, false) == null, "mission: no Continue")
-	_check(_texts(dp, []).has("Mission runs have no Continue."), "mission: line shown")
+	_check(_texts(dp, []).has("Mission runs have no Continue."), "mission: line shown (no stake known)")
+	mis["stake"] = 800
+	dp.show_defeat(mis)
+	await get_tree().process_frame
+	_check(_texts(dp, []).has("Mission lost: your 800 Shard stake is gone. Mission runs have no Continue."), "mission: stake line with the real stake")
 	_check(dp.find_child("EndRun", true, false).theme_type_variation == "ButtonPrimaryM", "mission: End run primary")
 
 	# Busy: Reviving, input locked, restored afterwards.

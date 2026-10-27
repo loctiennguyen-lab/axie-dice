@@ -503,7 +503,7 @@ func _build_shard_card(s: Dictionary) -> Control:
 	breakdown.clip_text = true
 	breakdown.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	right.add_child(breakdown)
-	var pool := UI3.label(tr("Pool now %s") % UI3.fmt(MetaState.shard_pool), "LabelDisplay")
+	var pool := UI3.label(tr("Shards now %s") % UI3.fmt(MetaState.shard_pool), "LabelDisplay")
 	pool.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	pool.clip_text = true
 	pool.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS

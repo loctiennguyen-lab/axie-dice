@@ -175,7 +175,7 @@ $GODOT_HEAD_INCLUDE
 						<div id="ld-fill" class="indeterminate"><div class="sheen"></div></div>
 					</div>
 				</div>
-				<p id="ld-note">Preparing the run</p>
+				<p id="ld-note">Loading</p>
 				</div>
 			</div>
 
@@ -270,7 +270,7 @@ const engine = new Engine(GODOT_CONFIG);
 		const pct = Math.max(2, Math.min(100, Math.round((current / total) * 100)));
 		ldFill.classList.remove('indeterminate');
 		ldFill.style.width = pct + '%';
-		ldNote.textContent = 'Preparing the run · ' + pct + '%';
+		ldNote.textContent = 'Loading · ' + pct + '%';
 	}
 
 	function setStatusMode(mode) {

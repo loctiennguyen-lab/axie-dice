@@ -12,7 +12,7 @@ class_name DefeatPanel
 ##   aid_used, aid_cap, heal_pct, party:[{name,max_hp}], keep_line, enrage_reset_line, attrition_reset_line
 ##   price: int, variant: "paid"|"gift"|"moon", price_was: int
 ##   continue_show: bool, continue_enabled: bool, continue_reason: String, need_more: int (Gem short, 0 = none)
-##   mission: bool, foot: String }
+##   mission: bool, stake: int (mission only, default: the open escrow), foot: String }
 ## Esc does nothing: the panel must be answered. Focus: Continue, then End run (End run when Continue is off).
 
 signal end_run_pressed
@@ -182,7 +182,12 @@ func _continue_block(d: Dictionary) -> Control:
 		for side in ["left", "right", "top", "bottom"]:
 			mp.add_theme_constant_override("margin_" + side, 16)
 		m.add_child(mp)
-		mp.add_child(UI3.label(TranslationServer.translate("Mission runs have no Continue."), "LabelMuted"))
+		var stake := int(d.get("stake", MetaState.mission_escrow.get("stake", 0)))
+		var lost := UI3.label(TranslationServer.translate("Mission lost: your %s Shard stake is gone. Mission runs have no Continue.") % UI3.fmt(stake)
+			if stake > 0 else TranslationServer.translate("Mission runs have no Continue."), "LabelMuted")
+		lost.name = "MissionLostLine"
+		lost.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		mp.add_child(lost)
 		return m
 	var box := UI3.plate(&"row")
 	box.name = "ContinueBlock"

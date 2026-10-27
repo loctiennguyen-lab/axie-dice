@@ -948,8 +948,8 @@ func _build_summary() -> Control:
 			dup_n += 1
 		else:
 			new_n += 1
-	v.add_child(UI3.label("%s · %d Stone · %d new · %d duplicates" % [
-		"Last pull" if state == "last_pull" else "Result", stone, new_n, dup_n], "LabelTitle"))
+	v.add_child(UI3.label("%s · %d Stone · %d new · %d %s" % [
+		"Last pull" if state == "last_pull" else "Result", stone, new_n, dup_n, "duplicate" if dup_n == 1 else "duplicates"], "LabelTitle"))
 	if error_text.begins_with("Opened "):
 		var pl := UI3.label(error_text, "LabelMuted")
 		pl.name = "PartialPull"

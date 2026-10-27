@@ -54,7 +54,7 @@ func build(p_map_info: Dictionary) -> void:
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	col.add_child(sub)
 	_row(col, "Resume", tr("Resume"), &"primary", func() -> void: resumed.emit())
-	_row(col, "Relics", tr("Relics owned"), &"secondary", func() -> void: show_side("relics"))
+	_row(col, "Relics", tr("Cores owned"), &"secondary", func() -> void: show_side("relics"))
 	_row(col, "Map", tr("Run map"), &"secondary", func() -> void: show_side("map"))
 	_row(col, "Settings", tr("Settings"), &"secondary", func() -> void: show_side("settings"))
 	_row(col, "SaveQuit", tr("Save and quit"), &"secondary", _ask_save_quit)
@@ -97,7 +97,7 @@ func show_side(which: String) -> void:
 	match which:
 		"relics":
 			var ids: Array = RunState.owned_relic_ids.filter(func(x) -> bool: return not String(x).begins_with("__"))
-			v.add_child(UI3.label(tr("Relics owned") + " · %d" % ids.size(), "LabelTitle"))
+			v.add_child(UI3.label(tr("Cores owned") + " · %d" % ids.size(), "LabelTitle"))
 			var sc := ScrollContainer.new()
 			sc.name = "RelicScroll"
 			sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -108,7 +108,7 @@ func show_side(which: String) -> void:
 			list.add_theme_constant_override("separation", 8)
 			sc.add_child(list)
 			if ids.is_empty():
-				list.add_child(UI3.label(tr("No relics yet."), "LabelMuted"))
+				list.add_child(UI3.label(tr("No Cores yet."), "LabelMuted"))
 			for id in ids:
 				list.add_child(_relic_row(String(id)))
 		"map":
@@ -118,7 +118,7 @@ func show_side(which: String) -> void:
 			v.add_child(_info_row("Ascension", tr("Ascension"), str(int(map_info.get("ascension", 0)))))
 			v.add_child(_info_row("Shards", tr("Shards this run"), UI3.fmt(int(map_info.get("shards", 0)))))
 			v.add_child(_info_row("Party", tr("Axies in the party"), str(RunState.roster.size())))
-			v.add_child(_info_row("Relics", tr("Relics owned"), str(ids2.size())))
+			v.add_child(_info_row("Relics", tr("Cores owned"), str(ids2.size())))
 		_:
 			v.add_child(UI3.label(tr("Settings"), "LabelTitle"))
 			v.add_child(_info_row("Music", tr("Music"), "%d%%" % roundi(MetaState.audio_music_volume * 100.0)))
@@ -200,7 +200,7 @@ func _ask_save_quit() -> void:
 
 ## Destructive dialog: focus on Keep playing. Mission runs add the stake line.
 func _ask_abandon() -> void:
-	var body := tr("The run is deleted: its Axies, relics and Shards are gone. Shards banked from finished runs are safe.")
+	var body := tr("The run is deleted: its Axies, Cores and Shards are gone. Shards banked from finished runs are safe.")
 	var stake := int(MetaState.mission_escrow.get("stake", 0))
 	if stake > 0:
 		body += "\n" + tr("You lose your %d Shard mission stake.") % stake

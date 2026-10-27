@@ -220,6 +220,25 @@ func _ready() -> void:
 	_check((hd.find_child("Rail_Daily", true, false) as Button).text == "Daily run · 2 of 3", "Daily ghi số lượt còn")
 	hd.queue_free()
 	await get_tree().process_frame
+	# "Start here" coach card only for a player who never fought or finished a run (and no run is open).
+	var rn0 := MetaState.runs
+	var rb0 := MetaState.runs_with_battle
+	var rc0 := MetaState.runs_completed
+	for case in [[0, 0, 0, true], [0, 2, 0, false], [0, 0, 1, false], [3, 0, 0, false]]:
+		MetaState.runs = case[0]
+		MetaState.runs_with_battle = case[1]
+		MetaState.runs_completed = case[2]
+		LandHub.qa = {"guest": false, "offline": false, "run": false}
+		var hs := (load("res://scenes/land/Land.tscn") as PackedScene).instantiate() as LandHub
+		add_child(hs)
+		await get_tree().process_frame
+		var sh := hs.find_child("StartHint", true, false) as Control
+		_check(sh != null and sh.visible == bool(case[3]), "StartHint visible=%s for runs=%d battle=%d done=%d" % [case[3], case[0], case[1], case[2]])
+		hs.queue_free()
+		await get_tree().process_frame
+	MetaState.runs = rn0
+	MetaState.runs_with_battle = rb0
+	MetaState.runs_completed = rc0
 	LandHub.qa = {"touch": true, "newcomer": false, "guest": false}
 	LandHub.tier_override = 1
 	var ht := (load("res://scenes/land/Land.tscn") as PackedScene).instantiate() as LandHub
