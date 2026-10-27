@@ -503,7 +503,10 @@ export async function handleEcon(request, env, url, opts = {}) {
     if (url.pathname === '/api/econ' && request.method === 'GET') {
       await ensureStarter(env, pid, at);
       await syncPassXp(env, pid, at);
-      return json({ ...(await state(env, pid)), gates: await gateInfo(env, pid, at) });
+      // The gates are display-only: if they fail, the wallet must still load (no `gates` = client keeps local numbers).
+      let gates;
+      try { gates = await gateInfo(env, pid, at); } catch (err) { console.error('gateInfo failed', String(err && err.stack || err)); }
+      return json({ ...(await state(env, pid)), ...(gates ? { gates } : {}) });
     }
     if (request.method !== 'POST') return json({ error: 'not_found' }, 404);
     const o = request.headers.get('Origin');

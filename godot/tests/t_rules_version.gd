@@ -260,8 +260,8 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## while the economy is remote (session-only cache). Gate display + Run Setup only, no combat or replay input. Run result: NO, stays -v.
 ## BUG-0008 follow-up: gate helpers take max(local, server) so a run finished here counts before the next refetch. Run result: NO.
 ## BUG-0006 (same day): AccountService adopts the server rev when the cloud copy has the same content; MetaState.reset_notice_id
-## (one-time beta reset notice). Save sync + UI only. Run result: NO, stays -v.
-const FINGERPRINT := "f8a6adbaceeac1a957ddfc3dd297e74451274cfa287f64ad9fdbe091ebc60489"
+## (one-time beta reset notice, kept per device like the server fields). Save sync + UI only. Run result: NO, stays -v.
+const FINGERPRINT := "b192ca579f67222ac695807e87d8ebbf80b811029535054bba986d012ace945e"
 
 
 func _ready() -> void:

@@ -262,7 +262,9 @@ func use_remote_gem_wallet(w: GemWallet) -> void:
 # --- Server economy (SR1) ----------------------------------------------------------------------
 ## Fields D1 owns. They are a display cache here: never uploaded in the cloud save (AccountService strips them,
 ## the Worker strips them too) and never taken from a downloaded one, so a PUT can neither mint nor roll back money.
-const SERVER_FIELDS: Array[String] = ["shard_pool", "stone", "tickets", "unlocks", "echobox_pity", "starter_granted", "starter_shard_locked", "pending_run_claims", "pass_season"]
+## reset_notice_id is not money but is per device on purpose: one device dismissing the beta-reset notice must not
+## hide it on another, and must not make the cloud copy look different (false conflict).
+const SERVER_FIELDS: Array[String] = ["shard_pool", "stone", "tickets", "unlocks", "echobox_pity", "starter_granted", "starter_shard_locked", "pending_run_claims", "pass_season", "reset_notice_id"]
 ## Id of the last server reset (M1) this device has wiped for. "" = none seen yet.
 var econ_reset_seen: String = ""
 ## Reset id whose "beta reset" notice the player has not dismissed yet ("" = nothing to show). Land shows it once.

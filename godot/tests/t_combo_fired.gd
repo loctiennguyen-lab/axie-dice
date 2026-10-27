@@ -49,7 +49,7 @@ func _ready() -> void:
 	v._rebuild_all()
 	var pt: UnitPortrait = v._portraits[foe.uid]
 	_check(pt._name_label.text == "Steve", "nick on nameplate: %s" % pt._name_label.text)
-	_check(pt._click_catcher.tooltip_text.contains(foe.n), "original name in tooltip")
+	_check(String(pt._click_catcher.get_meta("ui3_tip", "")).contains(foe.n), "original name in tooltip")
 	foe.custom_state.erase("nick")
 	v._rebuild_all()
 	_check(pt._name_label.text == foe.n, "nick removed restores the name")
