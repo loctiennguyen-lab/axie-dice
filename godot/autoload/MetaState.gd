@@ -1675,13 +1675,16 @@ func buy_unlock_async(id: String, done: Callable = Callable()) -> void:
 ## phía server không thể đọc MetaState của máy người chơi. Verifier phải nhận loadout unlock được
 ## TIÊM VÀO (từ header run do server giữ) rồi tính bonus từ đó, không gọi hàm này. Tới khi A xong,
 ## replay ranked chỉ khớp trên chính máy có cùng unlock.
+## Perks (old Pass) are NOT applied while the economy is remote (Liam 27/10): the server owns the economy, a replay
+## on the server cannot see them, and after the M1 reset nobody holds any. Local econ (tests, offline) is unchanged.
 func run_bonuses(is_ranked: bool) -> Dictionary:
+	var use_perks: bool = not is_ranked and econ_remote() == null
 	var reroll := 0
 	if has_unlock("u_reroll"):
 		reroll += 1
 	if has_unlock("u_reroll2"):
 		reroll += 1
-	if not is_ranked:
+	if use_perks:
 		reroll += int(perks.get("reroll", 0))
 
 	var hp := 0
@@ -1689,20 +1692,20 @@ func run_bonuses(is_ranked: bool) -> Dictionary:
 		hp += 3
 	if has_unlock("u_hp2"):
 		hp += 2
-	if not is_ranked:
+	if use_perks:
 		hp += 4 * int(perks.get("hp4", 0))
 
 	# JS: sr = u_start + perks.relic0 + perks.relic1 (a count), srRar = perks.relic1 ? 1 : 0.
 	# One starting relic is granted when any of those is present; the rarity ceiling rises to
 	# Rare only with the relic1 perk.
-	var perk_relic: bool = not is_ranked and (int(perks.get("relic0", 0)) > 0 or int(perks.get("relic1", 0)) > 0)
+	var perk_relic: bool = use_perks and (int(perks.get("relic0", 0)) > 0 or int(perks.get("relic1", 0)) > 0)
 	var grants_relic: bool = has_unlock("u_start") or perk_relic
 	var rarity_cap: int = -1
 	if grants_relic:
-		rarity_cap = 1 if (not is_ranked and int(perks.get("relic1", 0)) > 0) else 0
+		rarity_cap = 1 if (use_perks and int(perks.get("relic1", 0)) > 0) else 0
 
 	# src/client.html:4681 — the 'rrw' perk lets a reward set be rerolled more than once per node.
-	var reward_rerolls := 1 + (0 if is_ranked else int(perks.get("rrw", 0)))
+	var reward_rerolls := 1 + (int(perks.get("rrw", 0)) if use_perks else 0)
 
 	return {"bonus_reroll": reroll, "hp_bonus": hp, "start_relic_max_rarity": rarity_cap,
 		"reward_reroll_max": reward_rerolls}

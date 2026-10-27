@@ -3,8 +3,8 @@ extends Node
 ## real game rules, and prints the score it computed.
 ##
 ## USAGE
-##   Godot --headless --path godot res://tools/verify_run.tscn -- --log=/path/to/log.json
-##   Godot --headless --path godot res://tools/verify_run.tscn -- --log=- < log.json
+##   Godot --headless --path godot res://tools/verify_run.tscn -- --in=/path/to/log.json --out=/path/to/result.json
+##   Godot --headless --path godot res://tools/verify_run.tscn -- --in=- < log.json  (--log= là tên cũ, vẫn chạy)
 ##   (optional) --out=/path/to/verdict.json
 ##
 ## Exit code 0 means the run verified, 1 means it did not, 2 means the tool could not read its
@@ -31,48 +31,32 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_guard.capture()
 	var args := _parse_args(OS.get_cmdline_user_args())
-	var log_path := String(args.get("log", ""))
+	# `--in` là tên chính (SR-V); `--log` giữ lại cho lệnh cũ.
+	var log_path := String(args.get("in", args.get("log", "")))
+	var out_path := String(args.get("out", ""))
 	if log_path.is_empty():
-		_emit({"ok": false, "error": "no_input",
-			"message": "Pass --log=<path>, or --log=- to read the log on standard input."},
-			String(args.get("out", "")), EXIT_INPUT)
+		_emit(VerifyCli.run("")["result"].merged({"reason": "no_input"}, true), out_path, EXIT_INPUT)
 		return
 
 	var raw := ""
 	if log_path == "-":
-		# One log per invocation: read to EOF rather than a line, because a pretty-printed log
-		# spans many lines and reading one would silently verify a fragment.
-		while true:
-			var line := OS.read_string_from_stdin(8_000_000)
+		# Đọc tới EOF, không đọc một dòng: log pretty-print nhiều dòng.
+		while raw.length() <= VerifyCli.MAX_INPUT_BYTES:
+			var line := OS.read_string_from_stdin(1_000_000)
 			if line.is_empty():
 				break
 			raw += line
 	else:
 		var f := FileAccess.open(log_path, FileAccess.READ)
 		if f == null:
-			_emit({"ok": false, "error": "unreadable_input",
-				"message": "Cannot read '%s'." % log_path},
-				String(args.get("out", "")), EXIT_INPUT)
+			_emit(VerifyCli.run("")["result"].merged({"reason": "unreadable_input"}, true), out_path, EXIT_INPUT)
 			return
-		raw = f.get_as_text()
+		# Trần đọc: không nạp file khổng lồ vào bộ nhớ.
+		raw = f.get_buffer(mini(f.get_length(), VerifyCli.MAX_INPUT_BYTES + 1)).get_string_from_utf8()
 		f.close()
 
-	var parsed: Variant = JSON.parse_string(raw)
-	if not (parsed is Dictionary):
-		_emit({"ok": false, "error": "bad_json",
-			"message": "The log is not a JSON object."},
-			String(args.get("out", "")), EXIT_INPUT)
-		return
-
-	var verdict := RunVerifier.verify(ActionLog.from_data(parsed as Dictionary),
-		(parsed as Dictionary).get("tape", []) as Array)
-	# The full end state is for tests and debugging, not for a caller that only needs a score —
-	# and it is large. Dropped here so the verdict stays one readable line.
-	verdict.erase("state")
-	verdict["rules_version"] = ActionLog.RULES_VERSION
-	verdict["content_version"] = String(ContentDB.part_faces.get("engineVersion", ""))
-	_emit(verdict, String(args.get("out", "")),
-		EXIT_OK if bool(verdict.get("ok", false)) else EXIT_REJECTED)
+	var r := VerifyCli.run(raw)
+	_emit(r["result"], out_path, int(r["code"]))
 
 
 func _emit(verdict: Dictionary, out_path: String, code: int) -> void:
