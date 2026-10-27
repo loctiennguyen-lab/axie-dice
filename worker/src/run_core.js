@@ -10,6 +10,7 @@
 import { AID_BY_KIND, BOSS_CONTINUE_PRICE, PRICES, totalCap } from './aid_prices.js';
 import { canonKV, chainStart, chainNext, commitOf, epochSeed, isCanonScalar, nodeRow, MAX_PARAMS, _bytes } from './epoch_canon.js';
 import epochArgsSpec from './epoch_args.json' with { type: 'json' };
+import { sanitizeLogHeader } from './verify_header.js';
 
 export const MAX_EPOCHS = 400;
 export const MAX_ACTIONS = 3000;
@@ -506,11 +507,14 @@ export class RunCore {
     if (!h) { this._anomaly('close_chain_mismatch', {}); return fail(seq, 'rejected'); }
     let summary = JSON.stringify(m.summary && typeof m.summary === 'object' && !Array.isArray(m.summary) ? m.summary : {});
     if (summary.length > 2048) summary = '{"truncated":1}'; // never cut JSON mid-way: it must stay parseable
+    const lh = sanitizeLogHeader(m.log_header);
+    const closeArgs = JSON.stringify(lh ? { log_header: lh } : {});
     // The closing delta is kept as the final epochs row (seed 0, kind 'close') so the tape is complete.
     this.sql.exec(
       `INSERT INTO epochs (seq, kind, args, h, log_len, seed, log_delta, attempt, req_digest, at)
-       VALUES (?, 'close', '{}', ?, ?, 0, ?, 0, ?, ?)`,
-      seq, h, m.log_len, JSON.stringify(delta), h, this.deps.now(),
+       VALUES (?, 'close', ?, ?, ?, 0, ?, 0, ?, ?)`,
+      // SR-V: the client's log header (team, content version, loadout flags), whitelisted; a bad one is dropped, never refused.
+      seq, closeArgs, h, m.log_len, JSON.stringify(delta), h, this.deps.now(),
     );
     // TODO(verifier, P3): state should go 'closing' -> 'closed' after verify. L1 has no verifier.
     this.sql.exec(`UPDATE meta SET state = 'closed', outcome = ?, summary = ? WHERE id = 1`, m.outcome, summary);

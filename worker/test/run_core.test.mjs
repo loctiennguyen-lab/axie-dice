@@ -658,3 +658,21 @@ test('depth v4: a ranked run below stage 3 cannot be closed (ranked_stage); stag
   const bad = await c.send({ t: 'run_close', seq: c.seq + 1, log_delta: [], h: close.h, log_len: c.len, outcome: 'lost', depth_stage: 2 });
   assert.equal(bad.code, 'ranked_stage');
 });
+
+test('run_close: log_header (SR-V) is stored whitelisted in the close row; junk never fails the close', async () => {
+  for (const [lh, want] of [
+    [{ team_keys: ['a'], content_version: 'cv', loadout: { anchor: false, evil: 1 }, x: 1 }, { team_keys: ['a'], content_version: 'cv', loadout: { anchor: false } }],
+    [{ team_keys: [1, 2] }, null],
+    ['junk', null],
+  ]) {
+    const { c, core } = await fresh();
+    await c.hello(); await start(c);
+    await c.epoch('node', { node_id: 'r1_c0' }, []);
+    const delta = [A('enter_node', ['r1_c0', 'battle']), A('end_turn')];
+    const h = await chainNext(await c.hPromise, delta);
+    const r = await c.send({ t: 'run_close', seq: 2, log_delta: delta, h, log_len: 2, outcome: 'lost', summary: { battles_done: 1 }, log_header: lh });
+    assert.equal(r.t, 'closed');
+    const row = core.sql.exec(`SELECT args FROM epochs WHERE kind = 'close'`).toArray()[0];
+    assert.deepEqual(JSON.parse(row.args), want ? { log_header: want } : {});
+  }
+});
