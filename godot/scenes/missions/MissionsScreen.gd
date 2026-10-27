@@ -5,9 +5,9 @@ extends Control
 ## are all read from economy/missions.json + rules/mission_rules.json. Nothing numeric lives here.
 ## Card follows the art-director decluttered layout: tier + mode, Stake / Pay / Stone tiles, rules line,
 ## button. Full rule rows, the m multiplier and the stake warning live in the confirm modal (M6c).
-## Detail card (beta §5): rules in words, Stake -> Win back -> Net, "Estimate (bot)" win chance and average
-## return, a fixed warning from N3 up, and a disabled Stake button that says why. The win chance is a BOT
-## estimate (missions.json est_win_pct), labelled as such.
+## Detail card (beta §5): rules in words, Stake -> Win back -> Net, estimated win chance (simulated) and average
+## return on every tier, a warning on every tier whose win chance is under 50%, and a disabled Stake button that says why.
+## The win chance is a BOT estimate (missions.json est_win_pct), labelled as simulated.
 ##
 ## Paying the stake: MetaState.take_mission_stake() escrows it and returns the mission id; RunState.end_run
 ## settles it, a failed begin_run refunds it, abandon is settled in SettingsView.
@@ -165,25 +165,37 @@ func lock_text(o: Dictionary) -> String:
 		"disabled":
 			return "Closed for now"
 		"newcomer":
+			# the full condition: the newcomer gate AND the win chain (a tier behind a win still needs it after the 5 runs)
 			var need := int(_Econ.get_table("missions").get("newcomer_runs", 5))
-			return "Play %d runs first (you have %d)" % [need, MetaState.gate_runs_with_battle()]
+			var base := "Play %d runs first (you have %d)" % [need, MetaState.gate_runs_with_battle()]
+			var win := _chain_text(o)
+			return base if win == "" else "%s, then %s" % [base, win.substr(0, 1).to_lower() + win.substr(1)]
 		"chain":
-			var need := int(o.get("unlock_need", 1))
-			var prev := String(o.get("unlock_prev", ""))
-			if prev != "" and not MissionBoard.tier_unlocked(prev, MetaState):
-				# prev is locked too: list every tier that still has to be won, in order, same wording as the plain case
-				var chain: Array[String] = [prev]
-				var t := MissionBoard.prev_tier(prev)
-				while t != "" and not MissionBoard.tier_unlocked(t, MetaState):
-					chain.push_front(t)
-					t = MissionBoard.prev_tier(t)
-				if t != "":
-					chain.push_front(t)
-				return "Win %s to unlock" % " then ".join(chain)
-			if need <= 1:
-				return "Win %s to unlock" % prev
-			return "Win %s %d times to unlock (%d/%d)" % [prev, need, int(o.get("unlock_wins", 0)), need]
+			return _chain_text(o)
 	return String(o.lock_reason)
+
+
+## "Win N2 to unlock" / "Win N2 then N3 to unlock" / "Win N2 2 times to unlock (1/2)"; "" when the win chain is met.
+func _chain_text(o: Dictionary) -> String:
+	if MissionBoard.tier_unlocked(String(o.tier), MetaState):
+		return ""
+	var need := int(o.get("unlock_need", 1))
+	var prev := String(o.get("unlock_prev", ""))
+	if prev == "":
+		return ""
+	if not MissionBoard.tier_unlocked(prev, MetaState):
+		# prev is locked too: list every tier that still has to be won, in order, same wording as the plain case
+		var chain: Array[String] = [prev]
+		var t := MissionBoard.prev_tier(prev)
+		while t != "" and not MissionBoard.tier_unlocked(t, MetaState):
+			chain.push_front(t)
+			t = MissionBoard.prev_tier(t)
+		if t != "":
+			chain.push_front(t)
+		return "Win %s to unlock" % " then ".join(chain)
+	if need <= 1:
+		return "Win %s to unlock" % prev
+	return "Win %s %d times to unlock (%d/%d)" % [prev, need, int(o.get("unlock_wins", 0)), need]
 
 
 ## "Name: effect" lines for a mission's rules, text derived from the mods in mission_rules.json.
@@ -325,12 +337,12 @@ func set_state(s: String) -> void:
 	match s:
 		"offline":
 			if remote_on:
-				_banner("Can't reach the dice server", "Cards are readable. Stakes need a connection; nothing is spent.", true)
+				_banner("Can't reach the server", "Cards are readable. Stakes need a connection; nothing is spent.", true)
 			else:
 				_banner("You're offline", "Missions run on this device for now; progress syncs when you reconnect.", false)
 		"guest":
 			if remote_on:
-				_banner("Sign in to stake Shard", "Guests can read every card. Staking needs an account.", false)
+				_banner("Sign in to stake Shard", "Guests can read every card. Staking needs an account.", false, true)
 			else:
 				_banner("You're signed out", "Missions run on this device. Sign in to keep your progress across devices.", false)
 		"open_run":
@@ -349,9 +361,10 @@ func open_confirm(tier_id: String) -> void:
 	for line in rule_lines(o):
 		lines.append(String(line))
 	lines.append("")
-	lines.append("Win: %s Shard back (×%s), net %s. Lose or abandon: you lose all %s, no refund." % [
-		UI3.fmt(int(o.payout)), _num(float(o.m)), _signed(int(o.net)), UI3.fmt(int(o.stake))])
-	lines.append("Estimate (bot): about %s%% to win." % _num(float(o.est_win_pct)))
+	lines.append("Win: %s Shard back (×%s)" % [UI3.fmt(int(o.payout)), _num(float(o.m))])
+	lines.append("Net if you win: %s Shard" % _signed(int(o.net)))
+	lines.append("Lose or abandon: you lose all %s Shard, no refund" % UI3.fmt(int(o.stake)))
+	lines.append("Estimated win chance (simulated): about %s%%" % _num(float(o.est_win_pct)))
 	lines.append("No Continue and no Aid in a mission run.")
 	var no := UI3.button("Not now", &"secondary", &"M")
 	no.name = "NotNow"
@@ -397,7 +410,7 @@ func _build() -> void:
 	var ex := UI3.label("Win a hard run to get your stake back with a bonus. Lose it and the stake is gone.", "LabelMuted")
 	ex.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	exv.add_child(ex)
-	var gl := UI3.label("A = Ascension (extra difficulty). Estimate (bot) = win chance measured with a bot. Stone = Land currency. Starter Shard can't be staked.", "LabelMuted")
+	var gl := UI3.label("A = Ascension (extra difficulty). Stone = Land currency. Starter Shard = the free Shards you began with; they can't be staked. Win chances are simulated with a bot.", "LabelMuted")
 	gl.name = "Glossary"
 	gl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	exv.add_child(gl)
@@ -431,11 +444,28 @@ func _on_back() -> void:
 		LandNav.back_to_land()
 
 
-func _banner(msg: String, detail: String, with_retry: bool) -> void:
+func _banner(msg: String, detail: String, with_retry: bool, with_sign_in := false) -> void:
 	var btns: Array = []
+	if with_sign_in:
+		btns.append({"name": "SignIn", "text": "Sign in", "primary": false, "cb": _sign_in})
 	if with_retry:
 		btns.append({"name": "TryAgain", "text": "Try again", "primary": true, "cb": func() -> void: set_state("normal")})
 	UI3Meta.banner(_banner_host, msg, detail, btns)
+
+
+## A signed-out or expired account: with the remote wallet on, a guest has no Shards to show and cannot stake.
+func is_guest_view() -> bool:
+	return remote_on and state == "guest"
+
+
+var sign_in_calls := 0
+
+
+func _sign_in() -> void:
+	if test_mode:
+		sign_in_calls += 1
+		return
+	AccountService.sign_in()
 
 
 # ---------------------------------------------------------------- refresh
@@ -457,8 +487,10 @@ func _refresh() -> void:
 	if _shell.is_empty():
 		return
 	var usable := usable_shards()
-	_balance.text = "Stakeable %s · Starter %s (can't be staked)" % [
-		UI3.fmt(usable), UI3.fmt(maxi(MetaState.shard_pool - usable, 0))]
+	if is_guest_view():   # a guest has no wallet: no numbers (the cached ones belong to nobody)
+		_balance.text = "Sign in to see your Shards"
+	else:
+		_balance.text = "Stakeable %s · Starter %s" % [UI3.fmt(usable), UI3.fmt(maxi(MetaState.shard_pool - usable, 0))]
 	UI3Meta.clear(_table_host)
 	if state == "loading":
 		for i in 4:
@@ -512,6 +544,8 @@ func _row(o: Dictionary) -> Control:
 		b.add_child(ring)
 	b.custom_minimum_size = Vector2(0, ROW_H)
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if locked:
+		b.modulate = Color(1, 1, 1, 0.55)   # locked rows read as not playable; "Locked: ..." in the row says why
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", UI3Theme.space("16"))
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -578,6 +612,11 @@ func _draw_detail() -> void:
 	var t := UI3.label("%s · %s, A%d" % [id, String(o.mode).capitalize(), int(o.ascension)], "LabelScreenTitle")
 	t.name = "DetailTitle"
 	v.add_child(t)
+	var tier_locked := not bool(o.unlocked) and not _account_blocks()
+	if tier_locked:
+		var lk := UI3.label("Locked", "LabelTitle")
+		lk.name = "LockedTitle"
+		v.add_child(lk)
 	# 1. rules in words (same names as the chips in the run)
 	var rules := VBoxContainer.new()
 	rules.name = "RuleLines"
@@ -587,7 +626,27 @@ func _draw_detail() -> void:
 		rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		rules.add_child(rl)
 	v.add_child(rules)
-	# 2. Stake -> Win back -> Net
+	if not tier_locked:   # a tier you cannot play shows what opens it, not stake money, the lose box, a warning or an estimate
+		_draw_detail_money(v, o)
+	var why := block_reason(id)
+	var b := UI3.button("Stake %d and play" % int(o.stake), &"primary", &"M")
+	b.name = "Stake"
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if is_guest_view():
+		# looks active and works: leaving "guest" is the one thing this button does
+		b.text = "Sign in to stake Shard"
+		b.pressed.connect(_sign_in)
+	else:
+		if why != "":
+			UI3.set_disabled_reason(b, why)
+			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			b.custom_minimum_size.y = 72
+		b.pressed.connect(open_confirm.bind(id))
+	outer.add_child(b)
+
+
+## Stake -> Win back -> Net, the lose box, the warning and the estimate line (open tiers only).
+func _draw_detail_money(v: VBoxContainer, o: Dictionary) -> void:
 	var money := VBoxContainer.new()
 	money.name = "Money"
 	money.add_theme_constant_override("separation", UI3Theme.space("8"))
@@ -606,31 +665,30 @@ func _draw_detail() -> void:
 		money.add_child(hb)
 	v.add_child(money)
 	v.add_child(_tinted("lose", "Lose or abandon", "You lose %s Shards. No refund, no Stone." % UI3.fmt(int(o.stake))))
-	var wt := warning_text(String(o.warning))
+	var wt := warning_text(effective_warning(o))
 	if wt != "":
 		var wl := UI3.label(wt)
 		wl.name = "Warning"
 		wl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		wl.add_theme_color_override("font_color", UI3Theme.color("anchor_price"))
 		v.add_child(wl)
-	# 3. estimate (bot) and the fixed warning
-	var est := UI3.label("Estimate (bot): about %s%% win, you get back about %d%% of the stake on average. Real players may do better or worse." % [
-		_num(float(o.est_win_pct)), roundi(float(o.est_return_pct))], "LabelMuted")
+	# same line on every tier: simulated win chance and average return (numbers from missions.json)
+	var est := UI3.label("Estimated win chance (simulated): about %s%%. On average you get back about %d%% of your stake. Real players may do better or worse." % [
+		_num(float(o.est_win_pct)), roundi(float(o.est_return_pct))])
 	est.name = "Estimate"
 	est.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(est)
-	var nc := UI3.label("No Continue and no Aid.", "LabelMuted")
-	v.add_child(nc)
-	var why := block_reason(id)
-	var b := UI3.button("Stake %d and play" % int(o.stake), &"primary", &"M")
-	b.name = "Stake"
-	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if why != "":
-		UI3.set_disabled_reason(b, why)
-		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b.custom_minimum_size.y = 72
-	b.pressed.connect(open_confirm.bind(id))
-	outer.add_child(b)
+	v.add_child(UI3.label("No Continue and no Aid.", "LabelMuted"))
+
+
+## The tier's own warning kind (N3+: MissionBoard.warning_kind), else "most_lose" for any tier whose estimated win
+## chance is under 50%. In missions.json every tier is: N1 is 12.3% (about 7 in 8 players lose it) and the average
+## return is ~65% on all six, so N1/N2 must not look safer than N3.
+static func effective_warning(o: Dictionary) -> String:
+	var k := String(o.get("warning", ""))
+	if k == "" and float(o.get("est_win_pct", 100.0)) < 50.0:
+		return "most_lose"
+	return k
 
 
 ## Fixed warning per tier kind (MissionBoard.warning_kind). "" = none.
