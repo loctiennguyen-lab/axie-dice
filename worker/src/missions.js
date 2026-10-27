@@ -15,6 +15,10 @@ const nowS = () => Math.floor(Date.now() / 1000);
 
 // The table in force. Tests swap it for a 6-tier fixture; production never calls the setter.
 let T = table;
+/** Stone a won Mission tier pays (table `stone`) and the per-UTC-day Stone cap (table `stone_day_cap`). */
+export const tierStone = (tier) => (Object.hasOwn(T.tiers, tier) ? Number(T.tiers[tier].stone) || 0 : 0);
+export const stoneDayCap = () => Number(T.stone_day_cap) || 0;
+
 /** Test hook: replace (or with no argument restore) the mission table. */
 export const _setTableForTest = (t) => { T = t || table; };
 
@@ -88,18 +92,38 @@ export async function validateMission(env, playerId, m, ascension) {
   return { ok: true, tier: m.tier, stake: t.stake, mult: Number(t.m_base) * Number(t.m_scale ?? 1) };
 }
 
+/** The mission header the SERVER writes for a run (run_start tape header): tier + the tier's fixed rules, read from the table, never from the client.
+ *  `missionId` (the client's id, string <= 64) is echoed when we have it (creation); a resume does not know it, and the verifier then
+ *  compares tier + rules only. */
+export function missionHeader(tier, missionId) {
+  const t = Object.hasOwn(T.tiers, tier) ? T.tiers[tier] : null;
+  if (!t) return null;
+  const h = { tier, rules: Array.isArray(t.rules) ? [...t.rules] : [] };
+  if (typeof missionId === 'string' && missionId.length > 0 && missionId.length <= 64) h.mission_id = missionId;
+  return h;
+}
+
 /** Statements that open the escrow. They only insert when the run row of the same batch exists, so a refused
  *  run (cap, unique-open) leaves no escrow and no ledger row behind. */
+// N5: with env.ECON_SHARD_WALLET = '1' the stake is really taken from (and the payout added to) the server Shard
+// balance, in the same batch as the ledger row. Default OFF so the L1 behaviour and its tests stay as they were.
+const walletOn = (env) => !!env && env.ECON_SHARD_WALLET === '1';
+const ensureShard = (env, pid) => env.DB.prepare(`INSERT OR IGNORE INTO wallets (player_id, currency, balance) VALUES (?, 'shard', 0)`).bind(pid);
+// Must directly follow the ledger INSERT: changes() = 1 only when that row was really inserted (not a replay/ignore).
+// Short funds trip CHECK (balance >= 0) and roll the whole batch back (the run is not created).
+const applyShard = (env, pid, delta) => env.DB.prepare(`UPDATE wallets SET balance = balance + ? WHERE player_id = ? AND currency = 'shard' AND changes() = 1`).bind(delta, pid);
 export function escrowStatements(env, { runId, playerId, tier, stake, mult, at }) {
   return [
     env.DB.prepare(
       `INSERT INTO mission_escrow (run_id, player_id, tier, stake, payout_mult, state, payout, created_at)
        SELECT ?, ?, ?, ?, ?, 'open', 0, ? WHERE EXISTS (SELECT 1 FROM runs WHERE run_id = ?)`,
     ).bind(runId, playerId, tier, stake, mult, at, runId),
+    ...(walletOn(env) ? [ensureShard(env, playerId)] : []),
     env.DB.prepare(
       `INSERT OR IGNORE INTO wallet_ledger (player_id, currency, delta, reason, idem_key, at)
        SELECT ?, 'shard', ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM mission_escrow WHERE run_id = ?)`,
     ).bind(playerId, -stake, `mission_stake:${tier}`, `mission_stake:${runId}`, at, runId),
+    ...(walletOn(env) ? [applyShard(env, playerId, -stake)] : []),
   ];
 }
 
@@ -119,10 +143,12 @@ export async function settleEscrow(env, runId, outcome, at = nowS()) {
       .bind(state, payout, at, runId),
   ];
   if (payout > 0) {
+    if (walletOn(env)) stmts.push(ensureShard(env, row.player_id));
     stmts.push(env.DB.prepare(
       `INSERT OR IGNORE INTO wallet_ledger (player_id, currency, delta, reason, idem_key, at)
        SELECT ?, 'shard', ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM mission_escrow WHERE run_id = ? AND state = ? AND settled_at = ?)`,
     ).bind(row.player_id, payout, state === 'won' ? `mission_win:${row.tier}` : 'mission_refund', `mission_settle:${runId}`, at, runId, state, at));
+    if (walletOn(env)) stmts.push(applyShard(env, row.player_id, payout));
   }
   if (state === 'won') {
     stmts.push(env.DB.prepare(

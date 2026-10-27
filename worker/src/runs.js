@@ -4,7 +4,7 @@
 import { shared } from './accounts.js';
 import { signRunToken, newJti } from './run_token.js';
 import { rulesSupported } from './run_do.js';
-import { validateMission, escrowStatements, settleEscrow, reconcileEscrows, currentRules } from './missions.js';
+import { validateMission, escrowStatements, settleEscrow, reconcileEscrows, currentRules, missionHeader } from './missions.js';
 
 const RULES_PER_DAY_DEFAULT = 20;
 const NEWCOMER_RUNS = 5;
@@ -131,7 +131,7 @@ async function createRun(request, env, url, player) {
   const jti = newJti();
   await env.DB.prepare(`UPDATE runs SET state = 'open', commit_hash = ?, token_jti = ? WHERE run_id = ? AND state = 'pending'`).bind(init.commit, jti, runId).run();
   const run_token = await signRunToken(env, { player_id: player.id, run_id: runId, rules_version: rules, jti });
-  return json({ run_id: runId, run_token, commit: init.commit, ws_url: wsUrl(url, runId), header: { newcomer: await newcomer(env, player.id), depth_stage: stage } });
+  return json({ run_id: runId, run_token, commit: init.commit, ws_url: wsUrl(url, runId), header: { newcomer: await newcomer(env, player.id), depth_stage: stage, ...(mission ? { mission: missionHeader(mission.tier, body.mission && body.mission.mission_id) } : {}) } });
 }
 
 async function dailyUsed(env, playerId, dayStart) {
@@ -147,6 +147,14 @@ async function dailyInfo(env, player) {
   return json({ used: await dailyUsed(env, player.id, dayStart), max, resets_at: dayStart + 86400 });
 }
 
+/** Resume of a mission run: the tier comes from the escrow row the server wrote (no mission_id: the server never stored it). */
+async function openMission(env, row) {
+  if (row.mode !== 'mission') return {};
+  const e = await env.DB.prepare('SELECT tier FROM mission_escrow WHERE run_id = ?').bind(row.run_id).first();
+  const h = e ? missionHeader(e.tier) : null;
+  return h ? { mission: h } : {};
+}
+
 async function openRun(env, url, player) {
   const row = await env.DB.prepare(`SELECT run_id, rules_version, mode, commit_hash, depth_stage FROM runs WHERE player_id = ? AND state = 'open'`).bind(player.id).first();
   if (!row) return json({});
@@ -154,7 +162,7 @@ async function openRun(env, url, player) {
   const jti = newJti();
   await env.DB.prepare(`UPDATE runs SET token_jti = ? WHERE run_id = ? AND state = 'open'`).bind(jti, row.run_id).run();
   const run_token = await signRunToken(env, { player_id: player.id, run_id: row.run_id, rules_version: row.rules_version, jti });
-  return json({ run_id: row.run_id, run_token, commit: row.commit_hash, ws_url: wsUrl(url, row.run_id), header: { mode: row.mode, newcomer: await newcomer(env, player.id), depth_stage: row.depth_stage ?? 3 } });
+  return json({ run_id: row.run_id, run_token, commit: row.commit_hash, ws_url: wsUrl(url, row.run_id), header: { mode: row.mode, newcomer: await newcomer(env, player.id), depth_stage: row.depth_stage ?? 3, ...(await openMission(env, row)) } });
 }
 
 const changed = (r) => ((r && r.meta && r.meta.changes) || 0) > 0;

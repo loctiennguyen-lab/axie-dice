@@ -30,4 +30,18 @@ static func route_target() -> String:
 
 
 func _ready() -> void:
+	# B4: nothing opens (not even the tutorial) until the server answers.
+	if AccountService.gate_reason() != "":
+		var layer := CanvasLayer.new()
+		layer.layer = 100
+		add_child(layer)
+		AccountUI.show_offline_gate(layer, AccountService)
+		AccountService.changed.connect(_on_account_changed)
+		return
 	get_tree().change_scene_to_file.call_deferred(route_target())
+
+
+func _on_account_changed() -> void:
+	if AccountService.gate_reason() == "":
+		AccountService.changed.disconnect(_on_account_changed)
+		get_tree().change_scene_to_file.call_deferred(route_target())

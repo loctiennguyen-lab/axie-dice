@@ -44,7 +44,7 @@ func _ready() -> void:
 	_ok(r0.is_empty() and s.tickets() == 0, "pull without tickets does nothing")
 	# Buy a ticket (real API)
 	var before := MetaState.shard_pool
-	var b := s.buy_ticket()
+	var b: Dictionary = await s.buy_ticket()
 	_ok(b.ok and s.tickets() == 1 and MetaState.shard_pool == before - 200, "buy ticket spends 200 Shards")
 	_ok(not (s.find_child("Open1", true, false) as Button).disabled, "Open 1 enabled with a ticket")
 	# Real pull
@@ -109,7 +109,7 @@ func _ready() -> void:
 			cur[0] = AccountService.Status.OFFLINE
 			var blocked: Array = await sa.pull(1)
 			_ok(blocked.is_empty() and sa.state == "offline" and sa.tickets() == 3, "pull re-checks account")
-			var by := sa.buy_ticket()
+			var by: Dictionary = await sa.buy_ticket()
 			_ok(not by.get("ok", true), "buy re-checks account")
 		sa.queue_free()
 	# Local mode (remote wallet off): guest/offline keep an info banner but may pull and buy

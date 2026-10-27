@@ -203,6 +203,13 @@ func pull(n: int) -> Array:
 	var out: Array = []
 	if pull_hook.is_valid():
 		out = pull_hook.call(n)
+	elif MetaState.econ_remote() != null and tab != "seasonal":
+		# SR1: the server rolls and pays; this screen only plays what it was told.
+		for i in n:
+			var r := await _remote_open()
+			if not bool(r.get("ok", false)):
+				break
+			out.append(r)
 	elif tab == "seasonal":
 		for i in n:
 			var r := EchoBox.open_season(MetaState, rng, today())
@@ -226,11 +233,39 @@ func pull(n: int) -> Array:
 	return out
 
 
+signal _remote_answered
+
+## One server open. Returns the result Dictionary (EchoBox.open_normal shape) with ok=true, or {ok:false, reason}.
+func _remote_open() -> Dictionary:
+	var box: Array = []
+	MetaState.econ_remote().open_box(func(r: Dictionary) -> void:
+		box.append(r)
+		_remote_answered.emit())
+	if box.is_empty():
+		await _remote_answered
+	var a: Dictionary = box[0]
+	if not bool(a["ok"]):
+		return {"ok": false, "reason": String(a["code"])}
+	var res: Dictionary = (a["result"] as Dictionary).duplicate()
+	res["ok"] = true
+	return res
+
+
 ## Buy one ticket for Shards (EchoBox.buy_tickets). Returns the logic result.
 func buy_ticket() -> Dictionary:
 	_recheck_account()
 	if _account_blocks():
 		return {"ok": false, "reason": "state"}
+	if MetaState.econ_remote() != null:
+		var got: Array = []
+		MetaState.econ_remote().buy_tickets(1, func(r: Dictionary) -> void:
+			got.append(r)
+			_remote_answered.emit())
+		if got.is_empty():
+			await _remote_answered
+		var rr: Dictionary = got[0]
+		_refresh_all()
+		return {"ok": bool(rr["ok"]), "cost": int((rr["result"] as Dictionary).get("cost", 0)), "reason": String(rr["code"])}
 	var r := EchoBox.buy_tickets(MetaState, today(), 1)
 	if r.get("ok", false):
 		MetaState.save_to_disk()

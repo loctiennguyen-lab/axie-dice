@@ -183,7 +183,15 @@ func _ready() -> void:
 	# A deferred call runs once the whole autoload set is up.
 	ensure_vault_heroes.call_deferred()
 
+## Stone / Shard reasons the server pays through /api/econ/claim while the economy is remote.
+const SERVER_PAID_REASONS: Array[String] = ["earn", "mission_win", "pass", "daily", "daily_run", "daily_weekly", "pass_loop"]
+
+
 func add_shards(amount: int, reason: String = "earn", save: bool = true) -> void:
+	if guest_no_wallet:
+		return
+	if _econ != null and SERVER_PAID_REASONS.has(reason):
+		return   # the server pays these (run reward via econ_claims_after_run, claims); the answer lands in the cache
 	shard_pool += amount
 	ledger_add("shard", amount, reason)
 	if save:
@@ -192,6 +200,10 @@ func add_shards(amount: int, reason: String = "earn", save: bool = true) -> void
 
 ## Land Stone. n > 0. Vào sổ cái.
 func add_stone(n: int, reason: String = "earn", save: bool = true) -> void:
+	if guest_no_wallet:
+		return
+	if _econ != null and SERVER_PAID_REASONS.has(reason):
+		return   # the server pays these (claims); the answer lands in the cache
 	if n <= 0:
 		return
 	stone += n
@@ -202,6 +214,8 @@ func add_stone(n: int, reason: String = "earn", save: bool = true) -> void:
 
 ## Trừ `n` của `currency` ("shard" | "stone" | "gem"). false (không trừ gì) nếu không đủ.
 func spend(currency: String, n: int, reason: String, save: bool = true) -> bool:
+	if guest_no_wallet:
+		return false
 	if n < 0:
 		return false
 	match currency:
@@ -245,6 +259,189 @@ func use_remote_gem_wallet(w: GemWallet) -> void:
 		w.connect("balance_changed", func(b: int) -> void: gems_cache = b)
 
 
+# --- Server economy (SR1) ----------------------------------------------------------------------
+## Fields D1 owns. They are a display cache here: never uploaded in the cloud save (AccountService strips them,
+## the Worker strips them too) and never taken from a downloaded one, so a PUT can neither mint nor roll back money.
+const SERVER_FIELDS: Array[String] = ["shard_pool", "stone", "tickets", "unlocks", "echobox_pity", "starter_granted", "starter_shard_locked", "pending_run_claims", "pass_season"]
+## Id of the last server reset (M1) this device has wiped for. "" = none seen yet.
+var econ_reset_seen: String = ""
+var _econ: RemoteEcon = null
+
+
+## The remote economy while it is on (signed in + project setting axie/econ="remote"), else null.
+func econ_remote() -> RemoteEcon:
+	return _econ
+
+
+func use_remote_econ(e: RemoteEcon) -> void:
+	_econ = e
+
+
+## Meta save dict without the server-owned fields.
+static func strip_server_fields(meta: Dictionary) -> Dictionary:
+	var out := meta.duplicate()
+	for k in SERVER_FIELDS:
+		out.erase(k)
+	return out
+
+
+## Overwrites the cache from a server snapshot (GET /api/econ shape). Goes through save_to_disk -> SaveStore.
+## A snapshot carrying a new `reset_id` first wipes this device (see wipe_for_server_reset).
+func apply_server_econ(snap: Dictionary, save: bool = true) -> void:
+	var rid := String(snap.get("reset_id", ""))
+	if rid != "" and rid != econ_reset_seen:
+		if RunState.phase != RunState.RunPhase.MENU:
+			# Never wipe under a running game: keep the snapshot, wipe when the run is over (RunState.reset()).
+			_pending_reset = snap.duplicate(true)
+			return
+		wipe_for_server_reset(rid)
+	shard_pool = int(snap.get("shard", shard_pool))
+	stone = int(snap.get("stone", stone))
+	tickets["normal"] = int(snap.get("ticket", int(tickets.get("normal", 0))))
+	starter_granted = true
+	if snap.has("unlocks") and snap["unlocks"] is Array:
+		unlocks.clear()
+		for u in snap["unlocks"]:
+			unlocks.append(String(u))
+	if snap.has("owned") and snap["owned"] is Array:
+		for it in snap["owned"]:
+			if not cosmetics_owned.has(String(it)):
+				cosmetics_owned.append(String(it))
+	if snap.has("pity") and snap["pity"] is Dictionary:
+		var p: Dictionary = (snap["pity"] as Dictionary).duplicate()
+		p["opens"] = int(snap.get("opens", 0))
+		p["buy_day"] = String(snap.get("buy_day", ""))
+		p["buy_count"] = int(snap.get("buy_count", 0))
+		echobox_pity = p
+	if snap.has("pass") and snap["pass"] is Dictionary:
+		_apply_server_pass(snap["pass"] as Dictionary)
+	if save:
+		save_to_disk()
+
+
+## Pass progress is the server's while the economy is remote: XP, level, claimed levels, weekly tasks and post-30
+## loops are copied from GET /api/econ `pass` into pass_season (the shape PassV2 / PassView already read).
+func _apply_server_pass(p: Dictionary) -> void:
+	var ps: Dictionary = pass_season
+	var sid := String(p.get("season", ps.get("id", "")))
+	if String(ps.get("id", "")) != sid:
+		ps = PassV2.new_state(sid)
+	var xp := int(p.get("xp", 0))
+	ps["xp"] = xp
+	ps["level"] = int(p.get("level", PassV2.level_for_xp(xp)))
+	var cl: Array = []
+	for lv in (p.get("claimed", []) as Array):
+		cl.append(int(lv))
+	ps["claimed_free"] = cl
+	var p30: Variant = p.get("post30", {})
+	if p30 is Dictionary:
+		ps["post30_claimed"] = int((p30 as Dictionary).get("claimed", 0))
+	var wk: Variant = p.get("weekly", {})
+	if wk is Dictionary and String((wk as Dictionary).get("week", "")) != "":
+		var w: Dictionary = wk
+		var ids: Array = []
+		for t in (w.get("claimed", []) as Array):
+			ids.append(String(t))
+		ps["weekly"] = {String(w["week"]): {"runs": int(w.get("runs", 0)), "wins": int(w.get("wins", 0)),
+			"boss": int(w.get("boss", 0)), "claimed": ids}}
+	pass_season = ps
+
+
+var _pending_reset: Dictionary = {}
+
+
+func has_pending_reset() -> bool:
+	return not _pending_reset.is_empty()
+## Guest on a build that needs the server: no wallet at all (nothing earned, nothing spent). Set by AccountService.
+var guest_no_wallet: bool = false
+
+
+## Runs the wipe that apply_server_econ postponed because a run was open. Called by RunState.reset().
+func apply_pending_reset() -> void:
+	if _pending_reset.is_empty() or RunState.phase != RunState.RunPhase.MENU:
+		return
+	var snap := _pending_reset
+	_pending_reset = {}
+	apply_server_econ(snap)
+
+
+## Server says everything was reset (M1: Shard, Stone, tickets, Gem, run history, saves). Drops every local value
+## through SaveStore (so the signed-in profile's cloud copy is overwritten by the next upload) and remembers the id.
+func wipe_for_server_reset(reset_id: String) -> void:
+	SaveStore.erase(SAVE_PATH)
+	SaveStore.erase("user://run_save.json")
+	reload_from_store()
+	# reload_from_store just handed out the LOCAL starter: drop it (D1 re-grants its own, the snapshot fills the balances).
+	starter_granted = true
+	starter_shard_locked = 0
+	gems_cache = int(_gem_wallet.balance()) if _gem_wallet != null else 0
+	pending_run_claims.clear()
+	econ_reset_seen = reset_id
+	save_to_disk()
+
+
+## Run end (remote economy): Shard reward of the closed run, daily claims. Fire-and-forget; the answer lands in the
+## cache. The local claim_daily_* are off while remote (the server owns "once per day").
+func econ_claims_after_run(run_id: String, shards: int, run_kind: String) -> void:
+	if _econ == null:
+		return
+	if run_id != "" and shards > 0:
+		_queue_run_claim(run_id, shards)
+	var chain: Array[String] = ["daily"]
+	if run_kind == "daily":
+		chain.append("daily_run")
+	chain.append("weekly")
+	_econ_chain(chain)
+
+
+## Run Shard claims the server has not answered yet (offline at run end, close still in flight...). Saved through
+## SaveStore ("pending_run_claims"), sent again on every game start / reconnect until the server says ok or a
+## permanent no. Safe to repeat: the server pays once per run_id.
+var pending_run_claims: Array = []
+const _RUN_CLAIM_PERMANENT: Array[String] = ["nothing_to_claim", "run_too_short", "bad_request"]
+const _RUN_CLAIM_MAX := 20
+
+
+func _queue_run_claim(run_id: String, amount: int) -> void:
+	for c in pending_run_claims:
+		if String((c as Dictionary).get("run_id", "")) == run_id:
+			_send_run_claim(run_id, amount)
+			return
+	pending_run_claims.append({"run_id": run_id, "amount": amount})
+	while pending_run_claims.size() > _RUN_CLAIM_MAX:
+		pending_run_claims.pop_front()
+	save_to_disk()
+	_send_run_claim(run_id, amount)
+
+
+func _send_run_claim(run_id: String, amount: int) -> void:
+	if _econ == null:
+		return
+	_econ.claim("run", {"run_id": run_id, "amount": amount}, func(r: Dictionary) -> void:
+		if bool(r.get("ok", false)) or _RUN_CLAIM_PERMANENT.has(String(r.get("code", ""))):
+			for i in range(pending_run_claims.size() - 1, -1, -1):
+				if String((pending_run_claims[i] as Dictionary).get("run_id", "")) == run_id:
+					pending_run_claims.remove_at(i)
+			save_to_disk())
+
+
+## Sends every waiting run claim again. AccountService calls it once the remote economy is attached and answers.
+func retry_pending_run_claims() -> void:
+	if _econ == null:
+		return
+	for c in pending_run_claims.duplicate():
+		_send_run_claim(String((c as Dictionary).get("run_id", "")), int((c as Dictionary).get("amount", 0)))
+
+
+## Claims one after another (each answer lands in the cache before the next goes out). A refusal such as
+## not_enough_days for "weekly" is normal and ends quietly.
+func _econ_chain(kinds: Array[String]) -> void:
+	if kinds.is_empty() or _econ == null:
+		return
+	var rest: Array[String] = kinds.slice(1)
+	_econ.claim(kinds[0], {}, func(_r: Dictionary) -> void: _econ_chain(rest))
+
+
 ## Nhận Gem tặng, bất đồng bộ (bản remote hỏi server). done(result:{ok, granted, reason, next_utc}).
 ## Sau kết quả: đồng bộ gems_cache + gem_claim_next_utc rồi save.
 func claim_gem_gift_async(done: Callable = Callable()) -> void:
@@ -267,6 +464,8 @@ func unlock_price(id: String) -> int:
 
 ## Gọi khi một run kết thúc (A/U nối): cộng XP Pass v2 theo công thức run XP. Trả XP thực nhận.
 func pass_add_run_xp(raw_xp: int) -> int:
+	if _econ != null:
+		return 0   # remote: the server counts Pass XP from our closed runs
 	var got := PassV2.add_run_xp(self, raw_xp, today_utc())
 	return got
 
@@ -284,6 +483,28 @@ func pass_claim_free(lv: int) -> Dictionary:
 ## Nhận hết vòng sau lv30 đang chờ (50 Shard/vòng, data). Trả số Shard nhận được.
 func pass_claim_post30() -> int:
 	return PassV2.claim_post30(self)
+
+
+## Remote economy: the claims below ask the server and show what it answers (Pass level, weekly task, post-30 loop).
+## done(r) gets RemoteEcon's {ok, code, dup, result, net}. Local wallet: use the sync pass_claim_* above.
+func pass_claim_free_async(lv: int, done: Callable = Callable()) -> void:
+	_pass_remote("pass", {"level": lv}, done)
+
+
+func pass_claim_weekly_async(task_id: String, done: Callable = Callable()) -> void:
+	_pass_remote("pass_weekly", {"task": task_id}, done)
+
+
+func pass_claim_post30_async(done: Callable = Callable()) -> void:
+	_pass_remote("pass_post30", {}, done)
+
+
+func _pass_remote(kind: String, extra: Dictionary, done: Callable) -> void:
+	if _econ == null:
+		if done.is_valid():
+			done.call({"ok": false, "code": "unauthenticated", "dup": false, "result": {}, "net": false})
+		return
+	_econ.claim(kind, extra, done)
 
 
 ## Ảnh chụp chỉ đọc của Pass v2 cho màn hình (đổi dict trả về không ảnh hưởng save).
@@ -386,7 +607,8 @@ func record_run_outcome(params: Dictionary, won: bool) -> void:
 			and not String(params.get("mission_id", "")).is_empty():
 		settle_mission_stake(won, false)
 	# Việc tuần Pass v2: mọi run đã kết thúc đều tính; params.reached_boss (tuỳ chọn) cho việc "chạm boss".
-	PassV2.record_run(self, today_utc(), won, bool(params.get("reached_boss", false)))
+	if _econ == null:   # remote: weekly progress is counted by the server
+		PassV2.record_run(self, today_utc(), won, bool(params.get("reached_boss", false)))
 	if not won:
 		return
 	var asc := int(params.get("ascension", 0))
@@ -524,6 +746,12 @@ func settle_mission_stake(won: bool, save: bool = true) -> bool:
 
 ## Stone for a won mission, capped per UTC day (stone_day_cap). Stone stays client-side in L1.
 func _grant_mission_stone(e: Dictionary) -> void:
+	if _econ != null:
+		# Remote: the server pays Stone from its settled escrow (claim kind "mission"); nothing local.
+		var rid := String(e.get("run_id", ""))
+		if rid != "":
+			_econ.claim("mission", {"run_id": rid})
+		return
 	var day := today_utc()
 	if String(mission_stone_day.get("day", "")) != day:
 		mission_stone_day = {"day": day, "n": 0}
@@ -746,6 +974,8 @@ func _key_bindings_from_json(v: Variant) -> Dictionary:
 func _reset_economy_fields() -> void:
 	save_version = SAVE_VERSION
 	starter_granted = false
+	econ_reset_seen = ""
+	pending_run_claims = []
 	stone = 0
 	gems_cache = 0
 	gem_claim_next_utc = 0
@@ -913,6 +1143,13 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 		for k in profile_stats:
 			profile_stats[k] = maxi(0, int((ps2 as Dictionary).get(k, 0)))
 	starter_granted = bool(parsed.get("starter_granted", false))
+	econ_reset_seen = String(parsed.get("econ_reset_seen", ""))
+	pending_run_claims = []
+	var prc: Variant = parsed.get("pending_run_claims", [])
+	if prc is Array:
+		for c in (prc as Array):
+			if c is Dictionary and String((c as Dictionary).get("run_id", "")) != "":
+				pending_run_claims.append({"run_id": String(c["run_id"]), "amount": int(c.get("amount", 0))})
 	if ver < SAVE_VERSION:
 		_migrate_pre_economy()
 	save_version = SAVE_VERSION
@@ -1103,6 +1340,8 @@ func save_to_disk() -> void:
 		"tutorial_seen": tutorial_seen,
 		"save_version": SAVE_VERSION,
 		"starter_granted": starter_granted,
+		"econ_reset_seen": econ_reset_seen,
+		"pending_run_claims": pending_run_claims,
 		"stone": stone,
 		"gems_cache": gems_cache,
 		"gem_claim_next_utc": gem_claim_next_utc,
@@ -1309,6 +1548,10 @@ func unlock_def(id: String) -> Dictionary:
 
 ## Spends shards on a permanent unlock. Returns "" on success or the reason it was refused.
 func buy_unlock(id: String) -> String:
+	if guest_no_wallet:
+		return "Sign in to use the wallet."
+	if _econ != null:
+		return "Unlocks are bought through the server (buy_unlock_async)."
 	if has_unlock(id):
 		return "Already owned."
 	var def := unlock_def(id)
@@ -1322,6 +1565,17 @@ func buy_unlock(id: String) -> String:
 	unlocks.append(id)
 	save_to_disk()
 	return ""
+
+
+## Remote economy: buy an unlock on the server. done(err:String) with "" on success. Offline / refused -> message.
+func buy_unlock_async(id: String, done: Callable = Callable()) -> void:
+	if _econ == null:
+		if done.is_valid():
+			done.call(buy_unlock(id))
+		return
+	_econ.buy_unlock(id, func(r: Dictionary) -> void:
+		if done.is_valid():
+			done.call("" if bool(r["ok"]) else RemoteEcon.message_for(String(r["code"]))))
 
 
 # ===========================================================================
@@ -1624,6 +1878,8 @@ static func today_utc() -> String:
 ## 60 shards once, on the first — the same contract the JS relies on by calling it unconditionally
 ## from `onRunEnd()`.
 func claim_daily_mission() -> bool:
+	if _econ != null:
+		return false   # the server owns "once a day"
 	var today := today_utc()
 	if daily_date == today:
 		return false
@@ -1645,6 +1901,8 @@ func claim_daily_mission() -> bool:
 ## a SEPARATE reward from claim_daily_mission (that one is the any-run daily). Ledgered through add_shards /
 ## add_stone, idempotent per UTC day via `last_daily_reward_utc` (already saved + reloaded). Caller saves.
 func claim_daily_run_reward() -> bool:
+	if _econ != null:
+		return false
 	var today := today_utc()
 	if last_daily_reward_utc == today:
 		return false

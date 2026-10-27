@@ -72,6 +72,25 @@ static func show_welcome(layer: CanvasLayer) -> Control:
 	return overlay
 
 
+## B4: the game cannot open without the server. One primary (Try again); no way around it by design.
+static func show_offline_gate(layer: CanvasLayer, service: Node) -> Control:
+	var overlay := _overlay(layer)
+	overlay.name = "OnlineGate"
+	var box := _modal(overlay, WELCOME_W)
+	var t := UI3.label("Can't reach the game server", "LabelScreenTitle")
+	t.name = "Title"
+	box.add_child(t)
+	box.add_child(_prose("Axie Dice needs an internet connection for every mode. Check your connection and try again. "
+		+ "Nothing is lost: your progress is kept on the server."))
+	var retry := UI3.button("Try again", &"primary", &"L")
+	retry.name = "TryAgain"
+	retry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	retry.pressed.connect(func() -> void: service.check())
+	box.add_child(retry)
+	retry.call_deferred("grab_focus")
+	return overlay
+
+
 # ============================================================================ desktop browser flow
 
 ## Overlay for the desktop sign-in, shown over whatever screen started it. It only mirrors

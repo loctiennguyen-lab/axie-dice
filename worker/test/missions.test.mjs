@@ -362,3 +362,32 @@ test('close path: a hung D1 is bounded; the reply goes out and an alarm is armed
   assert.deepEqual(sent, [{ t: 'closed', seq: 9 }]);
   assert.ok(alarm() > Date.now());
 });
+
+test('SR-V: the run_start header carries the mission the SERVER knows (tier + table rules), on create and on resume', async () => {
+  const withRules = { ...table, tiers: { ...table.tiers, N2: { ...table.tiers.N2, rules: ['M1', 'M5'] } } };
+  _setTableForTest(withRules);
+  try {
+    const { mission, call, DB } = await setup();
+    const res = await mission('N2', { mission: { tier: 'N2', stake: 500, rules: ['M1', 'M5'], mission_id: 'ms_abc' } });
+    assert.equal(res.status, 200);
+    const j = await res.json();
+    assert.deepEqual(j.header.mission, { tier: 'N2', rules: ['M1', 'M5'], mission_id: 'ms_abc' });
+    // resume: from the escrow row, no mission_id (never stored)
+    DB.db.prepare(`UPDATE runs SET state = 'open' WHERE run_id = ?`).run(j.run_id);
+    const o = await (await call('/api/run/open')).json();
+    assert.deepEqual(o.header.mission, { tier: 'N2', rules: ['M1', 'M5'] });
+    // a lying rules claim never reaches the header: it is refused at creation
+    const lie = await mission('N2', { mission: { tier: 'N2', stake: 500, rules: [] } }, { token: 'tok2' });
+    assert.equal(lie.status, 400);
+    // an over-long client id is not echoed
+    const long = await (await mission('N1', { mission: { tier: 'N1', stake: 300, mission_id: 'x'.repeat(65) } }, { token: 'tok2' })).json();
+    assert.equal(long.header.mission.mission_id, undefined);
+    assert.deepEqual(long.header.mission.rules, []);
+  } finally { _setTableForTest(table); }
+});
+
+test('SR-V: a non-mission run has no mission in its header', async () => {
+  const { call } = await setup();
+  const j = await (await call('/api/run', { method: 'POST', body: { rules_version: RULES, kind: 'normal', ascension: 0 } })).json();
+  assert.equal(j.header.mission, undefined);
+});

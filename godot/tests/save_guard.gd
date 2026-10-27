@@ -47,6 +47,11 @@ const _RAW_PATHS := ["user://account.json", "user://account_prefs.json", "user:/
 
 var _backup := {}       # path -> text, only for files that existed at capture()
 var _raw := {}          # user:// path -> bytes, sign-in files that existed at capture()
+## ACCOUNT SAVES (2026-10-26): SaveStore keeps each signed-in profile under user://acct/<id>/. A test that switches
+## SaveStore.profile writes there, not to the guest files above, and run_tests.sh hashes acct/ too. The whole tree is
+## copied at capture() and put back at restore(): files that are new get deleted, changed ones rewritten.
+const _ACCT_ROOT := "user://acct"
+var _acct := {}         # user://acct/... path -> bytes, every file that existed at capture()
 var _captured := false
 
 
@@ -54,6 +59,9 @@ func capture() -> void:
 	_captured = true
 	_backup.clear()
 	_raw.clear()
+	_acct.clear()
+	for ap in _acct_files(_ACCT_ROOT):
+		_acct[ap] = FileAccess.get_file_as_bytes(ap)
 	for rp in _RAW_PATHS:
 		if FileAccess.file_exists(rp):
 			_raw[rp] = FileAccess.get_file_as_bytes(rp)
@@ -91,4 +99,35 @@ func restore() -> void:
 			rf.close()
 		elif FileAccess.file_exists(rp):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(rp))
+	for ap in _acct_files(_ACCT_ROOT):
+		if not _acct.has(ap):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(ap))
+	for ap in _acct:
+		var af := FileAccess.open(ap, FileAccess.WRITE)
+		if af == null:
+			DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path((ap as String).get_base_dir()))
+			af = FileAccess.open(ap, FileAccess.WRITE)
+		if af == null:
+			push_error("SaveGuard: could not reopen %s to restore it" % ap)
+			continue
+		af.store_buffer(_acct[ap])
+		af.close()
+	_prune_empty_dirs(_ACCT_ROOT, false)
 	MetaState.load_from_disk()
+
+
+func _acct_files(dir: String) -> Array[String]:
+	var out: Array[String] = []
+	for f in DirAccess.get_files_at(dir):
+		out.append(dir.path_join(f))
+	for d in DirAccess.get_directories_at(dir):
+		out.append_array(_acct_files(dir.path_join(d)))
+	return out
+
+
+## Removes directories left empty under `dir` (the root itself only if it is empty and `drop_self`).
+func _prune_empty_dirs(dir: String, drop_self: bool) -> void:
+	for d in DirAccess.get_directories_at(dir):
+		_prune_empty_dirs(dir.path_join(d), true)
+	if drop_self and DirAccess.get_files_at(dir).is_empty() and DirAccess.get_directories_at(dir).is_empty():
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(dir))

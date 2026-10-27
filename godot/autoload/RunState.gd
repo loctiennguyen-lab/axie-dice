@@ -365,6 +365,10 @@ func reset() -> void:
 	event_key = ""
 	_shop_rng = null
 	_event_rng = null
+	if phase == RunPhase.MENU:
+		var meta := get_node_or_null("/root/MetaState")
+		if meta != null:
+			meta.apply_pending_reset()   # SR1: a server reset that arrived mid-run lands now
 
 ## COMPATIBILITY ENTRY (L1 contract 1.4): the old synchronous start. `p_seed` becomes the secret of a
 ## LocalEpochSource, so the same seed still gives the same run (it is just a different run than before
@@ -407,6 +411,18 @@ func run_session() -> RunSession:
 	return session
 
 
+## Tests that call begin_run() without AXIE_TEST_NO_NET set this; the game never does.
+var allow_local_epoch: bool = false
+
+
+## Tests of the B4 gate set this to behave like a release build even under AXIE_TEST_NO_NET.
+var force_online_gate: bool = false
+
+
+func local_epoch_allowed() -> bool:
+	return not force_online_gate and (allow_local_epoch or NetGuard.blocked())
+
+
 ## Async start used by the real menu flow (L/M wire it before the remote flag is switched on).
 ## Returns {ok, code}. Source = project setting `axie/epoch_source` ("local" by default).
 func begin_run(params: Dictionary) -> Dictionary:
@@ -417,6 +433,10 @@ func begin_run(params: Dictionary) -> Dictionary:
 	if String(params.get("kind", "")) == "mission" or not m_hdr.is_empty():
 		if not MissionBoard.tier_enabled("N%d" % int(m_hdr.get("tier", 0))):
 			return {"ok": false, "code": "tier_disabled"}
+	# B4 (SR1): no offline play. The local source exists for tests/tools only (AXIE_TEST_NO_NET, or a test that sets
+	# allow_local_epoch); a release build whose flag is off refuses instead of quietly playing without the server.
+	if not RemoteEpochSource.flag_on() and not local_epoch_allowed():
+		return {"ok": false, "code": "offline_removed"}
 	var src: EpochSource = RemoteEpochSource.new(run_session()) if RemoteEpochSource.flag_on() \
 			else LocalEpochSource.new(PackedByteArray(), randi())
 	reset()
@@ -1083,6 +1103,7 @@ func end_run(won: bool) -> void:
 	if not server_settles:
 		MetaState.settle_mission_for_run(String(mission.get("mission_id", "")), bool(mission_outcome(won)["won"]))
 	clear_saved_run()
+	var econ_wait: EpochReply = null
 	if epoch != null:
 		var mo := mission_outcome(won)
 		var close_reply := epoch.close("won" if bool(mo["won"]) else "lost", close_summary(bool(mo["won"]), bool(mo["condition_ok"]), _esc))
@@ -1090,6 +1111,7 @@ func end_run(won: bool) -> void:
 			_submit_ranked_score(close_reply, String(action_log.header.get("run_id", "")))
 		if server_settles:
 			_reconcile_mission_after_close(close_reply)
+		econ_wait = close_reply
 	MetaState.add_shards(shards_this_run)
 
 	# Lifetime stats and the Ascension ladder (src/client.html onRunEnd(), :5436-5446).
@@ -1124,6 +1146,13 @@ func end_run(won: bool) -> void:
 	if run_kind == "daily":
 		daily_run_reward_granted = MetaState.claim_daily_run_reward()
 	MetaState.save_to_disk()
+	# SR1: remote economy -> the run's Shards and the daily claims are the server's to pay.
+	# The server only pays a CLOSED run, so wait for the close answer when it is still in flight.
+	var claim_args: Array = [String(action_log.header.get("run_id", "")), shards_this_run, run_kind]
+	if MetaState.econ_remote() != null and econ_wait != null and not econ_wait.done:
+		econ_wait.resolved.connect(func() -> void: MetaState.callv("econ_claims_after_run", claim_args), CONNECT_ONE_SHOT)
+	else:
+		MetaState.callv("econ_claims_after_run", claim_args)
 
 	EventBus.run_ended.emit(won)
 
