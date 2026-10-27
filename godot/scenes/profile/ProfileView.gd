@@ -208,7 +208,8 @@ func _overview_tab() -> void:
 	list.add_theme_constant_override("separation", UI3Theme.space("8"))
 	left.add_child(UI3Meta.scroll(list))
 	if MetaState.run_log.is_empty():
-		var e := UI3.label("No runs yet. Finish a run and it shows up here.", "LabelMuted")
+		# The counter above (MetaState.runs) can be ahead of the list (older saves, or the list was cleared).
+		var e := UI3.label(empty_runs_text(MetaState.runs), "LabelMuted")
 		e.name = "RunsEmpty"
 		list.add_child(e)
 	for i in MetaState.run_log.size():
@@ -239,7 +240,18 @@ func _land_section() -> Control:
 			UI3Tooltip.bind(ir, "Points from decor placed on your Land. They unlock milestone rewards.")
 		row.add_child(ir)
 	box.add_child(row)
+	var help := UI3.label("Aesthetic score = points from decor you place. Claim each milestone reward in Edit Land (key E), Rewards tab.", "LabelMuted")
+	help.name = "LandHelp"
+	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(help)
 	return box
+
+
+## Text under "Last runs" when the list is empty. Never says "No runs yet" while the Runs tile counts some.
+static func empty_runs_text(finished: int) -> String:
+	if finished > 0:
+		return "Your %d finished runs are counted above. The list shows runs from your next one." % finished
+	return "No runs yet. Finish a run and it shows up here."
 
 
 ## [{k, v, s}] x 5 from saved data. Missing data reads "—", never a made-up number.

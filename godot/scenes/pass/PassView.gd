@@ -426,6 +426,12 @@ func _draw_detail() -> void:
 	v.add_child(b)
 
 
+## Text on the disabled button of the next level to reach: how much XP is still missing.
+func next_text(lv: int) -> String:
+	var left := maxi(int(PassV2.level_def(lv).get("xp_total", 0)) - xp(), 0)
+	return "Next · needs %s XP" % UI3.fmt(left) if left > 0 else "Next level"
+
+
 static func _state_word(st: String) -> String:
 	match st:
 		"claimed": return "Claimed"
@@ -447,7 +453,16 @@ func _build_level_card() -> void:
 	bl.name = "LevelNumber"
 	bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	badge.add_child(bl)
+	# S4-10: the big number says what it is.
+	var bcol := VBoxContainer.new()
+	bcol.alignment = BoxContainer.ALIGNMENT_CENTER
+	bcol.add_theme_constant_override("separation", 0)
+	var cap := UI3.label("Level", "LabelMuted")
+	cap.name = "LevelCaption"
+	cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	bcol.add_child(cap)
+	bcol.add_child(bl)
+	badge.add_child(bcol)
 	row.add_child(badge)
 	var mid := VBoxContainer.new()
 	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -600,7 +615,7 @@ func _tile(def: Dictionary) -> Control:
 			b.text = "CLAIM"
 			b.pressed.connect(claim_level.bind(lv))
 		"next":
-			b.text = "Next"
+			b.text = next_text(lv)
 			b.disabled = true
 		_:
 			b.text = "Reach LV %d" % lv if season_phase() != "over" else "Not claimed"

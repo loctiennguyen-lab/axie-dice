@@ -134,6 +134,8 @@ var _house_defs := {}                # house_id -> dictionary from houses.json
 var _run_plate: Button
 var _toast: PanelContainer
 var _toasts: Array = []
+var _toast_queue: Array = []   ## [text, hold, tone] waiting for the visible toast to finish
+var _draining := false
 var _modal: Control
 var _moon_card: Node   # Moon Card popup while it is open (has_modal)
 var _has_run := false
@@ -258,12 +260,13 @@ func _show_tier_banner() -> void:
 	var ok := UI3.button("Look around", &"primary")
 	ok.name = "TierBannerOk"
 	ok.pressed.connect(_close_modal)
-	var body := "%s is open. " % TIER_NAMES[_tier - 1]
-	var parts: PackedStringArray = []
-	for seg in String(LandUpgradeScreen.ADDS.get(_tier, "")).split(" · "):
-		if seg != "":
-			parts.append(seg.left(1).to_upper() + seg.substr(1))
-	body += ". ".join(parts) + "."
+	var body := "%s is open." % TIER_NAMES[_tier - 1]
+	var used: int = maxi(preload("res://scripts/meta/economy_db.gd").land_tier_cost(_tier - 1), 0)
+	if used > 0:
+		body += " Used %s Stone." % _fmt(used)
+	var where := String(LandUpgradeScreen.ADDS_WHERE.get(_tier, ""))
+	if where != "":
+		body += "\nNew: " + where.replace(" · ", "\n")
 	var m := UI3.modal("Your Land is now %s" % TIER_NAMES[_tier - 1], body, [ok], 0)
 	m.name = "TierBanner"
 	m.cancelled.connect(_close_modal)
@@ -1449,18 +1452,24 @@ func _land_link() -> Control:
 	var need := _upgrade_cost()
 	var have := _meta_int("stone")
 	var can_up := preload("res://scripts/meta/economy_db.gd").land_upgrade_enabled() and have >= need
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", UI3Theme.space("8"))
 	var txt := "Upgrade Land · %s %d/6 · Stone %s/%s" % [tn, _tier, _fmt(mini(have, need)), _fmt(need)]
 	txt += " · ready" if can_up else " · %s to %s" % [_fmt(maxi(need - have, 0)), TIER_NAMES[_tier]]
-	row.add_child(UI3.label(txt))
-	var cell := _cell("UpgradeLand", row, _on_land_pressed)
-	cell.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	cell.get_node("UpgradeLand").tooltip_text = "%s / %s Land Stone" % [_fmt(have), _fmt(need)]
-	return cell
+	# S3-13: it opens the upgrade screen, so it is drawn as a (secondary) button, not a label.
+	var btn := UI3.button(txt, &"secondary", &"S")
+	btn.name = "UpgradeLand"
+	btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	btn.tooltip_text = "%s / %s Land Stone" % [_fmt(have), _fmt(need)]
+	btn.pressed.connect(_on_land_pressed)
+	return btn
 
 
-## Primary "Start run" (signed out: "Sign in to play"). Name stays RunPlate.
+## True when a guest cannot start a run: the live build rolls dice on the server (axie/epoch_source
+## = remote), so runs need an account. Without it a guest starts a normal run like anyone else.
+func _guest_blocked() -> bool:
+	return _guest and String(ProjectSettings.get_setting("axie/epoch_source", "")) == "remote"
+
+
+## Primary "Start run" (guest on the server build: "Sign in to play"). Name stays RunPlate.
 func _build_run_button() -> Button:
 	var title := "Start run"
 	var tip := "Your first run" if _first else "Run Setup"
@@ -1471,14 +1480,14 @@ func _build_run_button() -> Button:
 		else:
 			title = "Continue run"
 			tip = _continue_line()
-	elif _guest:
+	elif _guest_blocked():
 		title = "Sign in to play"
-		tip = "Sign in to save your runs online"
+		tip = "Dice are rolled on the server, so runs need an account"
 	var plate := UI3.button(title, &"primary", &"L")
 	plate.name = "RunPlate"
 	plate.tooltip_text = tip
 	plate.pressed.connect(_on_run_pressed)
-	if _offline and not _has_run and not _guest:   # round 2: a new run needs a connection
+	if _offline and not _has_run and not _guest_blocked():   # round 2: a new run needs a connection
 		UI3.set_disabled_reason(plate, "Start run · needs connection")
 	if _first and not _has_run:
 		plate.grab_focus.call_deferred()
@@ -1555,8 +1564,10 @@ func _build_toast() -> void:
 func _show_toast(text: String, hold: float = 1.6, tone: StringName = &"ok") -> void:
 	# Stack of at most 3, top-centre, 24 px from the top, 8 px gap (UI-03 18-system).
 	_toasts = _toasts.filter(func(t: Variant) -> bool: return is_instance_valid(t))
-	while _toasts.size() >= 3:
-		(_toasts.pop_front() as Node).queue_free()
+	# S4-14: one toast at a time (they stacked over the Upgrade Land chip); the rest wait their turn.
+	if not _toasts.is_empty() and not _draining:
+		_toast_queue.append([text, hold, tone])
+		return
 	var tw_node := UI3.toast(text, tone)
 	tw_node.name = "Toast"
 	tw_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1571,7 +1582,12 @@ func _show_toast(text: String, hold: float = 1.6, tone: StringName = &"ok") -> v
 		if is_instance_valid(tw_node):
 			tw_node.queue_free()
 		_toasts.erase(tw_node)
-		_layout_toasts())
+		_layout_toasts()
+		if not _toast_queue.is_empty() and _toasts.is_empty() and is_inside_tree():
+			var nx: Array = _toast_queue.pop_front()
+			_draining = true
+			_show_toast(String(nx[0]), float(nx[1]), nx[2])
+			_draining = false)
 
 
 func _layout_toasts() -> void:
@@ -1703,7 +1719,7 @@ func _on_run_pressed() -> void:
 	if _has_run:
 		_on_continue_pressed()
 		return
-	if _guest:   # sign-in stays required before a run
+	if _guest_blocked():   # sign-in stays required before a run
 		AccountService.sign_in()
 		return
 	_open_screen(&"run_setup")

@@ -17,6 +17,15 @@ const ADDS: Dictionary = {
 	6: "Final Land · new decor set",
 }
 
+## Where each new thing is found, shown in the tier-up banner on Land.
+const ADDS_WHERE: Dictionary = {
+	2: "+3 preset slots: House · New decor set and +2 Rare decor: Edit Land",
+	3: "+3 preset slots: House · Mastery house: on your Land",
+	4: "New decor set: Edit Land",
+	5: "Gallery: on your Land",
+	6: "New decor set: Edit Land",
+}
+
 var no_scene_change := false
 var _shell: Dictionary
 var _rows: VBoxContainer
