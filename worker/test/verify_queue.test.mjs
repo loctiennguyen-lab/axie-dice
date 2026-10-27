@@ -13,10 +13,16 @@ const NOW = 1_800_000_000;
 function fakeDb() {
   const db = new DatabaseSync(':memory:');
   db.exec(readFileSync(new URL('../migrations/0012_verify.sql', import.meta.url), 'utf8'));
+  db.exec(`CREATE TABLE runs (run_id TEXT PRIMARY KEY, player_id TEXT, mode TEXT, state TEXT, created_at INTEGER, battles_done INTEGER DEFAULT 0);
+    CREATE TABLE mission_escrow (run_id TEXT PRIMARY KEY, tier TEXT);
+    CREATE TABLE unlocks (player_id TEXT, unlock_id TEXT, at INTEGER, PRIMARY KEY (player_id, unlock_id));`);
   return { raw: db, prepare(q) { return { bind(...b) { return {
     async first() { return db.prepare(q).get(...b) ?? null; },
+    async all() { return { results: db.prepare(q).all(...b) }; },
     async run() { const r = db.prepare(q).run(...b); return { meta: { changes: Number(r.changes) } }; },
-  }; } }; } };
+    _run() { const r = db.prepare(q).run(...b); return { meta: { changes: Number(r.changes) } }; },
+  }; } }; },
+  async batch(stmts) { return stmts.map((s) => s._run()); } };
 }
 const good = (over = {}) => ({ ok: true, reason: '', rules_version: 'godot-x', outcome: 'won', score: 100, nodes: 5, log_len: 50, ms: 20, ...over });
 
@@ -114,8 +120,47 @@ test('result for an unclaimed or unknown run is refused', async () => {
   assert.equal((await call(env, '/api/verify/result', { run_id: 'b'.repeat(32), result: good() })).status, 404);
 });
 
-test('shadow does not change the run: RunDO close sync leaves outcome alone with the flag on or off', async () => {
-  // The enqueue is the only addition in _syncClosed; it is wrapped in try/catch and returns false on any failure (see test above).
-  const src = readFileSync(new URL('../src/run_do.js', import.meta.url), 'utf8');
-  assert.match(src, /try \{ await enqueueVerify\([^\n]*\} catch \{ \/\* shadow only \*\/ \}/);
+
+test('judge: match, outcome and score mismatch, rejected, error', async () => {
+  const { judge } = await import('../src/verify_queue.js');
+  const job = { srv_outcome: 'won', rules_version: 'godot-x', client_score: 100 };
+  assert.deepEqual(judge(good(), job), { state: 'ok', verdict: 'match' });
+  assert.equal(judge(good({ score: 99 }), job).verdict, 'score_mismatch');
+  assert.equal(judge(good({ outcome: 'lost' }), job).verdict, 'outcome_mismatch');
+  assert.equal(judge(good({ score: 1 }), { ...job, client_score: null }).verdict, 'match', 'no client score = not compared');
+  assert.equal(judge(good({ ok: false, reason: 'header_mismatch', outcome: 'rejected', score: 0 }), job).verdict, 'rejected');
+  assert.equal(judge(good({ ok: false, reason: 'bad_header', outcome: 'rejected', score: 0 }), job).state, 'error');
+});
+
+test('result writes verify_results and touches no other table', async () => {
+  const env = await queued('won');
+  await call(env, '/api/verify/next', {});
+  const out = await (await call(env, '/api/verify/result', { run_id: RUN, result: good({ score: 5 }) })).json();
+  assert.equal(out.verdict, 'match');
+  const r = env.DB.raw.prepare('SELECT verdict, v_score, kind FROM verify_results').get();
+  assert.equal(r.verdict, 'match'); assert.equal(r.v_score, 5);
+  assert.equal(env.DB.raw.prepare('SELECT COUNT(*) n FROM runs').get().n, 0);
+});
+
+async function signedGet(env, path, { key = KEY, ts = NOW } = {}) {
+  const sig = await signVerify(key, ts, 'GET', path.split('?')[0], '');
+  const req = new Request('https://x' + path, { headers: { 'x-verify-ts': String(ts), 'x-verify-sig': sig } });
+  return handleVerify(req, env, new URL(req.url), NOW);
+}
+
+test('stats: signed GET only; counts and last mismatches', async () => {
+  const env = await queued('won');
+  await call(env, '/api/verify/next', {});
+  await call(env, '/api/verify/result', { run_id: RUN, result: good({ outcome: 'lost' }) });
+  assert.equal((await signedGet(env, '/api/verify/stats', { key: 'other' })).status, 401);
+  const noKey = await handleVerify(new Request('https://x/api/verify/stats'), { DB: env.DB }, new URL('https://x/api/verify/stats'), NOW);
+  assert.equal(noKey.status, 404);
+  const post = await call(env, '/api/verify/stats', {});
+  assert.equal(post.status, 405);
+  const sres = await signedGet(env, '/api/verify/stats?n=5'); const st = await sres.json(); assert.equal(sres.status, 200, JSON.stringify(st));
+  assert.deepEqual(st.queue, [{ state: 'mismatch', n: 1 }]);
+  assert.equal(st.last_mismatches[0].run_id, RUN);
+  assert.equal(st.last_mismatches[0].verdict, 'outcome_mismatch');
+  assert.equal(st.last_mismatches[0].srv_outcome, 'won');
+  assert.equal(st.last_mismatches[0].v_outcome, 'lost');
 });

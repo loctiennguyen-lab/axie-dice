@@ -10,6 +10,8 @@ import { verifyRunToken } from './run_token.js';
 import { spendGem, claimFreeContinue } from './wallet.js';
 import { PRICES } from './aid_prices.js';
 import { settleEscrow } from './missions.js';
+import { enqueueVerify } from './verify_queue.js';
+import { buildVerifyPayload } from './verify_job.js';
 
 // Rule versions this build can still serve (ADR 4.6 bye{version}). THE one place to bump: add the new
 // ActionLog.RULES_VERSION (godot/scripts/core/action_log.gd) here at every bump; test/rules_supported.test.mjs
@@ -139,6 +141,22 @@ export class RunDO {
     }
   }
 
+  /** SR-V: fire-and-forget enqueue (see _syncClosed). `this._verifyP` is kept so tests can await it. */
+  _queueVerify(meta, summary) {
+    const job = (async () => {
+      try {
+        const row = await this.env.DB.prepare('SELECT state FROM runs WHERE run_id = ?').bind(meta.run_id).first();
+        if (!row || row.state !== 'closed') return false; // an abandon won the race: nothing to verify
+        const platform = summary && typeof summary.platform === 'string' ? summary.platform : 'unknown';
+        const claim = summary && Number.isSafeInteger(summary.score) && summary.score >= 0 ? summary.score : null;
+        const payload = await buildVerifyPayload(this.env, this.core, meta);
+        return await enqueueVerify(this.env, { run_id: meta.run_id, rules_version: meta.rules_version, outcome: meta.outcome, platform, kind: payload.server_header.kind, client_score: claim, header_mismatch: payload.server_header.header_mismatch, payload });
+      } catch (err) { console.error('verify enqueue failed', String(err)); return false; }
+    })();
+    this._verifyP = job;
+    try { if (this.ctx.waitUntil) this.ctx.waitUntil(job); } catch { /* shadow only */ }
+  }
+
   /** The retry timer for a failed write-back. Itself guarded: a failing setAlarm must never lose the reply. */
   async _armRetry() {
     try { await this.ctx.storage.setAlarm(Date.now() + 30_000); } catch (err) { console.error('run close retry alarm failed', String(err)); }
@@ -175,6 +193,9 @@ export class RunDO {
         }
         if (outcome != null) await settleEscrow(this.env, meta.run_id, outcome);
       }
+      // SR-V shadow verifier: queue the closed run. Inert unless VERIFY_SHADOW=1. Runs OUTSIDE the close path (waitUntil), so it
+      // never delays the reply, never throws and never changes the outcome. Only a run D1 really holds as closed is queued.
+      if (this.env.VERIFY_SHADOW === '1') this._queueVerify(meta, s);
     } catch (err) {
       console.error('run close sync failed', String(err));
       await this._armRetry();

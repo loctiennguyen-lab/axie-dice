@@ -1,11 +1,11 @@
 // SR-V: shadow verifier queue. NEVER affects rewards, outcome or leaderboard: it only records what an
 // out-of-process verifier (verifier/, Godot headless, no network) says about a closed run.
 //   enqueueVerify(env, row)      called by RunDO after the close is written back; inert unless env.VERIFY_SHADOW === '1'.
-//   handleVerify(request, env)   POST /api/verify/next (claim a job) and POST /api/verify/result (submit), HMAC-signed.
+//   handleVerify(request, env)   POST /api/verify/next (claim a job), POST /api/verify/result (submit), GET /api/verify/stats (read-only), HMAC-signed.
 // Signature: hex HMAC-SHA256(env.VERIFY_HMAC_KEY, `${ts}\n${METHOD}\n${path}\n${body}`) in X-Verify-Sig, unix seconds in
 // X-Verify-Ts (|now - ts| <= 120 s). No key configured = endpoints answer 404 (feature absent).
 
-export const isVerifyPath = (p) => p === '/api/verify/next' || p === '/api/verify/result';
+export const isVerifyPath = (p) => p === '/api/verify/next' || p === '/api/verify/result' || p === '/api/verify/stats';
 
 export const MAX_PAYLOAD_BYTES = 1_000_000;
 export const MAX_ATTEMPTS = 3;
@@ -50,17 +50,20 @@ export function checkResult(r) {
 }
 
 /** Queue a closed run. Inert unless VERIFY_SHADOW === '1'. Never throws: a queue problem must not touch the close. */
-export async function enqueueVerify(env, { run_id, rules_version, outcome, platform = 'unknown', payload }) {
+export async function enqueueVerify(env, { run_id, rules_version, outcome, platform = 'unknown', kind = 'normal', client_score = null, header_mismatch = false, payload }) {
   try {
     if (!env || env.VERIFY_SHADOW !== '1' || !env.DB) return false;
     const body = JSON.stringify(payload ?? null);
     const tooBig = body.length > MAX_PAYLOAD_BYTES;
     const plat = typeof platform === 'string' && /^[a-z0-9_-]{1,16}$/.test(platform) ? platform : 'unknown';
+    const k = ['normal', 'daily', 'ranked', 'mission'].includes(kind) ? kind : 'normal';
+    const cs = Number.isSafeInteger(client_score) && client_score >= 0 ? client_score : null;
+    const now = Math.floor(Date.now() / 1000);
     await env.DB.prepare(
-      `INSERT OR IGNORE INTO verify_queue (run_id, rules_version, platform, state, srv_outcome, payload_json, reason, created_at, finished_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(run_id, rules_version, plat, tooBig ? 'error' : 'pending', outcome, tooBig ? null : body, tooBig ? 'payload_too_large' : null,
-      Math.floor(Date.now() / 1000), tooBig ? Math.floor(Date.now() / 1000) : null).run();
+      `INSERT OR IGNORE INTO verify_queue (run_id, rules_version, platform, kind, state, srv_outcome, client_score, header_mismatch, payload_json, reason, created_at, finished_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(run_id, rules_version, plat, k, tooBig ? 'error' : 'pending', outcome, cs, header_mismatch ? 1 : 0, tooBig ? null : body,
+      tooBig ? 'payload_too_large' : null, now, tooBig ? now : null).run();
     return true;
   } catch (err) {
     console.error('verify enqueue failed', String(err));
@@ -68,15 +71,41 @@ export async function enqueueVerify(env, { run_id, rules_version, outcome, platf
   }
 }
 
+/** verdict of a result against what the server/client recorded. state: ok (match) | mismatch | error (could not judge). */
+export function judge(result, job) {
+  if (result.ok) {
+    if (result.outcome !== job.srv_outcome) return { state: 'mismatch', verdict: 'outcome_mismatch' };
+    if (job.client_score != null && result.score !== job.client_score) return { state: 'mismatch', verdict: 'score_mismatch' };
+    return { state: 'ok', verdict: 'match' };
+  }
+  if (NOT_A_VERDICT.has(result.reason) || result.rules_version !== job.rules_version) return { state: 'error', verdict: 'error' };
+  return { state: 'mismatch', verdict: 'rejected' };
+}
+
+async function stats(env, url) {
+  const n = Math.min(100, Math.max(1, Number(url.searchParams.get('n')) || 20));
+  const all = async (q, ...b) => ((await env.DB.prepare(q).bind(...b).all()).results) || [];
+  const queue = await all('SELECT state, COUNT(*) AS n FROM verify_queue GROUP BY state');
+  const verdicts = await all('SELECT verdict, kind, COUNT(*) AS n FROM verify_results GROUP BY verdict, kind');
+  const platforms = await all('SELECT platform, verdict, COUNT(*) AS n FROM verify_results GROUP BY platform, verdict');
+  const hm = await env.DB.prepare('SELECT COUNT(*) AS n FROM verify_queue WHERE header_mismatch = 1').bind().first();
+  const last = await all(
+    `SELECT run_id, verdict, kind, platform, reason, srv_outcome, v_outcome, client_score, v_score, rules_version, ms, at
+       FROM verify_results WHERE verdict NOT IN ('match', 'error') ORDER BY at DESC LIMIT ?`, n);
+  return json({ queue, verdicts, platforms, header_mismatch_jobs: hm ? hm.n : 0, last_mismatches: last });
+}
+
 export async function handleVerify(request, env, url, nowS = Math.floor(Date.now() / 1000)) {
   if (!env.VERIFY_HMAC_KEY || !env.DB) return json({ error: 'not_found' }, 404);
-  if (request.method !== 'POST') return json({ error: 'method' }, 405);
-  const body = await request.text();
+  const isStats = url.pathname === '/api/verify/stats';
+  if (request.method !== (isStats ? 'GET' : 'POST')) return json({ error: 'method' }, 405);
+  const body = isStats ? '' : await request.text();
   if (body.length > MAX_BODY) return json({ error: 'too_large' }, 413);
   const ts = Number(request.headers.get('x-verify-ts'));
   const sig = request.headers.get('x-verify-sig') || '';
   if (!Number.isInteger(ts) || Math.abs(nowS - ts) > SKEW_S) return json({ error: 'unauthorized' }, 401);
-  if (!sameHex(sig, await signVerify(env.VERIFY_HMAC_KEY, ts, 'POST', url.pathname, body))) return json({ error: 'unauthorized' }, 401);
+  if (!sameHex(sig, await signVerify(env.VERIFY_HMAC_KEY, ts, request.method, url.pathname, body))) return json({ error: 'unauthorized' }, 401);
+  if (isStats) return stats(env, url);
   let m;
   try { m = body ? JSON.parse(body) : {}; } catch { return json({ error: 'bad_request' }, 400); }
 
@@ -98,14 +127,20 @@ export async function handleVerify(request, env, url, nowS = Math.floor(Date.now
   if (typeof m.run_id !== 'string' || !/^[a-f0-9]{32}$/.test(m.run_id)) return json({ error: 'bad_request' }, 400);
   const bad = checkResult(m.result);
   if (bad) return json({ error: 'bad_result', field: bad }, 400);
-  const job = await env.DB.prepare('SELECT state, srv_outcome, rules_version, claimed_at FROM verify_queue WHERE run_id = ?').bind(m.run_id).first();
+  const job = await env.DB.prepare('SELECT state, srv_outcome, rules_version, claimed_at, client_score, kind, platform FROM verify_queue WHERE run_id = ?').bind(m.run_id).first();
   if (!job) return json({ error: 'not_found' }, 404);
   if (job.state !== 'pending' || job.claimed_at == null) return json({ error: 'not_claimed' }, 409);
-  let state;
-  if (m.result.ok) state = m.result.outcome === job.srv_outcome ? 'ok' : 'mismatch';
-  else state = NOT_A_VERDICT.has(m.result.reason) || m.result.rules_version !== job.rules_version ? 'error' : 'mismatch';
-  await env.DB.prepare(
-    `UPDATE verify_queue SET state = ?, result_json = ?, reason = ?, finished_at = ?, payload_json = NULL WHERE run_id = ? AND state = 'pending'`,
-  ).bind(state, JSON.stringify(m.result), m.result.reason || null, nowS, m.run_id).run();
-  return json({ ok: true, state });
+  const { state, verdict } = judge(m.result, job);
+  const r = m.result;
+  // Only verify_queue and verify_results are written. Never runs, wallet or leaderboard.
+  await env.DB.batch([
+    env.DB.prepare(
+      `UPDATE verify_queue SET state = ?, result_json = ?, reason = ?, finished_at = ?, payload_json = NULL WHERE run_id = ? AND state = 'pending'`,
+    ).bind(state, JSON.stringify(r), r.reason || null, nowS, m.run_id),
+    env.DB.prepare(
+      `INSERT OR REPLACE INTO verify_results (run_id, verdict, kind, platform, rules_version, srv_outcome, client_score, ok, reason, v_outcome, v_score, nodes, log_len, ms, at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(m.run_id, verdict, job.kind, job.platform, r.rules_version, job.srv_outcome, job.client_score, r.ok ? 1 : 0, r.reason, r.outcome, r.score, r.nodes, r.log_len, r.ms, nowS),
+  ]);
+  return json({ ok: true, state, verdict });
 }
