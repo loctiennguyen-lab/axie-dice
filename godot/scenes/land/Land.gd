@@ -1343,6 +1343,13 @@ func _load_daily_tries() -> void:
 	if _offline or _guest or String(ProjectSettings.get_setting("axie/epoch_source", "")) != "remote":
 		return
 	var ref: WeakRef = weakref(self)
+	var econ: RemoteEcon = MetaState.econ_remote()
+	if econ != null:   # BUG-0008: back from a run (or another device): refetch the gates, then show the server's tries
+		econ.refresh(func(_r: Dictionary) -> void:
+			var me: Variant = ref.get_ref()
+			var t := MetaState.server_daily()
+			if me != null and not t.is_empty():
+				me._apply_daily_tries(t))
 	RunState.run_session().daily_info(func(ok: bool, data: Dictionary) -> void:
 		var me: Variant = ref.get_ref()
 		if ok and me != null:

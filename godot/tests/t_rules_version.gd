@@ -258,7 +258,8 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## live run; dead run save dropped. Meta/wallet only, no combat or replay input. Run result: NO, stays -v.
 ## Pinned, 2026-10-27 (BUG-0008): MetaState reads newcomer / depth stage / runs count / Daily tries from the server's GET /api/econ `gates`
 ## while the economy is remote (session-only cache). Gate display + Run Setup only, no combat or replay input. Run result: NO, stays -v.
-const FINGERPRINT := "14e0c35ca59978af11aba1e9983cf82bca5a2f406ae0327a472ec2037cae6517"
+## BUG-0008 follow-up: gate helpers take max(local, server) so a run finished here counts before the next refetch. Run result: NO.
+const FINGERPRINT := "0315cad7ae6038d6b5ab0def46800e471d5909936ed40505b7d84b942d986ea3"
 
 
 func _ready() -> void:

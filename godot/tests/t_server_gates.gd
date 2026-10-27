@@ -54,6 +54,15 @@ func _ready() -> void:
 	_check(s2.kind_block_reason("ranked") == "Opens after 5 runs · 2 of 5", "Run Setup: locked text uses server count (%s)" % s2.kind_block_reason("ranked"))
 	s2.queue_free()
 
+	# max case: a 5th run finished on this device, server snapshot (2 runs, stage 1) not refetched yet
+	MetaState.runs_with_battle = 5
+	MetaState.runs_completed = 3
+	_check(not MetaState.is_newcomer() and MetaState.gate_runs_with_battle() == 5, "local ahead of server: max wins, not a newcomer")
+	_check(MetaState.depth_stage() == 3, "local stage 3 beats server stage 1")
+	MetaState.runs_with_battle = 1
+	MetaState.runs_completed = 0
+	_check(MetaState.is_newcomer() and MetaState.gate_runs_with_battle() == 2 and MetaState.depth_stage() == 1, "server ahead: server wins")
+
 	MetaState.reload_from_store()
 	_check(MetaState.server_gates.is_empty(), "reload_from_store clears the gates")
 	MetaState.use_remote_econ(null)

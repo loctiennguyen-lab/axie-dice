@@ -1277,10 +1277,12 @@ func _gates_remote() -> bool:
 	return _econ != null and not server_gates.is_empty()
 
 
-## Runs with >= 1 battle for display / gates: the server's count while the economy is remote (BUG-0008), else the local one.
+## Runs with >= 1 battle for display / gates. While the economy is remote: the larger of the server's count (other
+## devices, BUG-0008) and this device's (a run finished here before the next GET /api/econ). Never opens more than the
+## server allows: it re-checks on create.
 func gate_runs_with_battle() -> int:
 	if _gates_remote() and server_gates.has("runs_with_battle"):
-		return int(server_gates["runs_with_battle"])
+		return maxi(int(server_gates["runs_with_battle"]), runs_with_battle)
 	return runs_with_battle
 
 
@@ -1293,21 +1295,22 @@ func server_daily() -> Dictionary:
 
 
 func is_newcomer() -> bool:
-	if _gates_remote() and server_gates.has("newcomer"):
-		return bool(server_gates["newcomer"])
-	return runs_with_battle < int(EconomyDBScript.get_table("missions").get("newcomer_runs", 5))
+	return gate_runs_with_battle() < int(EconomyDBScript.get_table("missions").get("newcomer_runs", 5))
 
 
 ## Depth stage for an OFFLINE run (an online run takes it from the server header). Mirrors worker/src/runs.js depthStage():
 ## >= stage3_runs completed -> 3, >= 1 -> 2, none: still a newcomer -> 1, else (old account) 3. Constants = worker STAGE2_RUNS / STAGE3_RUNS (kept out of rules JSON: no rules-version bump).
 func depth_stage() -> int:
-	if _gates_remote() and server_gates.has("depth_stage"):
-		return clampi(int(server_gates["depth_stage"]), 1, 3)
+	var local := 1
 	if runs_completed >= DEPTH_STAGE3_RUNS:
-		return 3
-	if runs_completed >= DEPTH_STAGE2_RUNS:
-		return 2
-	return 1 if is_newcomer() else 3
+		local = 3
+	elif runs_completed >= DEPTH_STAGE2_RUNS:
+		local = 2
+	elif not is_newcomer():
+		local = 3
+	if _gates_remote() and server_gates.has("depth_stage"):   # remote: max(local, server)
+		return maxi(local, clampi(int(server_gates["depth_stage"]), 1, 3))
+	return local
 
 
 ## Called by RunState.end_run for every run that ended won/lost.
