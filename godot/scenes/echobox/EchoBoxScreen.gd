@@ -292,7 +292,7 @@ func set_state(s: String) -> void:
 		_build_skeleton()
 	elif s == "offline":
 		if remote_on:
-			_banner("Can't reach the dice server", "Opening needs a connection; nothing is spent. Cached counts are greyed.", true)
+			_banner("Can't reach the server", "Opening needs a connection; nothing is spent. Cached counts are greyed.", true)
 		else:
 			_banner("You're offline", "Boxes open on this device for now; progress syncs when you reconnect.", false)
 	elif s == "guest":
@@ -639,13 +639,13 @@ func _refresh_stage() -> void:
 		# One primary: Open N when usable, else Open 1, else (below) the buy button.
 		var n_ok := pull_block_reason(n_big) == ""
 		var one_ok := pull_block_reason(1) == ""
-		var o1 := UI3.button("Open 1", &"primary" if (one_ok and not n_ok) else &"secondary", &"L" if (one_ok and not n_ok) else &"M")
+		var o1 := UI3.button(open_label(1), &"primary" if (one_ok and not n_ok) else &"secondary", &"L" if (one_ok and not n_ok) else &"M")
 		o1.name = "Open1"
 		o1.pressed.connect(func() -> void: pull(1))
 		# A disabled reason must not be taller than "Open 1": only a usable Open N gets the big size.
-		var on := UI3.button("Open %d" % n_big, &"primary" if n_ok else &"secondary", &"L" if n_ok else &"M")
+		var on := UI3.button(open_label(n_big), &"primary" if n_ok else &"secondary", &"L" if n_ok else &"M")
 		on.name = "OpenN"
-		on.pressed.connect(func() -> void: pull(n_big))
+		on.pressed.connect(_on_open_many.bind(n_big))
 		var rt := UI3.button("Rates", &"secondary", &"S")   # a visible button, not a bare underline
 		rt.name = "Rates"
 		rt.pressed.connect(open_rates)
@@ -676,6 +676,28 @@ func _refresh_stage() -> void:
 		var sc := UI3Meta.scroll(_build_summary())
 		sc.name = "SummaryScroll"
 		_stage_host.add_child(sc)
+
+
+## Button text for a normal pull: the ticket cost is on the button ("Open 10 · 10 tickets").
+static func open_label(n: int) -> String:
+	return "Open %d · %d ticket%s" % [n, n, "" if n == 1 else "s"]
+
+
+## Spending several tickets in one press asks first (S3-16); the dialog says what it costs and what is left.
+func _on_open_many(n: int) -> void:
+	if _modal_layer.get_child_count() > 0:
+		return
+	var no := UI3.button("Cancel", &"secondary", &"M")
+	no.name = "CancelOpenN"
+	no.pressed.connect(close_modal)
+	var yes := UI3.button(open_label(n), &"primary", &"M")
+	yes.name = "ConfirmOpenN"
+	yes.pressed.connect(func() -> void:
+		close_modal()
+		pull(n))
+	var m := UI3.modal("Open %d boxes?" % n, "This spends %d tickets and leaves you %d." % [n, tickets() - n], [no, yes], 1)
+	m.cancelled.connect(close_modal)
+	_modal_layer.add_child(m)
 
 
 ## First season pull of the session confirms (tickets spent / left, pulls left); later ones go straight through.
@@ -717,6 +739,10 @@ func _refresh_side() -> void:
 	v.add_theme_constant_override("separation", UI3Theme.space("8"))
 	pity.add_child(v)
 	v.add_child(UI3.label("Pity · cosmetic pulls only", "LabelTitle"))
+	var ph := UI3.label("Each bar counts pulls toward a guaranteed rarity. Chest colour (Bronze to Lunacian) shows how rare the item is.", "LabelMuted")
+	ph.name = "PityHelp"
+	ph.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(ph)
 	for s in (box_cfg().get("pity", {}) as Dictionary).get("steps", []):
 		var rar := String(s["min_rarity"])
 		var need := int(s["pulls"])
@@ -1176,11 +1202,21 @@ func _cosmetic_art(item: String, px: float, live: bool) -> Control:
 
 
 func _load_thumb(tr: TextureRect, id: String, live: bool, px: float) -> void:
+	# Until the baked thumbnail is ready (or if it never is) the square shows the item name, not a blank.
+	var fb := UI3.label(CosmeticTile.any_name(id), "LabelTitle")
+	fb.name = "ThumbFallback"
+	fb.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	fb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	fb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	fb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tr.add_child(fb)
 	var tex: Texture2D = DiceThumb.cached_texture(id)
 	if tex == null:
 		tex = await DiceThumb.get_thumb(self, id)
 	if is_instance_valid(tr) and tex != null:
 		tr.texture = tex
+		fb.queue_free()
 	if not live or DisplayServer.get_name() == "headless" or not is_instance_valid(tr):
 		return
 	var faces := DiceStage.preview_faces()

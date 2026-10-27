@@ -31,5 +31,5 @@ static func reconnect(host: Node, retry: Callable, button: BaseButton = null) ->
 	var code := String(res["code"])
 	if code == "run_gone":
 		return "gone"
-	NetNotice.show(host, code, retry)
+	NetNotice.show(host, code, retry, "Could not load your run")
 	return "failed"

@@ -11,12 +11,15 @@ const NODE_NAME := "NetNotice"
 ## Copy per error code: UI-03 round 2, screen 36 (toast table). Surfaces there: Notice (this overlay, Retry),
 ## Dialog (blocking: expired / run_gone / version), Toast (rejected / bad_request / server, shown here as the
 ## same plate with OK until a toast host exists), Card/Inline (sign-in card, Aid) live in their own screens.
-static func text_for(code: String) -> String:
+## `action` names what failed when the caller knows ("Could not send your turn"); it leads the line.
+## `about_run` false drops "Your run is saved" (a wallet or store call has no run to save).
+static func text_for(code: String, action: String = "", about_run: bool = true) -> String:
+	var lead := (action + ". ") if action != "" else ""
 	match code:
 		"offline":
-			return "Can't reach the server. Your run is saved."
+			return lead + "Can't reach the server." + (" Your run is saved." if about_run else "")
 		"timeout":
-			return "The server is slow to answer. Try again."
+			return lead + "The server is slow to answer. Try again."
 		"expired", "unauthenticated":
 			return "Your session expired. Sign in again to continue this run."
 		"version", "mission_needs_update":
@@ -39,7 +42,7 @@ static func is_fatal(code: String) -> bool:
 
 ## Shows (or replaces) the notice on `host`. `retry` is called by the RETRY button (non-fatal codes only).
 ## Fatal codes get SIGN IN and BACK TO MENU instead: never a dead screen.
-static func show(host: Node, code: String, retry: Callable = Callable()) -> Node:
+static func show(host: Node, code: String, retry: Callable = Callable(), action: String = "", about_run: bool = true) -> Node:
 	if host == null or not host.is_inside_tree():
 		return null
 	if UpdateRequired.is_update_code(code):
@@ -68,7 +71,7 @@ static func show(host: Node, code: String, retry: Callable = Callable()) -> Node
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
 	panel.add_child(row)
-	var l := UI3.label(text_for(code))
+	var l := UI3.label(text_for(code, action, about_run))
 	l.name = "Message"
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -97,7 +100,7 @@ static func show(host: Node, code: String, retry: Callable = Callable()) -> Node
 			host.get_tree().change_scene_to_file(LandNav.LAND_SCENE))
 		row.add_child(back)
 	elif retry.is_valid():
-		var b := UI3.button("RETRY", &"secondary", &"S")
+		var b := UI3.button("RETRY", &"primary", &"M")   # the one primary: OK stays secondary
 		b.name = "RetryButton"
 		b.pressed.connect(func():
 			layer.queue_free()

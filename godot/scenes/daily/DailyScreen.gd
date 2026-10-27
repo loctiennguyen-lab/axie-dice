@@ -127,7 +127,7 @@ func set_state(s: String) -> void:
 		return
 	UI3Meta.clear(_banner_host)
 	if s == "offline":
-		_banner("You are offline" if not remote_on else "Can't reach the dice server",
+		_banner("You are offline" if not remote_on else "Can't reach the server",
 			"Claims run on this device for now." if not remote_on else "Claims need a connection.")
 	elif s == "guest":
 		_banner("You're signed out" if not remote_on else "Sign in to claim",
@@ -215,6 +215,11 @@ func _claim_button(nm: String, text: String, claimable: bool, reason: String, cb
 	return b
 
 
+## Weekly strip text: the word says claimed / not yet, so the amber fill is never the only signal.
+static func day_chip_text(day: int, claimed: bool) -> String:
+	return "Day %d · %s" % [day, "claimed" if claimed else "not yet"]
+
+
 ## Day chip: claimed = amber chip, still to come = outlined plate with normal text (never dimmed).
 func _day_chip(text: String, done: bool) -> Control:
 	if done:
@@ -261,7 +266,7 @@ func _refresh() -> void:
 	strip.name = "WeekStrip"
 	strip.add_theme_constant_override("separation", UI3Theme.space("8"))
 	for i in need:
-		strip.add_child(_day_chip("Day %d" % (i + 1), i < have))
+		strip.add_child(_day_chip(day_chip_text(i + 1, i < have), i < have))
 	var paid := MetaState.weekly_bonus_paid()
 	# The weekly bonus pays by itself on the last day; the button only says where you are.
 	var wreason := "Paid this week" if paid else "%d of %d days · pays on day %d" % [have, need, need]
@@ -271,7 +276,7 @@ func _refresh() -> void:
 		[["Shards", "+%d" % int(w.get("shards", 0))], ["Stone", "+%d" % int(w.get("stone", 0))]], wb, strip))
 	var greason := "Claimed today" if gs == "done" else ("At the cap" if gs == "cap" else reason)
 	var cap := int(g.get("balance_cap", 900))
-	var gtxt := "Playtest: free, up to %d held." % cap
+	var gtxt := "Free Gems during the beta. You can hold up to %d." % cap
 	if gs == "cap":
 		gtxt = "You hold %d, nothing to claim." % MetaState.gem_wallet().balance()
 	if last_result != "":

@@ -203,8 +203,8 @@ func _ready() -> void:
 	h3.call("_show_toast", "two", 5.0, &"error")
 	await get_tree().process_frame
 	var tl: Array = h3.get("_toasts")
-	_check(tl.size() == 2 and is_equal_approx((tl[0] as Control).position.y, 24.0), "UI3: first toast 24 px from the top")
-	_check(is_equal_approx((tl[1] as Control).position.y, 24.0 + (tl[0] as Control).size.y + 8.0), "UI3: toasts stack with an 8 px gap")
+	_check(tl.size() == 1 and is_equal_approx((tl[0] as Control).position.y, 24.0), "UI3: first toast 24 px from the top")
+	_check((h3.get("_toast_queue") as Array).size() == 1, "S4-14: the second toast waits in the queue, no stacking over the chip")
 	_check(h3.find_child("LossRow", true, false) == null or (h3.find_child("LossRow", true, false) as Control).custom_minimum_size.y >= 48.0, "UI3: loss row at least 48 high")
 	h3.queue_free()
 	await get_tree().process_frame

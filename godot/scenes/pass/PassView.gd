@@ -288,7 +288,12 @@ func _build() -> void:
 	_left.name = "Content"
 	_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_left.add_theme_constant_override("separation", UI3Theme.space("16"))
-	body.add_child(_left)
+	_left.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# S4-10: when banners + weekly tasks leave less than two track rows (1280x720), the column scrolls
+	# instead of cutting LV 7-12 under the bottom bars.
+	var left_scroll := UI3Meta.scroll(_left)
+	left_scroll.name = "LeftScroll"
+	body.add_child(left_scroll)
 	_detail = UI3.plate(&"plate")
 	_detail.name = "DetailCard"
 	_detail.custom_minimum_size = Vector2(DETAIL_W, 0)
@@ -303,7 +308,7 @@ func refresh() -> void:
 	(_shell["sub"] as Label).text = season_text()
 	match state:
 		"offline":
-			UI3Meta.banner(_banner_host, "Can't reach the dice server" if remote_on else "You're offline",
+			UI3Meta.banner(_banner_host, "Can't reach the server" if remote_on else "You're offline",
 				"Gem gifts need a connection." if remote_on else "Your pass progress is kept on this device.")
 		"guest":
 			UI3Meta.banner(_banner_host, "You're signed out", "Pass progress is kept on this device. Sign in to keep it.")
@@ -426,6 +431,12 @@ func _draw_detail() -> void:
 	v.add_child(b)
 
 
+## Text on the disabled button of the next level to reach: how much XP is still missing.
+func next_text(lv: int) -> String:
+	var left := maxi(int(PassV2.level_def(lv).get("xp_total", 0)) - xp(), 0)
+	return "Next · needs %s XP" % UI3.fmt(left) if left > 0 else "Next level"
+
+
 static func _state_word(st: String) -> String:
 	match st:
 		"claimed": return "Claimed"
@@ -447,7 +458,16 @@ func _build_level_card() -> void:
 	bl.name = "LevelNumber"
 	bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	badge.add_child(bl)
+	# S4-10: the big number says what it is.
+	var bcol := VBoxContainer.new()
+	bcol.alignment = BoxContainer.ALIGNMENT_CENTER
+	bcol.add_theme_constant_override("separation", 0)
+	var cap := UI3.label("Level", "LabelMuted")
+	cap.name = "LevelCaption"
+	cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	bcol.add_child(cap)
+	bcol.add_child(bl)
+	badge.add_child(bcol)
 	row.add_child(badge)
 	var mid := VBoxContainer.new()
 	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -538,6 +558,7 @@ func _build_track() -> void:
 		grid.add_child(tile)
 	var sc := UI3Meta.scroll(grid)
 	sc.name = "TrackScroll"
+	sc.custom_minimum_size.y = TILE_H * 2 + UI3Theme.space("16")   # two full rows
 	_left.add_child(sc)
 
 
@@ -600,7 +621,7 @@ func _tile(def: Dictionary) -> Control:
 			b.text = "CLAIM"
 			b.pressed.connect(claim_level.bind(lv))
 		"next":
-			b.text = "Next"
+			b.text = next_text(lv)
 			b.disabled = true
 		_:
 			b.text = "Reach LV %d" % lv if season_phase() != "over" else "Not claimed"

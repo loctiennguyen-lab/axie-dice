@@ -66,11 +66,48 @@ static func show(host: Node, code := "version", on_close: Callable = Callable())
 	layer.add_child(m)
 	dl.pressed.connect(open_download)
 	var dismiss := func() -> void:
+		var tree := host.get_tree()
 		if is_instance_valid(layer):
 			layer.queue_free()
+		show_bar(tree)   # S4-12: after Close a thin bar stays on every screen
 		if on_close.is_valid():
 			on_close.call()
 	close.pressed.connect(dismiss)
 	m.cancelled.connect(dismiss)
 	host.add_child(layer)
+	return layer
+
+
+const BAR_NAME := "UpdateRequiredBar"
+
+
+## "Update required" bar: thin, bottom-centre, on its own layer on the tree root so it outlives the scene
+## change that follows Close. One at a time. Its button does the same as the modal's primary button.
+static func show_bar(tree: SceneTree) -> Node:
+	if tree == null or tree.root == null:
+		return null
+	var old := tree.root.get_node_or_null(BAR_NAME)
+	if old != null:
+		return old
+	var layer := CanvasLayer.new()
+	layer.name = BAR_NAME
+	layer.layer = 110
+	var bottom := CenterContainer.new()
+	bottom.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	bottom.offset_top = -72
+	bottom.offset_bottom = -16
+	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(bottom)
+	var panel := UI3.plate(&"notice")
+	panel.name = "Panel"
+	bottom.add_child(panel)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	panel.add_child(row)
+	row.add_child(UI3.label("Update required. New runs are blocked on this version."))
+	var b := UI3.button("Reload the page" if is_web() else "Download", &"secondary", &"S")
+	b.name = "BarButton"
+	b.pressed.connect(open_download)
+	row.add_child(b)
+	tree.root.add_child(layer)
 	return layer
