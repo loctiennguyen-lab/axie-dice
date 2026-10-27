@@ -20,15 +20,20 @@ func _snap(rid: String) -> Dictionary:
 
 func _enter_land() -> LandHub:
 	var hub: LandHub = (load("res://scenes/land/Land.tscn") as PackedScene).instantiate()
-	hub.set("qa", {"offline": false})
 	get_tree().root.add_child(hub)
 	get_tree().current_scene = hub
-	await get_tree().process_frame
+	var n := 0
+	while hub.get("_run_plate") == null and n < 300:
+		await get_tree().process_frame
+		n += 1
 	return hub
 
 
 func _ready() -> void:
+	await get_tree().process_frame
 	_guard.capture()
+	LandNav.dry_run = false
+	LandHub.qa = {"guest": false, "offline": false}
 	MetaState.reload_from_store()
 	MetaState.tutorial_seen = true
 	MetaState.shard_pool = 560
