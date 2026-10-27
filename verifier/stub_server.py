@@ -19,7 +19,7 @@ def payload(mismatch):
             "client_claim": {"outcome": "lost", "score": 1}, "entries": sample["entries"], "tape": sample["tape"]}
 
 
-jobs = [("a" * 32, payload(False)), ("b" * 32, payload(True))]
+jobs = [("a" * 32, payload(False)), ("b" * 32, payload(True)), ("c" * 32, payload(False))]
 results = {}
 
 
