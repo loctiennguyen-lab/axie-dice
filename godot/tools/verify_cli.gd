@@ -32,19 +32,22 @@ static func run(raw: String) -> Dictionary:
 	if not (parsed is Dictionary):
 		return _done(_invalid("bad_json", 0), t0, EXIT_INPUT)
 	var data := parsed as Dictionary
-	# Job shape (verifier/JOB_SCHEMA.md): {log, tape, server_header, server_loadout}. A bare log bundle (header/entries/tape at the
-	# top level) still works, as before.
-	var server_header: Variant = null
-	var server_loadout: Variant = null
-	if data.get("log") is Dictionary:
-		server_header = data.get("server_header", null)
-		server_loadout = data.get("server_loadout", null)
-		if (server_header != null and not (server_header is Dictionary)) or (server_loadout != null and not (server_loadout is Dictionary)):
+	# Job payload (schema 1, verifier/JOB_SCHEMA.md): header from server_header + client_header, entries, tape. A bare log bundle
+	# (header/entries/tape at the top level) still works, as before.
+	var is_job: bool = data.has("server_header")
+	var job_loadout: Dictionary = {}
+	var job_error := ""
+	if is_job:
+		if not (data["server_header"] is Dictionary) or int(data.get("schema", 0)) != 1 or not (data.get("entries", []) is Array):
 			return _done(_invalid("bad_job", 0), t0, EXIT_INPUT)
-		var job_tape: Variant = data.get("tape", null)
-		data = (data["log"] as Dictionary).duplicate()
-		if job_tape != null:
-			data["tape"] = job_tape
+		var built := build_from_job(data)
+		var job_tape: Variant = data.get("tape", [])
+		job_error = String(built["error"])
+		job_loadout = built["loadout"]
+		data = (built["data"] as Dictionary).duplicate()
+		data["tape"] = job_tape
+		if job_error != "":
+			data["entries"] = (parsed as Dictionary).get("entries", [])
 	var entries: Variant = data.get("entries", [])
 	var n := (entries as Array).size() if entries is Array else 0
 	if n > MAX_LOG_LEN:
@@ -55,15 +58,11 @@ static func run(raw: String) -> Dictionary:
 
 	var alog := ActionLog.from_data(data)
 	var nodes := _count_nodes(entries)
-	if server_header is Dictionary:
-		if header_diff(server_header as Dictionary, alog.header) != "":
-			var rej := {"ok": false, "reason": "header_mismatch", "rules_version": ActionLog.RULES_VERSION,
-				"outcome": "rejected", "score": 0, "nodes": nodes, "log_len": n, "ms": 0}
-			return _done(rej, t0, EXIT_REJECTED)
-	var lo: Dictionary = {}
-	if server_loadout is Dictionary:
-		lo = merge_loadout(server_loadout as Dictionary, alog.header)
-	var verdict := RunVerifier.verify(alog, tape as Array, lo)
+	if job_error != "":
+		var rej := {"ok": false, "reason": job_error, "rules_version": ActionLog.RULES_VERSION,
+			"outcome": "rejected", "score": 0, "nodes": nodes, "log_len": n, "ms": 0}
+		return _done(rej, t0, EXIT_REJECTED)
+	var verdict := RunVerifier.verify(alog, tape as Array, job_loadout)
 	var ok := bool(verdict.get("ok", false))
 	var res := {
 		"ok": ok,
@@ -78,56 +77,49 @@ static func run(raw: String) -> Dictionary:
 	return _done(res, t0, EXIT_OK if ok else EXIT_REJECTED)
 
 
-## Fields the server's header decides. header_diff returns the first one that differs from the log header, "" if all match.
-## A field the server did not send is not compared. Missing log values take the engine defaults.
-const HEADER_FIELDS := ["rules_version", "mode", "ascension", "ranked", "depth_stage", "kind", "mission"]
-
-
-static func header_diff(server: Dictionary, log_header: Dictionary) -> String:
-	var lm: Dictionary = {}
-	if log_header.get("mission", {}) is Dictionary:
-		lm = log_header["mission"] as Dictionary
-	var is_ranked := bool(log_header.get("ranked", false))
-	var mine := {
-		"rules_version": String(log_header.get("rules_version", "")),
-		"mode": String(log_header.get("mode", "short")),
-		"ascension": int(log_header.get("ascension", 0)),
-		"ranked": is_ranked,
-		"depth_stage": int(log_header.get("depth_stage", 3)),
-		# The log header stores no kind: it is "mission" with a mission header, else "ranked" / "normal".
-		"kind": String(log_header.get("kind", "mission" if not lm.is_empty() else ("ranked" if is_ranked else "normal"))),
-	}
-	for k in HEADER_FIELDS:
-		if not server.has(k):
-			continue
-		var sv: Variant = server[k]
-		if k == "mission":
-			if not (sv is Dictionary) or not RunVerifier._mission_same(sv as Dictionary, lm):
-				return k
-		elif k == "ranked":
-			if not (sv is bool) or bool(sv) != is_ranked:
-				return k
-		elif k == "ascension" or k == "depth_stage":
-			if not (sv is int or sv is float) or float(sv) != float(int(mine[k])):
-				return k
-		elif not (sv is String) or String(sv) != String(mine[k]):
-			return k
-	return ""
-
-
-## The server's loadout wins outright. Only anchor / rules_on / core_off / boon_id, which the server does not send, are kept from the
-## log header. No `bonuses` from the server means zero bonuses, never the verifier's own MetaState (RunState would read that otherwise).
-static func merge_loadout(server_loadout: Dictionary, log_header: Dictionary) -> Dictionary:
-	var lo: Dictionary = server_loadout.duplicate(true)
-	var hl: Dictionary = {}
-	if log_header.get("loadout", {}) is Dictionary:
-		hl = log_header["loadout"] as Dictionary
+## Job payload (schema 1, see verifier/JOB_SCHEMA.md) -> {"data": {header, entries}, "loadout": Dictionary, "error": String}.
+## The server's header wins on every field it owns (rules_version, mode, ascension, ranked, depth_stage, mission, newcomer).
+## team_keys / content_version / local_secret come from client_header (the server cannot know them). The loadout is the server's
+## bonuses plus client_header.loadout (anchor, rules_on, core_off, boon_id) with server_loadout.forced on top; the client never
+## supplies bonuses. `error` is "header_mismatch" or "bad_header" when the job cannot be replayed.
+static func build_from_job(job: Dictionary) -> Dictionary:
+	var sh: Dictionary = job["server_header"] as Dictionary
+	var ch: Dictionary = job.get("client_header", {}) as Dictionary if job.get("client_header", {}) is Dictionary else {}
+	var sl: Dictionary = job.get("server_loadout", {}) as Dictionary if job.get("server_loadout", {}) is Dictionary else {}
+	var out := {"data": {}, "loadout": {}, "error": ""}
+	var mission: Dictionary = sh.get("mission", {}) as Dictionary if sh.get("mission", null) is Dictionary else {}
+	var kind := String(sh.get("kind", ""))
+	# kind "mission" <=> a mission header; a ranked kind agrees with the ranked flag. Anything else the server says is inconsistent.
+	if bool(sh.get("header_mismatch", false)) or (kind == "mission") != (not mission.is_empty()) \
+			or (kind == "ranked") != bool(sh.get("ranked", false)):
+		out["error"] = "header_mismatch"
+		return out
+	var team: Variant = ch.get("team_keys", null)
+	if not (team is Array) or (team as Array).is_empty() or String(ch.get("content_version", "")) == "":
+		out["error"] = "bad_header"
+		return out
+	var lo: Dictionary = {}
+	var bonuses: Dictionary = sl.get("bonuses", {}) as Dictionary if sl.get("bonuses", {}) is Dictionary else {}
+	lo["bonuses"] = bonuses.duplicate(true)
+	var cl: Dictionary = ch.get("loadout", {}) as Dictionary if ch.get("loadout", {}) is Dictionary else {}
 	for k in ["anchor", "rules_on", "core_off", "boon_id"]:
-		if not lo.has(k) and hl.has(k):
-			lo[k] = hl[k]
-	if not lo.has("bonuses"):
-		lo["bonuses"] = {}
-	return lo
+		if cl.has(k):
+			lo[k] = cl[k]
+	var forced: Dictionary = sl.get("forced", {}) as Dictionary if sl.get("forced", {}) is Dictionary else {}
+	for k in forced:
+		lo[k] = forced[k]
+	var header := {
+		"team_keys": (team as Array).duplicate(), "content_version": String(ch.get("content_version", "")),
+		"local_secret": int(ch.get("local_secret", 0)),
+		"rules_version": String(sh.get("rules_version", "")), "mode": String(sh.get("mode", "short")),
+		"ascension": int(sh.get("ascension", 0)), "ranked": bool(sh.get("ranked", false)),
+		"depth_stage": int(sh.get("depth_stage", 3)), "newcomer": bool(sh.get("newcomer", false)),
+		"mission": mission.duplicate(true), "loadout": lo.duplicate(true),
+	}
+	out["data"] = {"header": header, "entries": job.get("entries", [])}
+	out["loadout"] = lo
+	return out
+
 
 
 static func _count_nodes(entries: Variant) -> int:

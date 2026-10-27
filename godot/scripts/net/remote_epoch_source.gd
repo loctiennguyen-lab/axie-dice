@@ -260,6 +260,9 @@ func _close_now(outcome: String, summary: Dictionary) -> EpochReply:
 	var msg := {"t": "run_close", "seq": _seq, "log_delta": _delta_entries(int(peek["log_len"])),
 		"h": String(peek["h"]), "log_len": int(peek["log_len"]), "outcome": outcome, "summary": summary}
 	_stamp_stage(msg)
+	var lh := _log_header()
+	if not lh.is_empty():
+		msg["log_header"] = lh
 	var inner := EpochReply.new()
 	session.submit(msg, inner)
 	_when_done(inner, func() -> void:
@@ -269,6 +272,24 @@ func _close_now(outcome: String, summary: Dictionary) -> EpochReply:
 			_seq += 1
 		reply.settle(inner.ok, 0, inner.code))
 	return reply
+
+
+## SR-V: the part of the log header the server cannot know (team, content version, secret, loadout flags), sent once on run_close.
+## A client claim: the server uses it only for what it has no other source for (<= 2 KB, the Worker whitelists and caps it).
+func _log_header() -> Dictionary:
+	if _log == null:
+		return {}
+	var h: Dictionary = _log.header
+	var team: Array = []
+	for k in (h.get("team_keys", []) as Array):
+		team.append(String(k).left(80))
+	if team.is_empty() or team.size() > 5:
+		return {}
+	var hl: Dictionary = h.get("loadout", {}) as Dictionary if h.get("loadout", {}) is Dictionary else {}
+	return {"team_keys": team, "content_version": String(h.get("content_version", "")).left(40),
+		"local_secret": int(h.get("local_secret", 0)),
+		"loadout": {"anchor": bool(hl.get("anchor", false)), "rules_on": bool(hl.get("rules_on", true)),
+			"core_off": bool(hl.get("core_off", false)), "boon_id": String(hl.get("boon_id", "")).left(40)}}
 
 
 func _stamp_stage(msg: Dictionary) -> void:

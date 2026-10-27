@@ -51,6 +51,7 @@ class FakeServer extends RefCounted:
 	var open_calls := 0
 	var open_ok := true
 	var received: Array = []
+	var close_msg: Dictionary = {}
 	var http_error := ""
 	var stale_id := ""            # a run left open by an earlier attempt: POST /api/run answers 409 run_open
 	var abandon_ok := true
@@ -156,6 +157,7 @@ class FakeServer extends RefCounted:
 				s.inbox.append(JSON.stringify({"t": "aid_res", "seq": m["seq"], "h": h2.hex_encode(), "log_len": last_len, "extra": {"row_types": {"3": ["battle", "shop"]}}}))
 			"run_close":
 				closed = true
+				close_msg = m
 				s.inbox.append(JSON.stringify({"t": "closed", "seq": m["seq"]}))
 
 	func _epoch(s: FakeSocket, m: Dictionary) -> void:
@@ -276,9 +278,15 @@ func _ready() -> void:
 	_run(session, a, 5.0)
 	_check(a.ok and a.extra["row_types"].has(3), "aid_res carries row_types")
 
+	log.header = {"team_keys": ["plant1", "beast1"], "content_version": "cv1", "local_secret": 7,
+		"loadout": {"anchor": false, "rules_on": true, "core_off": false, "boon_id": "b1", "bonuses": {"hp_bonus": 99}}}
 	var c := src.close("lost", {"battles_done": 2})
 	_run(session, c, 5.0)
 	_check(c.ok and server.closed, "run_close acknowledged")
+	var lh: Dictionary = server.close_msg.get("log_header", {})
+	_check(lh.get("team_keys", []) == ["plant1", "beast1"] and lh.get("content_version") == "cv1" and int(lh.get("local_secret", -1)) == 7, "run_close carries log_header team/content/secret")
+	_check(lh.get("loadout", {}) == {"anchor": false, "rules_on": true, "core_off": false, "boon_id": "b1"}, "log_header.loadout has exactly the 4 flags (no bonuses)")
+	_check(JSON.stringify(lh).length() <= 2048, "log_header <= 2 KB")
 	_check(src.request("node", {"node_id": "r9_c0"}).code == "out_of_order", "no requests after close")
 
 	await _offline_and_errors()

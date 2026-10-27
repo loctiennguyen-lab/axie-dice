@@ -93,61 +93,76 @@ func _ready() -> void:
 	get_tree().quit(0 if _failures.is_empty() else 1)
 
 
-func _job(bundle: Dictionary, sh: Variant, sl: Variant) -> String:
-	var tape: Variant = bundle["tape"]
-	var lg: Dictionary = bundle.duplicate(true)
-	lg.erase("tape")
-	var job := {"log": lg, "tape": tape}
-	if sh != null:
-		job["server_header"] = sh
-	if sl != null:
-		job["server_loadout"] = sl
-	return JSON.stringify(job)
+## A schema-1 job payload (verifier/JOB_SCHEMA.md) made from a played log: what the Worker would send for it.
+func _make_job(b: Dictionary) -> Dictionary:
+	var h: Dictionary = b["header"]
+	var hl: Dictionary = h.get("loadout", {}) as Dictionary
+	var ranked := bool(h.get("ranked", false))
+	var mission: Dictionary = h.get("mission", {}) as Dictionary
+	return {"schema": 1,
+		"server_header": {"rules_version": h["rules_version"], "kind": "mission" if not mission.is_empty() else ("ranked" if ranked else "normal"),
+			"mode": h["mode"], "ascension": h["ascension"], "ranked": ranked, "depth_stage": h.get("depth_stage", 3),
+			"newcomer": bool(h.get("newcomer", false)), "mission": mission if not mission.is_empty() else null, "header_mismatch": false},
+		"server_loadout": {"bonuses": (hl.get("bonuses", {}) as Dictionary).duplicate(true), "forced": {}, "server_unknown": ["anchor", "rules_on", "core_off", "boon_id"]},
+		"client_header": {"team_keys": h["team_keys"], "content_version": h["content_version"], "local_secret": h.get("local_secret", 0),
+			"loadout": {"anchor": hl.get("anchor", false), "rules_on": hl.get("rules_on", true), "core_off": hl.get("core_off", false), "boon_id": hl.get("boon_id", "")}},
+		"client_claim": {"outcome": "won", "score": 1},
+		"entries": b["entries"], "tape": b["tape"]}
 
 
 func _job_checks(good: String, honest_score: int) -> void:
 	var b: Dictionary = JSON.parse_string(good)
-	var h: Dictionary = b["header"]
-	var sh := {"rules_version": h["rules_version"], "mode": h["mode"], "ascension": h["ascension"], "ranked": h["ranked"],
-		"depth_stage": h.get("depth_stage", 3), "kind": "ranked" if bool(h["ranked"]) else "normal", "mission": h.get("mission", {})}
-	# job without server_* = same as the bare bundle
-	var r := VerifyCli.run(_job(b, null, null))
-	_schema(r, "job plain")
-	_check(bool(r["result"]["ok"]) and int(r["result"]["score"]) == honest_score, "job form without server_* verifies: %s" % str(r["result"]))
-	# matching server header -> ok
-	r = VerifyCli.run(_job(b, sh, null))
-	_check(bool(r["result"]["ok"]) and int(r["result"]["score"]) == honest_score, "matching server_header verifies: %s" % str(r["result"]))
-	# each field differs -> header_mismatch
-	var bad := {"rules_version": "zz", "mode": "full" if String(h["mode"]) == "short" else "short", "ascension": int(h["ascension"]) + 1,
-		"ranked": not bool(h["ranked"]), "depth_stage": int(h.get("depth_stage", 3)) % 3 + 1,
-		"kind": "daily", "mission": {"tier": 1, "rules": ["m1"]}}
-	for k in bad:
-		var sh2: Dictionary = sh.duplicate(true)
-		sh2[k] = bad[k]
-		r = VerifyCli.run(_job(b, sh2, null))
-		_schema(r, "header_mismatch " + k)
-		_check(String(r["result"]["reason"]) == "header_mismatch" and String(r["result"]["outcome"]) == "rejected" and int(r["code"]) == 1 and int(r["result"]["score"]) == 0,
-			"server_header.%s differs -> header_mismatch (%s)" % [k, String(r["result"]["reason"])])
-	# server loadout wins over the header's: poison the log header bonuses, send the real loadout
-	var real_lo: Dictionary = (h.get("loadout", {}) as Dictionary).duplicate(true)
-	var lo_for_server: Dictionary = real_lo.duplicate(true)
-	lo_for_server.erase("anchor"); lo_for_server.erase("rules_on"); lo_for_server.erase("core_off"); lo_for_server.erase("boon_id")
-	var poisoned: Dictionary = b.duplicate(true)
-	var ph: Dictionary = poisoned["header"]
-	var pl: Dictionary = (ph.get("loadout", {}) as Dictionary).duplicate(true)
-	pl["bonuses"] = {"bonus_reroll": 9, "hp_bonus": 50, "start_relic_max_rarity": 1, "reward_reroll_max": 5}
-	ph["loadout"] = pl
-	var without := VerifyCli.run(_job(poisoned, null, null))
-	_check(not bool(without["result"]["ok"]) or int(without["result"]["score"]) != honest_score, "poisoned header bonuses change the verdict when the server sends none")
-	r = VerifyCli.run(_job(poisoned, null, lo_for_server))
-	_check(bool(r["result"]["ok"]) and int(r["result"]["score"]) == honest_score, "server_loadout overrides the header bonuses: %s" % str(r["result"]))
-	# keys the server does not send come from the log header
-	var m := VerifyCli.merge_loadout({"bonuses": {"bonus_reroll": 1}}, {"loadout": {"anchor": "x", "rules_on": true, "core_off": false, "boon_id": "b", "bonuses": {"bonus_reroll": 7}}})
-	_check(m["anchor"] == "x" and m["rules_on"] == true and m["core_off"] == false and m["boon_id"] == "b" and int(m["bonuses"]["bonus_reroll"]) == 1, "merge_loadout keeps anchor/rules_on/core_off/boon_id, server bonuses win")
-	m = VerifyCli.merge_loadout({"anchor": "y"}, {"loadout": {"anchor": "x"}})
-	_check(m["anchor"] == "y" and (m["bonuses"] as Dictionary).is_empty(), "server anchor wins; no server bonuses = zero bonuses")
-	# bad job shape
-	r = VerifyCli.run(JSON.stringify({"log": b, "server_header": 5}))
+	var job := _make_job(b)
+	var r := VerifyCli.run(JSON.stringify(job))
+	_schema(r, "job honest")
+	_check(bool(r["result"]["ok"]) and int(r["result"]["score"]) == honest_score, "schema-1 job verifies to the played score: %s" % str(r["result"]))
+	# header_mismatch flag, and a kind that contradicts the mission / ranked fields
+	var j := job.duplicate(true)
+	j["server_header"]["header_mismatch"] = true
+	r = VerifyCli.run(JSON.stringify(j))
+	_schema(r, "header_mismatch flag")
+	_check(String(r["result"]["reason"]) == "header_mismatch" and String(r["result"]["outcome"]) == "rejected" and int(r["code"]) == 1, "header_mismatch=true -> reject header_mismatch")
+	j = job.duplicate(true)
+	j["server_header"]["kind"] = "mission"
+	r = VerifyCli.run(JSON.stringify(j))
+	_check(String(r["result"]["reason"]) == "header_mismatch", "kind mission without a mission -> header_mismatch")
+	j = job.duplicate(true)
+	j["server_header"]["kind"] = "ranked" if String(job["server_header"]["kind"]) != "ranked" else "normal"
+	r = VerifyCli.run(JSON.stringify(j))
+	_check(String(r["result"]["reason"]) == "header_mismatch", "kind contradicting ranked -> header_mismatch")
+	# the server wins on its header fields: another ascension is not replayed as the client's
+	j = job.duplicate(true)
+	j["server_header"]["ascension"] = int(job["server_header"]["ascension"]) + 3
+	r = VerifyCli.run(JSON.stringify(j))
+	_schema(r, "server ascension")
+	_check(not bool(r["result"]["ok"]) or int(r["result"]["score"]) != honest_score, "server ascension differs -> verdict changes (%s)" % String(r["result"]["reason"]))
+	# missing client fields -> bad_header
+	j = job.duplicate(true)
+	j["client_header"].erase("team_keys")
+	r = VerifyCli.run(JSON.stringify(j))
+	_check(String(r["result"]["reason"]) == "bad_header" and int(r["code"]) == 1, "no team_keys -> bad_header")
+	j = job.duplicate(true)
+	j["client_header"]["content_version"] = ""
+	r = VerifyCli.run(JSON.stringify(j))
+	_check(String(r["result"]["reason"]) == "bad_header", "no content_version -> bad_header")
+	# bonuses: the server's count, never the client's
+	j = job.duplicate(true)
+	(j["client_header"]["loadout"] as Dictionary)["bonuses"] = {"bonus_reroll": 9, "hp_bonus": 50, "start_relic_max_rarity": 1, "reward_reroll_max": 5}
+	r = VerifyCli.run(JSON.stringify(j))
+	_check(bool(r["result"]["ok"]) and int(r["result"]["score"]) == honest_score, "bonuses in client_header.loadout are ignored")
+	j = job.duplicate(true)
+	j["server_loadout"]["bonuses"] = {"bonus_reroll": 9, "hp_bonus": 50, "start_relic_max_rarity": 1, "reward_reroll_max": 5}
+	r = VerifyCli.run(JSON.stringify(j))
+	_check(not bool(r["result"]["ok"]) or int(r["result"]["score"]) != honest_score, "server bonuses change the replay (they are the ones used)")
+	# loadout assembly: client flags kept, forced wins, no bonuses from the server = zero
+	var built := VerifyCli.build_from_job({"server_header": {"kind": "ranked", "ranked": true}, "client_header": {"team_keys": ["a"], "content_version": "c",
+		"loadout": {"anchor": true, "rules_on": false, "core_off": true, "boon_id": "x"}},
+		"server_loadout": {"forced": {"rules_on": true, "core_off": false, "anchor": false}}, "entries": []})
+	var lo: Dictionary = built["loadout"]
+	_check(String(built["error"]) == "" and lo["rules_on"] == true and lo["core_off"] == false and lo["anchor"] == false and lo["boon_id"] == "x" and (lo["bonuses"] as Dictionary).is_empty(),
+		"loadout: forced overrides the client flags, boon_id kept, bonuses default empty")
+	# bad shape
+	r = VerifyCli.run(JSON.stringify({"schema": 1, "server_header": 5}))
 	_check(int(r["code"]) == 2 and String(r["result"]["reason"]) == "bad_job", "non-object server_header -> bad_job")
 
 
