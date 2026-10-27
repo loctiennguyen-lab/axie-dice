@@ -47,16 +47,10 @@ func setup(ids: Array, first_time := true) -> void:
 	var sub := UI3.label(tr("Anchor = a rule that stays all run. Hold 2 of its House Cores to awaken it. Click a card to choose."), "LabelMuted")
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	head.add_child(sub)
-	var gl := UI3.label(tr(GLOSSARY), "LabelMuted")
-	gl.name = "AnchorGlossary"
-	gl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	gl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	gl.custom_minimum_size.x = 1200
-	gl.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	head.add_child(gl)
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.offset_top = 96   # keep the cards clear of the title + subtitle now that the glossary sits under the button
 	add_child(center)
 	var col := VBoxContainer.new()
 	col.name = "AnchorColumn"
@@ -82,6 +76,13 @@ func setup(ids: Array, first_time := true) -> void:
 	take_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	take_button.pressed.connect(_take)
 	actions.add_child(take_button)
+	var gl := UI3.label(tr(GLOSSARY), "LabelMuted")
+	gl.name = "AnchorGlossary"
+	gl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	gl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	gl.custom_minimum_size.x = 1200
+	gl.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	actions.add_child(gl)
 	_refresh_take()
 	# Flip like the Core pick (no random tier: neutral moss look, first time = longer aura).
 	reveal = GachaReveal.new()
