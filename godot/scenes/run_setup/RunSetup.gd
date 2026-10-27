@@ -394,7 +394,7 @@ func begin_block_reason() -> String:
 	if state == "guest" and remote_on:
 		return "Sign in to play"
 	if state == "offline" and remote_on:
-		return "Needs a connection to roll dice"
+		return "Needs a connection to the server"
 	if state == "loading":
 		return "Signing you in…" if use_account and account_state() == "loading" else "Loading…"
 	if kind != "normal":
@@ -428,13 +428,13 @@ func set_state(s: String) -> void:
 	elif s == "open_run":
 		_build_open_run()
 	elif s == "guest":
-		_add_banner("Sign in to play", "Dice are rolled on the server, so runs need an account.", false, true)
+		_add_banner("Sign in to play", "Runs are played on the server, so they need an account.", false, true)
 	elif s == "offline":
 		if remote_on:
-			_add_banner("Can't reach the dice server", "Last updated %s. Dice are rolled on the server in this build."
+			_add_banner("Can't reach the server", "Last updated %s. Runs are played on the server in this build."
 				% Time.get_time_string_from_system().substr(0, 5), true)
 		else:
-			_add_banner("You're offline", "Dice roll on this device for now; progress syncs when you reconnect.", false)
+			_add_banner("You're offline", "Runs play on this device for now; progress syncs when you reconnect.", false)
 	_refresh_footer()
 
 
@@ -530,8 +530,8 @@ static func begin_error_text(code: String) -> Array:
 		"version", "mission_needs_update":
 			return ["Update the game", "This version is too old to start a run. Reload to get the latest. Nothing was spent."]
 		"offline":
-			return ["Can't reach the dice server", "Check your connection and try again. Nothing was spent."]
-	return ["Could not roll dice, try again.", "Nothing was spent. Code: %s" % code]
+			return ["Can't reach the server", "Check your connection and try again. Nothing was spent."]
+	return ["Could not start the run, try again.", "Nothing was spent. Code: %s" % code]
 
 
 func open_picker(slot: int) -> void:

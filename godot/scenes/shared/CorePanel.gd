@@ -326,7 +326,7 @@ static func house_chip(short := false) -> PanelContainer:
 	var id := AnchorAdapter.current_id()
 	var house := AnchorAdapter.house_id(id)
 	if AnchorAdapter.awakened():
-		var aw_txt := TranslationServer.translate("Awakened") if short else "%s · %s" % [AnchorAdapter.name_of(id), TranslationServer.translate("Awakened")]
+		var aw_txt: String = TranslationServer.translate("Awakened") if short else "%s · %s" % [AnchorAdapter.name_of(id), TranslationServer.translate("Awakened")]
 		var c := UI3.icon_chip(aw_txt, UI3.icon(AWAKEN_ICON), UI3Theme.color("anchor_awake"), "HouseChip")
 		c.set_meta("state", "awakened")
 		return c
