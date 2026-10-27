@@ -45,15 +45,15 @@ func _run(sz: Vector2) -> void:
 	await get_tree().process_frame
 	var states: Array[Dictionary] = [
 		{"name": "player turn", "u": {"enabled": true}, "r": {"n": 3, "max": 3, "enabled": true},
-			"e": {"sub": "E · 5 dice unused", "enabled": true, "resolving": false}, "res": false},
+			"e": {"sub": "5 dice unused", "enabled": true, "resolving": false}, "res": false},
 		{"name": "no rerolls", "u": {"enabled": false}, "r": {"n": 0, "max": 3, "enabled": false},
-			"e": {"sub": "E · 0 dice unused", "enabled": true, "resolving": false}, "res": false},
+			"e": {"sub": "0 dice unused", "enabled": true, "resolving": false}, "res": false},
 		{"name": "rerolls 10/10", "u": {"enabled": true}, "r": {"n": 10, "max": 10, "enabled": true},
-			"e": {"sub": "E · 10 dice unused", "enabled": true, "resolving": false}, "res": false},
+			"e": {"sub": "10 dice unused", "enabled": true, "resolving": false}, "res": false},
 		{"name": "enemy turn", "u": {"enabled": false}, "r": {"n": 0, "max": 3, "enabled": false},
-			"e": {"sub": "E · 0 dice unused", "enabled": false, "resolving": true}, "res": true},
+			"e": {"sub": "0 dice unused", "enabled": false, "resolving": true}, "res": true},
 		{"name": "fight over", "u": {"enabled": false}, "r": {"n": 0, "max": 3, "enabled": false},
-			"e": {"sub": "E · 0 dice unused", "enabled": false, "resolving": false}, "res": false},
+			"e": {"sub": "0 dice unused", "enabled": false, "resolving": false}, "res": false},
 	]
 	for st in states:
 		hud.update_right(st["u"], st["r"], st["e"])

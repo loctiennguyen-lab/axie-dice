@@ -99,6 +99,8 @@ var _chip_icon: TextureRect
 var _chip_text: Label
 var _click_catcher: Button
 var _leader_badge: PanelContainer
+var _nick := ""
+var _orig_name := ""
 var _shell_row: Control
 var _shell_bar: HPBar
 var _shell_label: Label
@@ -114,11 +116,33 @@ var _preview := 0
 ## Lane GM (Name Tag meme Core): a nickname (custom_state.nick) replaces the nameplate text; the original name moves
 ## into the plate tooltip. nick "" restores the original.
 func set_nick(nick: String, original: String) -> void:
+	_nick = nick
+	_orig_name = original
+	_refresh_name()
+
+
+## Name text: the nickname if any. "Elite X" drops its "Elite " (the ELITE chip says it) while that chip shows.
+## Then 20 -> 18 px so a long name is not clipped; the full name is always in the tooltip.
+func _refresh_name() -> void:
 	if _name_label == null:
 		return
-	_name_label.text = nick if nick != "" else original
+	var full := _nick if _nick != "" else _orig_name
+	var txt := full
+	var chip_elite := _tag_chip != null and _tag_chip.visible and _tag_label.text == "ELITE"
+	if chip_elite and txt.begins_with("Elite ") and _nick == "":
+		txt = txt.substr(6)
+	_name_label.text = txt
+	var base := 24 if _is_boss else 20
+	var avail := (BOSS_WIDTH - 22.0 - BOSS_INTENT_W - 70.0) if _is_boss else (WIDTH - 22.0 - INTENT_W - 70.0)
+	var f := _name_label.get_theme_font("font")
+	var fs := base
+	if f != null and f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > avail:
+		fs = 18
+	_name_label.add_theme_font_size_override("font_size", fs)
 	if _click_catcher != null:
-		UI3Tooltip.bind(_click_catcher, "%s (%s)" % [nick, original] if nick != "" else "")
+		UI3Tooltip.bind(_click_catcher, full if (_nick != "" or txt != full) else "")
+		if _nick != "":
+			UI3Tooltip.bind(_click_catcher, "%s (%s)" % [_nick, _orig_name])
 
 
 func _ready() -> void:
@@ -469,6 +493,7 @@ func set_leader(on: bool) -> void:
 		# LEADER replaces the ELITE chip (the fight already says Elite): ELITE + LEADER + "-> name" does not fit the plate.
 		if _tag_chip != null:
 			_tag_chip.visible = (not on) and _tag_label.text != ""
+		_refresh_name()
 
 
 ## Resonance Shell: bar + "cur / max"; hidden when max <= 0 (feature off, or no Shell on this unit).
@@ -516,6 +541,12 @@ func set_intent(intent: Dictionary) -> void:
 	_boosted = bool(intent.get("boosted", false))
 	_intent_style.border_color = UI3Theme.color("accent") if _boosted \
 		else UI3.intent_color(String(intent.get("type", "")))
+	var big := bool(intent.get("big_hit", false))
+	if big:
+		_intent_style.border_color = UI3Theme.color("danger_text")
+	_intent_next.text = ("! " + TranslationServer.translate("Next")) if big else TranslationServer.translate("Next")
+	_intent_next.add_theme_color_override("font_color", UI3Theme.color("danger_text") if big else UI3Theme.color("text_muted"))
+	_intent_num.add_theme_color_override("font_color", UI3Theme.color("danger_text") if big else UI3Theme.color("text"))
 	if not bool(intent.get("show", false)):
 		_intent_icon.texture = UI3.icon("face_blank")
 		_intent_num.text = "-"
@@ -524,8 +555,14 @@ func set_intent(intent: Dictionary) -> void:
 		return
 	_intent_icon.texture = UI3.icon(String(UI3.FACE_ICON.get(TrayColumn.ui3_face(String(intent.get("type", "blank"))), "face_blank")))
 	_intent_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	if CombatLabels.is_blank_intent(String(intent.get("type", ""))):
+		_intent_num.text = "-"
+		_intent_action.text = "IDLE"
+		_target_label.text = ""
+		UI3Tooltip.bind(_intent_panel, "Does nothing this turn.")
+		return
 	# UI3 plate, not the native tooltip: a native one is an OS-level popup that no overlay can cover (BUG-0005).
-	UI3Tooltip.bind(_intent_panel, "Next: %s %d%s\nEnemy intent is public: this is the number that lands, with enrage, attrition and big hits already included." % [
+	UI3Tooltip.bind(_intent_panel, ("Can knock out an Axie.\n" if big else "") + "Next: %s %d%s\nEnemy intent is public: this is the number that lands, with enrage, attrition and big hits already included." % [
 		String(intent.get("label", "")), int(intent.get("num", 0)),
 		(" on " + String(intent.get("target", ""))) if String(intent.get("target", "")) != "" else ""])
 	_intent_num.text = str(int(intent.get("num", 0)))

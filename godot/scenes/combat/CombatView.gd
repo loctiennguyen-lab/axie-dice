@@ -279,6 +279,7 @@ var _info_overlay: CanvasLayer = null
 var _setup: Dictionary = {}
 var _portraits: Dictionary = {}     # uid -> UnitPortrait (feet nameplate)
 var _head_huds: Dictionary = {}     # retired: the intent badge now lives on UnitPortrait (R1)
+var _enemy_disp: Dictionary = {}   # uid -> enemy name, suffixed A/B when a name repeats (CombatLabels)
 var _hud: Dictionary = {}           # cached hud_state() for this rebuild
 var _selected_die_uid: int = -1
 var _log_lines: Array = []
@@ -1161,7 +1162,7 @@ func _update_hud() -> void:
 		{"n": _combat.rerolls, "max": _combat.max_rerolls, "cost": rr_cost, "tip": rr_tip, "stakes": stakes,
 		 "capped": _combat.rerolls <= 0 and not _combat.reroll_is_payable(),
 		 "enabled": executing and (_combat.rerolls > 0 or rr_paid_ok)},
-		{"sub": "E %s %d dice unused" % [HudKit.dot(), unused],
+		{"sub": "%d dice unused" % unused,
 		 "warn": has_unused and executing,
 		 "resolving": _combat.phase != CombatPhase.EXECUTE,
 		 "enabled": not (_combat.won or _combat.lost) and _combat.phase != CombatPhase.END_TURN},
@@ -2408,11 +2409,11 @@ func _spawn_portrait(u: Unit, is_enemy: bool, slot_index: int, slot_count: int) 
 	var p: UnitPortrait = _PORTRAIT_SCENE.instantiate()
 	_unit_visuals_root.add_child(p)
 	var tag := ""
-	if u.is_boss:
-		tag = "BOSS"
-	elif is_enemy and String(_setup.get("kind", "")) == "elite":
-		tag = "ELITE"
-	p.setup(u.uid, u.n, u.cls, is_enemy, u.is_boss, tag)
+	if is_enemy:
+		tag = CombatLabels.tag_for(u.is_boss, String(_setup.get("kind", "")), \
+			_combat.enemies.find(u) == 0, bool(u.custom_state.get("alpha", false)))
+	_enemy_disp = CombatLabels.enemy_names(_combat.enemies)
+	p.setup(u.uid, _enemy_disp.get(u.uid, u.n) if is_enemy else u.n, u.cls, is_enemy, u.is_boss, tag)
 	p.clicked.connect(_on_target_clicked)
 	p.hover_changed.connect(_on_plate_hover)
 	p.inspect_requested.connect(_open_unit_inspect)   # right-click the nameplate, same door as
@@ -3727,7 +3728,7 @@ func _rebuild_all() -> void:
 		_update_portrait(e)
 		var np: UnitPortrait = _portraits.get(e.uid)
 		if np != null and is_instance_valid(np):
-			np.set_nick(String(e.custom_state.get("nick", "")), e.n)
+			np.set_nick(String(e.custom_state.get("nick", "")), String(_enemy_disp.get(e.uid, e.n)))
 
 	_update_dice_tray()
 
@@ -3906,6 +3907,15 @@ func _update_portrait(u: Unit) -> void:
 ## The enemy plate's R1 content: ONE merged intent number, the counter tab (spike or boss clock),
 ## the boss phase line and the acting state. Numbers come from `hud_state()`; nothing is summed
 ## here (README 3a).
+## hp + shield of every living Axie (for the "can knock out an Axie" flag).
+func _party_effective_hp() -> Array:
+	var out: Array = []
+	for pu in _combat.party:
+		if pu.hp > 0:
+			out.append(pu.hp + pu.shield)
+	return out
+
+
 func _update_enemy_plate(p: UnitPortrait, u: Unit) -> void:
 	var hs: Dictionary = _hud if not _hud.is_empty() else _hud_state()
 	var next: Dictionary = (hs.get("enemy_next", {}) as Dictionary).get(u.uid, {})
@@ -3922,7 +3932,8 @@ func _update_enemy_plate(p: UnitPortrait, u: Unit) -> void:
 		intent = {"show": true, "type": ftype, "num": num,
 			"label": UI3.type_label(ftype),
 			"target": _unit_name(tgt_uid) if tgt_uid >= 0 else "",
-			"boosted": u.is_boss and int(clock.get("stacks", 0)) > 0 and not newcomer}
+			"boosted": u.is_boss and int(clock.get("stacks", 0)) > 0 and not newcomer,
+			"big_hit": ftype == "dmg" and CombatLabels.is_big_hit(num, _party_effective_hp())}
 	p.set_acting(_end_turn_acting_uid == u.uid)
 	p.set_intent(intent)
 
@@ -4415,6 +4426,8 @@ func _unit_name(uid: int) -> String:
 	var u := _combat.by_uid(uid)
 	if u != null and String(u.custom_state.get("nick", "")) != "":
 		return String(u.custom_state["nick"])
+	if u != null and u.side == "e" and _enemy_disp.has(uid):
+		return String(_enemy_disp[uid])
 	return u.n if u != null else "uid#%d" % uid
 
 
