@@ -575,6 +575,9 @@ export class RunCore {
     try { battles = Number(this.sql.exec(`SELECT COUNT(*) AS n FROM epochs WHERE kind = 'node'`).toArray()[0].n); } catch { /* unknown */ }
     let epochs = null; // any answered epoch, run_start included; 0 = the run never really started
     try { epochs = Number(this.sql.exec(`SELECT COUNT(*) AS n FROM epochs`).toArray()[0].n); } catch { /* unknown */ }
-    return { ...out, battles, epochs };
+    // Battles WON: a 'reward' epoch is only answered after a won fight (BUG-0008: this, not 'node' entries, feeds battles_done).
+    let rewards = null;
+    try { rewards = Number(this.sql.exec(`SELECT COUNT(*) AS n FROM epochs WHERE kind = 'reward'`).toArray()[0].n); } catch { /* unknown */ }
+    return { ...out, battles, epochs, rewards };
   }
 }
