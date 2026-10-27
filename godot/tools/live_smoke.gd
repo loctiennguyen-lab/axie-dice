@@ -31,6 +31,8 @@ extends Node
 ##
 ## Safety: cloud save uploads are impossible here (SaveStore.on_changed cleared, and the transport wrapper
 ## refuses every write except /api/run*). Tokens are never printed.
+## The refused PUT /api/save is answered with a fake local 200, which desyncs the local sync state: run this ONLY
+## via live_smoke.sh (isolated user dir), never against a real user dir. The "session" OK does not cover save upload.
 
 const HARD_TIMEOUT_S := 140.0   # soft: abort the drive, clean up (abandon), quit 1
 const KILL_AT_S := 150.0        # hard quit(1), after a short cleanup
@@ -183,7 +185,12 @@ func _frames(n: int) -> void:
 func _guarded(method: String, path: String, body: String, done: Callable) -> void:
 	if method != "GET" and not path.begins_with("/api/run"):
 		_blocked.append("%s %s" % [method, path])
-		done.call(0, "")
+		# The cloud save upload is answered as "saved" locally (it never reaches the server): since R3 the
+		# client pushes on start, and a refused push reads as offline, which would end the smoke at "session".
+		if method == "PUT" and path.begins_with("/api/save"):
+			done.call(200, JSON.stringify({"rev": int(AccountService._rev) + 1}))
+		else:
+			done.call(0, "")
 		return
 	AccountService._dt.request(method, path, body, func(code: int, text: String) -> void:
 		if code != 200 and code != 204:
