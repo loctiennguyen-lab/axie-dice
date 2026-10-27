@@ -84,7 +84,35 @@ static func currency_plate(entries: Array = [], loading := false, hidden := fals
 	var p := UI3.currency_pill(entries if not entries.is_empty() else UI3.currency_entries(loading))
 	p.name = "Currencies"
 	p.visible = not hidden
+	if entries.is_empty() and not loading:
+		var ws := WalletSync.new()
+		ws.name = "WalletSync"
+		p.add_child(ws)   # default wallet follows MetaState on every meta screen (BUG: stale chips after a claim / pull)
 	return p
+
+
+## Keeps a default wallet plate in step with MetaState. MetaState has no balance signal (and sits in the
+## fingerprinted autoload dir), so this compares the three values a few times a second and only touches a label
+## when its text changed. One place for every meta screen; screens need no per-action refresh.
+class WalletSync extends Node:
+	var _t := 0.0
+
+	func _process(delta: float) -> void:
+		_t += delta
+		if _t < 0.2:
+			return
+		_t = 0.0
+		sync()
+
+	## Writes the current balances into the plate's labels. Public so tests can call it without waiting.
+	func sync() -> void:
+		var plate := get_parent()
+		if plate == null:
+			return
+		for e in UI3.currency_entries():
+			var l := plate.find_child("value_" + String(e["icon"]), true, false) as Label
+			if l != null and l.text != String(e["value"]):
+				l.text = String(e["value"])
 
 
 ## Tab button with optional key letter chip. Selected = toggled on.

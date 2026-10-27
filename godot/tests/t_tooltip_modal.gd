@@ -55,5 +55,19 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_ok(UI3Tooltip.shown_plate(get_tree()) != null, "tooltip works again once the modal is gone")
+	# Generic UI3.modal: same rule.
+	var gm := UI3.modal("Sure?", "Body.", [UI3.button("OK", &"primary")], 0)
+	add_child(gm)
+	await get_tree().process_frame
+	UI3Tooltip.show_now(ip)
+	await get_tree().process_frame
+	_ok(UI3Tooltip.shown_plate(get_tree()) == null, "no HUD tooltip while a generic UI3.modal is up")
+	gm.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	UI3Tooltip.show_now(ip)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(UI3Tooltip.shown_plate(get_tree()) != null, "tooltip works again after the generic modal closes")
 	print("t_tooltip_modal: %s - %d checks" % ["PASS" if _fails == 0 else "FAIL", _checks])
 	get_tree().quit(0 if _fails == 0 else 1)

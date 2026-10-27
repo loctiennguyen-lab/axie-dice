@@ -482,7 +482,15 @@ func _refresh_all() -> void:
 	_refresh_side()
 
 
+## The header wallet follows MetaState by itself (UI3Meta.WalletSync); this just makes it instant after a pull / buy.
+func _sync_wallet() -> void:
+	var w := find_child("WalletSync", true, false)
+	if w != null:
+		w.call("sync")
+
+
 func _refresh_bar() -> void:
+	_sync_wallet()
 	_clear(_bar_host)
 	var tk := TextureRect.new()
 	tk.name = "TicketIcon"

@@ -17,7 +17,8 @@ var no_scene_change := false
 var use_account := true
 var remote_on: bool = String(ProjectSettings.get_setting("axie/gem_wallet", "")) == "remote"
 var account_status_hook: Callable
-var last_result := ""
+var last_result := ""          ## Gem gift claim text (shown in the Gem gift card only)
+var daily_result := ""         ## Daily reward claim text (shown in the Daily reward card only)
 var day_override := ""
 
 const CARD_W := 416
@@ -70,12 +71,12 @@ func claim_daily() -> bool:
 	if MetaState.econ_remote() != null:
 		# SR1: the server pays (needs a closed run today); the cache updates from its answer.
 		MetaState.econ_remote().claim("daily", {}, func(r: Dictionary) -> void:
-			last_result = "Claimed" if bool(r["ok"]) else RemoteEcon.message_for(String(r["code"]))
+			daily_result = "Claimed" if bool(r["ok"]) else RemoteEcon.message_for(String(r["code"]))
 			_refresh())
 		return false
 	var ok := MetaState.claim_daily_mission()
 	var d: Dictionary = _Econ.get_table("daily").get("daily_reward", {})
-	last_result = "+%d Shard, +%d Stone, +%d Pass XP" % [int(d.get("shards", 0)), int(d.get("stone", 0)), int(d.get("xp", 0))] if ok else "Already claimed today"
+	daily_result = "+%d Shard, +%d Stone, +%d Pass XP" % [int(d.get("shards", 0)), int(d.get("stone", 0)), int(d.get("xp", 0))] if ok else "Already claimed today"
 	_refresh()
 	return ok
 
@@ -246,9 +247,9 @@ func _refresh() -> void:
 	var gift_ok := gs == "claim" and not blocked
 	var primary_daily := daily_ok
 	var primary_gift := gift_ok and not daily_ok
-	var sub := "Claimed. Next one at %s." % reset if claimed else "Any run counts. Resets at %s." % reset
-	if last_result != "":
-		sub = last_result
+	var sub := "Claimed. Next one at %s." % reset if claimed else "Finish a run (win or lose) today to claim. Resets at %s." % reset
+	if daily_result != "":
+		sub = daily_result
 	_body.add_child(_card("DailyCard", "Daily reward", sub, [
 		["Shards", "+%d" % int(d.get("shards", 0))], ["Stone", "+%d" % int(d.get("stone", 0))],
 		["Pass XP", "+%d" % int(d.get("xp", 0))]],
@@ -273,6 +274,8 @@ func _refresh() -> void:
 	var gtxt := "Playtest: free, up to %d held." % cap
 	if gs == "cap":
 		gtxt = "You hold %d, nothing to claim." % MetaState.gem_wallet().balance()
+	if last_result != "":
+		gtxt = last_result
 	_body.add_child(_card("GiftCard", "Gem gift", gtxt, [
 		["Gem a day", "+%d" % int(g.get("per_day", 300))],
 		["You hold", str(MetaState.gem_wallet().balance())], ["Hold up to", str(cap)]],

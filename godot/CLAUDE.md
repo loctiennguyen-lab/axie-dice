@@ -63,6 +63,7 @@ Baloo) **không còn đúng** cho màn đã port.
 - Text relic/pact luôn qua `UI3.describe()` / `player_text()`. Không tự ghép chuỗi từ data thô.
 - Không dùng `git stash` (làn khác dùng chung repo). Không `pkill` chung chung, chỉ kill đúng PID của mình.
 - Mọi lần chạy Godot qua `godot/tools/with_lock.sh`.
+- Modal mới (overlay chặn chuột) phải vào group `ui3_modal`, không thì tooltip HUD vẫn hiện đè lên (BUG-0005). `UI3.modal()` tự làm việc này.
 
 ## Legacy
 

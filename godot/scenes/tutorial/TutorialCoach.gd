@@ -227,8 +227,6 @@ func _ask_skip() -> void:
 	var go := UI3.button("Skip tutorial", &"primary")
 	var m := UI3.modal("Skip the tutorial?", "You can replay it any time from Settings.", [keep, go], 0)
 	m.name = "SkipConfirm"
-	m.add_to_group("ui3_modal")
-	UI3Tooltip.hide_all(get_tree())
 	_skip_modal = m
 	keep.pressed.connect(func(): m.queue_free())
 	m.cancelled.connect(func(): m.queue_free())
