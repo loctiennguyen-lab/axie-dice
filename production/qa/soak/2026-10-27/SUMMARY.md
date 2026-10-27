@@ -1,0 +1,114 @@
+# Soak 2026-10-27
+
+- run: 27069
+- end: {'WON': 1250, 'LOST': 25816, 'STUCK_TURNS': 3}
+- verify: {'skip_forced': 14166, 'ok': 12902, 'diff': 1}
+- log: {'ERROR:': 1905}
+- run xau: 3
+
+## Run xau (seed de tai hien)
+- seed=500024 policy=attack_spam team=mixed_std asc=2 cfg=N2 anchor= rule=rule_old_forest end=STUCK_TURNS verify=diff:score live=100 replay=110  [fastM_none_N2]
+- seed=300026 policy=random_legal team=tank_heavy asc=0 cfg= anchor=a_mana_mine rule=rule_pilot_light end=STUCK_TURNS verify=skip_forced   [fastR_a_mana_mine_rule_pilot_light]
+- seed=400008 policy=expert team=aqua_plant asc=0 cfg= anchor=a_mana_mine rule=rule_upside_down end=STUCK_TURNS verify=skip_forced   [expR_a_mana_mine_rule_upside_down]
+
+## Log
+- ERROR: x5 in fastR_a_big_hand_rule_high_stakes.log
+- ERROR: x5 in fastR_a_gambler_rule_starfall.log
+- ERROR: x5 in fastR_a_kin_rule_dry_steppe.log
+- ERROR: x5 in fastM_a_mana_mine_N4.log
+- ERROR: x5 in expM_a_big_hand_N3.log
+- ERROR: x5 in fastM_a_volley_N6.log
+- ERROR: x5 in fastR_a_gambler_rule_pilot_light.log
+- ERROR: x5 in fastR_a_gambler_rule_pack_alpha.log
+- ERROR: x5 in expR_a_embers_rule_pack_alpha.log
+- ERROR: x5 in expN_a_gambler_s3.log
+- ERROR: x5 in expR_a_kin_rule_set_is_king.log
+- ERROR: x5 in fastM_a_embers_N1.log
+- ERROR: x5 in expN_a_gambler_s2.log
+- ERROR: x5 in fastR_a_mana_mine_rule_tundra.log
+- ERROR: x5 in expR_a_kin_rule_wasteland.log
+- ERROR: x5 in fastR_a_mana_mine_rule_old_forest.log
+- ERROR: x5 in expM_a_big_hand_N2.log
+- ERROR: x5 in expR_a_gambler_rule_none.log
+- ERROR: x5 in fastM_a_mana_mine_N5.log
+- ERROR: x5 in fastR_a_big_hand_rule_heavy_finish.log
+- ERROR: x5 in fastR_a_kin_rule_starfall.log
+- ERROR: x5 in fastR_a_mana_mine_rule_wasteland.log
+- ERROR: x5 in expR_a_kin_rule_pilot_light.log
+- ERROR: x5 in fastR_none_rule_rising_tide.log
+- ERROR: x5 in fastM_a_volley_N5.log
+- ERROR: x5 in expR_a_embers_rule_tundra.log
+- ERROR: x5 in expR_a_gambler_rule_upside_down.log
+- ERROR: x5 in expR_a_volley_rule_upside_down.log
+- ERROR: x5 in expN_a_kin_s3.log
+- ERROR: x5 in expR_a_mana_mine_rule_old_forest.log
+- ERROR: x5 in fastM_a_embers_N3.log
+- ERROR: x5 in fastM_a_embers_N2.log
+- ERROR: x5 in expN_a_kin_s2.log
+- ERROR: x5 in fastR_none_rule_upside_down.log
+- ERROR: x5 in fastM_a_volley_N4.log
+- ERROR: x5 in fastN_a_embers_s3_short.log
+- ERROR: x5 in expM_a_big_hand_N1.log
+- ERROR: x5 in fastR_a_embers_rule_balance.log
+- ERROR: x5 in expR_none_rule_pack_alpha.log
+- ERROR: x5 in fastM_a_mana_mine_N6.log
+- ERROR: x5 in expR_a_gambler_rule_rising_tide.log
+- ERROR: x5 in expR_a_volley_rule_rising_tide.log
+- ERROR: x5 in fastR_a_kin_rule_hard_shell.log
+- ERROR: x5 in fastN_a_gambler_s2_full.log
+- ERROR: x5 in fastR_a_gambler_rule_set_is_king.log
+- ERROR: x5 in fastN_a_gambler_s3_full.log
+- ERROR: x5 in expR_a_big_hand_rule_high_stakes.log
+- ERROR: x5 in expR_a_kin_rule_cheap_mana.log
+- ERROR: x5 in expR_a_gambler_rule_heavy_finish.log
+- ERROR: x5 in fastR_a_mana_mine_rule_hard_shell.log
+- ERROR: x5 in expR_a_mana_mine_rule_dry_steppe.log
+- ERROR: x5 in fastR_a_embers_rule_pack_alpha.log
+- ERROR: x5 in fastM_a_mana_mine_N2.log
+- ERROR: x5 in expM_a_big_hand_N5.log
+- ERROR: x5 in fastN_none_s2_short.log
+- ERROR: x5 in fastR_a_volley_rule_tundra.log
+- ERROR: x5 in expR_a_big_hand_rule_pack_alpha.log
+- ERROR: x5 in expR_a_big_hand_rule_crow.log
+- ERROR: x5 in fastM_a_embers_N6.log
+- ERROR: x5 in expN_none_s1.log
+- ERROR: x5 in fastR_a_big_hand_rule_cheap_mana.log
+- ERROR: x5 in fastR_a_mana_mine_rule_set_is_king.log
+- ERROR: x5 in fastR_a_kin_rule_heavy_finish.log
+- ERROR: x5 in expR_a_mana_mine_rule_none.log
+- ERROR: x5 in fastM_a_volley_N1.log
+- ERROR: x5 in expM_a_big_hand_N4.log
+- ERROR: x5 in fastM_a_mana_mine_N3.log
+- ERROR: x5 in fastR_none_rule_heavy_finish.log
+- ERROR: x5 in expR_a_embers_rule_upside_down.log
+- ERROR: x5 in expR_a_mana_mine_rule_high_stakes.log
+- ERROR: x5 in fastR_a_kin_rule_none.log
+- ERROR: x5 in fastM_a_mana_mine_N1.log
+- ERROR: x5 in fastR_a_mana_mine_rule_pilot_light.log
+- ERROR: x5 in fastR_a_embers_rule_heavy_finish.log
+- ERROR: x5 in fastN_a_volley_s3_full.log
+- ERROR: x5 in fastN_a_volley_s2_full.log
+- ERROR: x5 in expM_a_big_hand_N6.log
+- ERROR: x5 in fastM_a_volley_N3.log
+- ERROR: x5 in fastR_a_kin_rule_old_forest.log
+- ERROR: x5 in fastM_a_embers_N5.log
+- ERROR: x5 in fastR_a_big_hand_rule_quick_beat.log
+- ERROR: x5 in expR_none_rule_none.log
+- ERROR: x5 in expN_none_s2.log
+- ERROR: x5 in fastN_a_gambler_s3_short.log
+- ERROR: x5 in expN_none_s3.log
+- ERROR: x5 in fastM_a_embers_N4.log
+- ERROR: x5 in fastM_a_volley_N2.log
+- ERROR: x5 in expR_a_embers_rule_rising_tide.log
+- ERROR: x5 in fastN_none_s1_full.log
+- ERROR: x5 in fastR_a_big_hand_rule_wasteland.log
+- ERROR: x5 in fastR_a_gambler_rule_heavy_finish.log
+- ERROR: x5 in fastN_a_mana_mine_s3_short.log
+- ERROR: x5 in fastR_a_mana_mine_rule_dry_steppe.log
+- ERROR: x5 in expR_a_kin_rule_quick_beat.log
+- ERROR: x5 in expR_a_mana_mine_rule_hard_shell.log
+- ERROR: x5 in expR_a_kin_rule_old_forest.log
+- ERROR: x5 in fastR_a_volley_rule_rising_tide.log
+- ERROR: x5 in fastR_a_volley_rule_pack_alpha.log
+- ERROR: x5 in expR_a_big_hand_rule_starfall.log
+- ERROR: x5 in expM_a_kin_N1.log
