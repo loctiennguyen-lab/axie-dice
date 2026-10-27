@@ -7,7 +7,11 @@
 
 export const isVerifyPath = (p) => p === '/api/verify/next' || p === '/api/verify/result' || p === '/api/verify/stats';
 
-export const MAX_PAYLOAD_BYTES = 1_000_000;
+/** Bytes (not chars), with a margin under D1's 2 MB row limit. */
+export const MAX_PAYLOAD_BYTES = 900_000;
+export const DONE_RETAIN_S = 7 * 86400;      // payload of an ok/error row is dropped after this
+export const PENDING_EXPIRE_S = 14 * 86400;  // a pending job older than this is given up (runner off)
+export const SWEEP_LIMIT = 50;
 export const MAX_ATTEMPTS = 3;
 export const LEASE_S = 300;
 export const SKEW_S = 120;
@@ -54,7 +58,7 @@ export async function enqueueVerify(env, { run_id, rules_version, outcome, platf
   try {
     if (!env || env.VERIFY_SHADOW !== '1' || !env.DB) return false;
     const body = JSON.stringify(payload ?? null);
-    const tooBig = body.length > MAX_PAYLOAD_BYTES;
+    const tooBig = new TextEncoder().encode(body).length > MAX_PAYLOAD_BYTES;
     const plat = typeof platform === 'string' && /^[a-z0-9_-]{1,16}$/.test(platform) ? platform : 'unknown';
     const k = ['normal', 'daily', 'ranked', 'mission'].includes(kind) ? kind : 'normal';
     const cs = Number.isSafeInteger(client_score) && client_score >= 0 ? client_score : null;
@@ -95,21 +99,45 @@ async function stats(env, url) {
   return json({ queue, verdicts, platforms, header_mismatch_jobs: hm ? hm.n : 0, last_mismatches: last });
 }
 
+/**
+ * Housekeeping, run opportunistically from /next, bounded by SWEEP_LIMIT per statement. Never throws.
+ *  - pending, attempts used up and lease over -> error 'attempts_exhausted' (payload dropped)
+ *  - pending older than PENDING_EXPIRE_S -> error 'expired' (payload dropped), so an idle runner cannot fill D1
+ *  - ok/mismatch/error rows older than DONE_RETAIN_S lose their payload (results stay in verify_results)
+ */
+export async function sweep(env, nowS) {
+  const stmts = [
+    [`UPDATE verify_queue SET state = 'error', reason = 'attempts_exhausted', payload_json = NULL, finished_at = ?
+       WHERE run_id IN (SELECT run_id FROM verify_queue WHERE state = 'pending' AND attempts >= ? AND claimed_at < ? LIMIT ?)`, [nowS, MAX_ATTEMPTS, nowS - LEASE_S, SWEEP_LIMIT]],
+    [`UPDATE verify_queue SET state = 'error', reason = 'expired', payload_json = NULL, finished_at = ?
+       WHERE run_id IN (SELECT run_id FROM verify_queue WHERE state = 'pending' AND created_at < ? LIMIT ?)`, [nowS, nowS - PENDING_EXPIRE_S, SWEEP_LIMIT]],
+    [`UPDATE verify_queue SET payload_json = NULL
+       WHERE run_id IN (SELECT run_id FROM verify_queue WHERE state != 'pending' AND payload_json IS NOT NULL AND finished_at < ? LIMIT ?)`, [nowS - DONE_RETAIN_S, SWEEP_LIMIT]],
+  ];
+  for (const [q, b] of stmts) {
+    try { await env.DB.prepare(q).bind(...b).run(); } catch (err) { console.error('verify sweep failed', String(err)); }
+  }
+}
+
 export async function handleVerify(request, env, url, nowS = Math.floor(Date.now() / 1000)) {
   if (!env.VERIFY_HMAC_KEY || !env.DB) return json({ error: 'not_found' }, 404);
   const isStats = url.pathname === '/api/verify/stats';
   if (request.method !== (isStats ? 'GET' : 'POST')) return json({ error: 'method' }, 405);
-  const body = isStats ? '' : await request.text();
-  if (body.length > MAX_BODY) return json({ error: 'too_large' }, 413);
+  // Cheap checks first: timestamp window and declared length, before the body is read or any HMAC is computed.
   const ts = Number(request.headers.get('x-verify-ts'));
   const sig = request.headers.get('x-verify-sig') || '';
-  if (!Number.isInteger(ts) || Math.abs(nowS - ts) > SKEW_S) return json({ error: 'unauthorized' }, 401);
+  if (!Number.isInteger(ts) || Math.abs(nowS - ts) > SKEW_S || !/^[a-f0-9]{64}$/.test(sig)) return json({ error: 'unauthorized' }, 401);
+  const declared = Number(request.headers.get('content-length') || 0);
+  if (declared > MAX_BODY) return json({ error: 'too_large' }, 413);
+  const body = isStats ? '' : await request.text();
+  if (new TextEncoder().encode(body).length > MAX_BODY) return json({ error: 'too_large' }, 413);
   if (!sameHex(sig, await signVerify(env.VERIFY_HMAC_KEY, ts, request.method, url.pathname, body))) return json({ error: 'unauthorized' }, 401);
   if (isStats) return stats(env, url);
   let m;
   try { m = body ? JSON.parse(body) : {}; } catch { return json({ error: 'bad_request' }, 400); }
 
   if (url.pathname === '/api/verify/next') {
+    await sweep(env, nowS);
     // Claim one job: pending, under the attempt cap, not leased. Lease expires after LEASE_S so a dead runner does not strand it.
     const row = await env.DB.prepare(
       `SELECT run_id, rules_version, payload_json FROM verify_queue
@@ -129,7 +157,7 @@ export async function handleVerify(request, env, url, nowS = Math.floor(Date.now
   if (bad) return json({ error: 'bad_result', field: bad }, 400);
   const job = await env.DB.prepare('SELECT state, srv_outcome, rules_version, claimed_at, client_score, kind, platform FROM verify_queue WHERE run_id = ?').bind(m.run_id).first();
   if (!job) return json({ error: 'not_found' }, 404);
-  if (job.state !== 'pending' || job.claimed_at == null) return json({ error: 'not_claimed' }, 409);
+  if (job.state !== 'pending' || job.claimed_at == null || job.claimed_at < nowS - LEASE_S) return json({ error: 'not_claimed' }, 409);
   const { state, verdict } = judge(m.result, job);
   const r = m.result;
   // Only verify_queue and verify_results are written. Never runs, wallet or leaderboard.

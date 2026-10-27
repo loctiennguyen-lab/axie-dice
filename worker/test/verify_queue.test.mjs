@@ -35,6 +35,7 @@ async function call(env, path, body, { ts = NOW, key = KEY } = {}) {
 async function queued(outcome = 'won') {
   const env = { DB: fakeDb(), VERIFY_SHADOW: '1', VERIFY_HMAC_KEY: KEY };
   assert.equal(await enqueueVerify(env, { run_id: RUN, rules_version: 'godot-x', outcome, payload: { header: {}, entries: [], tape: [] } }), true);
+  env.DB.raw.prepare('UPDATE verify_queue SET created_at = ?').run(NOW - 10); // the handler runs on the fixed clock NOW
   return env;
 }
 
@@ -53,7 +54,7 @@ test('enqueue never throws and never touches the run outcome (DB error is swallo
 
 test('oversized payload is recorded as error, not queued', async () => {
   const env = { DB: fakeDb(), VERIFY_SHADOW: '1' };
-  await enqueueVerify(env, { run_id: RUN, rules_version: 'v', outcome: 'won', payload: { x: 'y'.repeat(1_000_001) } });
+  await enqueueVerify(env, { run_id: RUN, rules_version: 'v', outcome: 'won', payload: { x: 'y'.repeat(900_001) } });
   assert.equal(env.DB.raw.prepare('SELECT state, reason FROM verify_queue').get().reason, 'payload_too_large');
 });
 
@@ -163,4 +164,49 @@ test('stats: signed GET only; counts and last mismatches', async () => {
   assert.equal(st.last_mismatches[0].verdict, 'outcome_mismatch');
   assert.equal(st.last_mismatches[0].srv_outcome, 'won');
   assert.equal(st.last_mismatches[0].v_outcome, 'lost');
+});
+
+test('payload cap counts bytes, not chars', async () => {
+  const env = { DB: fakeDb(), VERIFY_SHADOW: '1' };
+  // 400k two-byte chars = 800k bytes + JSON = under; 460k = 920k bytes but only 460k chars
+  await enqueueVerify(env, { run_id: RUN, rules_version: 'v', outcome: 'won', payload: { x: '\u00e9'.repeat(460_000) } });
+  assert.equal(env.DB.raw.prepare('SELECT state, reason FROM verify_queue').get().reason, 'payload_too_large');
+  const env2 = { DB: fakeDb(), VERIFY_SHADOW: '1' };
+  await enqueueVerify(env2, { run_id: RUN, rules_version: 'v', outcome: 'won', payload: { x: '\u00e9'.repeat(400_000) } });
+  assert.equal(env2.DB.raw.prepare('SELECT state FROM verify_queue').get().state, 'pending');
+});
+
+test('stuck jobs: attempts exhausted -> error and payload dropped', async () => {
+  const env = await queued();
+  for (let i = 0; i < 3; i++) { await call(env, '/api/verify/next', {}, {}); env.DB.raw.prepare('UPDATE verify_queue SET claimed_at = claimed_at - 400').run(); }
+  assert.equal(env.DB.raw.prepare('SELECT attempts FROM verify_queue').get().attempts, 3);
+  const out = await (await call(env, '/api/verify/next', {})).json();
+  assert.equal(out.job, null);
+  const r = env.DB.raw.prepare('SELECT state, reason, payload_json FROM verify_queue').get();
+  assert.equal(r.state, 'error'); assert.equal(r.reason, 'attempts_exhausted'); assert.equal(r.payload_json, null);
+});
+
+test('retention: old pending expires, old done rows lose payload, fresh rows stay', async () => {
+  const env = await queued();
+  const raw = env.DB.raw;
+  const ins = (id, state, created, finished) => raw.prepare(`INSERT INTO verify_queue (run_id, rules_version, state, payload_json, created_at, finished_at) VALUES (?, 'v', ?, '{}', ?, ?)`).run(id, state, created, finished);
+  ins('b'.repeat(32), 'pending', NOW - 15 * 86400, null);
+  ins('c'.repeat(32), 'ok', NOW - 9 * 86400, NOW - 8 * 86400);
+  ins('d'.repeat(32), 'error', NOW - 2 * 86400, NOW - 86400);
+  await call(env, '/api/verify/next', {});
+  const st = (id) => raw.prepare('SELECT state, reason, payload_json FROM verify_queue WHERE run_id = ?').get(id);
+  assert.deepEqual({ ...st('b'.repeat(32)) }, { state: 'error', reason: 'expired', payload_json: null });
+  assert.equal(st('c'.repeat(32)).payload_json, null); assert.equal(st('c'.repeat(32)).state, 'ok');
+  assert.equal(st('d'.repeat(32)).payload_json, '{}', 'recent finished row keeps its payload');
+  assert.notEqual(st(RUN).payload_json, null, 'fresh pending job is untouched');
+});
+
+test('result needs a current lease; oversized declared body is refused before hashing', async () => {
+  const env = await queued();
+  await call(env, '/api/verify/next', {});
+  env.DB.raw.prepare('UPDATE verify_queue SET claimed_at = claimed_at - 400').run();
+  assert.equal((await call(env, '/api/verify/result', { run_id: RUN, result: good() })).status, 409);
+  const sig = await signVerify(KEY, NOW, 'POST', '/api/verify/result', '{}');
+  const req = new Request('https://x/api/verify/result', { method: 'POST', body: '{}', headers: { 'x-verify-ts': String(NOW), 'x-verify-sig': sig, 'content-length': '99999' } });
+  assert.equal((await handleVerify(req, env, new URL(req.url), NOW)).status, 413);
 });
