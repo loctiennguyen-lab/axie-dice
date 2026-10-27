@@ -71,6 +71,16 @@ func _ready() -> void:
 	view._on_target_clicked(target_uid)
 	_check(log.size() > n0 or view._selected_die_uid != die_uid, "control: once released, the target click is handled")
 
+	# 3b. HUD: while waiting every dice action is greyed and a one-line hint says why; released = hint gone.
+	var hud: CombatHud = view._hud_frame
+	hud.set_seed_wait(true)
+	_check(hud.undo_button.disabled and hud.reroll_button.disabled and hud.end_turn_button.disabled and hud.hold_button.disabled,
+		"waiting: Undo / Reroll / Hold / End turn greyed")
+	_check(hud._hint.text == "Waiting for server…" and not hud._hint.text.contains("\n"), "waiting: one-line hint")
+	hud.set_seed_wait(false)
+	view._update_hud()
+	_check(hud._hint.text != "Waiting for server…", "released: hint gone")
+
 	# 4. The six guards are really in the source.
 	var src := FileAccess.get_file_as_string("res://scenes/combat/CombatView.gd")
 	for sig in GUARDED:

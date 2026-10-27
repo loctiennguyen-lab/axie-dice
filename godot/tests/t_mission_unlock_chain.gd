@@ -83,7 +83,7 @@ func _ready() -> void:
 	add_child(s)
 	await get_tree().process_frame
 	_ok(s.lock_text(s.offer("N3")) == "Win N2 to unlock", "lock text N3: " + s.lock_text(s.offer("N3")))
-	_ok(s.lock_text(s.offer("N6")) == "Unlock N5 first", "lock text N6: " + s.lock_text(s.offer("N6")))
+	_ok(s.lock_text(s.offer("N6")) == "Win N2 then N3 then N4 then N5 to unlock", "lock text N6: " + s.lock_text(s.offer("N6")))
 	var fake := {"tier": "N3", "lock_reason": "chain", "unlock_prev": "N2", "unlock_need": 2, "unlock_wins": 1}
 	_ok(s.lock_text(fake) == "Win N2 2 times to unlock (1/2)", "lock text with 2 wins: " + s.lock_text(fake))
 	_ok(s.block_reason("N3") == "Win N2 to unlock", "disabled button reason")

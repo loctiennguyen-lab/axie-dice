@@ -66,6 +66,8 @@ var overcast_button: Button        ## Overcast (lane OC), owned here, sits above
 var _overcast_wanted := true
 var wild_button: Button             ## depth v4 Wild face (stage >= 2)
 var _wild_wanted := false
+var _seed_wait := false
+var _hint_before_wait := ""
 var hold_button: Button             ## depth v3 Hold, owned here (no scene node)
 var _hint: Label
 var _hold_wanted := true
@@ -735,7 +737,33 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary, hold: D
 	_hint.text = ("%s · skip" % KeyBindings.text(KeyBindings.COMBAT_END_TURN)) if resolving else String(end.get("sub", ""))
 	if need_mp and not resolving:
 		_hint.text = "Reroll: need %d MP\n%s" % [cost, _hint.text]
+	_apply_seed_wait()
 	layout()
+
+
+## A seed request is in flight: grey every dice action and say why in the hint under End turn, so the HUD
+## does not look hung. The real guard stays `_combat.epoch_pending` in CombatView.
+func set_seed_wait(on: bool) -> void:
+	if on == _seed_wait or undo_button == null:
+		_seed_wait = on
+		return
+	_seed_wait = on
+	if on:
+		_apply_seed_wait()
+		layout()
+	else:
+		_hint.text = _hint_before_wait   # the next update_right() refreshes everything else
+
+
+func _apply_seed_wait() -> void:
+	if not _seed_wait:
+		return
+	if _hint.text != "Waiting for server…":
+		_hint_before_wait = _hint.text
+	for b in [undo_button, reroll_button, end_turn_button, hold_button, overcast_button, wild_button]:
+		if b != null:
+			b.disabled = true
+	_hint.text = "Waiting for server…"
 
 
 ## Hold already used (Holding n/n): the button reads as a switched-on toggle (wood-3 fill, 4 px cream outline,

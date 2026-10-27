@@ -171,7 +171,15 @@ func lock_text(o: Dictionary) -> String:
 			var need := int(o.get("unlock_need", 1))
 			var prev := String(o.get("unlock_prev", ""))
 			if prev != "" and not MissionBoard.tier_unlocked(prev, MetaState):
-				return "Unlock %s first" % prev
+				# prev is locked too: list every tier that still has to be won, in order, same wording as the plain case
+				var chain: Array[String] = [prev]
+				var t := MissionBoard.prev_tier(prev)
+				while t != "" and not MissionBoard.tier_unlocked(t, MetaState):
+					chain.push_front(t)
+					t = MissionBoard.prev_tier(t)
+				if t != "":
+					chain.push_front(t)
+				return "Win %s to unlock" % " then ".join(chain)
 			if need <= 1:
 				return "Win %s to unlock" % prev
 			return "Win %s %d times to unlock (%d/%d)" % [prev, need, int(o.get("unlock_wins", 0)), need]

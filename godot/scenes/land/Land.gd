@@ -189,7 +189,7 @@ func _ready() -> void:
 	_loading = _flag("loading", false)
 	_guest = _flag("guest", not AccountService.is_signed_in())
 	_newcomer = _flag("newcomer", MetaState.is_newcomer())
-	_first = _flag("first_launch", MetaState.runs == 0)
+	_first = _flag("first_launch", MetaState.runs == 0 and MetaState.runs_with_battle == 0 and MetaState.runs_completed == 0)   # a player who ever fought or finished a run is not "first"
 	_touch_mode = _flag("touch", false)
 	_mission_run = _has_run and _flag("mission", not MetaState.mission_escrow.is_empty())
 	_gift_given = _grant_gift()
@@ -1429,7 +1429,7 @@ func _land_link() -> Control:
 ## Primary "Start run" (signed out: "Sign in to play"). Name stays RunPlate.
 func _build_run_button() -> Button:
 	var title := "Start run"
-	var tip := "Guided first run" if _first else "Run Setup"
+	var tip := "Your first run" if _first else "Run Setup"
 	if _has_run:
 		if _mission_run:
 			title = "Continue mission"
@@ -1459,7 +1459,7 @@ func _build_run_button() -> Button:
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var hv := VBoxContainer.new()
 	hv.add_child(UI3.label("Start here", "LabelTitle"))
-	var hb := UI3.label("Your first run is a short guided one", "LabelMuted")
+	var hb := UI3.label("Pick a mode and play your first run", "LabelMuted")
 	hb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hb.custom_minimum_size.x = 592   # card 640 minus 24 padding each side
 	hv.add_child(hb)

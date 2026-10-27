@@ -263,7 +263,7 @@ func _build_abandon_section() -> void:
 		return
 	var stake := int(MetaState.mission_escrow.get("stake", 0))
 	var warn := ("You will lose your stake (%d Shard). This cannot be undone." % stake) if stake > 0 \
-		else "A run is saved. Abandoning it deletes that save. The Axies, relics and Gene Shard in it are gone, and Gene Shard already banked from finished runs is not affected."
+		else "A run is saved. Abandoning it deletes that save. The Axies, Cores and Gene Shard in it are gone, and Gene Shard already banked from finished runs is not affected."
 	var confirm := CheckBox.new()
 	confirm.name = "ConfirmAbandonCheck"
 	confirm.text = "Yes, I want to abandon the saved run"

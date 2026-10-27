@@ -860,7 +860,7 @@ func _node_info(node: RunMapNode) -> Dictionary:
 		"event":
 			return {"desc": tr("Something happens on the road. You choose how it ends."), "win": [tr("Depends on your choice")]}
 		"shop":
-			return {"desc": tr("A merchant sells relics for Shards."), "win": [tr("Spend your Shards")]}
+			return {"desc": tr("A merchant sells Cores for Shards."), "win": [tr("Spend your Shards")]}
 		"treasure":
 			return {"desc": tr("A sealed vault with a better than usual reward."), "win": [tr("Pick a reward")]}
 		"boss":
@@ -1871,8 +1871,8 @@ func open_slot_swap(reward: Dictionary, chk: Dictionary) -> void:
 		cells.append({"id": id, "name": UI3.title_case(UI3.player_text(String(od.name))),
 			"kind": tr("Active") if RelicSlots._is_active(od) else tr("Passive"),
 			"sell": RelicSlots.sell_price(id, RunState.ascension), "eternal": eternal})
-	var rule := (tr("Active slots are full (%d of %d). Sell one to take the new relic.") if active
-		else tr("Passive slots are full (%d of %d). Sell one to take the new relic.")) % [
+	var rule := (tr("Active slots are full (%d of %d). Sell one to take the new Core.") if active
+		else tr("Passive slots are full (%d of %d). Sell one to take the new Core.")) % [
 		cells.size(), int(cap["active"] if active else cap["passive"])]
 	var dsc := UI3.describe(RewardGenerator.relic_desc(nd))
 	var sheet := UI3.slot_swap_sheet(tr("Make room"), UI3.title_case(UI3.player_text(String(nd.name))),
@@ -2085,7 +2085,7 @@ func _render_shop() -> void:
 		slist.add_child(sb)
 		sellable += 1
 	if sellable == 0:
-		slist.add_child(UI3.label(tr("No relic to sell"), "LabelMuted"))
+		slist.add_child(UI3.label(tr("No Core to sell"), "LabelMuted"))
 
 	# ---- Middle: goods
 	var mid := VBoxContainer.new()
@@ -2099,10 +2099,10 @@ func _render_shop() -> void:
 	if not any_afford and not RunState.shop_items.is_empty():
 		var notice := UI3.plate(&"plate")
 		notice.name = "NothingAffordable"
-		notice.add_child(UI3.label(tr("You can't afford anything here. Sell a relic or leave."), "LabelTitle"))
+		notice.add_child(UI3.label(tr("You can't afford anything here. Sell a Core or leave."), "LabelTitle"))
 		(notice.get_child(0) as Label).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		mid.add_child(notice)
-	var groups := [["relic", tr("Relics")], ["", tr("Supplies")]]
+	var groups := [["relic", tr("Cores")], ["", tr("Supplies")]]
 	var idx_in_group := {}
 	for g in groups:
 		var idxs: Array[int] = []
