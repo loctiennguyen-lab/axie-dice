@@ -10,7 +10,8 @@ cd "$(dirname "$0")/../worker"
 WHERE="--local"; YES=0; AGAIN=0
 for a in "$@"; do case "$a" in --remote) WHERE="--remote";; --yes) YES=1;; --again) AGAIN=1;; *) echo "unknown flag $a"; exit 2;; esac; done
 TABLES="mission_wins mission_escrow leaderboard_scores raid_points raid_daily raid_challenges raid_defense runs saves inventory unlocks echobox_state pass_xp starter_claims wallets wallet_ledger"
-Q=""; for t in $TABLES; do Q="$Q${Q:+ UNION ALL }SELECT '$t' AS tbl, COUNT(*) AS n FROM $t"; done
+# One SELECT with a sub-count per column: D1 refuses a 16-term UNION ALL ("too many terms in compound SELECT").
+Q=""; for t in $TABLES; do Q="$Q${Q:+, }(SELECT COUNT(*) FROM $t) AS $t"; done; Q="SELECT $Q"
 echo "Rows that would be deleted ($WHERE):"
 npx wrangler d1 execute axie-dice-db $WHERE --command "$Q"
 one() { npx wrangler d1 execute axie-dice-db $WHERE --json --command "$1" | python3 -c 'import sys,json; print(json.load(sys.stdin)[0]["results"][0]["n"])'; }
