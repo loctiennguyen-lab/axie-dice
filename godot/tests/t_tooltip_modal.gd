@@ -22,7 +22,7 @@ func _ready() -> void:
 	pp.set_intent({"show": true, "type": "blank", "num": 0, "label": "BLANK", "target": ""})
 	var ip: Control = pp._intent_panel
 	_ok(ip.tooltip_text == "", "intent plate has no native tooltip (it would draw over any overlay)")
-	_ok(UI3Tooltip.text_of(ip).begins_with("Next: BLANK 0"), "intent text lives in the UI3 tooltip")
+	_ok(UI3Tooltip.text_of(ip) == "Does nothing this turn.", "intent text lives in the UI3 tooltip")
 
 	var coach := TutorialCoach.new()
 	add_child(coach)
