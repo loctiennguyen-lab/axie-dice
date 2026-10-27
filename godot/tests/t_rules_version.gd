@@ -254,7 +254,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## input. Run result: NO, stays -v.
 ## Pinned, 2026-10-26 (R3, verifier): run_verifier.gd replays Mission runs with the mission header + kind (server mode compares
 ## field-wise with the tape, ranked+mission refused, empty-tape guard). Replay/verifier only, live play unchanged. Run result: NO, stays -v.
-const FINGERPRINT := "6c51e620b68b225830667c91186c139925c3584cf0d498c41705068bb9fb5277"
+## Pinned, 2026-10-27 (hotfix BUG-0004): MetaState.apply_server_econ always applies server balances, wipe deferred only inside a
+## live run; dead run save dropped. Meta/wallet only, no combat or replay input. Run result: NO, stays -v.
+const FINGERPRINT := "b90dc5a3bda3f0c72e1230000c49350fbf165a49092cf24fa01df6a4272db67d"
 
 
 func _ready() -> void:
