@@ -102,9 +102,12 @@ static func build_from_job(job: Dictionary) -> Dictionary:
 	var bonuses: Dictionary = sl.get("bonuses", {}) as Dictionary if sl.get("bonuses", {}) is Dictionary else {}
 	lo["bonuses"] = bonuses.duplicate(true)
 	var cl: Dictionary = ch.get("loadout", {}) as Dictionary if ch.get("loadout", {}) is Dictionary else {}
-	for k in ["anchor", "rules_on", "core_off", "boon_id"]:
+	# Client claims: coerced to plain bool / short String, nothing else is read.
+	for k in ["anchor", "rules_on", "core_off"]:
 		if cl.has(k):
-			lo[k] = cl[k]
+			lo[k] = _as_bool(cl[k])
+	if cl.has("boon_id"):
+		lo["boon_id"] = String(cl["boon_id"]).left(40) if (cl["boon_id"] is String) else ""
 	var forced: Dictionary = sl.get("forced", {}) as Dictionary if sl.get("forced", {}) is Dictionary else {}
 	for k in forced:
 		lo[k] = forced[k]
@@ -120,6 +123,14 @@ static func build_from_job(job: Dictionary) -> Dictionary:
 	out["loadout"] = lo
 	return out
 
+
+
+static func _as_bool(v: Variant) -> bool:
+	if v is bool:
+		return v
+	if v is int or v is float:
+		return float(v) != 0.0
+	return false
 
 
 static func _count_nodes(entries: Variant) -> int:

@@ -161,6 +161,15 @@ func _job_checks(good: String, honest_score: int) -> void:
 	var lo: Dictionary = built["loadout"]
 	_check(String(built["error"]) == "" and lo["rules_on"] == true and lo["core_off"] == false and lo["anchor"] == false and lo["boon_id"] == "x" and (lo["bonuses"] as Dictionary).is_empty(),
 		"loadout: forced overrides the client flags, boon_id kept, bonuses default empty")
+	# client loadout values are coerced; other keys ignored
+	built = VerifyCli.build_from_job({"server_header": {"kind": "normal", "ranked": false}, "client_header": {"team_keys": ["a"], "content_version": "c",
+		"loadout": {"anchor": "yes", "rules_on": 1, "core_off": {"x": 1}, "boon_id": "x".repeat(60), "evil": 5}}, "entries": []})
+	lo = built["loadout"]
+	_check(lo["anchor"] == false and lo["rules_on"] == true and lo["core_off"] == false and String(lo["boon_id"]).length() == 40 and not lo.has("evil"),
+		"client loadout values coerced (bool / <=40 chars), unknown keys dropped")
+	built = VerifyCli.build_from_job({"server_header": {"kind": "normal", "ranked": false}, "client_header": {"team_keys": ["a"], "content_version": "c",
+		"loadout": {"boon_id": [1]}}, "entries": []})
+	_check((built["loadout"] as Dictionary)["boon_id"] == "", "non-string boon_id -> empty")
 	# bad shape
 	r = VerifyCli.run(JSON.stringify({"schema": 1, "server_header": 5}))
 	_check(int(r["code"]) == 2 and String(r["result"]["reason"]) == "bad_job", "non-object server_header -> bad_job")

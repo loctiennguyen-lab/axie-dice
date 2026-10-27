@@ -21,18 +21,24 @@ sleep 1
 export AXIE_VERIFY_URL="http://127.0.0.1:$PORT" AXIE_VERIFY_KEY_FILE="$T/key" GODOT_BIN="$GODOT"
 bash "$HERE/runner.sh" --once >"$T/o1" 2>&1; r1=$?
 bash "$HERE/runner.sh" --once >"$T/o2" 2>&1; r2=$?
-bash "$HERE/runner.sh" --once >"$T/o3" 2>&1; r3=$?
+AXIE_VERIFY_JOB_KILL=1 bash "$HERE/runner.sh" --once >"$T/o3" 2>&1; r3=$?
+bash "$HERE/runner.sh" --once >"$T/o4" 2>&1; r4=$?
 chk $([ $r1 = 0 ] && echo 1 || echo 0) "job 1 xử lý (rc=$r1)"
 chk $([ $r2 = 0 ] && echo 1 || echo 0) "job 2 xử lý (rc=$r2)"
-chk $([ $r3 = 3 ] && echo 1 || echo 0) "hết job -> rc 3 (rc=$r3)"
+chk $([ $r3 = 0 ] && echo 1 || echo 0) "job 3 bị hang-kill vẫn xử lý (rc=$r3)"
+chk $([ $r4 = 3 ] && echo 1 || echo 0) "hết job -> rc 3 (rc=$r4)"
 chk $(python3 -I -c '
 import json,sys
 r=json.load(open(sys.argv[1]))
 a=r.get("a"*32,{}); b=r.get("b"*32,{})
 print(1 if a.get("ok") is True and a.get("reason")=="" and b.get("ok") is False and b.get("reason")=="header_mismatch" else 0)' "$T/results.json") \
   "job khớp -> ok; job lệch server_header -> header_mismatch"
-chmod 644 "$T/key"; bash "$HERE/runner.sh" --once >/dev/null 2>&1; r4=$?
-chk $([ $r4 != 0 ] && echo 1 || echo 0) "file khoá mode 644 bị từ chối"
+chmod 644 "$T/key"; bash "$HERE/runner.sh" --once >/dev/null 2>&1; r5=$?
+chk $([ $r5 != 0 ] && echo 1 || echo 0) "file khoá mode 644 bị từ chối"
+chmod 600 "$T/key"
+AXIE_VERIFY_URL=http://example.com bash "$HERE/runner.sh" --once >/dev/null 2>&1; r6=$?
+chk $([ $r6 = 1 ] && echo 1 || echo 0) "URL http không phải localhost bị từ chối"
+chk $(python3 -I -c 'import json,sys;c=json.load(open(sys.argv[1])).get("c"*32,{});print(1 if c.get("reason")=="timeout" and c.get("outcome")=="invalid" and c.get("ok") is False else 0)' "$T/results.json") "hang-kill -> nộp invalid/timeout"
 chk $(grep -q 'test-key-not-a-secret' "$T/o1" "$T/o2" "$T/o3" && echo 0 || echo 1) "khoá không bị in ra"
 [ $fail = 0 ] && echo "test_runner: PASS" || echo "test_runner: FAIL"
 exit $fail
