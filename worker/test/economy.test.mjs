@@ -379,3 +379,18 @@ test('economy review 2: claim needs the server time a run takes; Stone position 
   ins('d'.repeat(32), 100, 250, { outcome: 'won' });
   assert.equal((await claim('d'.repeat(32))).shard, 700);
 });
+
+test('economy: GET /api/econ carries the gate numbers (BUG-0008): runs with a fight, newcomer, depth stage, daily tries', async () => {
+  const env = mkEnv();
+  const g0 = (await j(call(env, '/api/econ'))).gates;
+  assert.equal(g0.runs_with_battle, 0); assert.equal(g0.newcomer, true); assert.equal(g0.depth_stage, 1);
+  assert.equal(g0.daily.used, 0); assert.equal(g0.daily.max, 3);
+  const now = Math.floor(Date.now() / 1000);
+  const ins = env.DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, rules_version, state, created_at, closed_at, outcome, battles_done) VALUES (?, 'p1', ?, 'x', 'closed', ?, ?, ?, ?)`);
+  for (let i = 0; i < 5; i++) ins.run(`${i}`.padStart(32, 'a'), i === 0 ? 'daily' : 'normal', now, now, i % 2 ? 'won' : 'lost', 1);
+  ins.run('f'.repeat(32), 'normal', now, now, 'lost', 0);
+  const g = (await j(call(env, '/api/econ'))).gates;
+  assert.equal(g.runs_with_battle, 5); assert.equal(g.newcomer, false); assert.equal(g.depth_stage, 3);
+  assert.equal(g.daily.used, 1);
+  assert.equal((await j(call(env, '/api/econ', 'GET', null, 'tok2'))).gates.runs_with_battle, 0, 'per player');
+});

@@ -266,6 +266,10 @@ const SERVER_FIELDS: Array[String] = ["shard_pool", "stone", "tickets", "unlocks
 ## Id of the last server reset (M1) this device has wiped for. "" = none seen yet.
 var econ_reset_seen: String = ""
 var _econ: RemoteEcon = null
+## BUG-0008: gate numbers the server counted (GET /api/econ `gates`: runs_with_battle, newcomer, depth_stage, daily).
+## Session-only cache, never saved, reset by reload_from_store(). While the economy is remote and this is filled,
+## is_newcomer() / depth_stage() / gate_runs_with_battle() / server_daily() answer from it, so a second device agrees.
+var server_gates: Dictionary = {}
 
 
 ## The remote economy while it is on (signed in + project setting axie/econ="remote"), else null.
@@ -301,6 +305,8 @@ func apply_server_econ(snap: Dictionary, save: bool = true) -> void:
 			RunState.reset()
 			if had_run:
 				RunState.discard_notice = "Your previous run is gone after the beta reset."
+	if snap.has("gates") and snap["gates"] is Dictionary:
+		server_gates = (snap["gates"] as Dictionary).duplicate(true)
 	shard_pool = int(snap.get("shard", shard_pool))
 	stone = int(snap.get("stone", stone))
 	tickets["normal"] = int(snap.get("ticket", int(tickets.get("normal", 0))))
@@ -875,6 +881,7 @@ func reload_from_store() -> void:
 	runs = 0
 	runs_with_battle = 0
 	runs_completed = 0
+	server_gates = {}
 	free_continue_used = false
 	battle_counted_seed = -1
 	wins = 0
@@ -1266,18 +1273,44 @@ static func _pity_from_json(raw) -> Dictionary:
 		out[String(k)] = str(v) if v is String else int(v)
 	return out
 
+func _gates_remote() -> bool:
+	return _econ != null and not server_gates.is_empty()
+
+
+## Runs with >= 1 battle for display / gates. While the economy is remote: the larger of the server's count (other
+## devices, BUG-0008) and this device's (a run finished here before the next GET /api/econ). Never opens more than the
+## server allows: it re-checks on create.
+func gate_runs_with_battle() -> int:
+	if _gates_remote() and server_gates.has("runs_with_battle"):
+		return maxi(int(server_gates["runs_with_battle"]), runs_with_battle)
+	return runs_with_battle
+
+
+## The server's Daily tries {used, max} from the last GET /api/econ, or {} when not remote / not known yet.
+func server_daily() -> Dictionary:
+	if _gates_remote() and server_gates.get("daily") is Dictionary:
+		var d: Dictionary = server_gates["daily"]
+		return {"used": int(d.get("used", 0)), "max": int(d.get("max", 3))}
+	return {}
+
+
 func is_newcomer() -> bool:
-	return runs_with_battle < int(EconomyDBScript.get_table("missions").get("newcomer_runs", 5))
+	return gate_runs_with_battle() < int(EconomyDBScript.get_table("missions").get("newcomer_runs", 5))
 
 
 ## Depth stage for an OFFLINE run (an online run takes it from the server header). Mirrors worker/src/runs.js depthStage():
 ## >= stage3_runs completed -> 3, >= 1 -> 2, none: still a newcomer -> 1, else (old account) 3. Constants = worker STAGE2_RUNS / STAGE3_RUNS (kept out of rules JSON: no rules-version bump).
 func depth_stage() -> int:
+	var local := 1
 	if runs_completed >= DEPTH_STAGE3_RUNS:
-		return 3
-	if runs_completed >= DEPTH_STAGE2_RUNS:
-		return 2
-	return 1 if is_newcomer() else 3
+		local = 3
+	elif runs_completed >= DEPTH_STAGE2_RUNS:
+		local = 2
+	elif not is_newcomer():
+		local = 3
+	if _gates_remote() and server_gates.has("depth_stage"):   # remote: max(local, server)
+		return maxi(local, clampi(int(server_gates["depth_stage"]), 1, 3))
+	return local
 
 
 ## Called by RunState.end_run for every run that ended won/lost.

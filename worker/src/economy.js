@@ -20,6 +20,7 @@ import { UNLOCKS, RUN_SHARD_MAX } from './econ_tables.js';
 import { tierStone, stoneDayCap } from './missions.js';
 import { scoreFromSummary } from './leaderboard.js';
 import { CLOSE_SANITY } from './run_core.js';
+import { gateInfo } from './runs.js';
 
 const { json } = shared;
 const nowS = () => Math.floor(Date.now() / 1000);
@@ -502,7 +503,7 @@ export async function handleEcon(request, env, url, opts = {}) {
     if (url.pathname === '/api/econ' && request.method === 'GET') {
       await ensureStarter(env, pid, at);
       await syncPassXp(env, pid, at);
-      return json(await state(env, pid));
+      return json({ ...(await state(env, pid)), gates: await gateInfo(env, pid, at) });
     }
     if (request.method !== 'POST') return json({ error: 'not_found' }, 404);
     const o = request.headers.get('Origin');
