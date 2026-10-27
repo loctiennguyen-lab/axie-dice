@@ -715,7 +715,7 @@ func _on_node_pressed(id: String) -> void:
 		return
 	var res: Dictionary = await RunState.request_enter_node(id, node.node_type)
 	if not bool(res["ok"]) and String(res["code"]) != "busy":
-		NetNotice.show(self, String(res["code"]), _on_node_pressed.bind(id))
+		NetNotice.show(self, String(res["code"]), _on_node_pressed.bind(id), "Could not open that node")
 
 
 ## In-run menu (L1 C3): Esc or the MENU button. The map's state lives in RunState, so saving and
@@ -1784,7 +1784,7 @@ func _show_pact_overlay() -> void:
 		var res: Dictionary = await AidPurchase.buy_pact_swap(i, _save_map_progress)
 		if not bool(res["ok"]) and String(res["code"]) in ["offline", "timeout", "expired", "version",
 				"unauthenticated", "rejected", "out_of_order", "bad_request"]:
-			NetNotice.show(self, String(res["code"]), func(): view.swap_requested.emit(i))
+			NetNotice.show(self, String(res["code"]), func(): view.swap_requested.emit(i), "Could not swap")
 		if bool(res["ok"]) and is_instance_valid(view):
 			_save_map_progress()
 			view.setup(RunState.pact_cards(), RunState.pact_can_skip(), AidPurchase.pact_swap_offer()))
@@ -1984,7 +1984,7 @@ func _on_core_card_reroll(idx: int) -> void:
 	var res: Dictionary = await RunState.request_reroll_pending_rewards(idx)
 	if not bool(res["ok"]):
 		if String(res["code"]) not in ["illegal", "busy"]:
-			NetNotice.show(self, String(res["code"]), _on_core_card_reroll.bind(idx))
+			NetNotice.show(self, String(res["code"]), _on_core_card_reroll.bind(idx), "Could not reroll the Cores")
 		return
 	if not UI3Gacha.is_instant() and old_card != null and is_instance_valid(old_card):
 		gacha_log.append("reroll_out")
