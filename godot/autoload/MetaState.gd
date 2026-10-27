@@ -290,11 +290,17 @@ static func strip_server_fields(meta: Dictionary) -> Dictionary:
 func apply_server_econ(snap: Dictionary, save: bool = true) -> void:
 	var rid := String(snap.get("reset_id", ""))
 	if rid != "" and rid != econ_reset_seen:
-		if RunState.phase != RunState.RunPhase.MENU:
-			# Never wipe under a running game: keep the snapshot, wipe when the run is over (RunState.reset()).
+		if _player_in_run():
+			# Never wipe local files under a running game: keep the snapshot, wipe when the run is over
+			# (RunState.reset()). Balances below still come from the server right now.
 			_pending_reset = snap.duplicate(true)
-			return
-		wipe_for_server_reset(rid)
+		else:
+			# Land / menu: the server deleted every run, so a run save left on this machine is dead too.
+			var had_run := RunState.saved_run_file_exists()
+			wipe_for_server_reset(rid)
+			RunState.reset()
+			if had_run:
+				RunState.discard_notice = "Your previous run is gone after the beta reset."
 	shard_pool = int(snap.get("shard", shard_pool))
 	stone = int(snap.get("stone", stone))
 	tickets["normal"] = int(snap.get("ticket", int(tickets.get("normal", 0))))
@@ -356,13 +362,42 @@ func has_pending_reset() -> bool:
 var guest_no_wallet: bool = false
 
 
+## True only while the player is inside a run: the run is alive in RunState AND the open scene is not Land / menu /
+## Run Setup / Settings. A run save sitting on disk (or a run just loaded by Continue) does not count.
+func _player_in_run() -> bool:
+	var ph: int = RunState.phase
+	if ph == RunState.RunPhase.MENU or ph == RunState.RunPhase.WON or ph == RunState.RunPhase.LOST:
+		return false
+	var tree := get_tree()
+	if tree == null or tree.current_scene == null:
+		return true
+	var path: String = tree.current_scene.scene_file_path
+	for safe in ["res://scenes/land/", "res://scenes/main_menu/", "res://scenes/run_setup/", "res://scenes/settings/"]:
+		if path.begins_with(safe):
+			return false
+	return true
+
+
 ## Runs the wipe that apply_server_econ postponed because a run was open. Called by RunState.reset().
 func apply_pending_reset() -> void:
-	if _pending_reset.is_empty() or RunState.phase != RunState.RunPhase.MENU:
+	if _pending_reset.is_empty() or _player_in_run():
 		return
 	var snap := _pending_reset
 	_pending_reset = {}
-	apply_server_econ(snap)
+	# Balances were already taken from the server while the run was open (and may be newer than `snap`):
+	# keep them across the wipe, which only drops the local history.
+	var keep := {"shard": shard_pool, "stone": stone, "ticket": int(tickets.get("normal", 0)),
+		"unlocks": unlocks.duplicate(), "owned": cosmetics_owned.duplicate(),
+		"pity": echobox_pity.duplicate(true), "pass": pass_season.duplicate(true)}
+	wipe_for_server_reset(String(snap.get("reset_id", "")))
+	shard_pool = int(keep["shard"])
+	stone = int(keep["stone"])
+	tickets["normal"] = int(keep["ticket"])
+	unlocks.assign(keep["unlocks"])
+	cosmetics_owned.assign(keep["owned"])
+	echobox_pity = keep["pity"]
+	pass_season = keep["pass"]
+	save_to_disk()
 
 
 ## Server says everything was reset (M1: Shard, Stone, tickets, Gem, run history, saves). Drops every local value

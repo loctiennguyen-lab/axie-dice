@@ -1681,10 +1681,8 @@ func _on_continue_pressed() -> void:
 		return
 	if not RunState.load_run():
 		push_warning("LandHub: saved run could not be loaded")
-		RunState.clear_saved_run()
-		_has_run = false
-		_new_run_btn.visible = false
-		_show_toast("That run could not be loaded", 1.6, &"error")
+		_drop_dead_run()
+		_show_toast("That run could not be loaded and was removed. You can start a new run.", 4.0, &"error")
 		return
 	var plate := find_child("RunPlate", true, false) as Button
 	_set_continue_busy(plate, true)
@@ -1693,8 +1691,7 @@ func _on_continue_pressed() -> void:
 		return
 	_set_continue_busy(plate, false)
 	if st == "gone":
-		_has_run = false
-		_new_run_btn.visible = false
+		_drop_dead_run()
 		_show_toast(RunState.take_discard_notice(), 5.0)
 		return
 	if st != "ok":
@@ -1706,6 +1703,22 @@ func _on_continue_pressed() -> void:
 		get_tree().change_scene_to_file("res://scenes/combat/Combat.tscn")
 	else:
 		get_tree().change_scene_to_file("res://scenes/run_map/RunMap.tscn")
+
+
+## The saved run is unusable (cannot load, or the server no longer has it): erase the save and put the plate back to
+## "Start run" so Continue cannot trap the player.
+func _drop_dead_run() -> void:
+	var notice := RunState.discard_notice
+	RunState.clear_saved_run()
+	RunState.reset()   # load_run() may have filled the in-memory run before the server said no
+	RunState.discard_notice = notice
+	_has_run = false
+	_mission_run = false
+	if _new_run_btn != null:
+		_new_run_btn.visible = false
+	if _run_plate != null and is_instance_valid(_run_plate):
+		_run_plate.text = "Start run"
+		_run_plate.tooltip_text = "Run Setup"
 
 
 ## Run plate shows "Reconnecting…" (disabled, with its reason) while Continue is out; restored after.
