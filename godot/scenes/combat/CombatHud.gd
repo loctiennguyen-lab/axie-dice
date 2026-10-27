@@ -70,6 +70,8 @@ var _seed_wait := false
 var _hint_before_wait := ""
 var hold_button: Button             ## depth v3 Hold, owned here (no scene node)
 var _hint: Label
+var _end_cap: PanelContainer      # key cap on the End turn button
+var _end_cap_label: Label
 var _hold_wanted := true
 var _foe_card: PanelContainer       ## boss rhythm (3 chips) and / or the Elite affix chip, left column
 var _foe_rows: VBoxContainer
@@ -177,7 +179,7 @@ func _build_top() -> void:
 
 func _build_attrition() -> void:
 	_attr_card = UI3.plate(&"notice")
-	_attr_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_attr_card.mouse_filter = Control.MOUSE_FILTER_STOP   # hover = attrition tooltip
 	add_child(_attr_card)
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -511,6 +513,14 @@ func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 	end_turn.theme_type_variation = "ButtonPrimaryL"
 	end_turn.text = "End turn"
 	end_turn.add_theme_font_size_override("font_size", 24)   # "Enemy turn" must fit the 240 px column
+	_end_cap = UI3.plate(&"info")
+	_end_cap.name = "EndKeyCap"
+	_end_cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_end_cap_label = UI3.label(KeyBindings.text(KeyBindings.COMBAT_END_TURN), "LabelDisplay")
+	_end_cap_label.add_theme_font_size_override("font_size", 16)   # key hint size
+	_end_cap_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_end_cap.add_child(_end_cap_label)
+	end_turn.add_child(_end_cap)
 	reroll.custom_minimum_size = Vector2(RIGHT_W, SMALL_H)
 	end_turn.custom_minimum_size = Vector2(RIGHT_W, END_H)
 	# Backstop: a label can never grow its button past the 240 px column (test: t_combat_right_block).
@@ -673,16 +683,17 @@ func _active_slot(a: Dictionary) -> Control:
 ## Attrition card. state = hud_state().attrition; turn; hidden for newcomers.
 func update_attrition(state: Dictionary, turn: int, newcomer: bool) -> void:
 	_newcomer = newcomer
-	_attr_card.visible = not newcomer
+	_attr_card.visible = (not newcomer) and CombatLabels.attrition_visible(state, turn)   # only a few turns before it starts
 	_attr_card.add_to_group("ui3_tip_avoid")
+	UI3Tooltip.bind(_attr_card, "Attrition: from turn %d every enemy hits 5%% harder each turn, up to +25%%. Long fights get dangerous, so finish them. It resets every fight." % int(state.get("start_turn", 6)))
 	if newcomer:
 		return
 	var pct := int(state.get("pct", 0))
 	var start := int(state.get("start_turn", 6))
 	var maxed := pct >= 25
 	if pct <= 0:
-		_attr_title.text = "ATTRITION %s NOT YET" % HudKit.dot()
-		_attr_sub.text = "starts turn %d %s +5%%/turn %s max +25%%" % [start, HudKit.dot(), HudKit.dot()]
+		_attr_title.text = "ATTRITION %s TURN %d" % [HudKit.dot(), start]
+		_attr_sub.text = "enemies hit +5%%/turn %s max +25%%" % HudKit.dot()
 	elif maxed:
 		_attr_title.text = "ATTRITION +%d%% %s MAX" % [pct, HudKit.dot()]
 		_attr_sub.text = "since turn %d" % (start + 4)
@@ -737,6 +748,11 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary, hold: D
 	_hint.text = ("%s · skip" % KeyBindings.text(KeyBindings.COMBAT_END_TURN)) if resolving else String(end.get("sub", ""))
 	if need_mp and not resolving:
 		_hint.text = "Reroll: need %d MP\n%s" % [cost, _hint.text]
+	if _end_cap != null:
+		_end_cap_label.text = KeyBindings.text(KeyBindings.COMBAT_END_TURN)
+		_end_cap.visible = not resolving
+		# text goes left while the cap sits on the right ("Space" is wide), centred again for "Enemy turn"
+		end_turn_button.alignment = HORIZONTAL_ALIGNMENT_CENTER if resolving else HORIZONTAL_ALIGNMENT_LEFT
 	_apply_seed_wait()
 	layout()
 
@@ -827,6 +843,9 @@ func layout() -> void:
 		y -= 8.0 + END_H
 		end_turn_button.position = Vector2(x, y)
 		end_turn_button.size = Vector2(RIGHT_W, END_H)
+		if _end_cap != null:
+			_end_cap.size = Vector2.ZERO
+			_end_cap.position = Vector2(RIGHT_W - 12.0 - _end_cap.get_combined_minimum_size().x, (END_H - _end_cap.get_combined_minimum_size().y) * 0.5)
 		y -= GAP + SMALL_H
 		reroll_button.position = Vector2(x, y)
 		reroll_button.size = Vector2(RIGHT_W, SMALL_H)
