@@ -42,7 +42,7 @@ function fakeDoNamespace({ failInit = false } = {}) {
           cores.set(name, core);
         }
         if (path === '/init') { const o = await core.init(JSON.parse(init.body)); return new Response(JSON.stringify(o), { status: o.ok ? 200 : 409 }); }
-        if (path === '/abandon') return new Response(JSON.stringify(core.abandon()), { status: 200 });
+        if (path === '/abandon') return new Response(JSON.stringify(core.abandonInfo()), { status: 200 });
         return new Response('{}', { status: 404 });
       },
     }),
@@ -322,6 +322,21 @@ test('depth v4 stage: only closed runs count (open, abandoned, run_start-only do
   seedClosed(DB, 'google:2', 5, { state: 'abandoned', battles: 2 });
   const k = await (await create(call, {}, { token: 'tok2' })).json();
   assert.equal(k.header.depth_stage, 3, 'old account (>= 5 runs with a fight) skips the newcomer stages');
+});
+
+test('abandon: a run left after entering a battle counts toward the newcomer gate (BUG-0008); before any battle it does not', async () => {
+  const { DB, env, call } = await setup();
+  const fought = () => DB.db.prepare(`SELECT COUNT(*) AS n FROM runs WHERE player_id = 'google:1' AND battles_done >= 1`).get().n;
+  const enter = (id) => env.RUN_DO.cores.get(id).sql.exec(
+    `INSERT INTO epochs (seq, kind, args, h, log_len, seed, log_delta, attempt, req_digest, at) VALUES (1, 'node', '{}', 'h', 1, 1, '[]', 0, 'd', 1)`);
+  const a = await (await create(call)).json();
+  await call(`/api/run/${a.run_id}/abandon`, { method: 'POST' });
+  assert.equal(fought(), 0, 'abandoned before any battle: not counted');
+  const b = await (await create(call)).json();
+  enter(b.run_id);
+  await call(`/api/run/${b.run_id}/abandon`, { method: 'POST' });
+  assert.equal(fought(), 1, 'abandoned after one battle: counted');
+  assert.equal(DB.db.prepare('SELECT battles_done FROM runs WHERE run_id = ?').get(b.run_id).battles_done, 1);
 });
 
 test('depth v4 stage: GET /api/run/open hands back the stage written at create; a pre-v4 row answers 3', async () => {

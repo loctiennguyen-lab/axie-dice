@@ -200,8 +200,11 @@ async function abandon(request, env, url, player, runId) {
     try { out = await r.json(); } catch { out = {}; }
     // The run had already closed (its own write-back and settlement decide the escrow): never mark it lost.
     if (out && out.state === 'closed') return json({ ok: true });
-    const u = await env.DB.prepare(`UPDATE runs SET state = 'abandoned', outcome = 'lost', closed_at = ? WHERE run_id = ? AND state = 'open'`)
-      .bind(at, runId).run();
+    // BUG-0008: a run abandoned after a fight still counts for the newcomer gate (rule: "runs abandoned after a battle
+    // count"). Server-derived only: the node epochs the DO answered, never a client number.
+    const fought = out && Number.isInteger(out.battles) && out.battles >= 1 ? Math.min(out.battles, 500) : 0;
+    const u = await env.DB.prepare(`UPDATE runs SET state = 'abandoned', outcome = 'lost', closed_at = ?, battles_done = MAX(battles_done, ?) WHERE run_id = ? AND state = 'open'`)
+      .bind(at, fought, runId).run();
     // Abandon = the stake is lost. Two exceptions get it back: a run that never really started (no epoch
     // answered, i.e. run_start failed), and a run created under older rules than the current ones (we bumped
     // under the player, the client cannot resume it). Once run_start is answered on current rules the player has
