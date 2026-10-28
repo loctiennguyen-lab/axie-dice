@@ -169,7 +169,7 @@ func _recap_grid(d: Dictionary) -> Control:
 		pad.add_child(v)
 		v.add_child(UI3.label(TranslationServer.translate(String(r[0])), "LabelMuted"))
 		var val := UI3.label(TranslationServer.translate(String(r[1])), "LabelDisplay")
-		val.add_theme_font_size_override("font_size", 18)
+		val.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		v.add_child(val)
 		g.add_child(cell)
 	return g

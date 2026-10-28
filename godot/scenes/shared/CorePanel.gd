@@ -264,7 +264,7 @@ func _signature() -> String:
 func _add_count_label(s: PanelContainer, core_id: String) -> void:
 	var l := UI3.label("", "LabelDisplay")
 	l.name = "FireCount"
-	l.add_theme_font_size_override("font_size", 18)
+	l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	l.add_theme_color_override("font_outline_color", UI3Theme.color("panel"))
 	l.add_theme_constant_override("outline_size", 4)
 	l.size_flags_horizontal = Control.SIZE_SHRINK_END
@@ -387,7 +387,7 @@ func _anchor_slot() -> PanelContainer:
 	# Badge (combat only): x/2 until awakened, then xN activations. Never two badges at once.
 	var b := UI3.label("", "LabelDisplay")
 	b.name = "AnchorBadge"
-	b.add_theme_font_size_override("font_size", 18)
+	b.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	b.add_theme_color_override("font_outline_color", UI3Theme.color("panel"))
 	b.add_theme_constant_override("outline_size", 4)
 	b.size_flags_horizontal = Control.SIZE_SHRINK_END

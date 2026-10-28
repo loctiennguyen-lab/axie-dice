@@ -59,7 +59,7 @@ func refresh(bo: Array, cards: Dictionary) -> void:
 			"size": sz, "part": int(g["part"]), "m100": m})
 	while _labels.size() < _groups.size():
 		var l := UI3.label("", "LabelDisplay")
-		l.add_theme_font_size_override("font_size", 24)
+		l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
 		l.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
 		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -141,7 +141,7 @@ func _show_banner(text: String, size: int, tray_top: float, key := Vector3i(-1, 
 	if _banner == null:
 		_banner = UI3.label("", "LabelDisplay")
 		_banner.name = "SetBanner"
-		_banner.add_theme_font_size_override("font_size", 36)
+		_banner.add_theme_font_size_override("font_size", UI3Theme.size_of("text_banner"))
 		_banner.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
 		_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_banner.vertical_alignment = VERTICAL_ALIGNMENT_CENTER

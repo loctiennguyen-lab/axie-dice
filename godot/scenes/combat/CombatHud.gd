@@ -198,11 +198,11 @@ func _build_attrition() -> void:
 	col.add_theme_constant_override("separation", 0)
 	row.add_child(col)
 	_attr_title = UI3.label("", "LabelDisplay")
-	_attr_title.add_theme_font_size_override("font_size", 18)
+	_attr_title.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	_ignore(_attr_title)
 	col.add_child(_attr_title)
 	_attr_sub = UI3.label("", "LabelMuted")
-	_attr_sub.add_theme_font_size_override("font_size", 18)
+	_attr_sub.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	_ignore(_attr_sub)
 	col.add_child(_attr_sub)
 
@@ -240,7 +240,7 @@ func update_foe(d: Dictionary) -> void:
 	if coach != "":
 		var cl := UI3.label(coach, "LabelMuted")
 		cl.name = "CoachPlating"
-		cl.add_theme_font_size_override("font_size", 18)
+		cl.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		cl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		cl.custom_minimum_size.x = 320
 		cl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -258,19 +258,19 @@ func update_foe(d: Dictionary) -> void:
 		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(ic)
 		var l := UI3.label(String(a.get("name", "")), "LabelDisplay")
-		l.add_theme_font_size_override("font_size", 18)
+		l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(l)
 		if String(a.get("note", "")) != "":
 			var n := UI3.label(String(a["note"]), "LabelMuted")
-			n.add_theme_font_size_override("font_size", 18)
+			n.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 			n.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			row.add_child(n)
 		UI3Tooltip.bind(row, String(a.get("tip", "")))
 		_foe_rows.add_child(row)
 	if not r.is_empty():
 		var title := UI3.label("BOSS RHYTHM", "LabelDisplay")
-		title.add_theme_font_size_override("font_size", 18)
+		title.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_foe_rows.add_child(title)
 		var chips := HBoxContainer.new()
@@ -284,7 +284,7 @@ func update_foe(d: Dictionary) -> void:
 			p.name = "Phase_" + ph
 			p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			var l2 := UI3.label(String(_PHASE_WORD[ph]), "LabelDisplay")
-			l2.add_theme_font_size_override("font_size", 18)
+			l2.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 			l2.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			if is_next and not is_now:
 				var pv := VBoxContainer.new()
@@ -293,7 +293,7 @@ func update_foe(d: Dictionary) -> void:
 				pv.add_child(l2)
 				var nl := UI3.label("Next", "LabelMuted")
 				nl.name = "NextTag"
-				nl.add_theme_font_size_override("font_size", 18)
+				nl.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 				nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 				nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				pv.add_child(nl)
@@ -304,7 +304,7 @@ func update_foe(d: Dictionary) -> void:
 		UI3Tooltip.bind(chips, "Boss rhythm: 3-turn cycle. Prep, then Strike (its strongest face), then Hollow (it takes +30% from damage faces and deals -30%). The chip tagged Next is the phase that comes next.")
 		_foe_rows.add_child(chips)
 		var tell := UI3.label(String(r.get("tell", "")), "LabelMuted")
-		tell.add_theme_font_size_override("font_size", 18)
+		tell.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		tell.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_foe_rows.add_child(tell)
 	layout()
@@ -393,7 +393,7 @@ func adopt_log(text: RichTextLabel) -> PanelContainer:
 	text.custom_minimum_size = Vector2(INFO_W - 24.0, LOG_H - 20.0)
 	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	text.theme = UI3Theme.get_theme()
-	text.add_theme_font_size_override("normal_font_size", 18)
+	text.add_theme_font_size_override("normal_font_size", UI3Theme.size_of("text_body"))
 	text.add_theme_color_override("default_color", UI3Theme.color("text"))
 	_log_plate.add_child(text)
 	layout()
@@ -417,7 +417,7 @@ func _make_tile(b: Button, glyph: StringName, word: String) -> void:
 	b.add_child(g)
 	var l := UI3.label(word, "LabelMuted")
 	l.name = "TileLabel_%s" % b.name
-	l.add_theme_font_size_override("font_size", 18)
+	l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	l.add_theme_color_override("font_color", UI3Theme.color("text"))
 	var lbg := UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("s"))
 	lbg.bg_color.a = 0.94
@@ -505,19 +505,19 @@ func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 		b.focus_mode = Control.FOCUS_ALL
 		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		add_child(b)
-	reroll.add_theme_font_size_override("font_size", 18)
+	reroll.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	undo.theme_type_variation = "ButtonSecondaryS"
 	reroll.theme_type_variation = "ButtonSecondaryS"
 	reroll.text = "Reroll"
 	reroll.tooltip_text = "Reroll unused dice (%s)" % KeyBindings.text(KeyBindings.COMBAT_REROLL)
 	end_turn.theme_type_variation = "ButtonPrimaryL"
 	end_turn.text = "End turn"
-	end_turn.add_theme_font_size_override("font_size", 24)   # "Enemy turn" must fit the 240 px column
+	end_turn.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))   # "Enemy turn" must fit the 240 px column
 	_end_cap = UI3.plate(&"info")
 	_end_cap.name = "EndKeyCap"
 	_end_cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_end_cap_label = UI3.label(KeyBindings.text(KeyBindings.COMBAT_END_TURN), "LabelDisplay")
-	_end_cap_label.add_theme_font_size_override("font_size", 16)   # key hint size
+	_end_cap_label.add_theme_font_size_override("font_size", UI3Theme.size_of("text_key_hint"))   # key hint size
 	_end_cap_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_end_cap.add_child(_end_cap_label)
 	end_turn.add_child(_end_cap)
@@ -545,7 +545,7 @@ func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 	_hint = UI3.label("", "LabelMuted")
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_hint.add_theme_color_override("font_color", UI3Theme.color("text"))   # sits on the 3D view: full cream, not muted
-	_hint.add_theme_font_size_override("font_size", 18)
+	_hint.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	var hbg := UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("s"))
 	hbg.bg_color.a = 0.94
 	hbg.content_margin_left = 8
@@ -637,7 +637,7 @@ func _more_slot(n: int) -> PanelContainer:
 	var s := _slot(44, null, 0, "")
 	s.modulate.a = 1.0
 	var l := UI3.label("+%d" % n, "LabelDisplay")
-	l.add_theme_font_size_override("font_size", 18)
+	l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	(s.get_child(0) as CenterContainer).add_child(l)
 	return s
@@ -671,7 +671,7 @@ func _active_slot(a: Dictionary) -> Control:
 	ic.modulate.a = 0.4 if spent else 1.0
 	b.add_child(ic)
 	var badge := UI3.label(str(a.get("charges", "")), "LabelDisplay")
-	badge.add_theme_font_size_override("font_size", 18)
+	badge.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	badge.position = Vector2(34, 26)
 	b.add_child(badge)

@@ -51,8 +51,6 @@ const SETTLE_TIMEOUT := 2.4
 const PENDING_NUDGE := 0.45   ## a die still waiting for its result gets a small hop this often once it is at rest
 const TILE_BIG := 88.0
 const TILE_SMALL := 56.0
-const IVORY := Color("FFE5B4")      # token kam-9
-const INK := Color("291808")        # token kam-1
 const _DIE_SCENE := preload("res://assets/dice/axie_die.glb")
 const _MESH_SIZE := 0.5            # axie_die.glb is a 0.5 m rounded cube
 const BODY_COLOR := Color("F3D7A6")
@@ -72,7 +70,6 @@ static var _tex_cache: Dictionary = {}   # "type:value" (no skin) or "skin|type:
 ## Skin face layout (cosmetics R2, dice/_shared.md section 3). All in 256 px plate space.
 const GLYPH_BOX := Rect2(68, 28, 120, 120)
 const VALUE_BOX := Rect2(82, 164, 92, 60)
-const SKIN_INK := Color("2B1E17")   # neutral-1, the value ink on skin faces
 const VALUE_FONT := 80
 const VALUE_FONT_MIN := 44
 const VALUE_BASELINE := 222.0
@@ -290,7 +287,7 @@ func _plate(type: String, value: int, at: Vector2, skin: String = "") -> Control
 	bg.size = Vector2(PLATE_PX, PLATE_PX)
 	var plate := Panel.new()
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = IVORY
+	sb.bg_color = UI3Theme.color("die_body")
 	sb.set_corner_radius_all(40)
 	sb.set_border_width_all(8)
 	sb.border_color = _TYPE_RING.get(type, _TYPE_RING["blank"])
@@ -313,8 +310,8 @@ func _plate(type: String, value: int, at: Vector2, skin: String = "") -> Control
 		lbl.text = str(value)
 		lbl.add_theme_font_override("font", UI3Theme.font_display())
 		lbl.add_theme_font_size_override("font_size", 72)
-		lbl.add_theme_color_override("font_color", INK)
-		lbl.add_theme_color_override("font_outline_color", IVORY)
+		lbl.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
+		lbl.add_theme_color_override("font_outline_color", UI3Theme.color("die_body"))
 		lbl.add_theme_constant_override("outline_size", 10)
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		lbl.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
@@ -359,7 +356,7 @@ func _skin_plate(type: String, value: int, at: Vector2, skin: String) -> Control
 		lbl.text = txt
 		lbl.add_theme_font_override("font", font)
 		lbl.add_theme_font_size_override("font_size", fs)
-		lbl.add_theme_color_override("font_color", SKIN_INK)
+		lbl.add_theme_color_override("font_color", UI3Theme.color("die_ink"))
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lbl.size = Vector2(VALUE_BOX.size.x, font.get_height(fs))
 		lbl.position = Vector2(VALUE_BOX.position.x, VALUE_BASELINE - font.get_ascent(fs))
@@ -367,7 +364,7 @@ func _skin_plate(type: String, value: int, at: Vector2, skin: String) -> Control
 	else:
 		var bar := Panel.new()
 		var bsb := StyleBoxFlat.new()
-		bsb.bg_color = SKIN_INK
+		bsb.bg_color = UI3Theme.color("die_ink")
 		bsb.set_corner_radius_all(5)
 		bar.add_theme_stylebox_override("panel", bsb)
 		bar.position = BLANK_BAR.position
@@ -874,9 +871,9 @@ func _make_tile(d: Dictionary) -> Control:
 	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tile.size = Vector2(s, s)
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = IVORY
+	sb.bg_color = UI3Theme.color("die_body")
 	sb.set_corner_radius_all(14 if not bool(d["small"]) else 10)
-	sb.shadow_color = Color("2B1E17")
+	sb.shadow_color = UI3Theme.color("die_ink")
 	sb.shadow_offset = Vector2(0, 4)
 	sb.shadow_size = 0
 	tile.add_theme_stylebox_override("panel", sb)
@@ -892,7 +889,7 @@ func _make_tile(d: Dictionary) -> Control:
 	var lbl := Label.new()
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lbl.text = str(int(d["value"])) if int(d["value"]) > 0 else ""
-	lbl.add_theme_color_override("font_color", INK)
+	lbl.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
 	lbl.add_theme_font_size_override("font_size", int(s * 0.32))
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.size = Vector2(s, s * 0.36)

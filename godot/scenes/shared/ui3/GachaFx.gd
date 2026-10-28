@@ -300,13 +300,13 @@ static func mutation_strip(house: String, full := false) -> VBoxContainer:
 	row.add_child(ic)
 	var tag := UI3.label(TranslationServer.translate("MUTATION \u00b7 LEVEL 2") if full else TranslationServer.translate("MUTATION"), "LabelMuted")
 	tag.name = "MutationTag"
-	tag.add_theme_font_size_override("font_size", 18)
+	tag.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	tag.add_theme_color_override("font_color", col)
 	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(tag)
 	var nm := UI3.label(String(m["name"]), "LabelTitle")
 	nm.name = "MutationName"
-	nm.add_theme_font_size_override("font_size", 24)
+	nm.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
 	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(nm)
 	box.add_child(row)

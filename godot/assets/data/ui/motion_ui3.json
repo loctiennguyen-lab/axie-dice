@@ -1,0 +1,23 @@
+{
+  "_note": "UI-04 motion table: one entry per 'moment'. Read by UI3Motion (scenes/shared/ui3/UI3Motion.gd). Times in ms. trans/ease are Godot names without the TRANS_/EASE_ prefix. Seeded with the timings that were hardcoded in code before UI-04, so adding this file changed nothing visible. See design/handoffs/ui-04-polish/token-audit.md.",
+  "turn_banner": {
+    "_note": "CombatView._show_turn_banner: PLAYER TURN / ENEMY TURN plate. 390 in, 750 hold, 360 out.",
+    "in": {"ms": 390, "props": {
+      "alpha": {"from": 0.0, "to": 1.0, "trans": "LINEAR"},
+      "scale": {"from": 0.9, "to": 1.0, "trans": "BACK", "ease": "OUT"}}},
+    "hold_ms": 750,
+    "out": {"ms": 360, "props": {
+      "alpha": {"to": 0.0, "trans": "LINEAR"},
+      "scale": {"to": 1.04, "trans": "LINEAR"}}},
+    "skippable": true,
+    "hide_on_done": true
+  },
+  "combo_banner": {
+    "_note": "CombatView combo chip: pops in, lives COMBO_FLOAT_SEC (1.8 s) in total (caller passes hold_ms 1550), fades 250.",
+    "in": {"ms": 180, "props": {"scale": {"from": 0.7, "to": 1.0, "trans": "BACK", "ease": "OUT"}}},
+    "hold_ms": 1550,
+    "out": {"ms": 250, "props": {"alpha": {"to": 0.0, "trans": "LINEAR"}}},
+    "skippable": true,
+    "free_on_done": true
+  }
+}

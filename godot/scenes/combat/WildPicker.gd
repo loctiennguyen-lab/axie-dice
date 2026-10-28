@@ -23,7 +23,7 @@ func _init() -> void:
 	hint.add_theme_color_override("font_color", UI3Theme.color("text"))
 	hint.add_theme_color_override("font_outline_color", UI3Theme.color("panel"))
 	hint.add_theme_constant_override("outline_size", 4)
-	hint.add_theme_font_size_override("font_size", 18)
+	hint.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	var hbg := UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("s"))
 	hbg.bg_color.a = 0.94
 	hint.add_theme_stylebox_override("normal", hbg)
@@ -33,7 +33,7 @@ func _init() -> void:
 	for i in 6:
 		var b := UI3.button("", &"secondary", &"S")
 		b.name = "Chip%d" % i
-		b.add_theme_font_size_override("font_size", 18)
+		b.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		b.custom_minimum_size = Vector2(CHIP_W, CHIP_H)
 		b.size = Vector2(CHIP_W, CHIP_H)
 		b.position = Vector2(i * (CHIP_W + GAP), 32.0)
