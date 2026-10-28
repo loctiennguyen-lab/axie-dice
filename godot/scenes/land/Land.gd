@@ -249,29 +249,152 @@ func _show_reset_notice() -> void:
 func _gift_and_tier_notices() -> void:
 	if _gift_given:
 		_gift_given = false
-		_show_toast("Welcome gift: 3 decor in your storage — press E (Edit Land) to place them", 6.0)
+		_show_toast("Welcome gift: 3 decor in your storage.", 6.0, &"ok", {"icon": "gift", "action": "Place", "key": "E"})
 	if MetaState.land_tier_banner_seen < _tier and not has_modal():
 		MetaState.land_tier_banner_seen = _tier
 		MetaState.save_to_disk()
 		_show_tier_banner()
 
 
+## UI-04 L2 tier-up band (moment, skippable by click / Space / Enter): scrim, full-width 360 band with the
+## accent edge, "LAND TIER UP", old -> new tier, "Tier n of 6". `land_tier_up` plays the band in, holds and
+## out; the 4% camera push-in is run here (the engine does not run camera_push_in).
 func _show_tier_banner() -> void:
-	var ok := UI3.button("Look around", &"primary")
-	ok.name = "TierBannerOk"
-	ok.pressed.connect(_close_modal)
-	var body := "%s is open." % TIER_NAMES[_tier - 1]
+	var root := Control.new()
+	root.name = "TierBanner"
+	root.theme = UI3Theme.get_theme()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.add_to_group("ui3_modal")   # BUG-0005: HUD tooltips stay quiet under a modal
+	var scrim := ColorRect.new()
+	scrim.color = UI3Theme.color("scrim")
+	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(scrim)
+	var band := PanelContainer.new()
+	band.name = "TierBand"
+	band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bsb := UI3Theme.flat(UI3Theme.color("plate"), 0)
+	bsb.border_color = UI3Theme.color("accent")
+	bsb.border_width_top = 3
+	bsb.border_width_bottom = 3
+	band.add_theme_stylebox_override("panel", bsb)
+	var col := VBoxContainer.new()
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", 20)
+	band.add_child(col)
+	var head := UI3.label("LAND TIER UP", "LabelDisplay")
+	head.add_theme_font_size_override("font_size", UI3Theme.size_of("text_banner"))
+	head.add_theme_color_override("font_color", UI3Theme.color("accent"))
+	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(head)
+	var names := HBoxContainer.new()
+	names.alignment = BoxContainer.ALIGNMENT_CENTER
+	names.add_theme_constant_override("separation", UI3Theme.space("24"))
+	var old_l := UI3.label(TIER_NAMES[maxi(_tier - 2, 0)], "LabelScreenTitle")
+	old_l.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
+	names.add_child(old_l)
+	var arrow := UI3.label("→", "LabelScreenTitle")
+	arrow.add_theme_color_override("font_color", UI3Theme.color("accent"))
+	names.add_child(arrow)
+	var new_l := UI3.label(TIER_NAMES[_tier - 1], "LabelScreenTitle")
+	new_l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_banner"))
+	names.add_child(new_l)
+	col.add_child(names)
+	var tl := UI3.label("Tier %d of 6" % _tier)
+	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tl.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
+	col.add_child(tl)
 	var used: int = maxi(preload("res://scripts/meta/economy_db.gd").land_tier_cost(_tier - 1), 0)
-	if used > 0:
-		body += " Used %s Stone." % _fmt(used)
+	if used > 0:   # kept from the old dialog: what the upgrade cost
+		var ul := UI3.label("Used %s Stone." % _fmt(used), "LabelMuted")
+		ul.name = "TierUsed"
+		ul.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		col.add_child(ul)
 	var where := String(LandUpgradeScreen.ADDS_WHERE.get(_tier, ""))
-	if where != "":
-		body += "\nNew: " + where.replace(" · ", "\n")
-	var m := UI3.modal("Your Land is now %s" % TIER_NAMES[_tier - 1], body, [ok], 0)
-	m.name = "TierBanner"
-	m.cancelled.connect(_close_modal)
-	_modal = m
-	_ui.add_child(_modal)
+	if where != "":   # what the new tier opens (kept from the old dialog)
+		var wl := UI3.label("New: " + where, "LabelMuted")
+		wl.name = "TierNew"
+		wl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		col.add_child(wl)
+	root.add_child(band)
+	var hint := HBoxContainer.new()
+	hint.name = "SkipHint"
+	hint.alignment = BoxContainer.ALIGNMENT_CENTER
+	hint.add_theme_constant_override("separation", 10)
+	hint.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	hint.offset_top = -64.0 - 32.0
+	hint.offset_bottom = -64.0
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var h1 := UI3.label("Click or", "LabelKeyHint")
+	h1.add_theme_color_override("font_color", UI3Theme.color("text_on_viewport"))
+	hint.add_child(h1)
+	hint.add_child(UI3.keycap("Space", true))
+	var h2 := UI3.label("to continue", "LabelKeyHint")
+	h2.add_theme_color_override("font_color", UI3Theme.color("text_on_viewport"))
+	hint.add_child(h2)
+	root.add_child(hint)
+	# Whole-screen button: any click, Space or Enter (it holds focus) skips to the end.
+	var ok := Button.new()
+	ok.name = "TierBannerOk"
+	ok.flat = true
+	ok.text = "Look around"
+	ok.add_theme_color_override("font_color", Color.TRANSPARENT)
+	ok.add_theme_color_override("font_hover_color", Color.TRANSPARENT)
+	ok.add_theme_color_override("font_pressed_color", Color.TRANSPARENT)
+	ok.add_theme_color_override("font_focus_color", Color.TRANSPARENT)
+	var empty := StyleBoxEmpty.new()
+	for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+		ok.add_theme_stylebox_override(st, empty)
+	ok.set_anchors_preset(Control.PRESET_FULL_RECT)
+	ok.focus_mode = Control.FOCUS_ALL
+	root.add_child(ok)
+	_modal = root
+	_ui.add_child(root)
+	ok.grab_focus.call_deferred()
+	var state := {"tw": null, "done": false, "cam": null}
+	var push := func(on: bool) -> void:   # camera push-in 4% over 600 ms, back when the band leaves
+		if _cam == null or UI3Motion.reduced():
+			return
+		var prev: Variant = state["cam"]
+		if prev is Tween and (prev as Tween).is_valid():
+			(prev as Tween).kill()
+		var tc := create_tween()
+		state["cam"] = tc
+		tc.tween_property(_cam, "size", VIEW_W_UNITS * (0.96 if on else 1.0), 0.6 if on else 0.24) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	var finish := func() -> void:
+		if bool(state["done"]):
+			return
+		state["done"] = true
+		if _cam != null:
+			_cam.size = VIEW_W_UNITS
+		if _modal == root:
+			_close_modal()
+	root.tree_exiting.connect(func() -> void:   # Esc / any other close: put the camera back
+		var cam_tw: Variant = state["cam"]
+		if cam_tw is Tween and (cam_tw as Tween).is_valid():
+			(cam_tw as Tween).kill()
+		if _cam != null:
+			_cam.size = VIEW_W_UNITS)
+	ok.pressed.connect(func() -> void:
+		var tw: Variant = state["tw"]
+		if tw is Tween and (tw as Tween).is_valid() and (tw as Tween).is_running():
+			(tw as Tween).custom_step(9999.0)   # skip: every tween to its end, on_done closes
+		finish.call())
+	var layout_band := func() -> void:
+		band.position = Vector2(0.0, (root.size.y - 360.0) * 0.5)
+		band.size = Vector2(root.size.x, 360.0)
+	await get_tree().process_frame
+	if not is_instance_valid(root) or bool(state["done"]):
+		return
+	layout_band.call()
+	root.resized.connect(func() -> void:
+		if not bool(state["done"]):
+			layout_band.call())
+	push.call(true)
+	state["tw"] = UI3Motion.play("land_tier_up", band, {"on_done": func() -> void:
+		push.call(false)
+		finish.call()})
 
 
 func _exit_tree() -> void:
@@ -1250,7 +1373,7 @@ func _add_plot(id: String) -> void:
 # ---------------------------------------------------------------- HUD (UI-03: 4 corner groups)
 
 ## Flat clickable layer over a plate cell: hover tint, amber focus ring, content passes mouse through.
-func _cell(btn_name: String, content: Control, on_press: Callable) -> MarginContainer:
+func _cell(btn_name: String, content: Control, on_press: Callable, hover_radius := "s") -> MarginContainer:
 	var mc := MarginContainer.new()
 	mc.theme = UI3Theme.get_theme()
 	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1263,11 +1386,78 @@ func _cell(btn_name: String, content: Control, on_press: Callable) -> MarginCont
 	var empty := StyleBoxEmpty.new()
 	for st in ["normal", "pressed", "focus", "disabled"]:
 		b.add_theme_stylebox_override(st, empty)
-	b.add_theme_stylebox_override("hover", UI3Theme.flat(Color(1, 1, 1, 0.08), UI3Theme.radius("s")))
+	b.add_theme_stylebox_override("hover", UI3Theme.flat(Color(1, 1, 1, 0.08), UI3Theme.radius(hover_radius)))
 	b.pressed.connect(on_press)
 	mc.add_child(b)
 	UI3.attach_focus_ring(b)
 	return mc
+
+
+## Copy of the theme's plate box with other content margins (left, top, right, bottom).
+func _plate_margins(p: PanelContainer, m: Vector4) -> void:
+	var sb := UI3Theme.get_theme().get_stylebox("panel", String(p.theme_type_variation)).duplicate() as StyleBoxFlat
+	sb.content_margin_left = m.x
+	sb.content_margin_top = m.y
+	sb.content_margin_right = m.z
+	sb.content_margin_bottom = m.w
+	p.add_theme_stylebox_override("panel", sb)
+
+
+## Flat chip box: 2 px border (hairline), token colours only.
+func _chip_style(fill: Color, border: Color, radius_px: int, margins := Vector4(0, 0, 0, 0)) -> StyleBoxFlat:
+	return UI3Theme.flat(fill, radius_px, UI3Theme.stroke("hairline"), border, margins)
+
+
+## UI-04 CurrencyChip: 56 high pill, glyph 32 + Rowdies 24 value. Lunar Gem keeps the violet paid surface.
+func _currency_chip(e: Dictionary) -> PanelContainer:
+	var icon := String(e["icon"])
+	var gem := icon == "cur_gem"
+	var p := PanelContainer.new()
+	p.name = "Chip_" + icon
+	p.theme = UI3Theme.get_theme()
+	p.custom_minimum_size = Vector2(0, UI3Theme.size_of("currency_chip_h"))
+	p.add_theme_stylebox_override("panel", _chip_style(
+		UI3Theme.color("gem_bg" if gem else "plate"), UI3Theme.color("gem_border" if gem else "btn_secondary"),
+		UI3Theme.radius("pill"), Vector4(10, 0, 16, 0)))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UI3Theme.space("8"))
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	p.add_child(row)
+	var tr_icon := TextureRect.new()
+	tr_icon.name = "Glyph"
+	tr_icon.texture = UI3.currency_icon(icon, UI3Theme.size_of("icon_l"))
+	tr_icon.custom_minimum_size = Vector2.ONE * UI3Theme.size_of("icon_l")
+	tr_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tr_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(tr_icon)
+	var v := UI3.label(String(e["value"]), "LabelTitle")
+	v.name = "value_" + icon
+	if gem:
+		v.add_theme_color_override("font_color", UI3Theme.color("gem_text"))
+	row.add_child(v)
+	return p
+
+
+## Nav button of the bottom-left plate: wood-2 box, 56 high, Rowdies 18 label, optional KeyCap (28 inside buttons).
+func _nav_cell(btn_name: String, text: String, key: String, on_press: Callable) -> MarginContainer:
+	var box := PanelContainer.new()
+	box.theme = UI3Theme.get_theme()
+	box.custom_minimum_size = Vector2(0, UI3Theme.size_of("btn_m"))
+	box.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("m"),
+		0, Color.TRANSPARENT, Vector4(20, 0, 14 if key != "" else 20, 0)))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UI3Theme.space("8"))
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_child(row)
+	var l := UI3.label(text, "LabelDisplay")
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(l)
+	if key != "":
+		var kc := UI3.keycap(key, true)
+		kc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(kc)
+	return _cell(btn_name, box, on_press, "m")
 
 
 func _build_hud() -> void:
@@ -1280,53 +1470,54 @@ func _build_hud() -> void:
 	var prof := UI3.plate(&"plate")
 	prof.name = "ProfilePlate"
 	prof.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_plate_margins(prof, Vector4(12, 12, 20, 12))   # UI-04 L1: account chip 72 high
 	prof.add_child(_profile_cell())
 	_hud_tl.add_child(prof)
 	var lp := UI3.plate(&"plate")
 	lp.name = "LandPlate"
 	lp.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_plate_margins(lp, Vector4(16, 14, 16, 14))
 	lp.add_child(_land_link())
 	_hud_tl.add_child(lp)
 
-	# Top-right: one plate, currencies then settings (spec 01).
+	# Top-right: currency chips (56 high pills) + settings, no shared plate (UI-04 L1). The Wallet node
+	# stays the parent of that row so Settings still sits with the money.
 	_wallet = UI3.plate(&"plate")
 	_wallet.name = "Wallet"
+	_wallet.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	var wrow := HBoxContainer.new()
-	wrow.add_theme_constant_override("separation", UI3Theme.space("24"))
+	wrow.add_theme_constant_override("separation", UI3Theme.space("8"))
 	_wallet.add_child(wrow)
-	var cur := UI3.currency_pill(UI3.currency_entries(_loading))   # one order everywhere
-	_currencies = cur.get_child(0) as Control   # the pill's own row of icon + value cells
-	cur.remove_child(_currencies)
-	cur.free()
+	_currencies = HBoxContainer.new()
 	_currencies.name = "Currencies"
+	(_currencies as HBoxContainer).add_theme_constant_override("separation", UI3Theme.space("8"))
+	for e in UI3.currency_entries(_loading):   # one order everywhere
+		_currencies.add_child(_currency_chip(e))
 	_currencies.visible = not _guest   # signed out: currencies hidden
 	wrow.add_child(_currencies)
 	var st := UI3.icon_button("ui_settings", "Settings")
 	st.name = "Settings"
+	var chip_h := UI3Theme.size_of("currency_chip_h")
+	st.custom_minimum_size = Vector2(chip_h, chip_h)
+	st.add_theme_constant_override("icon_max_width", UI3Theme.size_of("icon_m"))
+	st.add_theme_stylebox_override("normal", _chip_style(UI3Theme.color("plate"), UI3Theme.color("btn_secondary"), UI3Theme.radius("l")))
+	st.add_theme_stylebox_override("hover", _chip_style(UI3Theme.color("panel_raised"), UI3Theme.color("btn_secondary"), UI3Theme.radius("l")))
+	st.add_theme_stylebox_override("pressed", _chip_style(UI3Theme.color("panel_raised"), UI3Theme.color("btn_secondary"), UI3Theme.radius("l")))
 	st.pressed.connect(_open_screen.bind(&"settings"))
 	wrow.add_child(st)
 	_ui.add_child(_wallet)
 
-	# Bottom-left: Show names (N) and Codex (C).
+	# Bottom-left: Codex, Edit Land [E], Raid as equal 56 px buttons (UI-04 L1), Moon Card unchanged.
 	_hud_bl = UI3.plate(&"plate")
 	_hud_bl.name = "HudBottomLeft"
+	_plate_margins(_hud_bl, Vector4(8, 8, 8, 8))
 	var blr := HBoxContainer.new()
-	blr.add_theme_constant_override("separation", UI3Theme.space("24"))
+	blr.add_theme_constant_override("separation", UI3Theme.space("8"))
 	_hud_bl.add_child(blr)
-	var crow := HBoxContainer.new()
-	crow.add_theme_constant_override("separation", UI3Theme.space("12"))
-	crow.add_child(UI3.label("Codex"))
-	blr.add_child(_cell("Codex", crow, _on_rail_pressed.bind(&"codex")))
-	var erow := HBoxContainer.new()
-	erow.add_theme_constant_override("separation", UI3Theme.space("12"))
-	erow.add_child(UI3.label("Edit Land"))
-	erow.add_child(UI3.key_hint("E"))
-	blr.add_child(_cell("EditLand", erow, _on_edit_pressed))
+	blr.add_child(_nav_cell("Codex", "Codex", "", _on_rail_pressed.bind(&"codex")))
+	blr.add_child(_nav_cell("EditLand", "Edit Land", "E", _on_edit_pressed))
 	# Raid R1 (lane RV): fight another player's defence team (online only; the screen explains why when it can't).
-	var rrow := HBoxContainer.new()
-	rrow.add_theme_constant_override("separation", UI3Theme.space("12"))
-	rrow.add_child(UI3.label("Raid"))
-	var raid_cell := _cell("Raid", rrow, _on_rail_pressed.bind(&"raid"))
+	var raid_cell := _nav_cell("Raid", "Raid", "", _on_rail_pressed.bind(&"raid"))
 	raid_cell.name = "Rail_Raid"
 	blr.add_child(raid_cell)
 	# Moon Card: L1 shows it disabled, no price (answered in round 2). Hidden when signed out.
@@ -1353,8 +1544,11 @@ func _build_hud() -> void:
 	_daily_btn.name = "Rail_Daily"
 	_daily_btn.pressed.connect(_on_rail_pressed.bind(&"daily"))
 	var dwhy := _block_reason_screen(&"daily")
+	_daily_btn.custom_minimum_size.y = UI3Theme.size_of("btn_l")   # UI-04 L1: 72 high, next to Start run
 	if dwhy != "":
 		UI3.set_disabled_reason(_daily_btn, "Daily run · needs connection")
+		_daily_btn.icon = UI3.icon("ui_lock")   # lock glyph says "locked", the reason is the label
+		_daily_btn.add_theme_constant_override("icon_max_width", UI3Theme.size_of("icon_s"))
 	elif _tag("daily") == "CLAIM":
 		_daily_btn.text = "Daily run · claim"
 	_daily_btn.visible = not (_first and not _has_run) and not _guest   # first visit / signed out: Daily hidden
@@ -1442,25 +1636,69 @@ func _best_line() -> String:
 	return "Best: A%d" % best if best >= 0 else "No wins yet"
 
 
-## Land tier link under the profile plate (key L). Tier 6 has nothing left to upgrade.
+## UI-04 Land chip (440): Stone glyph, tier name + "tier n of 6", Stone bar, one line with what is left, and
+## Upgrade as its own button (key L). Tier 6 has nothing left to upgrade: full bar, "Top tier", no button.
 func _land_link() -> Control:
 	var tn: String = TIER_NAMES[_tier - 1]
-	if _tier >= 6:
-		var l := UI3.label("%s Land · max tier" % tn, "LabelMuted")
-		l.name = "LandChip"
-		return l
-	var need := _upgrade_cost()
+	var top := _tier >= 6
+	var need := 0 if top else _upgrade_cost()
 	var have := _meta_int("stone")
-	var can_up := preload("res://scripts/meta/economy_db.gd").land_upgrade_enabled() and have >= need
-	var txt := "Upgrade Land · %s %d/6 · Stone %s/%s" % [tn, _tier, _fmt(mini(have, need)), _fmt(need)]
-	txt += " · ready" if can_up else " · %s to %s" % [_fmt(maxi(need - have, 0)), TIER_NAMES[_tier]]
-	# S3-13: it opens the upgrade screen, so it is drawn as a (secondary) button, not a label.
-	var btn := UI3.button(txt, &"secondary", &"S")
-	btn.name = "UpgradeLand"
-	btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	btn.tooltip_text = "%s / %s Land Stone" % [_fmt(have), _fmt(need)]
-	btn.pressed.connect(_on_land_pressed)
-	return btn
+	var can_up := not top and preload("res://scripts/meta/economy_db.gd").land_upgrade_enabled() and have >= need
+	var chip := HBoxContainer.new()
+	chip.name = "LandChip" if top else "StoneChip"
+	chip.add_theme_constant_override("separation", 14)
+	chip.custom_minimum_size.x = UI3Theme.size_of("land_chip_w") - 32   # plate margin 16 + 16
+	var glyph := TextureRect.new()
+	glyph.name = "StoneGlyph"
+	glyph.texture = UI3.currency_icon("cur_stone", 48.0)
+	glyph.custom_minimum_size = Vector2(48, 48)
+	glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	glyph.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_child(glyph)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 6)
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	chip.add_child(col)
+	var top_row := HBoxContainer.new()
+	top_row.add_theme_constant_override("separation", UI3Theme.space("8"))
+	top_row.add_child(UI3.label(tn, "LabelDisplay"))
+	top_row.add_child(UI3.label("tier %d of 6" % _tier, "LabelMuted"))
+	col.add_child(top_row)
+	var track := Panel.new()
+	track.name = "StoneBar"
+	track.custom_minimum_size = Vector2(0, 10)
+	track.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("hp_track"), 5))
+	track.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var fill := Panel.new()
+	fill.name = "Fill"
+	fill.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("text_muted"), 5))
+	fill.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fill.anchor_right = 1.0 if top or need <= 0 else clampf(float(have) / float(need), 0.0, 1.0)
+	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	track.add_child(fill)
+	col.add_child(track)
+	var line := ""
+	if top:
+		line = "Top tier"
+	else:
+		line = "%s / %s · " % [_fmt(mini(have, need)), _fmt(need)]
+		line += "Ready" if can_up else "%s to %s" % [_fmt(maxi(need - have, 0)), TIER_NAMES[_tier]]
+	var ll := UI3.label(line, "LabelMuted")
+	ll.name = "StoneLine"
+	ll.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ll.custom_minimum_size.x = 200
+	col.add_child(ll)
+	if not top:
+		# S3-13: it opens the upgrade screen, so it is a button.
+		var btn := UI3.button("Upgrade", &"secondary", &"S")
+		btn.name = "UpgradeLand"
+		btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		btn.tooltip_text = "%s / %s Land Stone" % [_fmt(have), _fmt(need)]
+		btn.pressed.connect(_on_land_pressed)
+		chip.add_child(btn)
+	return chip
 
 
 ## True when a guest cannot start a run: the live build rolls dice on the server (axie/epoch_source
@@ -1485,6 +1723,7 @@ func _build_run_button() -> Button:
 		tip = "Dice are rolled on the server, so runs need an account"
 	var plate := UI3.button(title, &"primary", &"L")
 	plate.name = "RunPlate"
+	plate.custom_minimum_size.x = 360   # UI-04 L1: 360 x 72 primary
 	plate.tooltip_text = tip
 	plate.pressed.connect(_on_run_pressed)
 	if _offline and not _has_run and not _guest_blocked():   # round 2: a new run needs a connection
@@ -1561,33 +1800,85 @@ func _build_toast() -> void:
 	_toast = null
 
 
-func _show_toast(text: String, hold: float = 1.6, tone: StringName = &"ok") -> void:
-	# Stack of at most 3, top-centre, 24 px from the top, 8 px gap (UI-03 18-system).
+## One toast at a time (S4-14); the rest wait their turn. `extra` (UI-04 L1) = {"icon": "gift", "action": "Place",
+## "key": "E", "on_action": Callable}: glyph before the sentence, action chip with a KeyCap after it.
+func _show_toast(text: String, hold: float = 4.0, tone: StringName = &"ok", extra: Dictionary = {}) -> void:
 	_toasts = _toasts.filter(func(t: Variant) -> bool: return is_instance_valid(t))
-	# S4-14: one toast at a time (they stacked over the Upgrade Land chip); the rest wait their turn.
 	if not _toasts.is_empty() and not _draining:
-		_toast_queue.append([text, hold, tone])
+		_toast_queue.append([text, hold, tone, extra])
 		return
-	var tw_node := UI3.toast(text, tone)
+	var tw_node := _make_toast(text, tone, extra)
 	tw_node.name = "Toast"
 	tw_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ui.add_child(tw_node)
 	_toasts.append(tw_node)
 	_toast = tw_node
 	_layout_toasts()
-	var tw := create_tween()
-	tw.tween_interval(hold)
-	tw.tween_property(tw_node, "modulate:a", 0.0, UI3Motion.REDUCED_MAX_SEC if UI3Motion.reduced() else 0.4)
-	tw.tween_callback(func() -> void:
-		if is_instance_valid(tw_node):
-			tw_node.queue_free()
+	UI3Motion.play("toast", tw_node, {"hold_ms": hold * 1000.0, "on_done": func() -> void:
 		_toasts.erase(tw_node)
 		_layout_toasts()
 		if not _toast_queue.is_empty() and _toasts.is_empty() and is_inside_tree():
 			var nx: Array = _toast_queue.pop_front()
 			_draining = true
-			_show_toast(String(nx[0]), float(nx[1]), nx[2])
-			_draining = false)
+			_show_toast(String(nx[0]), float(nx[1]), nx[2], nx[3] if nx.size() > 3 else {})
+			_draining = false})
+
+
+## UI-04 Toast: 64 high plate, 2 px edge (green = ok, red = error), optional 32 glyph, one sentence (wraps to 2
+## lines past 720), optional action chip.
+func _make_toast(text: String, tone: StringName, extra: Dictionary) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.theme = UI3Theme.get_theme()
+	p.custom_minimum_size = Vector2(0, 64)
+	p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("plate"), UI3Theme.radius("l"),
+		UI3Theme.stroke("hairline"), UI3Theme.color("hp" if tone == &"ok" else "hp_enemy"),
+		Vector4(16, 0, 12, 0), {"y": 4, "color": Color("0b0c0f99"), "size": 0}))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UI3Theme.space("12"))
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	p.add_child(row)
+	var icon_name := String(extra.get("icon", ""))
+	if icon_name != "":
+		var g := TextureRect.new()
+		g.name = "Glyph"
+		g.texture = load("res://assets/icons/hl/%s.svg" % icon_name) as Texture2D
+		g.custom_minimum_size = Vector2(32, 32)
+		g.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		g.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		g.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		g.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(g)
+	else:
+		var dot := Panel.new()
+		dot.name = "Dot"
+		dot.custom_minimum_size = Vector2(8, 8)
+		dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		dot.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("hp" if tone == &"ok" else "hp_enemy"), 4))
+		row.add_child(dot)
+	var l := UI3.label(text)
+	l.name = "ToastText"
+	var font := l.get_theme_font("font")
+	if font != null and font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, UI3Theme.size_of("text_body")).x > 560.0:
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size.x = 560
+	row.add_child(l)
+	if String(extra.get("action", "")) != "":
+		var act := PanelContainer.new()
+		act.name = "ToastAction"
+		act.custom_minimum_size = Vector2(0, UI3Theme.size_of("hit_min"))
+		act.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), 10, 0, Color.TRANSPARENT,
+			Vector4(12, 0, 8, 0)))
+		var ar := HBoxContainer.new()
+		ar.add_theme_constant_override("separation", UI3Theme.space("8"))
+		ar.alignment = BoxContainer.ALIGNMENT_CENTER
+		act.add_child(ar)
+		ar.add_child(UI3.label(String(extra["action"]), "LabelDisplay"))
+		if String(extra.get("key", "")) != "":
+			var kc := UI3.keycap(String(extra["key"]), true)
+			kc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			ar.add_child(kc)
+		row.add_child(act)
+	return p
 
 
 func _layout_toasts() -> void:
