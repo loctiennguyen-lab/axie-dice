@@ -149,3 +149,9 @@ Style chung: Axie/Lunacia = mềm, tròn, sáng, viền đậm dày vừa phải
   - Anchor: tranh minh hoạ cảnh dạng thẻ bài.
   - Thời điểm: sau khi UI-05 đợt 1 chốt phong cách.
   - Còn mở các câu 3, 4, 5, 6 ở mục 4.
+
+## Liam trả lời 4 câu còn mở (28/10)
+1. Ưu tiên: không chọn, làm HẾT danh sách.
+2. Được dùng AI tạo ảnh, nhưng phải đồng nhất phong cách Axie.
+3. Quái thường: dùng bộ quái Atia.
+4. Dung lượng web: không giới hạn.
