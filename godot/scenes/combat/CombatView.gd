@@ -1082,11 +1082,11 @@ func _build_hud_r1() -> void:
 	_hud_frame.active_pressed.connect(_on_active_pressed)
 	# Die slots leave the hidden deck bar for a root of their own, laid out by _layout_tray().
 	_tray_root = Control.new()
-	_tray_root.name = "TrayRoot"
+	_tray_root.name = "DiceRow"   # UI-05 data-name: the DieCards (+ the DiceHeader line over them)
 	_tray_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_tray_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_tray_root.z_index = 6
-	_dock_plate = UI3.dock(848)
+	_dock_plate = UI3.dock(UI3Theme.size_of("dice_dock_w"))
 	_dock_plate.name = "DiceDock"
 	_dock_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_dock_plate.z_index = 5
@@ -1102,6 +1102,7 @@ func _build_hud_r1() -> void:
 	_shell_root.add_child(_bo_layer)
 	_bo_layer.cards_provider = _card_rects
 	_bo_layer.m100_provider = _bo_group_m100
+	_bo_layer.info_provider = _bo_group_info
 	for b in _die_slot_buttons:
 		var nm: String = (b as Button).name
 		(b as Button).get_parent().remove_child(b)
@@ -1507,7 +1508,7 @@ var _dock_plate: PanelContainer = null
 var _dock_pill: PanelContainer = null
 
 
-## DiceDock plate (848 wide, grows only when summoned tokens widen the row) + the waiting pill centred on it.
+## DiceDock rect (dice_dock_w wide, grows only when summoned tokens widen the row) + SetBanners row + waiting pill.
 func _layout_dice_dock(vs: Vector2, x0: float, total: float) -> void:
 	_dd()._layout_dice_dock(vs, x0, total)
 
@@ -4430,10 +4431,11 @@ func _build_march_overlay() -> CanvasLayer:
 var _bo_layer: BoLayer = null
 
 
-## Chip + preview for one tray card. Values come from the engine (_face_base = v0 before M, _live_face_value after).
+## Part chip, SET ring and SET preview for one tray card (UI-05 DieCard). Every number is the engine's (SetPreview): before =
+## _face_base (floored at 0), after = _live_face_value, the same number the die face shows and deals.
 func _v4_card_data(u: Unit) -> Dictionary:
-	var out := {"part_text": "", "part_tex": null, "pv": "", "cracked": u.cracked and _combat.depth_stage >= 2,
-		"rr_tick": _rr_mode and _rr_sel.has(u.uid)}
+	var out := {"part_text": "", "part_word": "", "part_tex": null, "set_key": "", "set_before": 0, "set_after": 0, "set_show": false,
+		"cracked": u.cracked and _combat.depth_stage >= 2, "rr_tick": _rr_mode and _rr_sel.has(u.uid)}
 	if _rr_mode:
 		var why := _rr_die_why(u)
 		if why != "":
@@ -4451,14 +4453,18 @@ func _v4_card_data(u: Unit) -> Dictionary:
 	if u.hp <= 0 or not u.has_rolled() or _combat == null:
 		return out
 	var fi := u.roll_face_index()
-	var part := String(V4Ui.SLOT_ORDER[clampi(fi, 0, 5)])
-	out["part_text"] = V4Ui.part_name(fi)
-	out["part_tex"] = _part_icon_for(String((u.die[fi] as Dictionary).get("part", part)), u.cls)
-	if not V4Ui.group_of(_combat.bo, u.uid).is_empty() and not u.roll_used():
-		var v0 := int(ceil(float(_combat._face_base(u, fi))))
-		var now := _live_face_value(u, fi)
-		if v0 > 0 and now > v0:
-			out["pv"] = "%d → %d" % [v0, now]
+	# A Temp Face (Wild) counts as its new part: the chip shows that part (HTML set-4: Puffy's die reads "Mouth").
+	var slot := u.wild_slot if u.wild_slot >= 0 else clampi(fi, 0, 5)
+	var part := String(V4Ui.SLOT_ORDER[slot])
+	out["part_text"] = V4Ui.part_name(slot)
+	out["part_word"] = SetBanner.part_word(slot)
+	var face_part := part if u.wild_slot >= 0 else String((u.die[fi] as Dictionary).get("part", part))
+	out["part_tex"] = _part_icon_for(face_part, u.cls)
+	var pv := SetPreview.for_die(self, u)
+	out["set_key"] = pv["key"]
+	out["set_before"] = pv["before"]
+	out["set_after"] = pv["after"]
+	out["set_show"] = pv["show"]
 	return out
 
 
@@ -4474,25 +4480,60 @@ func _card_rects() -> Dictionary:
 	return rects
 
 
-## Real M of a Set group for the label: the engine's group value (Anchor add + cap). Per-die extras (a carried Embers die, Overcast)
-## stay on the die's own number via m100_for, so one die never decides the whole SET's label.
+## Real M of a Set group for the SetBanner: the engine's group value (Anchor add, Core set_add, Overcast, cap). Per-die extras
+## (a carried Embers die) stay on the die's own number via m100_for, so one die never decides the whole SET's banner.
 func _bo_group_m100(g: Dictionary) -> int:
-	if _combat != null:
-		return _combat.bo_group_m100(g)
-	return int(g["m100"])
+	return SetPreview.group_m100(_combat, g)
+
+
+## SetBanner extras for an engine group: the part glyph (class of the first die in it), the OVERCAST mark, and the tooltip. When
+## Overcast can be used on this SET now, the tooltip adds the ESTIMATE of one more Overcast (SetPreview.overcast_estimate).
+func _bo_group_info(g: Dictionary) -> Dictionary:
+	var out := {"tex": null, "overcast": false, "tip": ""}
+	if _combat == null:
+		return out
+	var uids: Array = g["uids"]
+	var part := int(g["part"])
+	var m100 := _bo_group_m100(g)
+	var lines := PackedStringArray([TranslationServer.translate("%s: every die in this SET is multiplied by %s.") % [
+		SetBanner.text_for(int(g["size"]), m100, part), V4Ui.mult_text(m100)]])
+	var oc_ok := false
+	for id in uids:
+		var d: Unit = _combat.by_uid(int(id))
+		if d == null:
+			continue
+		if out["tex"] == null:
+			out["tex"] = _part_icon_for(String(V4Ui.SLOT_ORDER[clampi(part, 0, 5)]), d.cls)
+		if d.overcast:
+			out["overcast"] = true
+		if not oc_ok and _combat.overcast_block_reason(d.uid) == "":
+			oc_ok = true
+	if oc_ok:
+		var est := PackedStringArray()
+		for id in uids:
+			var d: Unit = _combat.by_uid(int(id))
+			if d == null or d.roll_used():
+				continue
+			var b := SetPreview.before_value(_combat, d, d.roll_face_index())
+			if b > 0:
+				est.append(SetPreview.delta_text(b, SetPreview.overcast_estimate(_combat, g, b)))
+		lines.append(TranslationServer.translate("With Overcast, about %s: %s") % [
+			V4Ui.mult_text(SetPreview.overcast_m100(_combat, g)), " · ".join(est)])
+	out["tip"] = "\n".join(lines)
+	return out
 
 
 func _refresh_bo_layer() -> void:
 	if _bo_layer == null or _combat == null:
 		return
-	_bo_layer.label_lift = 40.0 if _rr_mode else 0.0
-	_bo_layer.refresh(_combat.bo, _card_rects())
+	_bo_layer.refresh(_combat.bo)
 
 
 func _on_bo_changed(groups: Array) -> void:
 	if _bo_layer == null or _combat == null:
 		return
 	_refresh_bo_layer()
+	_dd()._refresh_set_marks()
 	var tray_top := TrayColumn.dock_top(get_viewport_rect().size.y)
 	_bo_layer.announce(groups, tray_top)
 	_log_bo_changes(groups)
@@ -4515,15 +4556,13 @@ func _log_bo_changes(groups: Array) -> void:
 	_bo_logged = live
 
 
-## FRONT / BACK words sit where a Set label is drawn: while any Set is on the tray the words hide
-## (the two thin lines stay, and the Set label owns the space).
+## UI-05: the SET banners have their own row above the FRONT / BACK header, so the words always show.
 func _sync_row_labels() -> void:
 	if _row_strip == null or _combat == null:
 		return
-	var hide := not _combat.bo.is_empty()
 	for c in _row_strip.get_children():
 		if c is Label:
-			c.visible = not hide
+			c.visible = true
 
 
 # ---- Depth v4 Wild face (combat-v4.md 3) ---------------------------------------------------------------------
@@ -4659,7 +4698,7 @@ func _update_coach() -> void:
 		return
 	if _tutorial or not V4Coach.enabled:
 		return
-	var banner_up: bool = _bo_layer != null and _bo_layer._banner != null and _bo_layer._banner.visible
+	var banner_up: bool = _bo_layer != null and _bo_layer.banner_up()
 	var executing := _combat.phase == CombatPhase.EXECUTE and not (_combat.won or _combat.lost)
 	if not executing or _rr_mode or _wild_mode or banner_up or _dice_in_air():
 		_coach_hide()

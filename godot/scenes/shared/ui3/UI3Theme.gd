@@ -228,7 +228,24 @@ static func _int_token(group: String, token: String) -> int:
 static func font_display() -> Font:
 	if _font_display == null:
 		_font_display = _resolve_font("display", "700", FALLBACK_DISPLAY)
+		_add_display_fallback(_font_display)
 	return _font_display
+
+
+## Rowdies has no "→" (U+2192) and other symbols the UI prints. The web export has no system fonts, so a missing glyph
+## is an empty box there. Work Sans Bold (same weight, has →) is chained as the fallback. UI-05 b1 lane B.
+const DISPLAY_GLYPH_FALLBACK := "res://assets/fonts/WorkSans-Bold.ttf"
+
+
+static func _add_display_fallback(f: Font) -> void:
+	if f == null or not ResourceLoader.exists(DISPLAY_GLYPH_FALLBACK):
+		return
+	var fb := load(DISPLAY_GLYPH_FALLBACK) as Font
+	if fb == null or fb == f or f.fallbacks.has(fb):
+		return
+	var list := f.fallbacks.duplicate()
+	list.append(fb)
+	f.fallbacks = list
 
 
 ## Body face (everything the player reads): Work Sans Regular, or the Work Sans Medium fallback.

@@ -52,7 +52,10 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_check(c.by_uid(units[3].uid).wild_slot == 1 and c.mana == 3, "chip -> engine wild_face(uid, 1), mana paid")
 	_check(c.bo.size() == 1 and int(c.bo[0]["size"]) == 4, "Set of 4 formed")
-	_check(v._die_slot_buttons[3].find_child("WildChip", true, false) != null, "wild badge on the die")
+	var tmark: Control = v._die_slot_buttons[3].find_child("TempFaceMark", true, false)
+	_check(tmark != null and tmark.visible, "UI-05: TEMP mark on the Wild die")
+	var pw: Label = v._die_slot_buttons[3].find_child("PartWord", true, false)
+	_check(pw != null and pw.text == SetBanner.part_word(1), "UI-05: the Temp Face's PartChip reads its new part: %s" % (pw.text if pw != null else "none"))
 	_check(wb.disabled and wb.text.contains("used this fight"), "second wild: used this fight")
 	# Overcast preview text
 	units[0].die[1] = {"type": "dmg", "value": 5, "keywords": [], "part": "horn"}
