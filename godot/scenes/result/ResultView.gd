@@ -141,6 +141,13 @@ func _play_motion() -> void:
 		return
 	_plate.pivot_offset = _plate.size * 0.5
 	var won := bool(_snap.get("won", false))
+	# UI3Motion._burst draws the 512 px shard texture at full size (no particle size in the table): shrink the
+	# fountain to a 32 px shard when it is added. Shared fix wanted in UI3Motion (see report).
+	_plate.child_entered_tree.connect(func(c: Node) -> void:
+		if c is CPUParticles2D and (c as CPUParticles2D).texture != null:
+			var cp := c as CPUParticles2D
+			cp.scale_amount_min = 32.0 / float(cp.texture.get_width())
+			cp.scale_amount_max = cp.scale_amount_min)
 	UI3Motion.play("run_end_win" if won else "run_end_lose", _plate)
 	if won and _shard_amount != null and not UI3Motion.reduced() and DisplayServer.get_name() != "headless":
 		var total := int(_snap.get("shards_this_run", 0))
