@@ -6,6 +6,10 @@ Baloo) **không còn đúng** cho màn đã port.
 
 ## Thiết kế nằm ở đâu
 
+- **UI-04 round 1 (28/10) thắng UI-03 round 2** cho 13 màn nó phủ: `design/handoffs/ui-04-polish/round-1/handoff/`
+  (README, components.md, motion.md, tokens.json, `screens/<id>/spec.md`, file before/after HTML). Token giờ lấy từ UI-04
+  (`tokens_ui3.json` = tokens.json của UI-04). Component UI-04 dùng chung nằm cuối `UI3.gd`; motion ở `motion_ui3.json`
+  + `assets/data/ui/MOTION_IDS.md`. Màn UI-04 không nhắc thì vẫn theo bên dưới. Không có chữ cỡ 20 (chỉ `num_die_egg`).
 - Round 2 thắng round 1: `design/handoffs/ui-03-redesign/round-2/handoff/` (README, components.md,
   motion.md, tokens.json, `screens/<id>/spec.md`, file HTML tổng).
 - Round 1 vẫn dùng cho phần round 2 không nhắc: `round-1/handoff/` (README có luật toàn cục,
