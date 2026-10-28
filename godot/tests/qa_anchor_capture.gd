@@ -31,6 +31,8 @@ func _ready() -> void:
 	_snap("pick")
 	var pk := rm.find_child("AnchorPick", true, false)
 	pk.select(0)
+	await _wait(0.6)
+	_snap("picked")
 	var id := String(pk.cards[0].get_meta("anchor_id"))
 	pk.take_button.pressed.emit()
 	await _wait(1.0)

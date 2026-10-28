@@ -6,7 +6,18 @@ func _ready() -> void:
 	MetaState.asc_max = 6
 	MetaState.runs = 9
 	MetaState.runs_with_battle = 9
-	DisplayServer.window_set_size(Vector2i(1280, 720))
+	var _res := "1280x720"
+	var _stage := 0
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--res="):
+			_res = a.get_slice("=", 1)
+		elif a.begins_with("--stage="):
+			_stage = int(a.get_slice("=", 1))
+	var _w := int(_res.get_slice("x", 0))
+	var _h := int(_res.get_slice("x", 1))
+	DisplayServer.window_set_size(Vector2i(_w, _h))
+	if _stage == 3:
+		MetaState.runs_completed = 9
 	var s: RunSetup = load("res://scenes/run_setup/RunSetup.tscn").instantiate()
 	s.no_scene_change = true
 	s.ascension = 6
@@ -14,6 +25,6 @@ func _ready() -> void:
 	for i in 20:
 		await get_tree().process_frame
 	var img := get_viewport().get_texture().get_image()
-	img.save_png(ProjectSettings.globalize_path("res://../production/qa/evidence/l1-m1-run-setup.png"))
+	img.save_png(ProjectSettings.globalize_path("res://../production/qa/evidence/l1-m1-run-setup-%dx%d-s%d.png" % [_w, _h, _stage]))
 	_guard.restore()
 	get_tree().quit(0)
