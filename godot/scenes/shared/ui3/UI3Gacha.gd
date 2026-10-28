@@ -98,23 +98,21 @@ static func build_cover(tier: int, from_tier := -1, with_reason := true) -> Pane
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_theme_constant_override("separation", 16)
-	var ic := TextureRect.new()
-	ic.texture = UI3.icon("ui_mooncard")
-	ic.custom_minimum_size = Vector2(96, 96)
-	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(ic)
-	var w := UI3.label(tr_word(from_tier if near else tier), "LabelTitle")
-	w.name = "TierWord"
-	w.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	w.add_theme_color_override("font_color", accent)
-	w.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(w)
+	# UI-04: the face-down back shows the TierBand only (tier colour never alone: pips + word).
+	box.add_child(cover_band(from_tier if near else tier))
 	if near and with_reason:
 		box.add_child(reason_strip())
 	cover.add_child(box)
 	return cover
+
+
+## TierBand for the card back. Name "TierBand"; its "Word" label carries the tier word.
+static func cover_band(tier: int) -> PanelContainer:
+	var t := clampi(tier, 0, 2)
+	var band := UI3.tier_chip(StringName(["moss", "amber", "crystal"][t]), tr_word(t), true, true)
+	band.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	band.custom_minimum_size.x = 240
+	return band
 
 
 ## The near-miss reason, on the one card that carries it: "Crystal cap reached - max N Crystal Cores this run"

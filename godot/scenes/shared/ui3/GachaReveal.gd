@@ -15,6 +15,7 @@ var _plan: Dictionary = {}
 var _tween: Tween
 var _shake_host: Control
 var _pulses: Array[Tween] = []
+var _motion_tweens: Array[Tween] = []
 var _sparkles: Array[Control] = []
 
 
@@ -31,6 +32,7 @@ func start(cards: Array, tier: int, first: bool, jackpot: bool, shake_host: Cont
 		_done()
 		return
 	running = true
+	_play_reveal_motion(cards, tier)
 	var near := from_tier > tier
 	events.append("aura")
 	UI3Gacha.play_sfx(self, UI3Gacha.TIER_KEY[clampi(from_tier if near else tier, 0, 2)])
@@ -72,6 +74,39 @@ func start(cards: Array, tier: int, first: bool, jackpot: bool, shake_host: Cont
 	_tween.tween_callback(_done)
 
 
+## UI-04 core_reveal_<tier> per card after one frame (layout). Amber wobble and Crystal hop by hand; sweeps on the band only.
+func _play_reveal_motion(cards: Array, tier: int) -> void:
+	await get_tree().process_frame
+	if not running or UI3Gacha.is_instant():
+		return
+	for k in cards.size():
+		var card := cards[k] as Control
+		if card == null or not is_instance_valid(card):
+			continue
+		var ct := clampi(int(card.get_meta("gacha_tier", tier)), 0, 2)
+		var cid: String = "core_reveal_" + String(["moss", "amber", "crystal"][ct])
+		var band := card.find_child("TierBand", true, false) as Control
+		if band == null:
+			continue
+		UI3Motion.play(cid, band)   # drop + fragments + (Amber/Crystal) the first sweep, on the band only
+		if UI3Motion.reduced():
+			continue
+		card.pivot_offset = card.size / 2.0
+		if ct == 2:
+			UI3Motion.sweep(band, 640.0 + 80.0 * k)
+		var tw := create_tween()
+		_motion_tweens.append(tw)
+		tw.tween_interval(0.08 * k)
+		if ct == 1:
+			tw.tween_property(card, "rotation_degrees", 3.0, 0.05)
+			tw.tween_property(card, "rotation_degrees", -3.0, 0.1)
+			tw.tween_property(card, "rotation_degrees", 0.0, 0.05)
+		elif ct == 2:
+			var y0 := card.position.y
+			tw.tween_property(card, "position:y", y0 - 24.0, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tw.tween_property(card, "position:y", y0, 0.2)
+
+
 ## Near-miss: the cap-held higher border breaks into the real tier, short reason line, small shake.
 func _crack() -> void:
 	events.append("crack")
@@ -82,12 +117,14 @@ func _crack() -> void:
 			continue
 		var real := UI3Gacha.tier_color(int(_cards[k].get_meta("gacha_tier", _tier)))
 		var st := cv.get_meta("style") as StyleBoxFlat
-		var w := cv.find_child("TierWord", true, false) as Label
+		var band := cv.find_child("TierBand", true, false) as Control
 		if st != null:
 			st.border_color = real
-		if w != null:
-			w.text = UI3Gacha.tr_word(int(_cards[k].get_meta("gacha_tier", _tier)))
-			w.add_theme_color_override("font_color", real)
+		if band != null and band.get_parent() != null:
+			var nb := UI3Gacha.cover_band(int(_cards[k].get_meta("gacha_tier", _tier)))
+			band.get_parent().add_child(nb)
+			band.get_parent().move_child(nb, band.get_index())
+			band.queue_free()
 		(cv.find_child("Halo", true, false) as Panel).add_theme_stylebox_override("panel",
 			UI3Theme.flat(Color(0, 0, 0, 0), UI3Theme.radius("l") + 8, UI3Theme.stroke("hairline"), real))
 		var why := cv.find_child("ReasonLine", true, false) as Control
@@ -235,6 +272,11 @@ func skip() -> void:
 	events.append("skip")
 	if _tween != null:
 		_tween.kill()
+	for mt in _motion_tweens:
+		if mt.is_valid():
+			mt.custom_step(9999.0)
+			mt.kill()
+	_motion_tweens.clear()
 	for i in _cards.size():
 		if is_instance_valid(_cards[i]):
 			(_cards[i] as Control).scale = Vector2.ONE

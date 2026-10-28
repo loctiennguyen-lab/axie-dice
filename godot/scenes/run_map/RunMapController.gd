@@ -1369,9 +1369,10 @@ const _REWARD_ICON := {
 	"relic": "ui_mooncard", "level": "face_buff", "ascend": "node_boss", "hp": "face_heal",
 	"reroll": "ui_reroll", "chaos": "face_summon", "curse": "status_vuln",
 }
-const _REWARD_CARD_W := 384.0
+const _REWARD_CARD_W := 400.0
 const _REWARD_CARD_W_WIDE := 336.0   # 4 cards (Scavenger's Eye)
 const _REWARD_ART := 160.0
+const _REWARD_ART_CORE := 180.0   # UI-04: Core icon well
 ## Height of the card band on the reward screen: >= the tallest card (PAIR tag + With chip + 3 text lines + Reroll).
 const _REWARD_ROW_H := 600.0
 ## Skip button on the reward screen. OFF: owner rule 21/9 says a pick is mandatory; the approved
@@ -1438,9 +1439,7 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	title_lbl.name = "RewardTitle"
 	head.add_child(title_lbl)
 	if _core_offer_active() and not core_rule:
-		var tier_line := UI3.label(tr(CORE_TIER_HINT), "LabelMuted")   # S3-9: say what the tier words mean
-		tier_line.name = "CoreTierHint"
-		head.add_child(tier_line)
+		head.add_child(_tier_legend())   # UI-04: TierChip Moss > Amber > Crystal + "strongest"
 	# Gacha pack: the NEXT pick's tier is never shown anywhere (Liam 22/10).
 	head.add_child(UI3.currency_pill([{"icon": "cur_shard", "value": str(RunState.shards_this_run)}]))
 
@@ -1590,6 +1589,24 @@ func _trade_parts(r: Dictionary) -> Dictionary:
 	return {"gain": sub.trim_prefix("IN EXCHANGE: you gain ").trim_suffix("."), "cost": desc, "cost_kind": &"curse"}
 
 
+## UI-04 tier legend: TierChip Moss > Amber > Crystal + "strongest" (replaces the old hint line).
+func _tier_legend() -> HBoxContainer:
+	var lg := HBoxContainer.new()
+	lg.name = "CoreTierLegend"
+	lg.add_theme_constant_override("separation", 8)
+	for i in 3:
+		if i > 0:
+			var sep := UI3.label("\u203a", "LabelMuted")
+			sep.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			lg.add_child(sep)
+		lg.add_child(UI3.tier_chip(StringName(["moss", "amber", "crystal"][i]), tr(_CORE_TIER_NAME[i])))
+	var st := UI3.label(tr("strongest"), "LabelMuted")
+	st.name = "StrongestLabel"
+	st.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lg.add_child(st)
+	return lg
+
+
 ## A1: Core offer cards arrive face-down with a tier halo, then flip left to right. Click / Space skips.
 var _reveal: GachaReveal = null
 
@@ -1693,9 +1710,31 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 		card.mouse_entered.connect(_prism_hover.bind(card, true))
 		card.mouse_exited.connect(_prism_hover.bind(card, false))
 
+	var is_tiered_core := is_core and not bool(r.get("rule", false))
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 12)
+	col.add_theme_constant_override("separation", 8 if is_tiered_core else 12)
 	card.add_child(col)
+	if is_tiered_core:
+		# UI-04: TierBand across the top, CategoryChip on its right (no arrow glyph; the icon well keeps the Core's art).
+		var tier0 := clampi(int(r.get("tier", 0)), 0, 2)
+		var band_row := HBoxContainer.new()
+		band_row.name = "CoreBandRow"
+		band_row.add_theme_constant_override("separation", 8)
+		var band := UI3.tier_chip(StringName(String(["moss", "amber", "crystal"][tier0])), tr(_CORE_TIER_NAME[tier0]), true, true)
+		band.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		band.mouse_filter = Control.MOUSE_FILTER_STOP
+		UI3Tooltip.bind(band, tr(CORE_TIER_HINT))
+		band_row.add_child(band)
+		var cat := UI3.category_chip(tr(String(CorePanel.AXIS_NAME.get(String(r.get("axis", "")), "Core"))))
+		cat.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var cat_sb := cat.get_theme_stylebox("panel") as StyleBoxFlat   # the tag has no side padding: give the word room
+		if cat_sb != null:
+			cat_sb = cat_sb.duplicate() as StyleBoxFlat
+			cat_sb.content_margin_left = 12
+			cat_sb.content_margin_right = 12
+			cat.add_theme_stylebox_override("panel", cat_sb)
+		band_row.add_child(cat)
+		col.add_child(band_row)
 	if crystal:
 		card.add_child(UI3Gacha.prism_frame(accent))
 
@@ -1707,7 +1746,7 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 
 	var art := Panel.new()
 	art.name = "Art"
-	art.custom_minimum_size = Vector2(0, _REWARD_ART)
+	art.custom_minimum_size = Vector2(0, _REWARD_ART_CORE if is_tiered_core else _REWARD_ART)
 	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var art_sb := StyleBoxFlat.new()
 	art_sb.bg_color = UI3Theme.color("panel_raised")
@@ -1744,27 +1783,22 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 		body_text = tr("Play this run with the base rules.")
 	var dsc := UI3.describe(body_text)
 	body_text = ("MP %d · " % int(dsc["mp"]) if int(dsc["mp"]) >= 0 else "") + String(dsc["text"])
-	var name_lbl := UI3.label(name_text, "LabelTitle" if (not is_core or crystal) else "LabelDisplay")
+	var name_lbl := UI3.label(name_text, "LabelTitle" if (not is_core or crystal or is_tiered_core) else "LabelDisplay")
 	name_lbl.name = "RewardName"
 	name_lbl.clip_text = true
 	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	col.add_child(name_lbl)
 	if is_core:
-		# Tier chip (word + tier colour) + axis chip (glyph + word). Run rules have no tier.
-		var tier := clampi(int(r.get("tier", 0)), 0, 2)
+		# Run rules have no tier. A Core's tier + category live in the band above (UI-04).
 		var axis := String(r.get("axis", ""))
 		var chips := HFlowContainer.new()
 		chips.name = "CoreChips"
 		chips.add_theme_constant_override("h_separation", 8)
 		chips.add_theme_constant_override("v_separation", 8)
-		if not bool(r.get("rule", false)):
-			var tier_chip := CorePanel.word_chip(tr(_CORE_TIER_NAME[tier]), "", accent, "TierChip")
-			tier_chip.mouse_filter = Control.MOUSE_FILTER_STOP
-			UI3Tooltip.bind(tier_chip, tr(CORE_TIER_HINT))
-			chips.add_child(tier_chip)
-		chips.add_child(CorePanel.word_chip(tr(String(CorePanel.AXIS_NAME.get(axis, "Core"))),
-			String(CorePanel.AXIS_ICON.get(axis, "face_buff")), UI3Theme.color("text_muted"), "AxisChip"))
-		if not bool(r.get("rule", false)):
+		if bool(r.get("rule", false)):
+			chips.add_child(CorePanel.word_chip(tr(String(CorePanel.AXIS_NAME.get(axis, "Core"))),
+				String(CorePanel.AXIS_ICON.get(axis, "face_buff")), UI3Theme.color("text_muted"), "AxisChip"))
+		else:
 			_add_combo_labels(col, String(r.get("key", "")), chips)
 			_add_house_chip(card, chips, String(r.get("key", "")))
 		col.add_child(chips)
@@ -1838,7 +1872,7 @@ static func _add_house_chip(card: Control, chips: HFlowContainer, key: String) -
 		card.add_child(edge)
 		card.set_meta("awaken", true)
 	else:
-		chips.add_child(UI3.icon_chip(TranslationServer.translate("House"), icon, AnchorAdapter.house_color(house), "HouseChip"))
+		chips.add_child(UI3.house_chip(StringName(house.trim_prefix("h_")), TranslationServer.translate("%s House") % AnchorAdapter.house_name(house)))
 
 
 func _add_combo_labels(col: VBoxContainer, key: String, chips: HFlowContainer) -> void:
@@ -1931,6 +1965,7 @@ func _apply_and_finish(reward: Dictionary) -> void:
 	var before_owned: Array = RunState.owned_relic_ids.duplicate()
 	var was_awake := AnchorAdapter.awakened()
 	var is_core := _is_core_card(reward) and not bool(reward.get("rule", false))
+	var take_tw: Tween = null
 	var pool_names: Array = []
 	if is_core and String(reward.get("key", "")) == "c_dim_stone":
 		for d in CoreOffer.valid_pool(RunState._core_ctx(RunState._core_offer_pick)):
@@ -1939,6 +1974,15 @@ func _apply_and_finish(reward: Dictionary) -> void:
 	var pick_rect := Rect2()
 	if _reward_sel >= 0 and _reward_sel < _reward_cards.size() and is_instance_valid(_reward_cards[_reward_sel]):
 		pick_rect = (_reward_cards[_reward_sel] as Control).get_global_rect()
+	# UI-04 motion rows: core_take / level_up / reward_take on the picked card, only when juice is on.
+	if not UI3Gacha.is_instant() and not bool(reward.get("rule", false)) and _reward_sel >= 0 and _reward_sel < _reward_cards.size() \
+			and is_instance_valid(_reward_cards[_reward_sel]):
+		var pc := _reward_cards[_reward_sel] as Control
+		var mid := "core_take" if _is_core_card(reward) else ("level_up" if String(reward.get("t", "")) == "level" else "reward_take")
+		pc.pivot_offset = pc.size / 2.0
+		var mtw := UI3Motion.play(mid, pc)
+		if mtw != null and mtw.is_valid() and mid != "level_up":
+			take_tw = mtw
 	RunState.apply_chosen_reward(reward)
 	var granted := ""
 	if not pool_names.is_empty():
@@ -1965,6 +2009,8 @@ func _apply_and_finish(reward: Dictionary) -> void:
 		var ban := _combo_banner(formed)
 		if ban != null and ban.running:
 			await ban.finished
+	if take_tw != null and take_tw.is_valid() and take_tw.is_running():
+		await take_tw.finished
 	_taking = false
 	_finish_node()
 
@@ -2691,6 +2737,8 @@ func _build_treasure(opened: bool) -> void:
 		open.grab_focus.call_deferred()
 		return
 
+	if not UI3Gacha.is_instant():
+		UI3Motion.play("treasure_open", chest)
 	if RunState.pending_rewards.is_empty():
 		col.add_child(UI3.label(tr("The vault was empty.")))
 		var cont := UI3.button(tr("Continue"), &"primary", &"L")
