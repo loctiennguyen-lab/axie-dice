@@ -1,5 +1,97 @@
 {
-  "$schema_note": "Fixed schema from 00-PROMPT §4. All sizes are px at the 1920×1080 base; Godot stretch canvas_items/expand scales them. Plate alpha colours are listed as #RRGGBBAA; contrast is measured with plates over neutral-4.",
+  "_changed": [
+    "color.plate",
+    "color.plate_edge",
+    "color.plate_shadow",
+    "color.btn_primary_lip",
+    "color.btn_secondary_lip",
+    "color.tier_moss",
+    "color.tier_moss_bg",
+    "color.tier_amber",
+    "color.tier_amber_bg",
+    "color.tier_crystal",
+    "color.tier_crystal_bg",
+    "color.category_chip",
+    "color.run_rule_bg",
+    "color.run_rule_border",
+    "color.tag_elite_bg",
+    "color.tag_elite_border",
+    "color.tag_elite_text",
+    "color.leader_text",
+    "color.tag_shell_bg",
+    "color.tag_boss_bg",
+    "color.intent_idle_bg",
+    "color.intent_bighit_bg",
+    "color.intent_bighit_border",
+    "color.bighit_text",
+    "color.attrition",
+    "color.keycap_bg",
+    "color.notice_edge",
+    "color.update_bar_bg",
+    "color.risk_bar",
+    "color.risk_bar_high",
+    "color.revive_bg",
+    "color.chest_disc",
+    "color.leader",
+    "color.shell",
+    "contrast (plate rows re-measured at 94%, new rows marked ui04)",
+    "size.keycap_h",
+    "size.keycap_s",
+    "size.intent_block",
+    "size.enemy_plate_w",
+    "size.boss_plate_w",
+    "size.bighit_strip_h",
+    "size.dice_dock_w",
+    "size.action_dock_w",
+    "size.tool_key_h",
+    "size.attrition_h",
+    "size.anchor_chip_h",
+    "size.house_pip",
+    "size.tier_band_h",
+    "size.tier_pip",
+    "size.core_card",
+    "size.anchor_card",
+    "size.anchor_box_h",
+    "size.mission_row_h",
+    "size.mission_detail_w",
+    "size.pass_level_card_h",
+    "size.pass_track_per_page",
+    "size.netnotice_h",
+    "size.update_bar_h",
+    "size.land_chip_w",
+    "size.currency_chip_h",
+    "size.chest_stage",
+    "size.result_panel_w",
+    "size.reveal_panel_w",
+    "radius.m",
+    "radius.l",
+    "radius.xl",
+    "radius.xxl",
+    "radius.chip_square",
+    "shadow.plate",
+    "shadow.btn_primary_raised",
+    "shadow.btn_primary_pressed",
+    "shadow.btn_secondary_raised",
+    "shadow.keycap",
+    "shadow.dialog",
+    "motion.everyday_max",
+    "motion.moment_skip",
+    "theme.Button/primary/styles/normal",
+    "theme.Button/primary/styles/pressed",
+    "theme.Button/primary/styles/focus",
+    "theme.Button/secondary/styles/normal",
+    "theme.Button/primary/styles/small",
+    "theme.Panel/plate",
+    "theme.Panel/dock",
+    "theme.Panel/card",
+    "theme.Panel/card_selected",
+    "theme.Panel/dialog",
+    "theme.Panel/row",
+    "theme.Panel/keycap",
+    "theme.Panel/tag_square",
+    "size._ui04_text_sizes"
+  ],
+  "$schema_note": "Fixed schema from 00-PROMPT §4. All sizes are px at the 1920×1080 base; Godot stretch canvas_items/expand scales them. Plate alpha colours are listed as #RRGGBBAA; contrast is measured with plates over neutral-4. UI-04: changed and new keys are listed in _changed; meanings start with \"UI-04\".",
   "color": {
     "bg": {
       "value": "#13161b",
@@ -10,8 +102,8 @@
       "meaning": "neutral-4 · 3D viewport placeholder only (not shipped)"
     },
     "plate": {
-      "value": "#2b1e17e6",
-      "meaning": "wood-1 at 90% · the one translucent fill, every HUD/meta plate"
+      "value": "#2b1e17f0",
+      "meaning": "UI-04 CHANGED · wood-1 at 94% (was 90%). Every HUD/meta plate. Less 3D bleed behind small text at 1280"
     },
     "panel": {
       "value": "#2b1e17",
@@ -283,20 +375,138 @@
     },
     "leader": {
       "value": "#ffd21f",
-      "meaning": "Pack Alpha run rule: LEADER badge border on the enemy plate. Always with the node_elite glyph and the word LEADER"
+      "meaning": "UI-04 CHANGED · LEADER is now a SOLID lemon pill (fill), text leader_text, with node_elite glyph + word LEADER"
     },
     "shell": {
       "value": "#9fb1bf",
-      "meaning": "Resonance Shell bar on Elite/boss plates, steel grey, distinct from shield blue. Always with the face_shield glyph and the word Shell"
+      "meaning": "Resonance Shell bar on Elite/boss plates, steel grey, distinct from shield blue. Always with the face_shield glyph and the word Shell · UI-04: SHELL chip is square (radius 4), the only square enemy tag"
+    },
+    "plate_edge": {
+      "value": "#58321d",
+      "meaning": "UI-04 NEW · wood-3 · 2 px border on every plate, dock, card and dialog. One family for all HUD parts"
+    },
+    "plate_shadow": {
+      "value": "#0b0c0f99",
+      "meaning": "UI-04 NEW · hard drop under plates: x0 y4 blur0. No blur anywhere"
+    },
+    "btn_primary_lip": {
+      "value": "#b25127",
+      "meaning": "UI-04 NEW · kam-3 · hard 4 px shadow under the primary button (was wood-1). Reads as a pressable amber key"
+    },
+    "btn_secondary_lip": {
+      "value": "#1a120d",
+      "meaning": "UI-04 NEW · hard 4 px shadow under secondary buttons"
+    },
+    "tier_moss": {
+      "value": "#7ade61",
+      "meaning": "UI-04 NEW · green-7 · Core tier Moss. Always with 1 cur_fragment pip + the word"
+    },
+    "tier_moss_bg": {
+      "value": "#093322",
+      "meaning": "UI-04 NEW · green-2 · Moss tier band on Core cards"
+    },
+    "tier_amber": {
+      "value": "#ffc85f",
+      "meaning": "UI-04 NEW · kam-7 · Core tier Amber. Always with 2 pips + the word"
+    },
+    "tier_amber_bg": {
+      "value": "#482613",
+      "meaning": "UI-04 NEW · kam-2 · Amber tier band"
+    },
+    "tier_crystal": {
+      "value": "#c6eefd",
+      "meaning": "UI-04 NEW · blue-9 · Core tier Crystal. Always with 3 pips + the word"
+    },
+    "tier_crystal_bg": {
+      "value": "#042055",
+      "meaning": "UI-04 NEW · blue-2 · Crystal tier band"
+    },
+    "category_chip": {
+      "value": "#8e97a8",
+      "meaning": "UI-04 NEW · neutral-7 · square (radius 4) Core category chip border; text neutral-9. No arrow glyph"
+    },
+    "run_rule_bg": {
+      "value": "#282c34",
+      "meaning": "UI-04 NEW · neutral-3 · Run rule chip fill (square, never a Core shape)"
+    },
+    "run_rule_border": {
+      "value": "#737d8f",
+      "meaning": "UI-04 NEW · neutral-6 · Run rule chip border"
+    },
+    "tag_elite_bg": {
+      "value": "#482613",
+      "meaning": "UI-04 NEW · kam-2 · ELITE pill fill (outline pill + node_elite glyph + word)"
+    },
+    "tag_elite_border": {
+      "value": "#ffb444",
+      "meaning": "UI-04 NEW · kam-6 · ELITE pill border"
+    },
+    "tag_elite_text": {
+      "value": "#ffc85f",
+      "meaning": "UI-04 NEW · kam-7 · ELITE word"
+    },
+    "leader_text": {
+      "value": "#291808",
+      "meaning": "UI-04 NEW · kam-1 · LEADER word on the solid lemon pill (leader token is now the fill)"
+    },
+    "tag_shell_bg": {
+      "value": "#282c34",
+      "meaning": "UI-04 NEW · neutral-3 · SHELL square chip fill; border/text = shell"
+    },
+    "tag_boss_bg": {
+      "value": "#3d0d11",
+      "meaning": "UI-04 NEW · red-2 · BOSS pill fill, border/text danger_text"
+    },
+    "intent_idle_bg": {
+      "value": "#1c1f25",
+      "meaning": "UI-04 NEW · neutral-2 · IDLE intent block; blank face glyph, \"–\", word IDLE in text_muted"
+    },
+    "intent_bighit_bg": {
+      "value": "#3d0d11",
+      "meaning": "UI-04 NEW · red-2 · intent block + warning strip when the hit can knock out an Axie"
+    },
+    "intent_bighit_border": {
+      "value": "#f54540",
+      "meaning": "UI-04 NEW · red-6 · 4 px plate border on a big-hit enemy"
+    },
+    "bighit_text": {
+      "value": "#ffbdbb",
+      "meaning": "UI-04 NEW · red-9 · \"Can knock out an Axie\" on red-2"
+    },
+    "attrition": {
+      "value": "#ff9345",
+      "meaning": "UI-04 NEW · kam-5 · Attrition card border (dashed = upcoming, solid = active), word and pips"
+    },
+    "keycap_bg": {
+      "value": "#291808",
+      "meaning": "UI-04 NEW · kam-1 · key cap fill, text kam-9 Work Sans 16, hard 3 px black shadow"
+    },
+    "notice_edge": {
+      "value": "#ffb444",
+      "meaning": "UI-04 NEW · kam-6 · 4 px top edge on NetNotice"
+    },
+    "update_bar_bg": {
+      "value": "#482613",
+      "meaning": "UI-04 NEW · kam-2 · Update required bar on the top edge, 2 px kam-6 bottom border"
+    },
+    "risk_bar": {
+      "value": "#ff9345",
+      "meaning": "UI-04 NEW · kam-5 · Missions risk bars N1–N4"
+    },
+    "risk_bar_high": {
+      "value": "#eb6f3a",
+      "meaning": "UI-04 NEW · kam-4 · Missions risk bars N5–N6"
+    },
+    "revive_bg": {
+      "value": "#1d0a3c",
+      "meaning": "UI-04 NEW · purple-1 · paid revive card fill (with gem_border). Paid surfaces only"
+    },
+    "chest_disc": {
+      "value": "#ffb4441c",
+      "meaning": "UI-04 NEW · kam-6 at 11% · two stacked discs behind the Echo Box chest"
     }
   },
   "contrast": [
-    {
-      "text": "text",
-      "background": "plate",
-      "ratio": 12.61,
-      "pass": "AA body"
-    },
     {
       "text": "text",
       "background": "panel",
@@ -323,12 +533,6 @@
     },
     {
       "text": "text_muted",
-      "background": "plate",
-      "ratio": 8.1,
-      "pass": "AA body"
-    },
-    {
-      "text": "text_muted",
       "background": "panel_raised",
       "ratio": 7.35,
       "pass": "AA body"
@@ -343,12 +547,6 @@
       "text": "text_on_viewport",
       "background": "viewport",
       "ratio": 7.62,
-      "pass": "AA body"
-    },
-    {
-      "text": "danger_text",
-      "background": "plate",
-      "ratio": 6.76,
       "pass": "AA body"
     },
     {
@@ -382,18 +580,6 @@
       "pass": "AA body"
     },
     {
-      "text": "mana",
-      "background": "plate",
-      "ratio": 5.31,
-      "pass": "AA body"
-    },
-    {
-      "text": "egg",
-      "background": "plate",
-      "ratio": 11.93,
-      "pass": "AA body"
-    },
-    {
       "text": "shield",
       "background": "panel_raised",
       "ratio": 7.12,
@@ -424,42 +610,6 @@
       "pass": "AA body"
     },
     {
-      "text": "face_attack_text",
-      "background": "plate",
-      "ratio": 5.34,
-      "pass": "AA body"
-    },
-    {
-      "text": "face_weaken",
-      "background": "plate",
-      "ratio": 5.16,
-      "pass": "AA body"
-    },
-    {
-      "text": "face_buff",
-      "background": "plate",
-      "ratio": 7.01,
-      "pass": "AA body"
-    },
-    {
-      "text": "rarity_rare",
-      "background": "plate",
-      "ratio": 6.9,
-      "pass": "AA body"
-    },
-    {
-      "text": "rarity_epic",
-      "background": "plate",
-      "ratio": 6.98,
-      "pass": "AA body"
-    },
-    {
-      "text": "rarity_common",
-      "background": "plate",
-      "ratio": 5.15,
-      "pass": "AA body"
-    },
-    {
       "text": "text",
       "background": "locked_cell",
       "ratio": 13.46,
@@ -472,46 +622,270 @@
       "pass": "AA body"
     },
     {
+      "text": "text",
+      "background": "plate",
+      "ratio": 12.88,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "text_muted",
+      "background": "plate",
+      "ratio": 8.28,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "danger_text",
+      "background": "plate",
+      "ratio": 6.91,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "mana",
+      "background": "plate",
+      "ratio": 5.42,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "egg",
+      "background": "plate",
+      "ratio": 12.19,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "face_attack_text",
+      "background": "plate",
+      "ratio": 5.45,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "face_weaken",
+      "background": "plate",
+      "ratio": 5.27,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "face_buff",
+      "background": "plate",
+      "ratio": 7.16,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "rarity_rare",
+      "background": "plate",
+      "ratio": 7.05,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "rarity_epic",
+      "background": "plate",
+      "ratio": 7.13,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "rarity_common",
+      "background": "plate",
+      "ratio": 5.26,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
       "text": "house_volley",
       "background": "plate",
-      "ratio": 6.0,
-      "pass": "AA body"
+      "ratio": 6.1,
+      "pass": "AA body",
+      "ui04": true
     },
     {
       "text": "house_gambler",
       "background": "plate",
-      "ratio": 7.28,
-      "pass": "AA body"
+      "ratio": 7.4,
+      "pass": "AA body",
+      "ui04": true
     },
     {
       "text": "house_mana_mine",
       "background": "plate",
-      "ratio": 10.94,
-      "pass": "AA body"
+      "ratio": 11.12,
+      "pass": "AA body",
+      "ui04": true
     },
     {
       "text": "house_kin",
       "background": "plate",
-      "ratio": 8.21,
-      "pass": "AA body"
+      "ratio": 8.35,
+      "pass": "AA body",
+      "ui04": true
     },
     {
       "text": "house_embers",
       "background": "plate",
-      "ratio": 6.74,
-      "pass": "AA body"
+      "ratio": 6.85,
+      "pass": "AA body",
+      "ui04": true
     },
     {
       "text": "house_big_hand",
       "background": "plate",
-      "ratio": 6.59,
-      "pass": "AA body"
+      "ratio": 6.7,
+      "pass": "AA body",
+      "ui04": true
     },
     {
       "text": "anchor_awake",
       "background": "plate",
-      "ratio": 10.73,
-      "pass": "AA body"
+      "ratio": 10.91,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "tier_moss",
+      "background": "tier_moss_bg",
+      "ratio": 8.25,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "tier_amber",
+      "background": "tier_amber_bg",
+      "ratio": 8.76,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "tier_crystal",
+      "background": "tier_crystal_bg",
+      "ratio": 12.7,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "tier_moss",
+      "background": "plate",
+      "ratio": 9.37,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "tier_amber",
+      "background": "plate",
+      "ratio": 10.3,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "tier_crystal",
+      "background": "plate",
+      "ratio": 12.83,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "tag_elite_text",
+      "background": "tag_elite_bg",
+      "ratio": 8.76,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "leader_text",
+      "background": "leader",
+      "ratio": 11.8,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "shell",
+      "background": "tag_shell_bg",
+      "ratio": 6.34,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "danger_text",
+      "background": "tag_boss_bg",
+      "ratio": 7.26,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "bighit_text",
+      "background": "intent_bighit_bg",
+      "ratio": 10.48,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "text_muted",
+      "background": "intent_idle_bg",
+      "ratio": 8.64,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "attrition",
+      "background": "plate",
+      "ratio": 7.16,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "text",
+      "background": "keycap_bg",
+      "ratio": 13.94,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "tier_amber",
+      "background": "update_bar_bg",
+      "ratio": 8.76,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "text",
+      "background": "update_bar_bg",
+      "ratio": 10.96,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "text",
+      "background": "revive_bg",
+      "ratio": 14.75,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "gem_text",
+      "background": "gem_bg",
+      "ratio": 10.15,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "text_on_viewport",
+      "background": "run_rule_bg",
+      "ratio": 10.55,
+      "pass": "AA body",
+      "ui04": true
+    },
+    {
+      "text": "risk_bar",
+      "background": "panel_raised",
+      "ratio": 6.36,
+      "pass": "AA body",
+      "ui04": true
     }
   ],
   "font": {
@@ -587,15 +961,61 @@
     "inspector_w": 520,
     "phase_bar_h": 16,
     "defeat_panel_w": 720,
-    "slot_cell_min_h": 120
+    "slot_cell_min_h": 120,
+    "keycap_h": 36,
+    "keycap_s": 28,
+    "intent_block": {
+      "w": 112,
+      "h": 88
+    },
+    "enemy_plate_w": 416,
+    "boss_plate_w": 520,
+    "bighit_strip_h": 40,
+    "dice_dock_w": 848,
+    "action_dock_w": 352,
+    "tool_key_h": 56,
+    "attrition_h": 56,
+    "anchor_chip_h": 48,
+    "house_pip": 12,
+    "tier_band_h": 56,
+    "tier_pip": 24,
+    "core_card": {
+      "w": 400,
+      "h": 620
+    },
+    "anchor_card": {
+      "w": 520,
+      "h": 748
+    },
+    "anchor_box_h": {
+      "rule": 120,
+      "price": 96,
+      "awakens": 176
+    },
+    "mission_row_h": 128,
+    "mission_detail_w": 480,
+    "pass_level_card_h": 220,
+    "pass_track_per_page": 8,
+    "netnotice_h": 80,
+    "update_bar_h": 56,
+    "land_chip_w": 440,
+    "currency_chip_h": 56,
+    "chest_stage": 360,
+    "result_panel_w": 880,
+    "reveal_panel_w": 720,
+    "_ui04_text_sizes": "Text sizes are 16 (key caps only) / 18 / 24 / 32 / 36, plus 28 (num_die) and 20 (num_die_egg) for numbers on dice. No label token at 20: UI-04 uses no text at 20; any label at 20 in the build should move to 18 (text_body)."
   },
   "radius": {
     "s": 4,
-    "m": 8,
-    "l": 12,
+    "m": 12,
+    "l": 16,
     "die": 20,
     "die_egg": 14,
-    "pill": 999
+    "pill": 999,
+    "xl": 20,
+    "xxl": 24,
+    "chip_square": 4,
+    "_ui04_note": "Rounder for Lunacia feel: rows/buttons 12, plates 16, docks/cards/dialogs 20, big panels 24. Die radius unchanged."
   },
   "space": {
     "4": 4,
@@ -642,8 +1062,39 @@
     },
     "dialog": {
       "x": 0,
-      "y": 16,
-      "blur": 48,
+      "y": 8,
+      "blur": 0,
+      "color": "#0b0c0f",
+      "note": "UI-04: hard shadow, blur removed (brief §4: no blur on UI panels)"
+    },
+    "plate": {
+      "x": 0,
+      "y": 4,
+      "blur": 0,
+      "color": "#0b0c0f99"
+    },
+    "btn_primary_raised": {
+      "x": 0,
+      "y": 4,
+      "blur": 0,
+      "color": "#b25127"
+    },
+    "btn_primary_pressed": {
+      "x": 0,
+      "y": 2,
+      "blur": 0,
+      "color": "#b25127"
+    },
+    "btn_secondary_raised": {
+      "x": 0,
+      "y": 4,
+      "blur": 0,
+      "color": "#1a120d"
+    },
+    "keycap": {
+      "x": 0,
+      "y": 3,
+      "blur": 0,
       "color": "#000000a0"
     }
   },
@@ -667,7 +1118,10 @@
       "hold_ms": 700
     },
     "tooltip_delay_ms": 300,
-    "inspector_longpress_ms": 500
+    "inspector_longpress_ms": 500,
+    "everyday_max": 200,
+    "moment_skip": "any click or Space",
+    "see_moments": "motion.md §Moments"
   },
   "z": {
     "viewport": 0,
@@ -684,11 +1138,11 @@
       "type": "flat",
       "bg": "#ffb444",
       "border": 0,
-      "radius": 8,
+      "radius": 12,
       "shadow": {
         "x": 0,
         "y": 4,
-        "color": "#2b1e17"
+        "color": "#b25127"
       },
       "content_margin": [
         48,
@@ -711,7 +1165,7 @@
       "shadow": {
         "x": 0,
         "y": 2,
-        "color": "#2b1e17"
+        "color": "#b25127"
       },
       "note": "whole button moves down 2 px; label moves with it"
     },
@@ -730,12 +1184,12 @@
       "border": 2,
       "border_color": "#ffb444",
       "expand_margin": 4,
-      "radius": 12
+      "radius": 16
     },
     "Button/secondary/styles/normal": {
       "type": "flat",
       "bg": "#58321d",
-      "radius": 8,
+      "radius": 12,
       "content_margin": [
         24,
         0,
@@ -744,7 +1198,12 @@
       ],
       "font": "Rowdies 700 18",
       "font_color": "#ffe5b4",
-      "min_h": 56
+      "min_h": 56,
+      "shadow": {
+        "x": 0,
+        "y": 4,
+        "color": "#1a120d"
+      }
     },
     "Button/secondary/styles/hover": {
       "type": "flat",
@@ -801,8 +1260,15 @@
     },
     "Panel/plate": {
       "type": "flat",
-      "bg": "#2b1e17e6",
-      "radius": 8,
+      "bg": "#2b1e17f0",
+      "radius": 16,
+      "border": 2,
+      "border_color": "#58321d",
+      "shadow": {
+        "x": 0,
+        "y": 4,
+        "color": "#0b0c0f99"
+      },
       "content_margin": [
         16,
         16,
@@ -813,26 +1279,33 @@
     "Panel/card": {
       "type": "flat",
       "bg": "#2b1e17e6",
-      "radius": 12,
+      "radius": 20,
       "content_margin": [
         24,
         24,
         24,
         24
-      ]
+      ],
+      "border": 2,
+      "border_color": "#58321d",
+      "shadow": {
+        "x": 0,
+        "y": 6,
+        "color": "#0b0c0f"
+      }
     },
     "Panel/card_selected": {
       "type": "flat",
       "bg": "#3e2618",
-      "radius": 12,
+      "radius": 20,
       "border": 4,
       "border_color": "#ffe5b4",
-      "note": "+ translate y −18 for reward/pact cards"
+      "note": "4 px cream outline drawn 4 px outside (expand_margin 4) + translate y −18"
     },
     "Panel/dialog": {
       "type": "flat",
       "bg": "#2b1e17",
-      "radius": 12,
+      "radius": 20,
       "content_margin": [
         32,
         32,
@@ -841,16 +1314,18 @@
       ],
       "shadow": {
         "x": 0,
-        "y": 16,
-        "size": 48,
-        "color": "#000000a0"
+        "y": 8,
+        "size": 0,
+        "color": "#0b0c0f"
       },
-      "width": 560
+      "width": 720,
+      "border": 2,
+      "border_color": "#58321d"
     },
     "Panel/row": {
       "type": "flat",
       "bg": "#3e2618",
-      "radius": 8,
+      "radius": 12,
       "content_margin": [
         12,
         0,
@@ -886,6 +1361,70 @@
     "Label/font_sizes/body": 18,
     "Label/font_sizes/title": 24,
     "Label/font_sizes/screen_title": 32,
-    "Label/font_sizes/key_hint": 16
+    "Label/font_sizes/key_hint": 16,
+    "Button/primary/styles/small": {
+      "type": "flat",
+      "bg": "#ffb444",
+      "radius": 12,
+      "shadow": {
+        "x": 0,
+        "y": 4,
+        "color": "#b25127"
+      },
+      "font": "Rowdies 700 18",
+      "font_color": "#291808",
+      "min_h": 48,
+      "note": "UI-04 NEW · RETRY on NetNotice, Reload on Update bar (min_h 44 there)"
+    },
+    "Panel/dock": {
+      "type": "flat",
+      "bg": "#2b1e17f0",
+      "radius": 20,
+      "border": 2,
+      "border_color": "#58321d",
+      "shadow": {
+        "x": 0,
+        "y": 4,
+        "color": "#0b0c0f99"
+      },
+      "content_margin": [
+        16,
+        12,
+        16,
+        16
+      ],
+      "note": "UI-04 NEW · dice tray, action dock"
+    },
+    "Panel/keycap": {
+      "type": "flat",
+      "bg": "#291808",
+      "radius": 8,
+      "shadow": {
+        "x": 0,
+        "y": 3,
+        "color": "#000000a0"
+      },
+      "content_margin": [
+        10,
+        0,
+        10,
+        0
+      ],
+      "min_h": 36,
+      "font": "Work Sans 400 16",
+      "font_color": "#ffe5b4",
+      "note": "UI-04 NEW · 28 px variant inside chips"
+    },
+    "Panel/tag_square": {
+      "type": "flat",
+      "bg": "#00000000",
+      "radius": 4,
+      "border": 2,
+      "border_color": "#8e97a8",
+      "min_h": 32,
+      "font": "Rowdies 700 18",
+      "font_color": "#dae0ea",
+      "note": "UI-04 NEW · Core category, DUPLICATE, SHELL (with shell colours)"
+    }
   }
 }
