@@ -1,0 +1,100 @@
+# screens-current index
+Build ae01043. Files named `<name>-<W>x<H>.png`.
+
+- `01a-missions-N1-unlocked` (1920x1080, 1280x720): Missions board, tier N1 selected, unlocked
+- `01b-missions-N3-warning` (1920x1080, 1280x720): Missions board, N3 selected, warning shown
+- `01c-missions-N5-locked` (1920x1080, 1280x720): Missions board, N5 locked
+- `01d-missions-N6-locked` (1920x1080, 1280x720): Missions board, N6 locked
+- `02a-mission-confirm-N3` (1920x1080, 1280x720): Mission confirm dialog for N3
+- `02b-mission-defeat-panel` (1920x1080, 1280x720): Defeat panel during a mission run
+- `02c-mission-result-lost` (1920x1080, 1280x720): Result screen, mission lost
+- `03a-runsetup-anchor-locked-stage1` (1920x1080, 1280x720): Run Setup, stage 1, Anchor locked
+- `03b-runsetup-anchor-unlocked-stage3` (1920x1080, 1280x720): Run Setup, stage 3, Anchor unlocked
+- `04a-anchor-pick` (1920x1080, 1280x720): Anchor pick screen
+- `04b-anchor-chip-run-map-hud` (1920x1080, 1280x720): Run map with Anchor chip in HUD
+- `04c-anchor-awaken-moment` (1920x1080, 1280x720): Anchor awaken moment
+- `04d-anchor-awakened-hud` (1920x1080, 1280x720): HUD after Anchor awakened
+- `04e-anchor-chip-combat-hud` (1920x1080, 1280x720): Combat HUD with Anchor chip
+- `04f-result-with-anchor` (1280x720): Result screen with Anchor
+- `05a-run-rule-offer` (1920x1080, 1280x720): Run rule offer
+- `05b-core-offer-card` (1920x1080, 1280x720): Core offer (choose a core)
+- `07a-land-hud-stone-chip-starter-gift` (1920x1080, 1280x720): Land, signed-in HUD, Upgrade Land stone chip, starter-gift toast
+- `07b-land-tier-up-banner` (1920x1080, 1280x720): Land tier-up banner
+- `07c-profile-land-section` (1920x1080, 1280x720): Profile, Land section
+- `08a-echobox-single-new` (1920x1080, 1280x720): Echo Box single open, new item revealed
+- `08b-echobox-single-duplicate` (1920x1080, 1280x720): Echo Box single open, duplicate
+- `08c-echobox-idle` (1920x1080, 1280x720): Echo Box idle
+- `08d-pass` (1920x1080, 1280x720): Pass screen
+- `08e-daily` (1920x1080, 1280x720): Daily screen
+- `09a-update-required-web` (1920x1080, 1280x720): Update required modal (web)
+- `09b-update-required-desktop` (1920x1080, 1280x720): Update required modal (desktop)
+- `09c-missions-offline` (1920x1080, 1280x720): Missions while offline
+- `09c-netnotice-offline` (1920x1080, 1280x720): NetNotice offline
+- `09d-netnotice-timeout` (1920x1080, 1280x720): NetNotice timeout
+- `09e-missions-guest-blocked` (1920x1080, 1280x720): Missions as guest, blocked
+- `09f-combat-waiting-for-seed` (1920x1080, 1280x720): Combat, waiting for server seed
+- `10a-post-reset-land-entry` (1920x1080, 1280x720): Land entry after save reset
+- `10b-post-reset-missions-balance-0` (1920x1080, 1280x720): Missions with balance 0 after reset
+- `10c-tutorial-welcome` (1920x1080, 1280x720): Tutorial welcome
+- `20-ui3-combat-turn` (1920x1080, 1280x720): Combat, player turn, dice tray
+- `21-ui3-combat-picked` (1920x1080, 1280x720): Combat, die picked, targets shown
+- `22-ui3-combat-boss` (1920x1080, 1280x720): Combat, boss fight
+- `23-ui3-combat-defeat` (1920x1080, 1280x720): Combat defeat state
+- `24-ui3-combat-inspect-enemy` (1920x1080, 1280x720): Combat, enemy inspect
+- `25-ui3-combat-inspect-party` (1920x1080, 1280x720): Combat, party member inspect
+- `26-ui3-combat-aid` (1920x1080, 1280x720): Combat, Aid tray
+- `27-ui3-combat-aid-closed` (1920x1080, 1280x720): Combat, Aid tray closed
+- `28-ui3-combat-aid-confirm` (1920x1080, 1280x720): Combat, Aid confirm
+- `29-ui3-combat-aid-offer` (1920x1080, 1280x720): Combat, Aid offer
+- `30-ui3-combat-aid-offer-violet` (1920x1080, 1280x720): Combat, Aid offer (violet)
+- `31-ui3-combat2-offer` (1920x1080, 1280x720): Combat, offer
+- `32-ui3-combat2-aid-tray-open` (1920x1080, 1280x720): Combat, Aid tray open
+- `33-ui3-combat2-aid-coming-soon` (1920x1080, 1280x720): Combat, Aid coming soon
+- `34-ui3-combat2-aid-disabled-rows` (1920x1080, 1280x720): Combat, Aid disabled rows
+- `35-ui3-combat2-inspect-enemy` (1920x1080, 1280x720): Combat 2, enemy inspect
+- `36-ui3-combat2-inspect-party` (1920x1080, 1280x720): Combat 2, party inspect
+- `37-ui3-combat2-inspect-party-last` (1920x1080, 1280x720): Combat 2, last party member inspect
+- `38-ui3-defeat-paid` (1920x1080, 1280x720): Defeat panel, paid revive
+- `39-ui3-defeat-short` (1920x1080, 1280x720): Defeat panel, not enough to revive
+- `40-ui3-defeat-free` (1920x1080, 1280x720): Defeat panel, free (boss)
+- `41-ui3-defeat-boss` (1920x1080, 1280x720): Defeat panel, boss
+- `42-ui3-defeat-mission` (1920x1080, 1280x720): Defeat panel, mission
+- `43-ui3-defeat-reviving` (1920x1080, 1280x720): Defeat panel, reviving
+- `44-ui3-result-win-stake` (1920x1080, 1280x720): Result, won, with stake
+- `45-ui3-result-win-record` (1920x1080, 1280x720): Result, won, new record
+- `46-ui3-result-loss-stake` (1920x1080, 1280x720): Result, lost, with stake
+- `47-ui3-result-offline` (1920x1080, 1280x720): Result, offline
+- `48-ui3-reward-hp` (1920x1080, 1280x720): Reward pick, HP
+- `49-ui3-reward-relic` (1920x1080, 1280x720): Reward pick, relic
+- `50-ui3-reward-ascend` (1920x1080, 1280x720): Reward pick, ascend
+- `51-ui3-reward-chaos` (1920x1080, 1280x720): Reward pick, chaos
+- `52-ui3-reward-chaos-confirm` (1920x1080, 1280x720): Reward pick, chaos confirm
+- `53-settings` (1920x1080, 1280x720): Settings
+- `54-codex-basic` (1920x1080, 1280x720): Codex, basic tab
+- `55-codex-dice` (1920x1080, 1280x720): Codex, dice tab
+- `56-codex-st` (1920x1080, 1280x720): Codex, status tab
+- `57-echobox-reveal-single-stone` (1920x1080, 1280x720): Echo Box reveal, single stone
+- `58-echobox-reveal-ten` (1920x1080, 1280x720): Echo Box open-10 reveal
+- `59-echobox-reveal-summary` (1920x1080, 1280x720): Echo Box open-10 summary
+- `60-gacha-facedown` (1920x1080, 1280x720): Core gacha pick, cards face down
+- `61-gacha-flip_crystal` (1920x1080, 1280x720): Core gacha pick, card flipped (crystal)
+- `62-gacha-jackpot` (1920x1080, 1280x720): Core gacha pick, jackpot
+- `63-runmap` (1920x1080, 1280x720): Run map
+- `64-runmap_row1` (1920x1080, 1280x720): Run map, row 1
+- `65-ui3-event-choices` (1920x1080, 1280x720): Event, choices
+- `66-ui3-event-outcome` (1920x1080, 1280x720): Event, outcome
+- `67-ui3-treasure-closed` (1920x1080, 1280x720): Treasure, closed
+- `68-ui3-treasure-opened` (1920x1080, 1280x720): Treasure, opened
+- `69-v4ui-bo3` (1920x1080, 1280x720): v4 UI, best-of-3
+- `70-v4ui-bo4` (1920x1080, 1280x720): v4 UI, best-of-4
+- `71-v4ui-gamble_pct` (1920x1080, 1280x720): v4 UI, gamble percent
+- `72-v4ui-reroll_pick` (1920x1080, 1280x720): v4 UI, reroll pick
+- `73-v4ui-result` (1920x1080, 1280x720): v4 UI, result
+- `74-v4ui-wild_picker` (1920x1080, 1280x720): v4 UI, wild picker
+
+## Not in this set (read the brief for how they behave)
+- Combat enemy-turn banner, the big-hit warning on an intent ("Can knock out an Axie", danger border + "!"), and A/B suffixes on repeated enemy names: shipped in the build, no capture scene reaches them yet.
+- Echo Box "Open 10" confirm dialog ("Open 10 boxes? This spends 10 tickets and leaves you N.").
+- The thin "Update required" bar that stays on the top edge after the modal is closed.
+- Store, Leaderboard, a full Profile screen (only the Land section is here).
+- `04f-result-with-anchor` exists at 1920x1080 only.

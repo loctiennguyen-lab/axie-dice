@@ -1,4 +1,4 @@
-# Bàn giao cho Liam polish (28/10/2026)
+# Trạng thái beta khi bắt đầu polish (28/10/2026)
 
 ## Bản đang chạy
 - Web: https://axiedice.fun. Desktop: https://axiedice.fun/download (bản mới nhất ghi ở `downloads/latest.json`).

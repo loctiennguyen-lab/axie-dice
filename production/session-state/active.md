@@ -1,7 +1,7 @@
 # Axie Dice — trạng thái hiện tại
 
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (28/10) — QA TỔNG XONG, SR-V CHẠY BÓNG, LIAM POLISH
-- Bàn giao polish: `production/qa/polish-handoff-2026-10-28.md` (bản đang chạy, còn mở, SR-V, cách ghi phản hồi `production/qa/bugs/liam-notes.md`).
+- Bàn giao polish: `production/qa/beta-status-2026-10-28.md` (bản đang chạy, còn mở, SR-V, cách ghi phản hồi `production/qa/bugs/liam-notes.md`).
 - 27/10 đã deploy QA1 (BUG-0006..0008, Worker b95a83d8, `deploy-2026-10-27-qa1.md`) và QA2 (S3/S4 review UX, web b554725a, desktop b1790, `deploy-2026-10-27-qa2.md`).
 - 28/10 SR-V: D1 0012, Worker e3dda1c3 VERIFY_SHADOW=1, secret VERIFY_HMAC_KEY (file `~/.axie-verifier/hmac_key`), runner chạy nền ở `../my-game-wt/verifier`, xem `bash verifier/stats.sh`. Liam: verifier trên Mac trước; bỏ perks khi ví server (re-pin, không bump).
 - Liam 27/10: KHÔNG thêm luật chặn trận kéo dài. Không chạy live_smoke trên phiên desktop của Liam nếu chưa hỏi.
