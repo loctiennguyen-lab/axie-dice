@@ -88,6 +88,9 @@ func _ready() -> void:
 		_step("env", false, "AXIE_TEST_NO_NET=1 is set, this tool needs the network")
 		_quit()
 		return
+	if "--login" in OS.get_cmdline_user_args() or "--login" in OS.get_cmdline_args():
+		await _login_once()
+		return
 	_full = not _cleanup_only and ("--full" in OS.get_cmdline_user_args() or "--full" in OS.get_cmdline_args())
 	if _full:
 		_soft_s = FULL_HARD_TIMEOUT_S
@@ -162,6 +165,31 @@ func _discard_scenes() -> void:
 		cur.queue_free()
 	_tree.current_scene = null
 	await _frames(3)
+
+
+## One-time sign-in of the dedicated SMOKE device (live_smoke.sh --login): opens the browser, waits for the
+## loopback callback and leaves device_tokens.dat in the tool's user dir; the wrapper stores it for later runs.
+## This creates its own device_sessions row, so smoke runs never touch the desktop app's refresh-token chain.
+func _login_once() -> void:
+	DesktopAuth.label_override = "Smoke"
+	AccountService.desktop_test_mode = true   # headless build, but allow the desktop flow
+	AccountService.ask = func(_k: String, _i: Dictionary, done: Callable) -> void: done.call("cloud")
+	AccountService.toast = func(code: String) -> void: print("  (toast: %s)" % code)
+	SaveStore.on_changed = Callable()
+	AccountService.begin_desktop_sign_in()
+	print("live_smoke --login: a browser window opens; sign in with Google within 3 minutes.")
+	var t := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t < 180000:
+		await _frames(10)
+		if String(DeviceTokens.load_tokens().get("refresh", "")) != "":
+			print("[OK  ] smoke device signed in (tokens saved; values not printed)")
+			await _frames(30)
+			_tree.quit(0)
+			return
+		if AccountService.desktop_phase == "error":
+			break
+	print("[FAIL] login - no tokens within 3 minutes (phase=%s err=%s)" % [AccountService.desktop_phase, AccountService.desktop_error])
+	_tree.quit(1)
 
 
 func _quit() -> void:
