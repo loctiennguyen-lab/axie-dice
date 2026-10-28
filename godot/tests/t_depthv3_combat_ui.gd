@@ -47,7 +47,10 @@ func _ready() -> void:
 	c.rerolls = 0
 	c.mana = 3
 	v._rebuild_all()
-	_check(hud.reroll_button.text == "Reroll %d MP" % c.reroll_mana_cost() and not hud.reroll_button.disabled, "paid reroll shows mana price")
+	var rr_chip := hud.reroll_button.find_child("CostChip", true, false) as Control
+	_check(hud.reroll_button.text == "Reroll" and rr_chip != null and rr_chip.visible \
+		and (rr_chip.find_child("Amount", true, false) as Label).text == str(c.reroll_mana_cost()) and not hud.reroll_button.disabled,
+		"paid reroll shows its mana price on the CostChip (UI-05)")
 	c.mana = 0
 	v._rebuild_all()
 	_check(hud.reroll_button.disabled and hud.reroll_button.text.contains("need"), "no mana: disabled with reason")

@@ -53,8 +53,17 @@ func _ready() -> void:
 		"title": "Extra reroll", "what": "+1 reroll.", "price": 15, "caps": [], "gems": 5}})
 	var btn := panel.find_child("AidRow_extra_reroll", true, false) as Button
 	_check(btn != null and btn.disabled, "short of Gem: the row is disabled")
-	var buy := panel.find_child("OfferBuy", true, false) as Button
+	var buy := panel.find_child("AidBuyButton", true, false) as Button
 	_check(buy != null and buy.disabled and buy.text.find("Need 10 more Gem") != -1, "short of Gem: offer button says Need 10 more Gem")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var card := panel.find_child("AidOffer", true, false) as Control
+	var chip := buy.find_child("CostChip", true, false) as Control
+	_check(chip != null and chip.visible and (chip.find_child("Amount", true, false) as Label).text == "15", "short of Gem: the real price stays on the Buy chip")
+	_check(card.get_global_rect().encloses(buy.get_global_rect()), "short of Gem: Buy %s stays inside the offer card %s" % [buy.get_global_rect(), card.get_global_rect()])
+	var no := panel.find_child("AidNotNow", true, false) as Control
+	_check(no != null and absf(no.size.y - buy.size.y) < 0.5, "Not now is as tall as Buy (trust rule)")
+	_check(Ui5Keycap.all_under(panel).is_empty(), "no key cap in the Aid zone (UI-05: only Space is shown)")
 	panel._ask("extra_reroll")
 	_check(not panel.modal_open(), "short of Gem: the confirm never opens")
 	row["gems"] = 50
