@@ -71,6 +71,9 @@
  },
  "biomes": {
   "savannah": {
+      "compat_saturation": 0.74,
+      "compat_brightness": 0.95,
+      "compat_ground_tint": "#d6c4b4",
    "ground": "#cfa83c",
    "sky_top": "#6fb3e8",
    "sky_horizon": "#f1cf8c",
