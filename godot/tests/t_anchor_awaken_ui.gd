@@ -80,7 +80,7 @@ func _ready() -> void:
 	_check(t_full <= 2.5 and t_red <= 1.6 and t_red < t_full, "2.5 s / 1.6 s with Reduce flashing (%f, %f)" % [t_full, t_red])
 	var fr := AnchorFx.play(host, "a_volley")
 	await _frames(2)
-	_check(fr._card.get_node("AwakenName").modulate.a < 1.0 and fr._waves.get_parent() == fr, "reduced: runs (fades only, no waves drawn)")
+	_check(fr._card.get_node("AwakenName").modulate.a < 1.0 and fr._rays.get_parent() == fr and fr._rays_static, "reduced: runs (fades only, rays static)")
 	fr.skip()
 	MetaState.reduce_flash = false
 	await _frames(2)

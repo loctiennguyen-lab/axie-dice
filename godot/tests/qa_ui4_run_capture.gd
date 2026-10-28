@@ -26,6 +26,9 @@ func _ready() -> void:
 	await RunState.begin_run({"team_keys": ["plant1", "beast1", "aqua1", "reptile1", "bug1"], "mode": "short",
 		"ascension": 0, "kind": "normal", "ranked": false, "depth_stage": 3, "anchor": true, "rules_on": false})
 	RunState.anchor_offer = ["a_kin", "a_volley", "a_gambler"]
+	RunState.anchor_wanted = true
+	RunState._anchor_waiting = true   # engine holds pick 1 for the Anchor
+	RunState.phase = RunState.RunPhase.REWARD
 	rm = load("res://scenes/run_map/RunMap.tscn").instantiate()
 	add_child(rm)
 	await _wait(1.2)
