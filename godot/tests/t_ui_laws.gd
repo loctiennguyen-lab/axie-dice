@@ -80,10 +80,6 @@ const L_GOLD := Color("FFC445")
 const L_THREAT := Color("D9472B")
 const L_GEM_SHELF := Color("4E2E8A")
 const L_INK_3 := Color("9A7650")
-const L_CLASS_COLORS := {
-	"plant": Color("7DC943"), "beast": Color("FFB23F"), "aqua": Color("39C5F3"),
-	"reptile": Color("B679F7"), "bug": Color("F2624F"), "bird": Color("8BDCFF"),
-}
 
 var _fail: Array[String] = []
 var _scene := ""
@@ -367,7 +363,7 @@ func _nearest_fill(c: Control) -> Variant:
 ## drawn in its Axie's class colour — the one coloured border the design actually asks for.
 func _is_class_color(b: Color) -> bool:
 	for cls in ["plant", "beast", "aqua", "reptile", "bug", "bird"]:
-		if b.is_equal_approx(L_CLASS_COLORS[cls]):
+		if b.is_equal_approx(UI3Theme.color("class_" + cls)):
 			return true
 	return false
 

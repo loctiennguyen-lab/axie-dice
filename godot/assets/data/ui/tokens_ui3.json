@@ -95,55 +95,55 @@
   "color": {
     "bg": {
       "value": "#13161b",
-      "meaning": "neutral-1 · page background behind meta screens"
+      "meaning": "neutral-1 · behind meta screens"
     },
     "viewport": {
-      "value": "#3c424d",
-      "meaning": "neutral-4 · 3D viewport placeholder only (not shipped)"
+      "value": "#5f8a3e",
+      "meaning": "UI-05 · 3D placeholder fill only (not shipped)"
     },
     "plate": {
-      "value": "#2b1e17f0",
-      "meaning": "UI-04 CHANGED · wood-1 at 94% (was 90%). Every HUD/meta plate. Less 3D bleed behind small text at 1280"
+      "value": "#3b2416",
+      "meaning": "UI-05 style A · walnut, opaque. Every HUD plate, card and dialog"
     },
     "panel": {
-      "value": "#2b1e17",
-      "meaning": "wood-1 · opaque dialog / coach card"
+      "value": "#3b2416",
+      "meaning": "UI-05 style A · = plate (walnut, opaque); kept for screens that still read panel"
     },
     "panel_raised": {
-      "value": "#3e2618",
-      "meaning": "wood-2 · rows and cells inside a plate"
+      "value": "#4f3121",
+      "meaning": "UI-05 style A · = plate_raised; rows and cells inside a plate"
     },
     "btn_secondary": {
-      "value": "#58321d",
-      "meaning": "wood-3 · secondary button, selected tab, back button"
+      "value": "#6e3f22",
+      "meaning": "UI-05 style A · secondary fill"
     },
     "accent": {
       "value": "#ffb444",
-      "meaning": "kam-6 · primary button fill only (\"act now\")"
+      "meaning": "UI-05 style A · amber primary button fill (= UI-04 accent)"
     },
     "accent_text": {
       "value": "#291808",
-      "meaning": "kam-1 · text on accent"
+      "meaning": "kam-1"
     },
     "text": {
       "value": "#ffe5b4",
-      "meaning": "kam-9 · all body text, never white"
+      "meaning": "kam-9 · all text, never white"
     },
     "text_muted": {
-      "value": "#b4bccb",
-      "meaning": "neutral-8 · secondary text"
+      "value": "#d9c3a0",
+      "meaning": "UI-05 style A · warm muted text"
     },
     "text_on_viewport": {
-      "value": "#dae0ea",
-      "meaning": "neutral-9 · labels on the 3D view / disabled button text"
+      "value": "#fff3d6",
+      "meaning": "UI-05 · labels straight on the 3D view, always with text_shadow"
     },
     "disabled": {
       "value": "#3c424d",
-      "meaning": "neutral-4 · disabled button fill"
+      "meaning": "neutral-4 · disabled fill"
     },
     "disabled_border": {
-      "value": "#5b6372",
-      "meaning": "neutral-5 · disabled button border"
+      "value": "#737d8f",
+      "meaning": "UI-05 style A · = disabled_rim"
     },
     "locked_cell": {
       "value": "#1c1f25",
@@ -151,75 +151,75 @@
     },
     "selected_outline": {
       "value": "#ffe5b4",
-      "meaning": "kam-9 · 4 px outline = selected (tile, card, row)"
+      "meaning": "UI-05 style A · = selected"
     },
     "focus_ring": {
-      "value": "#ffb444",
-      "meaning": "kam-6 · 2 px ring, 4 px offset = keyboard focus"
+      "value": "#7fdcff",
+      "meaning": "UI-05 CHANGED · sky blue focus ring: amber ring vanished on the amber button. 3 px, 4 px gap"
     },
     "danger": {
       "value": "#b81221",
-      "meaning": "red-4 · destructive button fill"
+      "meaning": "red-4 · destructive fill"
     },
     "danger_text": {
       "value": "#ff8986",
-      "meaning": "red-8 · error / reason text, \"Defeated\""
+      "meaning": "red-8 · \"Party down\", reason text"
     },
     "danger_bg": {
-      "value": "#3d0d11",
-      "meaning": "red-2 · server-rejected notice, Pact drawback box"
+      "value": "#4a1015",
+      "meaning": "UI-05 CHANGED · Gamble / Curse box (was #3d0d11, warmer to sit on cocoa)"
     },
     "success_bg": {
-      "value": "#093322",
-      "meaning": "green-2 · Pact gain box"
+      "value": "#0f3a26",
+      "meaning": "UI-05 CHANGED · Gain box"
     },
     "success_text": {
       "value": "#7ade61",
-      "meaning": "green-7 · Pact \"Gain\" label"
+      "meaning": "green-7"
     },
     "notice_bg": {
-      "value": "#3e2618",
-      "meaning": "wood-2 · network notice / info notice"
+      "value": "#4f3121",
+      "meaning": "UI-05 style A · = plate_raised"
     },
     "scrim": {
       "value": "#13161bcc",
-      "meaning": "neutral-1 at 80% · modal scrim"
+      "meaning": "neutral-1 80%"
     },
     "hp": {
       "value": "#3fcd3c",
-      "meaning": "green-6 · HP fill (Axies, Eggs)"
+      "meaning": "green-6"
     },
     "hp_enemy": {
       "value": "#f54540",
-      "meaning": "red-6 · enemy HP fill"
+      "meaning": "red-6"
     },
     "hp_track": {
-      "value": "#13161b",
-      "meaning": "neutral-1 · HP / progress track"
+      "value": "#1a0f09",
+      "meaning": "UI-05 style A · = plate_ink"
     },
     "shield": {
       "value": "#31c6ff",
-      "meaning": "blue-7 · Shield segment on HP bar, SHIELD face"
+      "meaning": "blue-7"
     },
     "poison": {
       "value": "#afdb1b",
       "meaning": "axie-plant · POISON face, poison count"
     },
     "mana": {
-      "value": "#af7dff",
-      "meaning": "purple-7 · Mana number, MP cost"
+      "value": "#b98cff",
+      "meaning": "UI-05 CHANGED · purple-7 lifted (#af7dff → #b98cff) for 6.0:1 on cocoa"
     },
     "egg": {
       "value": "#ffdf8d",
       "meaning": "kam-8 · Egg name, SUMMON face"
     },
     "die_body": {
-      "value": "#ffe5b4",
-      "meaning": "kam-9 · ivory die face"
+      "value": "#fff3d6",
+      "meaning": "UI-05 CHANGED · warmer ivory die (was kam-9)"
     },
     "die_ink": {
       "value": "#2b1e17",
-      "meaning": "wood-1 · value on the die"
+      "meaning": "wood-1"
     },
     "face_attack": {
       "value": "#f54540",
@@ -258,24 +258,24 @@
       "meaning": "neutral-6"
     },
     "rarity_common": {
-      "value": "#8b979a",
-      "meaning": "Terrariums rarity common"
+      "value": "#b8c2c4",
+      "meaning": "UI-05 CHANGED · lifted for text on cocoa (was #8b979a, 4.3:1)"
     },
     "rarity_rare": {
       "value": "#2dc661",
-      "meaning": "Terrariums rarity rare"
+      "meaning": "Terrariums rare"
     },
     "rarity_epic": {
       "value": "#27c0ca",
-      "meaning": "Terrariums rarity epic"
+      "meaning": "Terrariums epic"
     },
     "rarity_legendary": {
       "value": "#ffb444",
       "meaning": "kam-6"
     },
     "rarity_uncommon": {
-      "value": "#0094ff",
-      "meaning": "blue-5 · Uncommon (approved cosmetics R2), 5.14:1 on plate"
+      "value": "#4fb0ff",
+      "meaning": "UI-05 CHANGED · blue-5 lifted for text (was #0094ff)"
     },
     "rarity_mythic": {
       "value": "#b04dff",
@@ -287,23 +287,23 @@
     },
     "annot": {
       "value": "#00b8ff",
-      "meaning": "blue-6 · design annotations only (safe areas), not shipped"
+      "meaning": "design annotation only"
     },
     "face_attack_text": {
-      "value": "#ff6460",
-      "meaning": "red-7 · the ATTACK word under a die (red-6 is 4.28:1 on a plate, below 4.5)"
+      "value": "#ff6d69",
+      "meaning": "UI-05 · ATTACK word, 4.9:1 on plate"
     },
     "gem_bg": {
       "value": "#2c0965",
-      "meaning": "purple-2 · CostChip Gem fill, paid surfaces only"
+      "meaning": "purple-2 · paid surfaces only"
     },
     "gem_border": {
       "value": "#894dff",
-      "meaning": "purple-5 · CostChip Gem border, Aid offer card, Gem gift card"
+      "meaning": "purple-5"
     },
     "gem_text": {
       "value": "#f8bbff",
-      "meaning": "purple-9 · Gem price text"
+      "meaning": "purple-9"
     },
     "trade_gain_bg": {
       "value": "#093322",
@@ -375,27 +375,27 @@
     },
     "leader": {
       "value": "#ffd21f",
-      "meaning": "UI-04 CHANGED · LEADER is now a SOLID lemon pill (fill), text leader_text, with node_elite glyph + word LEADER"
+      "meaning": "LEADER fill"
     },
     "shell": {
       "value": "#9fb1bf",
-      "meaning": "Resonance Shell bar on Elite/boss plates, steel grey, distinct from shield blue. Always with the face_shield glyph and the word Shell · UI-04: SHELL chip is square (radius 4), the only square enemy tag"
+      "meaning": "Resonance Shell"
     },
     "plate_edge": {
-      "value": "#58321d",
-      "meaning": "UI-04 NEW · wood-3 · 2 px border on every plate, dock, card and dialog. One family for all HUD parts"
+      "value": "#6e3f22",
+      "meaning": "UI-05 style A · = plate_rim (kept for code that reads plate_edge)"
     },
     "plate_shadow": {
-      "value": "#0b0c0f99",
-      "meaning": "UI-04 NEW · hard drop under plates: x0 y4 blur0. No blur anywhere"
+      "value": "#1a0f09",
+      "meaning": "UI-05 style A · = plate_ink, hard, no alpha"
     },
     "btn_primary_lip": {
       "value": "#b25127",
-      "meaning": "UI-04 NEW · kam-3 · hard 4 px shadow under the primary button (was wood-1). Reads as a pressable amber key"
+      "meaning": "UI-05 style A · lip under primary, 8 px"
     },
     "btn_secondary_lip": {
       "value": "#1a120d",
-      "meaning": "UI-04 NEW · hard 4 px shadow under secondary buttons"
+      "meaning": "UI-05 style A · the brief's btn_secondary_pressed lip colour"
     },
     "tier_moss": {
       "value": "#7ade61",
@@ -434,8 +434,8 @@
       "meaning": "UI-04 NEW · neutral-6 · Run rule chip border"
     },
     "tag_elite_bg": {
-      "value": "#482613",
-      "meaning": "UI-04 NEW · kam-2 · ELITE pill fill (outline pill + node_elite glyph + word)"
+      "value": "#4b2a6e",
+      "meaning": "UI-05 CHANGED"
     },
     "tag_elite_border": {
       "value": "#ffb444",
@@ -447,39 +447,39 @@
     },
     "leader_text": {
       "value": "#291808",
-      "meaning": "UI-04 NEW · kam-1 · LEADER word on the solid lemon pill (leader token is now the fill)"
+      "meaning": "kam-1"
     },
     "tag_shell_bg": {
-      "value": "#282c34",
-      "meaning": "UI-04 NEW · neutral-3 · SHELL square chip fill; border/text = shell"
+      "value": "#24303a",
+      "meaning": "UI-05 CHANGED"
     },
     "tag_boss_bg": {
-      "value": "#3d0d11",
-      "meaning": "UI-04 NEW · red-2 · BOSS pill fill, border/text danger_text"
+      "value": "#b81221",
+      "meaning": "UI-05 CHANGED · BOSS tag fill"
     },
     "intent_idle_bg": {
-      "value": "#1c1f25",
-      "meaning": "UI-04 NEW · neutral-2 · IDLE intent block; blank face glyph, \"–\", word IDLE in text_muted"
+      "value": "#2b2f37",
+      "meaning": "UI-05 CHANGED · cool grey pill so IDLE reads as \"nothing\""
     },
     "intent_bighit_bg": {
-      "value": "#3d0d11",
-      "meaning": "UI-04 NEW · red-2 · intent block + warning strip when the hit can knock out an Axie"
+      "value": "#5a1116",
+      "meaning": "UI-05 CHANGED · big-hit pill fill"
     },
     "intent_bighit_border": {
-      "value": "#f54540",
-      "meaning": "UI-04 NEW · red-6 · 4 px plate border on a big-hit enemy"
+      "value": "#ff4a43",
+      "meaning": "UI-05 CHANGED · 4 px"
     },
     "bighit_text": {
-      "value": "#ffbdbb",
-      "meaning": "UI-04 NEW · red-9 · \"Can knock out an Axie\" on red-2"
+      "value": "#ffd0cd",
+      "meaning": "UI-05 · strip text on intent_bighit_bg, 9.1:1"
     },
     "attrition": {
       "value": "#ff9345",
-      "meaning": "UI-04 NEW · kam-5 · Attrition card border (dashed = upcoming, solid = active), word and pips"
+      "meaning": "kam-5"
     },
     "keycap_bg": {
-      "value": "#291808",
-      "meaning": "UI-04 NEW · kam-1 · key cap fill, text kam-9 Work Sans 16, hard 3 px black shadow"
+      "value": "#1a0f09",
+      "meaning": "UI-05 style A · = plate_ink"
     },
     "notice_edge": {
       "value": "#ffb444",
@@ -504,25 +504,157 @@
     "chest_disc": {
       "value": "#ffb4441c",
       "meaning": "UI-04 NEW · kam-6 at 11% · two stacked discs behind the Echo Box chest"
+    },
+    "plate_raised": {
+      "value": "#4f3121",
+      "meaning": "UI-05 CHANGED · cells and rows inside a plate (was wood-2)"
+    },
+    "plate_rim": {
+      "value": "#6e3f22",
+      "meaning": "UI-05 style A · 2 px lighter wood bevel inside every plate (B had a 3 px cream rim)"
+    },
+    "plate_ink": {
+      "value": "#1a0f09",
+      "meaning": "UI-05 style A · hard lip under every plate and button. No outer outline in A (stroke_ink 0)"
+    },
+    "chip": {
+      "value": "#2b1a10",
+      "meaning": "UI-05 style A · inset chip on a plate (A-level, turn, counts)"
+    },
+    "text_ink": {
+      "value": "#291808",
+      "meaning": "kam-1 · text on accent and on cream"
+    },
+    "text_shadow": {
+      "value": "#1a0f09",
+      "meaning": "UI-05 style A · hard 2 px drop under text on the 3D view (Godot font shadow, offset 0,2)"
+    },
+    "accent_rim": {
+      "value": "#ffd27a",
+      "meaning": "UI-05 style A · bevel on the primary button"
+    },
+    "btn_primary_hover": {
+      "value": "#ffc466",
+      "meaning": "UI-05 style A · +10% brightness"
+    },
+    "btn_secondary_hover": {
+      "value": "#7f4a29",
+      "meaning": "UI-05 style A"
+    },
+    "btn_secondary_pressed": {
+      "value": "#5c341c",
+      "meaning": "UI-05 style A"
+    },
+    "btn_secondary_rim": {
+      "value": "#8f5530",
+      "meaning": "UI-05 style A NEW · bevel on the secondary button"
+    },
+    "disabled_rim": {
+      "value": "#737d8f",
+      "meaning": "UI-05 NEW · neutral-6 rim on disabled"
+    },
+    "disabled_text": {
+      "value": "#dae0ea",
+      "meaning": "neutral-9"
+    },
+    "selected": {
+      "value": "#ffe5b4",
+      "meaning": "kam-9 · 4 px selected outline"
+    },
+    "face_heal_text": {
+      "value": "#62e05f",
+      "meaning": "UI-05"
+    },
+    "face_weaken_text": {
+      "value": "#ff7cb6",
+      "meaning": "UI-05"
+    },
+    "attrition_max": {
+      "value": "#ff6d69",
+      "meaning": "UI-05 NEW · MAX state text + edge"
+    },
+    "gem_lip": {
+      "value": "#12032e",
+      "meaning": "UI-05 NEW · lip under Gem buttons"
+    },
+    "set_a": {
+      "value": "#ffd21f",
+      "meaning": "UI-05 NEW · first live SET: card ring, filled PartChip, banner (lemon, same as anchor_awake family)"
+    },
+    "set_b": {
+      "value": "#6fe3b5",
+      "meaning": "UI-05 NEW · second live SET (mint)"
+    },
+    "set_text": {
+      "value": "#291808",
+      "meaning": "UI-05 NEW · text on set_a / set_b fills"
+    },
+    "set_delta": {
+      "value": "#ffd21f",
+      "meaning": "UI-05 NEW · \"5 → 8\" preview value on the card"
+    },
+    "temp_face": {
+      "value": "#b98cff",
+      "meaning": "UI-05 NEW · Wild / Temp Face mark"
+    },
+    "held": {
+      "value": "#7fdcff",
+      "meaning": "UI-05 NEW · Held (Embers) mark"
+    },
+    "overcast": {
+      "value": "#ffb444",
+      "meaning": "UI-05 NEW · Overcast mark"
+    },
+    "banner_player": {
+      "value": "#ffb444",
+      "meaning": "UI-05 style A · \"Your turn\" band = accent"
+    },
+    "banner_enemy": {
+      "value": "#c9362f",
+      "meaning": "UI-05 NEW · \"Enemy turn\" band"
+    },
+    "class_plant": {
+      "value": "#afdb1b",
+      "meaning": "UI-05 · class colour measured on the portrait (design/art/palette-measured.md). CombatView and t_ui_laws read this."
+    },
+    "class_beast": {
+      "value": "#fdb014",
+      "meaning": "UI-05 · class colour measured on the portrait (design/art/palette-measured.md). CombatView and t_ui_laws read this."
+    },
+    "class_aqua": {
+      "value": "#00dff3",
+      "meaning": "UI-05 · class colour measured on the portrait (design/art/palette-measured.md). CombatView and t_ui_laws read this."
+    },
+    "class_reptile": {
+      "value": "#9967fb",
+      "meaning": "UI-05 · class colour measured on the portrait (design/art/palette-measured.md). CombatView and t_ui_laws read this."
+    },
+    "class_bug": {
+      "value": "#ff433e",
+      "meaning": "UI-05 · class colour measured on the portrait (design/art/palette-measured.md). CombatView and t_ui_laws read this."
+    },
+    "class_bird": {
+      "value": "#ff78b4",
+      "meaning": "UI-05 · class colour measured on the portrait (design/art/palette-measured.md). CombatView and t_ui_laws read this."
     }
   },
   "contrast": [
     {
       "text": "text",
       "background": "panel",
-      "ratio": 13.16,
+      "ratio": 11.81,
       "pass": "AA body"
     },
     {
       "text": "text",
       "background": "panel_raised",
-      "ratio": 11.45,
+      "ratio": 9.54,
       "pass": "AA body"
     },
     {
       "text": "text",
       "background": "btn_secondary",
-      "ratio": 9.06,
+      "ratio": 7.14,
       "pass": "AA body"
     },
     {
@@ -534,25 +666,19 @@
     {
       "text": "text_muted",
       "background": "panel_raised",
-      "ratio": 7.35,
+      "ratio": 6.84,
       "pass": "AA body"
     },
     {
       "text": "text_on_viewport",
       "background": "disabled",
-      "ratio": 7.62,
-      "pass": "AA body"
-    },
-    {
-      "text": "text_on_viewport",
-      "background": "viewport",
-      "ratio": 7.62,
+      "ratio": 9.16,
       "pass": "AA body"
     },
     {
       "text": "danger_text",
       "background": "panel",
-      "ratio": 7.05,
+      "ratio": 6.33,
       "pass": "AA body"
     },
     {
@@ -564,31 +690,31 @@
     {
       "text": "text",
       "background": "danger_bg",
-      "ratio": 13.54,
+      "ratio": 12.44,
       "pass": "AA body"
     },
     {
       "text": "success_text",
       "background": "success_bg",
-      "ratio": 8.25,
+      "ratio": 7.53,
       "pass": "AA body"
     },
     {
       "text": "text",
       "background": "success_bg",
-      "ratio": 11.35,
+      "ratio": 10.35,
       "pass": "AA body"
     },
     {
       "text": "shield",
       "background": "panel_raised",
-      "ratio": 7.12,
+      "ratio": 5.94,
       "pass": "AA body"
     },
     {
       "text": "poison",
       "background": "panel_raised",
-      "ratio": 8.67,
+      "ratio": 7.23,
       "pass": "AA body"
     },
     {
@@ -600,13 +726,13 @@
     {
       "text": "text_muted",
       "background": "bg",
-      "ratio": 9.49,
+      "ratio": 10.59,
       "pass": "AA body"
     },
     {
       "text": "die_ink",
       "background": "die_body",
-      "ratio": 13.16,
+      "ratio": 14.64,
       "pass": "AA body"
     },
     {
@@ -618,132 +744,132 @@
     {
       "text": "text_muted",
       "background": "locked_cell",
-      "ratio": 8.64,
+      "ratio": 9.64,
       "pass": "AA body"
     },
     {
       "text": "text",
       "background": "plate",
-      "ratio": 12.88,
+      "ratio": 11.81,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "text_muted",
       "background": "plate",
-      "ratio": 8.28,
+      "ratio": 8.46,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "danger_text",
       "background": "plate",
-      "ratio": 6.91,
+      "ratio": 6.33,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "mana",
       "background": "plate",
-      "ratio": 5.42,
+      "ratio": 5.7,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "egg",
       "background": "plate",
-      "ratio": 12.19,
+      "ratio": 11.17,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "face_attack_text",
       "background": "plate",
-      "ratio": 5.45,
+      "ratio": 5.27,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "face_weaken",
       "background": "plate",
-      "ratio": 5.27,
+      "ratio": 4.83,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "face_buff",
       "background": "plate",
-      "ratio": 7.16,
+      "ratio": 6.56,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "rarity_rare",
       "background": "plate",
-      "ratio": 7.05,
+      "ratio": 6.46,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "rarity_epic",
       "background": "plate",
-      "ratio": 7.13,
+      "ratio": 6.54,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "rarity_common",
       "background": "plate",
-      "ratio": 5.26,
+      "ratio": 7.97,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "house_volley",
       "background": "plate",
-      "ratio": 6.1,
+      "ratio": 5.59,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "house_gambler",
       "background": "plate",
-      "ratio": 7.4,
+      "ratio": 6.78,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "house_mana_mine",
       "background": "plate",
-      "ratio": 11.12,
+      "ratio": 10.19,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "house_kin",
       "background": "plate",
-      "ratio": 8.35,
+      "ratio": 7.65,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "house_embers",
       "background": "plate",
-      "ratio": 6.85,
+      "ratio": 6.28,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "house_big_hand",
       "background": "plate",
-      "ratio": 6.7,
+      "ratio": 6.14,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "anchor_awake",
       "background": "plate",
-      "ratio": 10.91,
+      "ratio": 9.99,
       "pass": "AA body",
       "ui04": true
     },
@@ -771,28 +897,28 @@
     {
       "text": "tier_moss",
       "background": "plate",
-      "ratio": 9.37,
+      "ratio": 8.59,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "tier_amber",
       "background": "plate",
-      "ratio": 10.3,
+      "ratio": 9.43,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "tier_crystal",
       "background": "plate",
-      "ratio": 12.83,
+      "ratio": 11.76,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "tag_elite_text",
       "background": "tag_elite_bg",
-      "ratio": 8.76,
+      "ratio": 7.37,
       "pass": "AA body",
       "ui04": true
     },
@@ -806,42 +932,42 @@
     {
       "text": "shell",
       "background": "tag_shell_bg",
-      "ratio": 6.34,
+      "ratio": 6.1,
       "pass": "AA body",
       "ui04": true
     },
     {
-      "text": "danger_text",
+      "text": "text",
       "background": "tag_boss_bg",
-      "ratio": 7.26,
+      "ratio": 2.92,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "bighit_text",
       "background": "intent_bighit_bg",
-      "ratio": 10.48,
+      "ratio": 9.93,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "text_muted",
       "background": "intent_idle_bg",
-      "ratio": 8.64,
+      "ratio": 7.84,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "attrition",
       "background": "plate",
-      "ratio": 7.16,
+      "ratio": 6.56,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "text",
       "background": "keycap_bg",
-      "ratio": 13.94,
+      "ratio": 15.34,
       "pass": "AA body",
       "ui04": true
     },
@@ -876,14 +1002,14 @@
     {
       "text": "text_on_viewport",
       "background": "run_rule_bg",
-      "ratio": 10.55,
+      "ratio": 12.69,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "risk_bar",
       "background": "panel_raised",
-      "ratio": 6.36,
+      "ratio": 5.3,
       "pass": "AA body",
       "ui04": true
     }
@@ -915,12 +1041,12 @@
     "num_die_egg": 20,
     "btn_l": 72,
     "btn_m": 56,
-    "btn_s": 48,
+    "btn_s": 44,
     "row": 48,
     "row_l": 72,
     "icon_s": 20,
     "icon_m": 28,
-    "icon_l": 32,
+    "icon_l": 36,
     "die": 88,
     "die_egg": 56,
     "axie_preview_min": 160,
@@ -951,7 +1077,7 @@
       "h": 48
     },
     "intent_badge_h": 36,
-    "status_chip_h": 32,
+    "status_chip_h": 36,
     "float_0": 24,
     "float_1": 32,
     "float_2": 40,
@@ -960,18 +1086,18 @@
     "tooltip_max_w": 360,
     "inspector_w": 520,
     "phase_bar_h": 16,
-    "defeat_panel_w": 720,
+    "defeat_panel_w": 760,
     "slot_cell_min_h": 120,
-    "keycap_h": 36,
+    "keycap_h": 28,
     "keycap_s": 28,
     "intent_block": {
       "w": 112,
       "h": 88
     },
-    "enemy_plate_w": 416,
-    "boss_plate_w": 520,
+    "enemy_plate_w": 232,
+    "boss_plate_w": 560,
     "bighit_strip_h": 40,
-    "dice_dock_w": 848,
+    "dice_dock_w": 808,
     "action_dock_w": 352,
     "tool_key_h": 56,
     "attrition_h": 56,
@@ -1003,16 +1129,43 @@
     "chest_stage": 360,
     "result_panel_w": 880,
     "reveal_panel_w": 720,
-    "_ui04_text_sizes": "Text sizes are 16 (key caps only) / 18 / 24 / 32 / 36, plus 28 (num_die) and 20 (num_die_egg) for numbers on dice. No label token at 20: UI-04 uses no text at 20; any label at 20 in the build should move to 18 (text_body)."
+    "_ui04_text_sizes": "Text sizes are 16 (key caps only) / 18 / 24 / 32 / 36, plus 28 (num_die) and 20 (num_die_egg) for numbers on dice. No label token at 20: UI-04 uses no text at 20; any label at 20 in the build should move to 18 (text_body).",
+    "text_key": 16,
+    "text_hero": 56,
+    "die_w": 96,
+    "die_h": 84,
+    "die_glyph": 36,
+    "die_card_w": 152,
+    "die_card_h": 228,
+    "part_chip_h": 28,
+    "part_glyph": 22,
+    "set_banner_h": 40,
+    "dice_gap": 12,
+    "dice_header_h": 28,
+    "tool_key": 64,
+    "aid_w": 320,
+    "enemy_card_w": 380,
+    "enemy_intent_w": 120,
+    "intent_h": 72,
+    "intent_glyph": 40,
+    "attrition_w": 360,
+    "chip_h": 40,
+    "run_pill_h": 64,
+    "hp_bar_h": 12,
+    "hp_bar_l": 16,
+    "reward_card_w": 400,
+    "reward_card_h": 620,
+    "reward_art_h": 176,
+    "banner_h": 112
   },
   "radius": {
-    "s": 4,
-    "m": 12,
-    "l": 16,
+    "s": 8,
+    "m": 14,
+    "l": 20,
     "die": 20,
     "die_egg": 14,
     "pill": 999,
-    "xl": 20,
+    "xl": 28,
     "xxl": 24,
     "chip_square": 4,
     "_ui04_note": "Rounder for Lunacia feel: rows/buttons 12, plates 16, docks/cards/dialogs 20, big panels 24. Die radius unchanged."
@@ -1027,13 +1180,19 @@
     "40": 40,
     "48": 48,
     "64": 64,
-    "screen_margin": 24
+    "screen_margin": 24,
+    "20": 20,
+    "screen": 24
   },
   "stroke": {
     "hairline": 2,
     "selected": 4,
-    "focus": 2,
-    "focus_offset": 4
+    "focus": 3,
+    "focus_offset": 4,
+    "rim": 2,
+    "btn": 3,
+    "ink": 0,
+    "focus_gap": 4
   },
   "shadow": {
     "btn_raised": {
@@ -1050,15 +1209,16 @@
     },
     "die_side": {
       "x": 0,
-      "y": 6,
+      "y": 8,
       "blur": 0,
       "color": "face colour"
     },
     "die_side_selected": {
       "x": 0,
-      "y": 12,
+      "y": 18,
       "blur": 0,
-      "color": "face colour"
+      "color": "face colour",
+      "note": "die lifts 10 px"
     },
     "dialog": {
       "x": 0,
@@ -1069,13 +1229,15 @@
     },
     "plate": {
       "x": 0,
-      "y": 4,
+      "y": 6,
       "blur": 0,
-      "color": "#0b0c0f99"
+      "spread": 0,
+      "color": "#1a0f09",
+      "note": "UI-05 style A · lip 6, no outline. Godot: StyleBoxFlat border 2 (plate_rim) + shadow_offset (0,6), shadow_size 0"
     },
     "btn_primary_raised": {
       "x": 0,
-      "y": 4,
+      "y": 8,
       "blur": 0,
       "color": "#b25127"
     },
@@ -1083,21 +1245,50 @@
       "x": 0,
       "y": 2,
       "blur": 0,
-      "color": "#b25127"
+      "color": "#b25127",
+      "note": "button moves down 6"
     },
     "btn_secondary_raised": {
       "x": 0,
-      "y": 4,
+      "y": 6,
       "blur": 0,
       "color": "#1a120d"
     },
-    "btn_secondary_pressed": {"x": 0, "y": 2, "blur": 0, "color": "#1a120d", "note": "local addition (not in the UI-04 drop): pressed state of btn_secondary_raised, same lip colour, y 2 like btn_primary_pressed"},
-    "keycap_pressed": {"x": 0, "y": 1, "blur": 0, "color": "#000000a0", "note": "local addition: KeyCap pressed (components.md: shadow 3 -> 1)"},
+    "btn_secondary_pressed": {
+      "x": 0,
+      "y": 2,
+      "blur": 0,
+      "color": "#1a120d",
+      "note": "kept from the build need (y 2, #1a120d as in the brief)"
+    },
+    "keycap_pressed": {
+      "x": 0,
+      "y": 1,
+      "blur": 0,
+      "color": "#000000a0",
+      "note": "kept as the build needs it"
+    },
     "keycap": {
       "x": 0,
       "y": 3,
       "blur": 0,
       "color": "#000000a0"
+    },
+    "lip": {
+      "value": 6,
+      "meaning": "UI-05 NEW · hard lip under plates"
+    },
+    "lip_l": {
+      "value": 8,
+      "meaning": "UI-05 NEW · lip under buttons"
+    },
+    "lip_pressed": 2,
+    "text_on_viewport": {
+      "x": 0,
+      "y": 2,
+      "blur": 0,
+      "color": "#1a0f09",
+      "note": "Godot Label font_shadow_color + shadow_offset_y 2"
     }
   },
   "motion": {
@@ -1138,13 +1329,14 @@
   "theme": {
     "Button/primary/styles/normal": {
       "type": "flat",
-      "bg": "#ffb444",
-      "border": 0,
-      "radius": 12,
+      "bg": "color.accent",
+      "border": 3,
+      "radius": 14,
       "shadow": {
         "x": 0,
-        "y": 4,
-        "color": "#b25127"
+        "y": 8,
+        "color": "color.btn_primary_lip",
+        "size": 0
       },
       "content_margin": [
         48,
@@ -1153,45 +1345,47 @@
         0
       ],
       "font": "Rowdies 700 32",
-      "font_color": "#291808",
-      "min_h": 72
+      "font_color": "color.accent_text",
+      "min_h": 72,
+      "border_color": "color.accent_rim"
     },
     "Button/primary/styles/hover": {
       "type": "flat",
-      "bg": "#ffc85f",
-      "note": "brightness +10% (kam-7)"
+      "bg": "color.btn_primary_hover",
+      "note": "UI-05 style A · +10%"
     },
     "Button/primary/styles/pressed": {
       "type": "flat",
-      "bg": "#ffb444",
+      "bg": "color.accent",
       "shadow": {
         "x": 0,
         "y": 2,
-        "color": "#b25127"
+        "color": "color.btn_primary_lip",
+        "size": 0
       },
-      "note": "whole button moves down 2 px; label moves with it"
+      "note": "box moves down 6 (lip 8 -> 2), label with it"
     },
     "Button/primary/styles/disabled": {
       "type": "flat",
-      "bg": "#3c424d",
-      "border": 2,
-      "border_color": "#5b6372",
+      "bg": "color.disabled",
+      "border": 3,
+      "border_color": "color.disabled_rim",
       "shadow": null,
-      "font_color": "#dae0ea",
+      "font_color": "color.disabled_text",
       "note": "label states the reason"
     },
     "Button/primary/styles/focus": {
       "type": "flat",
       "bg": "#00000000",
-      "border": 2,
-      "border_color": "#ffb444",
+      "border": 3,
+      "border_color": "color.focus_ring",
       "expand_margin": 4,
-      "radius": 16
+      "radius": 20
     },
     "Button/secondary/styles/normal": {
       "type": "flat",
-      "bg": "#58321d",
-      "radius": 12,
+      "bg": "color.btn_secondary",
+      "radius": 14,
       "content_margin": [
         24,
         0,
@@ -1199,41 +1393,53 @@
         0
       ],
       "font": "Rowdies 700 18",
-      "font_color": "#ffe5b4",
+      "font_color": "color.text",
       "min_h": 56,
       "shadow": {
         "x": 0,
-        "y": 4,
-        "color": "#1a120d"
-      }
+        "y": 6,
+        "color": "color.btn_secondary_lip",
+        "size": 0
+      },
+      "border": 3,
+      "border_color": "color.btn_secondary_rim"
     },
     "Button/secondary/styles/hover": {
       "type": "flat",
-      "bg": "#794225"
+      "bg": "color.btn_secondary_hover"
     },
     "Button/secondary/styles/pressed": {
       "type": "flat",
-      "bg": "#3e2618"
+      "bg": "color.btn_secondary_pressed",
+      "shadow": {
+        "x": 0,
+        "y": 2,
+        "color": "color.btn_secondary_lip",
+        "size": 0
+      }
     },
     "Button/secondary/styles/disabled": {
       "type": "flat",
-      "bg": "#3c424d",
-      "border": 2,
-      "border_color": "#5b6372",
-      "font_color": "#dae0ea"
+      "bg": "color.disabled",
+      "border": 3,
+      "border_color": "color.disabled_rim",
+      "font_color": "color.disabled_text"
     },
     "Button/danger/styles/normal": {
       "type": "flat",
-      "bg": "#b81221",
-      "radius": 8,
+      "bg": "color.danger",
+      "radius": 14,
       "shadow": {
         "x": 0,
-        "y": 4,
-        "color": "#2b1e17"
+        "y": 6,
+        "color": "color.plate_ink",
+        "size": 0
       },
       "font": "Rowdies 700 18",
-      "font_color": "#ffe5b4",
-      "min_h": 56
+      "font_color": "color.text",
+      "min_h": 56,
+      "border": 3,
+      "border_color": "color.danger_text"
     },
     "Button/danger/styles/hover": {
       "type": "flat",
@@ -1243,33 +1449,34 @@
       "type": "flat",
       "bg": "#00000000",
       "font": "Work Sans 400 18",
-      "font_color": "#b4bccb",
+      "font_color": "color.text_muted",
       "underline": true,
       "min_h": 44
     },
     "Tab/styles/normal": {
       "type": "flat",
-      "bg": "#2b1e17",
-      "radius": 8,
+      "bg": "color.plate",
+      "radius": 14,
       "min_h": 56,
       "font": "Rowdies 700 18"
     },
     "Tab/styles/selected": {
       "type": "flat",
-      "bg": "#58321d",
+      "bg": "color.btn_secondary",
       "border": 3,
-      "border_color": "#ffe5b4"
+      "border_color": "color.selected"
     },
     "Panel/plate": {
       "type": "flat",
-      "bg": "#2b1e17f0",
-      "radius": 16,
+      "bg": "color.plate",
+      "radius": 20,
       "border": 2,
-      "border_color": "#58321d",
+      "border_color": "color.plate_rim",
       "shadow": {
         "x": 0,
-        "y": 4,
-        "color": "#0b0c0f99"
+        "y": 6,
+        "color": "color.plate_ink",
+        "size": 0
       },
       "content_margin": [
         16,
@@ -1280,8 +1487,8 @@
     },
     "Panel/card": {
       "type": "flat",
-      "bg": "#2b1e17e6",
-      "radius": 20,
+      "bg": "color.plate",
+      "radius": 28,
       "content_margin": [
         24,
         24,
@@ -1289,25 +1496,26 @@
         24
       ],
       "border": 2,
-      "border_color": "#58321d",
+      "border_color": "color.plate_rim",
       "shadow": {
         "x": 0,
         "y": 6,
-        "color": "#0b0c0f"
+        "color": "color.plate_ink",
+        "size": 0
       }
     },
     "Panel/card_selected": {
       "type": "flat",
-      "bg": "#3e2618",
-      "radius": 20,
+      "bg": "color.plate_raised",
+      "radius": 28,
       "border": 4,
-      "border_color": "#ffe5b4",
+      "border_color": "color.selected",
       "note": "4 px cream outline drawn 4 px outside (expand_margin 4) + translate y −18"
     },
     "Panel/dialog": {
       "type": "flat",
-      "bg": "#2b1e17",
-      "radius": 20,
+      "bg": "color.plate",
+      "radius": 28,
       "content_margin": [
         32,
         32,
@@ -1318,16 +1526,16 @@
         "x": 0,
         "y": 8,
         "size": 0,
-        "color": "#0b0c0f"
+        "color": "color.plate_ink"
       },
-      "width": 720,
+      "width": 760,
       "border": 2,
-      "border_color": "#58321d"
+      "border_color": "color.plate_rim"
     },
     "Panel/row": {
       "type": "flat",
-      "bg": "#3e2618",
-      "radius": 12,
+      "bg": "color.plate_raised",
+      "radius": 14,
       "content_margin": [
         12,
         0,
@@ -1338,8 +1546,8 @@
     },
     "Panel/notice": {
       "type": "flat",
-      "bg": "#3e2618",
-      "radius": 8,
+      "bg": "color.plate_raised",
+      "radius": 14,
       "content_margin": [
         16,
         12,
@@ -1348,15 +1556,15 @@
       ]
     },
     "ProgressBar/hp": {
-      "bg": "#13161b",
-      "fill": "#3fcd3c",
+      "bg": "color.hp_track",
+      "fill": "color.hp",
       "radius": 4,
       "h": 10,
-      "shield_segment": "#31c6ff"
+      "shield_segment": "color.shield"
     },
     "ProgressBar/enemy_hp": {
-      "bg": "#13161b",
-      "fill": "#f54540",
+      "bg": "color.hp_track",
+      "fill": "color.hp_enemy",
       "radius": 4,
       "h": 8
     },
@@ -1366,28 +1574,32 @@
     "Label/font_sizes/key_hint": 16,
     "Button/primary/styles/small": {
       "type": "flat",
-      "bg": "#ffb444",
-      "radius": 12,
+      "bg": "color.accent",
+      "radius": 14,
       "shadow": {
         "x": 0,
-        "y": 4,
-        "color": "#b25127"
+        "y": 8,
+        "color": "color.btn_primary_lip",
+        "size": 0
       },
       "font": "Rowdies 700 18",
-      "font_color": "#291808",
-      "min_h": 48,
-      "note": "UI-04 NEW · RETRY on NetNotice, Reload on Update bar (min_h 44 there)"
+      "font_color": "color.accent_text",
+      "min_h": 44,
+      "note": "UI-04 NEW · RETRY on NetNotice, Reload on Update bar (min_h 44 there)",
+      "border": 3,
+      "border_color": "color.accent_rim"
     },
     "Panel/dock": {
       "type": "flat",
-      "bg": "#2b1e17f0",
-      "radius": 20,
+      "bg": "color.plate",
+      "radius": 28,
       "border": 2,
-      "border_color": "#58321d",
+      "border_color": "color.plate_rim",
       "shadow": {
         "x": 0,
-        "y": 4,
-        "color": "#0b0c0f99"
+        "y": 6,
+        "color": "color.plate_ink",
+        "size": 0
       },
       "content_margin": [
         16,
@@ -1399,12 +1611,13 @@
     },
     "Panel/keycap": {
       "type": "flat",
-      "bg": "#291808",
+      "bg": "color.keycap_bg",
       "radius": 8,
       "shadow": {
         "x": 0,
         "y": 3,
-        "color": "#000000a0"
+        "color": "#000000a0",
+        "size": 0
       },
       "content_margin": [
         10,
@@ -1412,7 +1625,7 @@
         10,
         0
       ],
-      "min_h": 36,
+      "min_h": 28,
       "font": "Work Sans 400 16",
       "font_color": "#ffe5b4",
       "note": "UI-04 NEW · 28 px variant inside chips"
@@ -1428,5 +1641,13 @@
       "font_color": "#dae0ea",
       "note": "UI-04 NEW · Core category, DUPLICATE, SHELL (with shell colours)"
     }
-  }
+  },
+  "_size_1280_overrides": {
+    "note": "Liam 28/10: 14 px text floor at 1280. These sizes are not 0.667 × the 1920 value at 1280 (Godot: theme override by resolution).",
+    "die-card-w": 116,
+    "dice-dock-w": 612,
+    "aid-w": 228,
+    "min_text": 14
+  },
+  "_text_sizes": "UI-05: 16 / 18 / 24 / 32 / 36, + 28 num_die, 20 num_die_egg, + text_hero 56 (new, banners, boss name, big damage numbers; bigger moments scale 56 by 1.3 in a tween, no 72 size). At 1280 no text is below 14 px (theme override by resolution)."
 }

@@ -1498,7 +1498,7 @@ static func enemy_tag(kind: StringName, word: String, inline := false) -> PanelC
 		_:
 			fill = UI3Theme.color("tag_boss_bg")
 			border = UI3Theme.color("danger_text")
-			text_col = UI3Theme.color("danger_text")
+			text_col = UI3Theme.color("text")   # UI-05: BOSS is a solid red pill, cream text (danger_text fails on it)
 			glyph = "node_boss"
 	var p := PanelContainer.new()
 	p.name = "EnemyTag_" + String(kind)

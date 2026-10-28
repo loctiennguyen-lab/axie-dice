@@ -235,7 +235,7 @@ func _build_attrition() -> void:
 	# AttritionCard (UI-04): 416 x 56 plate, attrition glyph 28, ONE Rowdies 18 line in the attrition colour, 3 pips
 	# before it starts. Dashed edge before start, solid while running, red edge + red text at MAX.
 	_attr_card = UI3.plate(&"plate")
-	_attr_card.custom_minimum_size = Vector2(UI3Theme.size_of("enemy_plate_w"), UI3Theme.size_of("attrition_h"))
+	_attr_card.custom_minimum_size = Vector2(UI3Theme.size_of("attrition_w"), UI3Theme.size_of("attrition_h"))
 	_attr_card.mouse_filter = Control.MOUSE_FILTER_STOP   # hover = attrition tooltip
 	add_child(_attr_card)
 	_attr_card.draw.connect(_draw_attr_edge)
@@ -1030,7 +1030,7 @@ func layout() -> void:
 	_attr_card.size = Vector2.ZERO
 	if _attr_right_pos.x >= 0.0:
 		_attr_card.position = _attr_right_pos
-		_attr_card.size = Vector2(UI3Theme.size_of("enemy_plate_w"), UI3Theme.size_of("attrition_h"))
+		_attr_card.size = Vector2(UI3Theme.size_of("attrition_w"), UI3Theme.size_of("attrition_h"))
 	else:
 		_attr_card.position = Vector2(EDGE, rel_bottom + 8.0)
 	if undo_button != null:

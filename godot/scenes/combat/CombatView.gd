@@ -299,6 +299,8 @@ var _hud_frame: CombatHud
 var _relic_strip: HBoxContainer
 var _actives_row: HBoxContainer
 var _tray_root: Control
+var _dice_dock: DiceDock = null
+var _enemy_column: EnemyColumn = null
 var _dice_pending: Dictionary = {}   # uid -> true while its 3D die is still flying
 var _throw_uids: Array[int] = []
 var _throw_slots: Array = []
@@ -660,13 +662,13 @@ func _grade_stage_art() -> void:
 ## 33 content + a 3px border on each edge = 39 outer. The shard chip beside them is the same
 ## height by the same arithmetic.
 const _UTIL_CHIP := 39.0
-## Axie class band colours for the reroll dice (no UI3 token exists for classes).
-const _CLASS_COLOR := {"plant": Color("7DC943"), "beast": Color("FFB23F"), "aqua": Color("39C5F3"),
-	"reptile": Color("B679F7"), "bug": Color("F2624F"), "bird": Color("8BDCFF")}
-
-
+## Axie class band colours for the reroll dice: tokens color.class_<plant|beast|aqua|reptile|bug|bird>
+## (design/art/palette-measured.md). t_ui_laws reads the same tokens.
 static func _class_color(cls: String) -> Color:
-	return _CLASS_COLOR.get(cls.strip_edges().to_lower(), UI3Theme.color("accent"))
+	var k := cls.strip_edges().to_lower()
+	if not (UI3Theme.tokens().get("color", {}) as Dictionary).has("class_" + k):
+		return UI3Theme.color("accent")
+	return UI3Theme.color("class_" + k)
 
 
 const _SCRIM_INK := Color(0x24 / 255.0, 0x14 / 255.0, 0x0B / 255.0)
@@ -1466,32 +1468,21 @@ var _menu_panel: PanelContainer = null
 
 
 ## Dice tray: five 272 x 176 columns, gap 16, bottom 16, centred (x0 = 248 at 1920).
+## Lane 0 split: tray code lives in DiceDock.gd, enemy plates in EnemyColumn.gd. The functions below keep their names and forward.
+func _dd() -> DiceDock:
+	if _dice_dock == null:
+		_dice_dock = DiceDock.new(self)
+	return _dice_dock
+
+
+func _ec() -> EnemyColumn:
+	if _enemy_column == null:
+		_enemy_column = EnemyColumn.new(self)
+	return _enemy_column
+
+
 func _layout_tray() -> void:
-	if _tray_root == null:
-		return
-	var vs := get_viewport_rect().size
-	var n := 0
-	for b in _die_slot_buttons:
-		if (b as Button).visible:
-			n += 1
-	var col_w := TrayColumn.W
-	var gap := 16.0
-	if n > 5:   # summoned tokens: narrow the gap so one row still fits (the card stays 152 wide)
-		gap = clampf((vs.x - 32.0 - col_w * n) / float(n - 1), 4.0, 16.0)
-	var total := n * col_w + maxf(n - 1, 0.0) * gap
-	var x0 := (vs.x - total) * 0.5
-	var top := TrayColumn.card_top(vs.y)   # DiceDock: cards sit under the plate padding and the FRONT/BACK row
-	var i := 0
-	for b in _die_slot_buttons:
-		var btn: Button = b
-		if not btn.visible:
-			continue
-		btn.position = Vector2(x0 + i * (col_w + gap), top)
-		btn.size = Vector2(col_w, TrayColumn.H)
-		i += 1
-	_layout_dice_dock(vs, x0, total)
-	_layout_row_strip(x0, col_w, gap, top)
-	_refresh_bo_layer()
+	_dd()._layout_tray()
 
 
 var _row_strip: Control = null
@@ -1501,83 +1492,19 @@ var _dock_pill: PanelContainer = null
 
 ## DiceDock plate (848 wide, grows only when summoned tokens widen the row) + the waiting pill centred on it.
 func _layout_dice_dock(vs: Vector2, x0: float, total: float) -> void:
-	if _dock_plate == null:
-		return
-	var w := maxf(848.0, total + 32.0)
-	_dock_plate.size = Vector2.ZERO
-	_dock_plate.position = Vector2((vs.x - w) * 0.5, TrayColumn.dock_top(vs.y))
-	_dock_plate.size = Vector2(w, TrayColumn.DOCK_H)
-	_dock_plate.visible = total > 0.0
-	if _dock_pill != null:
-		_dock_pill.size = Vector2.ZERO
-		_dock_pill.position = _dock_plate.position + (_dock_plate.size - _dock_pill.get_combined_minimum_size()) * 0.5
-		_dock_pill.size = _dock_pill.get_combined_minimum_size()
+	_dd()._layout_dice_dock(vs, x0, total)
 
 
 ## Waiting for the server (HUD dim fires 300 ms after the request): the card grid drops to 0.4, a pill says why,
 ## and the Aid offer hides. 120 ms fade, instant when motion is reduced.
 func _on_wait_dim(on: bool) -> void:
-	if _tray_root != null:
-		if UI3Motion.reduced() or not is_inside_tree():
-			_tray_root.modulate.a = 0.4 if on else 1.0
-		else:
-			create_tween().tween_property(_tray_root, "modulate:a", 0.4 if on else 1.0, 0.12)
-	if _dock_pill != null:
-		_dock_pill.visible = on
-	if _aid != null:
-		_aid.set_waiting(on)
+	_dd()._on_wait_dim(on)
 
 
 ## Depth v3 4: a FRONT / BACK bracket over the tray columns (front = the first rows.front_size Axies).
 ## Enemies' single hits land on FRONT first; the words carry it, the bracket colours only back them.
 func _layout_row_strip(x0: float, col_w: float, gap: float, top: float) -> void:
-	if _combat == null:
-		return
-	if _row_strip == null:
-		_row_strip = Control.new()
-		_row_strip.name = "RowStrip"
-		_row_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_tray_root.add_child(_row_strip)
-	for c in _row_strip.get_children():
-		_row_strip.remove_child(c)
-		c.queue_free()
-	var units := _party_dice_units()
-	var spans := {0: [-1, -1], 1: [-1, -1]}
-	var idx := 0
-	for k in _die_slot_buttons.size():
-		if not (_die_slot_buttons[k] as Button).visible or k >= units.size():
-			continue
-		var r := _combat.row_of(units[k])
-		var sp: Array = spans[r]
-		if sp[0] < 0:
-			sp[0] = idx
-		sp[1] = idx
-		idx += 1
-	for r in [0, 1]:
-		var sp: Array = spans[r]
-		if sp[0] < 0:
-			continue
-		var x: float = x0 + sp[0] * (col_w + gap)
-		var w: float = (sp[1] - sp[0] + 1) * col_w + (sp[1] - sp[0]) * gap
-		var word := "FRONT" if r == 0 else "BACK"
-		var l := UI3.label(word, "LabelDisplay")
-		l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
-		l.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		l.position = Vector2(x, top - 8.0 - TrayColumn.DOCK_LABEL_H)
-		l.size = Vector2(l.get_minimum_size().x, TrayColumn.DOCK_LABEL_H)
-		var lab_w := l.size.x
-		l.mouse_filter = Control.MOUSE_FILTER_PASS
-		UI3Tooltip.bind(l, "Front row (first %d Axies) takes single-target hits first. Back row is only hit once the front is down, or by area / piercing attacks." % _combat.front_row_size()
-			if r == 0 else "Back row: safe from single-target hits while a front-row Axie stands.")
-		_row_strip.add_child(l)
-		l.visible = _combat.bo.is_empty()
-		var line := ColorRect.new()
-		line.color = UI3Theme.color("btn_secondary")   # wood-3
-		line.position = Vector2(x + lab_w + 8.0, top - 8.0 - TrayColumn.DOCK_LABEL_H * 0.5 - 1.0)
-		line.size = Vector2(maxf(w - lab_w - 8.0, 0.0), 2)
-		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_row_strip.add_child(line)
+	_dd()._layout_row_strip(x0, col_w, gap, top)
 
 
 ## A small fixed-size icon, centred (via CenterContainer, not PanelContainer's own default
@@ -1732,40 +1659,17 @@ func _connect_event_bus() -> void:
 
 ## R1 tray column content — see TrayColumn. Returns the dictionary `_update_dice_tray()` repaints.
 func _build_die_slot_content(btn: Button) -> Dictionary:
-	return TrayColumn.build(btn)
+	return _dd()._build_die_slot_content(btn)
 
 
 ## One die slot's looks (R1: the column paints its own panel; only the base behaviour is set here).
 func _style_die_slot(btn: Button) -> void:
-	btn.text = ""
-	btn.focus_mode = Control.FOCUS_ALL
+	_dd()._style_die_slot(btn)
 
 
 ## The tooltip on a tray column: the face's name and every keyword's rule, as before.
 func _tray_tooltip(u: Unit) -> String:
-	if u.hp <= 0:
-		return "%s is down. This die cannot be used." % u.n
-	if not u.has_rolled():
-		return "%s has not rolled this turn." % u.n
-	var fi := u.roll_face_index()
-	var f: Dictionary = u.die[fi]
-	var face_type := String(f.get("type", ""))
-	var part := String(f.get("part", ""))
-	var part_name := String(_PART_LABEL.get(part, ""))
-	var cap := ("%s %s %s" % [part_name, HudKit.dot(), UI3.type_label(face_type)]) \
-		if part_name != "" else UI3.type_label(face_type)
-	var value := _live_face_value(u, fi)
-	var lines := PackedStringArray(["%s  %s  %s" % [u.n, HudKit.dot(), cap]])
-	if value > 0:
-		lines.append("Value %d" % value)
-	for k in (f.get("keywords", []) as Array):
-		var kw_key := String(k).split(":")[0]
-		var kw_tip: Dictionary = _effect_tip(kw_key)
-		var kw_head := String(_KEYWORD_LABEL.get(kw_key, kw_key.to_upper()))
-		var kw_parts := String(k).split(":")
-		var kw_n := int(kw_parts[1]) if kw_parts.size() > 1 else 0
-		lines.append(kw_head if kw_tip.is_empty() else "%s: %s" % [kw_head, FaceAmount.fill_n(String(kw_tip["rule"]), kw_n)])
-	return "\n".join(lines)
+	return _dd()._tray_tooltip(u)
 
 
 ## Base name of the status keyword that carries a buff / debuff face's amount ("" if none).
@@ -1844,103 +1748,18 @@ func _update_die_info() -> void:
 
 
 func _update_dice_tray() -> void:
-	var fresh: Array = []
-	var units := _party_dice_units()
-	_ensure_die_slots(units.size())
-	for i in _die_slot_buttons.size():
-		var btn: Button = _die_slot_buttons[i]
-		var content: Dictionary = _die_slot_content[i]
-		if i >= units.size():
-			btn.visible = false
-			continue
-		var u: Unit = units[i]
-		btn.visible = true
-		var usable := u.hp > 0 and u.has_rolled() and not u.roll_used() and not u.held
-		var used_this_turn := u.hp > 0 and u.has_rolled() and u.roll_used()
-		var is_sel := (u.uid == _selected_die_uid)
-		# A column stays clickable while a die is selected, so allies can be TARGETED (heal /
-		# shield): party HP lives only in the tray, so the column is the ally's click target.
-		var as_target := _selected_die_uid != -1 and not is_sel and u.hp > 0
-		btn.disabled = not (usable or as_target)
-		btn.button_pressed = is_sel
-		var faces: Array = []
-		for fi in u.die.size():
-			faces.append({"type": String((u.die[fi] as Dictionary).get("type", "")),
-				"value": _live_face_value(u, fi)})
-		var card := {
-			"name": "%s%s" % [u.n, _TIER_SUFFIX.get(u.tier, "")],
-			"class_icon": _class_portrait(u.cls), "hp": u.hp, "max_hp": u.max_hp,
-			"shield": u.shield, "status": u.status, "incoming": _incoming_damage_for(u),
-			"icons": UnitPortrait._STATUS_ICON, "status_tip": Callable(UnitPortrait, "_effect_tooltip"),
-			"skin": MetaState.equipped_die_skin,
-			"faces": faces, "rolled": u.roll_face_index() if u.has_rolled() else -1,
-			"alive": u.hp > 0, "spent": used_this_turn, "selected": is_sel, "held": u.held, "overcast": u.overcast, "row": _combat.row_of(u),
-			"legal_target": as_target and _selected_ally_target_ok(u),
-			"tip": _tray_tooltip(u)}.merged(_v4_card_data(u), true)
-		TrayColumn.update(content, card)
-		_update_bonus_chip(content, u, btn, String(card["tip"]))
-		TrayColumn.set_lifted(self, content, is_sel, disable_juice_for_tests)
-		if _maybe_play_roll_juice(u, btn):
-			fresh.append({"slot": i, "u": u})
-		_maybe_play_die_used_flip(u, btn)
-		if _dice_pending.has(u.uid):
-			btn.modulate.a = 0.0   # the die is still in the air; its card shows on arrival
-	_start_dice_throw(fresh)
+	_dd()._update_dice_tray()
 
 
 ## Anchor dice marks on a tray card, written out on the chip (no hover needed): "BONUS" (phantom die: use it this turn, never part of
 ## the SET), "EMBER +0.5" (a carried Held die of Embers; value read from the engine knob) and "FREE · 0 mana" (Passed Flame can take it
 ## as a Temp Face). Returns {} when the die has no mark, else {text, tip, house} (house "" = neutral chip, no glyph).
 func _anchor_die_mark(u: Unit) -> Dictionary:
-	if u.hp <= 0 or _combat == null:
-		return {}
-	if u.custom_state.has("phantom"):
-		# The engine does not tag the phantom's source. Big Hand only when it is clearly Sixth Hand (awakened, no Sixth Die Core owned).
-		var hand: bool = _combat.anchor_id == "a_big_hand" and _combat.anchor_awakened and not RunState.owned_relic_ids.has("c_sixth_die")
-		return {"text": TranslationServer.translate("BONUS"), "house": "h_big_hand" if hand else "",
-			"tip": TranslationServer.translate("Bonus die: use it this turn. It is not part of your SET.")}
-	if _combat.anchor_id == "a_embers" and u.stash_carry:
-		var house := AnchorAdapter.house_id("a_embers")
-		if bool(_combat.call("_pf_ready", u)):
-			return {"text": TranslationServer.translate("FREE · 0 mana"), "house": house,
-				"tip": TranslationServer.translate("Passed Flame: this carried die joins any SET as a Temp Face, free of mana.")}
-		var add := float(_combat.call("anchor_embers_real100", u)) / 100.0   # real value after the M cap, not the knob
-		var amt := String.num(add, 2).rstrip("0").rstrip(".")
-		return {"text": TranslationServer.translate("EMBER +%s") % amt, "house": house,
-			"tip": TranslationServer.translate("Carried Held die: +%s when used.") % String.num(add, 2)}
-	return {}
+	return _dd()._anchor_die_mark(u)
 
 
 func _update_bonus_chip(content: Dictionary, u: Unit, btn: Button, base_tip: String) -> void:
-	var mark := _anchor_die_mark(u)
-	var body: Control = content["body"]
-	var chip: Control = content.get("anchor_chip", null)
-	if mark.is_empty():
-		if chip != null:
-			chip.visible = false
-		return
-	var text := String(mark["text"])
-	var house := String(mark["house"])
-	var key := text + "|" + house
-	if chip != null and String(chip.get_meta("chip_key", "")) != key:
-		chip.queue_free()
-		chip = null
-	if chip == null:
-		var tex: Texture2D = null   # no glyph: the word is the mark (a glyph would not fit the card width); the house shows as the border colour
-		var col := AnchorAdapter.house_color(house) if house != "" else UI3Theme.color("text_muted")
-		chip = UI3.icon_chip(text, tex, col, "AnchorDieChip")
-		chip.mouse_filter = Control.MOUSE_FILTER_PASS   # PASS so the chip tooltip can show; clicks still reach the card
-		chip.set_meta("chip_key", key)
-		chip.set_meta("chip_text", text)
-		# Above the card, one line, no glyph so it fits a 152 px card. HOLD / OVERCAST / ? chips hang at
-		# y -8 (32 high) and the REROLL chip at -32 (reroll mode only), so this row sits over them (y = -(height) - 8).
-		body.add_child(chip)
-		chip.z_index = 5   # over the FRONT / BACK row captions and their line
-		chip.position = Vector2(4.0, -chip.get_combined_minimum_size().y - 8.0)
-		content["anchor_chip"] = chip
-	chip.visible = true
-	UI3Tooltip.bind(chip, String(mark["tip"]))
-	UI3Tooltip.bind(btn, "%s\n%s" % [base_tip, String(mark["tip"])])
+	_dd()._update_bonus_chip(content, u, btn, base_tip)
 
 
 ## True when the selected die's face may be used on `target` (an ally column). Heal / shield
@@ -2444,37 +2263,7 @@ func _sync_unit_visuals() -> void:
 
 
 func _spawn_portrait(u: Unit, is_enemy: bool, slot_index: int, slot_count: int) -> void:
-	var p: UnitPortrait = _PORTRAIT_SCENE.instantiate()
-	_unit_visuals_root.add_child(p)
-	var tag := ""
-	if is_enemy:
-		tag = CombatLabels.tag_for(u.is_boss, String(_setup.get("kind", "")), \
-			_combat.enemies.find(u) == 0, bool(u.custom_state.get("alpha", false)))
-	_enemy_disp = CombatLabels.enemy_names(_combat.enemies)
-	p.setup(u.uid, _enemy_disp.get(u.uid, u.n) if is_enemy else u.n, u.cls, is_enemy, u.is_boss, tag)
-	p.clicked.connect(_on_target_clicked)
-	p.hover_changed.connect(_on_plate_hover)
-	p.inspect_requested.connect(_open_unit_inspect)   # right-click the nameplate, same door as
-		# right-clicking the model (CombatStage3D.unit_inspect_requested)
-	_portraits[u.uid] = p
-
-	# An imported Axie's genes ride along so the stage can build its real body. They live on
-	# the hero def MetaState._register_vault_hero() published into ContentDB, which is the only
-	# place that knows this key came from the Vault — Unit deliberately carries no gene field,
-	# so nothing here reaches into the engine or changes what a run replays as.
-	var genes := String((ContentDB.heroes.get(u.key, {}) as Dictionary).get("genes", ""))
-	var boss_on_field := false
-	for en in _combat.enemies:
-		if (en as Unit).is_boss and (en as Unit).hp > 0:
-			boss_on_field = true
-	# A boss fight starts with the boss alone, so any other enemy beside a live boss is a summon. Not tied to
-	# "spawned after the board was built": a fight resumed from a save rebuilds its summons in _ready() too.
-	var is_summon := is_enemy and not u.is_boss and boss_on_field
-	_stage3d.spawn_unit(u.uid, u.cls, is_enemy, slot_index, slot_count, u.is_boss, u.key, genes, is_summon)
-	# The audio director only ever sees uids in `hit_landed`, so it needs each unit's voice
-	# up front. Heroes carry their own class; monsters have none and get one derived from the
-	# Chimera sprite they wear — without this every enemy in the game would be silent.
-	_audio.register_unit(u.uid, u.cls, u.key, u.is_boss)
+	_ec()._spawn_portrait(u, is_enemy, slot_index, slot_count)
 
 
 # ===========================================================================
@@ -3244,21 +3033,7 @@ func _on_info_toggle_pressed() -> void:
 ## before a die is even selected, so this previews against the whole legal-target set instead
 ## of one specific unit — see file-header DEVIATIONS #3).
 func _on_die_slot_hover(slot_index: int, entering: bool) -> void:
-	if entering:
-		var units := _party_dice_units()
-		if slot_index < units.size():
-			var u: Unit = units[slot_index]
-			if u.hp > 0 and u.has_rolled() and not u.roll_used():
-				var fi := u.roll_face_index()
-				var f: Dictionary = u.die[fi]
-				if String(f.get("type", "")) == "dmg":
-					var value := _live_face_value(u, fi)
-					for e in _combat.alive_enemies():
-						var p: UnitPortrait = _portraits.get(e.uid)
-						if p != null:
-							p.set_preview_damage(value)
-					return
-	_clear_all_previews()
+	_ec()._on_die_slot_hover(slot_index, entering)
 
 
 ## Damage-preview hover, path 2/2 (review P0 #2 + #3 combined): hovering an enemy's intent
@@ -3266,58 +3041,17 @@ func _on_die_slot_hover(slot_index: int, entering: bool) -> void:
 ## two per the review's own framing ("quyết định người chơi giơ khiên hay lao vào đánh"). Also
 ## brightens this enemy's target-line (see _layout_unit_visuals()).
 func _on_enemy_intent_hover(uid: int, hovering: bool) -> void:
-	_hovered_enemy_uid = uid if hovering else -1
-	if not hovering:
-		_clear_all_previews()
-		return
-	var e := _combat.by_uid(uid)
-	if e == null or e.intent.is_empty():
-		return
-	var fi := int(e.intent.get("face_index", -1))
-	var tgt_uid := int(e.intent.get("target_uid", -1))
-	if fi < 0 or fi >= e.die.size() or tgt_uid < 0:
-		return
-	var f: Dictionary = e.die[fi]
-	if String(f.get("type", "")) != "dmg":
-		return
-	var p: UnitPortrait = _portraits.get(tgt_uid)
-	if p != null:
-		p.set_preview_damage(_live_face_value(e, fi))
-	# Party HP lives in the tray: the gold hatched segment goes on that column's bar.
-	var units := _party_dice_units()
-	for i in units.size():
-		if (units[i] as Unit).uid == tgt_uid and i < _die_slot_content.size():
-			((_die_slot_content[i] as Dictionary)["hp"] as HPBar).set_preview(_live_face_value(e, fi))
+	_ec()._on_enemy_intent_hover(uid, hovering)
 
 
 ## Pointer over an enemy plate. On its intent block: preview that intent on its target. Elsewhere
 ## while a die is selected: preview the die's hit on this enemy (README 3 "Targeting").
 func _on_plate_hover(uid: int, hovering: bool, on_intent: bool) -> void:
-	if _combat == null:
-		return
-	if on_intent:
-		_on_enemy_intent_hover(uid, hovering)
-		return
-	if not hovering:
-		_clear_all_previews()
-		return
-	var src := _combat.by_uid(_selected_die_uid) if _selected_die_uid != -1 else null
-	if src == null or not src.has_rolled():
-		return
-	var fi := src.roll_face_index()
-	if fi < 0 or fi >= src.die.size() or String((src.die[fi] as Dictionary).get("type", "")) != "dmg":
-		return
-	var p: UnitPortrait = _portraits.get(uid)
-	if p != null and _combat_is_enemy_uid(uid):
-		p.set_preview_damage(_live_face_value(src, fi))
+	_ec()._on_plate_hover(uid, hovering, on_intent)
 
 
 func _clear_all_previews() -> void:
-	for p in _portraits.values():
-		(p as UnitPortrait).clear_preview_damage()
-	for c in _die_slot_content:
-		if (c as Dictionary).has("hp"):
-			((c as Dictionary)["hp"] as HPBar).clear_preview()
+	_ec()._clear_all_previews()
 
 
 # ===========================================================================
@@ -4021,42 +3755,7 @@ func _party_effective_hp() -> Array:
 
 
 func _update_enemy_plate(p: UnitPortrait, u: Unit) -> void:
-	var hs: Dictionary = _hud if not _hud.is_empty() else _hud_state()
-	var next: Dictionary = (hs.get("enemy_next", {}) as Dictionary).get(u.uid, {})
-	var newcomer := bool(hs.get("newcomer", false))
-	var intent := {"show": false}
-	var fi := int(u.intent.get("face_index", -1)) if not u.intent.is_empty() else -1
-	if u.hp > 0 and fi >= 0 and fi < u.die.size():
-		var f: Dictionary = u.die[fi]
-		var ftype := String(f.get("type", ""))
-		var tgt_uid := int(u.intent.get("target_uid", -1))
-		var num := int(next.get("dmg", _live_face_value(u, fi))) if ftype == "dmg" \
-			else _live_face_value(u, fi)
-		var clock: Dictionary = hs.get("clock", {})
-		intent = {"show": true, "type": ftype, "num": num,
-			"label": UI3.type_label(ftype),
-			"target": _unit_name(tgt_uid) if tgt_uid >= 0 else "",
-			"boosted": u.is_boss and int(clock.get("stacks", 0)) > 0 and not newcomer,
-			"big_hit": ftype == "dmg" and CombatLabels.is_big_hit(num, _party_effective_hp())}
-	p.set_acting(_end_turn_acting_uid == u.uid)
-	p.set_intent(intent)
-
-	var tab := {}
-	if u.hp > 0 and not newcomer:
-		if u.is_boss and bool((hs.get("clock", {}) as Dictionary).get("active", false)):
-			tab = HudKit.clock_tab(hs["clock"], int(hs.get("turn", _combat.turn)),
-				int(intent.get("num", 0)))
-		elif bool(next.get("spike", false)) and int(next.get("turns_to_spike", 0)) > 0:
-			var n := int(next.get("turns_to_spike", 0))
-			var hits := int(next.get("spike_dmg", int(round(float(next.get("dmg", 0)) * 2.5))))
-			tab = {"bg": UI3Theme.color("accent"), "ink": UI3Theme.color("accent_text"),
-				"icon": HudKit.icon("spike"), "text": "BIG HIT IN %d" % n,
-				"right": "HITS %d" % hits, "pips": []}
-	p.set_tab(tab)
-	if u.is_boss:
-		p.set_phase(int((hs.get("boss_phase", {}) as Dictionary).get(u.uid, {}).get("phase",
-			int(u.custom_state.get("phase", 1)))),
-			2 if (u.custom_state.has("max_hp2") or u.custom_state.has("hp2")) else 1)
+	_ec()._update_enemy_plate(p, u)
 
 
 
@@ -4087,20 +3786,11 @@ func _update_enemy_plate(p: UnitPortrait, u: Unit) -> void:
 ## _update_dice_tray(), part of the sanctioned full-model-read path — same rationale
 ## _maybe_play_roll_juice() below already documents for why this isn't a signal handler).
 func _maybe_play_die_used_flip(u: Unit, btn: Button) -> void:
-	var used_now := u.hp > 0 and u.has_rolled() and u.roll_used()
-	var was_used: bool = _last_die_used.get(u.uid, false)
-	_last_die_used[u.uid] = used_now
-	if used_now and not was_used:
-		_play_die_flip(btn)
+	_dd()._maybe_play_die_used_flip(u, btn)
 
 
 func _play_die_flip(btn: Button) -> void:
-	if disable_juice_for_tests or not is_instance_valid(btn) or not btn.is_inside_tree():
-		return
-	btn.pivot_offset = btn.size * 0.5
-	var tw := create_tween()
-	tw.tween_property(btn, "scale:x", 0.0, _DIE_FLIP_DURATION * 0.5)
-	tw.tween_property(btn, "scale:x", 1.0, _DIE_FLIP_DURATION * 0.5)
+	_dd()._play_die_flip(btn)
 
 
 ## Roll-bounce juice (unchanged from the pre-review pass — see original file history/report for
@@ -4109,20 +3799,7 @@ func _play_die_flip(btn: Button) -> void:
 ## Returns true when this die was rolled for the first time since it was last unrolled (turn
 ## start, hatched Egg), i.e. it should be thrown in 3D.
 func _maybe_play_roll_juice(u: Unit, btn: Button) -> bool:
-	if not u.has_rolled():
-		_last_die_face.erase(u.uid)
-		return false
-	var fi := u.roll_face_index()
-	var prev = _last_die_face.get(u.uid, null)
-	_last_die_face[u.uid] = fi
-	if _reroll_prev.has(u.uid):
-		return true   # rerolled: thrown in 3D again, even when it lands on the same face
-	if prev == null:
-		return true
-	if prev == fi:
-		return false
-	_play_die_roll_bounce(btn)
-	return false
+	return _dd()._maybe_play_roll_juice(u, btn)
 
 
 ## 3D throw for freshly rolled dice (DiceRoller3D). Visual only: values are the engine's. Skipped
@@ -4268,14 +3945,7 @@ func _cancel_pre_throw() -> void:
 
 
 func _throw_tray_target(i: int) -> Vector2:
-	if i < 0 or i >= _throw_slots.size():
-		return Vector2.ZERO
-	var slot := int(_throw_slots[i])
-	var tile: Variant = (_die_slot_content[slot] as Dictionary).get("die")
-	if tile is Control and is_instance_valid(tile):
-		return (tile as Control).get_global_rect().get_center() - _stage3d.global_position
-	var btn: Button = _die_slot_buttons[slot]
-	return btn.get_global_rect().get_center() - _stage3d.global_position
+	return _dd()._throw_tray_target(i)
 
 
 func _on_throw_arrived(i: int) -> void:
@@ -4323,16 +3993,7 @@ func _land_dice_now() -> void:
 
 
 func _play_die_roll_bounce(btn: Button) -> void:
-	if disable_juice_for_tests:
-		return
-	if not is_instance_valid(btn) or not btn.is_inside_tree():
-		return
-	btn.pivot_offset = btn.size * 0.5
-	var tw := create_tween()
-	tw.tween_property(btn, "scale", Vector2(_ROLL_ANIM_SCALE, _ROLL_ANIM_SCALE), _ROLL_ANIM_DURATION * 0.5)
-	tw.parallel().tween_property(btn, "rotation_degrees", randf_range(-8.0, 8.0), _ROLL_ANIM_DURATION * 0.5)
-	tw.tween_property(btn, "scale", Vector2.ONE, _ROLL_ANIM_DURATION * 0.5)
-	tw.parallel().tween_property(btn, "rotation_degrees", 0.0, _ROLL_ANIM_DURATION * 0.5)
+	_dd()._play_die_roll_bounce(btn)
 
 
 ## Hit-stop + screen shake (unchanged from the pre-review pass).
@@ -4384,10 +4045,7 @@ func _begin_hit_animation() -> Callable:
 
 
 func _wire_die_slot(idx: int) -> void:
-	var btn: Button = _die_slot_buttons[idx]
-	btn.pressed.connect(func(): _on_die_slot_pressed(idx))
-	btn.mouse_entered.connect(func(): _on_die_slot_hover(idx, true))
-	btn.mouse_exited.connect(func(): _on_die_slot_hover(idx, false))
+	_dd()._wire_die_slot(idx)
 
 
 ## The scene ships five die slots because a roster is five Axies. A SUMMONED token is a sixth
@@ -4408,22 +4066,7 @@ const _DIE_SLOT_H := 158.0
 
 
 func _ensure_die_slots(count: int) -> void:
-	var want := maxi(count, 5)         # never shrink below the roster's five
-	if _tray_root == null:
-		return
-	while _die_slot_buttons.size() < want:
-		var btn := Button.new()
-		btn.name = "DieSlot%d" % _die_slot_buttons.size()
-		btn.toggle_mode = true
-		btn.text = ""
-		btn.custom_minimum_size = Vector2(TrayColumn.W, TrayColumn.H)
-		_tray_root.add_child(btn)
-		_die_slot_buttons.append(btn)
-		_style_die_slot(btn)
-		_die_slot_content.append(_build_die_slot_content(btn))
-		_die_slot_lifted.append(false)
-		_wire_die_slot(_die_slot_buttons.size() - 1)
-	_layout_tray()
+	_dd()._ensure_die_slots(count)
 
 
 ## Everyone in the party who gets a die card, in tray order.
