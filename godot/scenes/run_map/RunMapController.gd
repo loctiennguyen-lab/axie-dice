@@ -1710,10 +1710,10 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 		card.mouse_entered.connect(_prism_hover.bind(card, true))
 		card.mouse_exited.connect(_prism_hover.bind(card, false))
 
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 12)
-	card.add_child(col)
 	var is_tiered_core := is_core and not bool(r.get("rule", false))
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 8 if is_tiered_core else 12)
+	card.add_child(col)
 	if is_tiered_core:
 		# UI-04: TierBand across the top, CategoryChip on its right (no arrow glyph; the icon well keeps the Core's art).
 		var tier0 := clampi(int(r.get("tier", 0)), 0, 2)
@@ -1959,6 +1959,7 @@ func _apply_and_finish(reward: Dictionary) -> void:
 	var before_owned: Array = RunState.owned_relic_ids.duplicate()
 	var was_awake := AnchorAdapter.awakened()
 	var is_core := _is_core_card(reward) and not bool(reward.get("rule", false))
+	var take_tw: Tween = null
 	var pool_names: Array = []
 	if is_core and String(reward.get("key", "")) == "c_dim_stone":
 		for d in CoreOffer.valid_pool(RunState._core_ctx(RunState._core_offer_pick)):
@@ -1968,14 +1969,14 @@ func _apply_and_finish(reward: Dictionary) -> void:
 	if _reward_sel >= 0 and _reward_sel < _reward_cards.size() and is_instance_valid(_reward_cards[_reward_sel]):
 		pick_rect = (_reward_cards[_reward_sel] as Control).get_global_rect()
 	# UI-04 motion rows: core_take / level_up / reward_take on the picked card, only when juice is on.
-	if not UI3Gacha.is_instant() and _reward_sel >= 0 and _reward_sel < _reward_cards.size() \
+	if not UI3Gacha.is_instant() and not bool(reward.get("rule", false)) and _reward_sel >= 0 and _reward_sel < _reward_cards.size() \
 			and is_instance_valid(_reward_cards[_reward_sel]):
 		var pc := _reward_cards[_reward_sel] as Control
 		var mid := "core_take" if _is_core_card(reward) else ("level_up" if String(reward.get("t", "")) == "level" else "reward_take")
 		pc.pivot_offset = pc.size / 2.0
 		var mtw := UI3Motion.play(mid, pc)
 		if mtw != null and mtw.is_valid() and mid != "level_up":
-			await mtw.finished
+			take_tw = mtw
 	RunState.apply_chosen_reward(reward)
 	var granted := ""
 	if not pool_names.is_empty():
@@ -2002,6 +2003,8 @@ func _apply_and_finish(reward: Dictionary) -> void:
 		var ban := _combo_banner(formed)
 		if ban != null and ban.running:
 			await ban.finished
+	if take_tw != null and take_tw.is_valid() and take_tw.is_running():
+		await take_tw.finished
 	_taking = false
 	_finish_node()
 

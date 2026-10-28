@@ -79,21 +79,19 @@ func _play_reveal_motion(cards: Array, tier: int) -> void:
 	await get_tree().process_frame
 	if not running or UI3Gacha.is_instant():
 		return
-	var id := "core_reveal_" + ["moss", "amber", "crystal"][clampi(tier, 0, 2)]
 	for k in cards.size():
 		var card := cards[k] as Control
 		if card == null or not is_instance_valid(card):
 			continue
 		var ct := clampi(int(card.get_meta("gacha_tier", tier)), 0, 2)
-		var cid := "core_reveal_" + ["moss", "amber", "crystal"][ct]
-		if UI3Motion.has_moment(cid):
-			UI3Motion.record_play(cid)
+		var cid: String = "core_reveal_" + String(["moss", "amber", "crystal"][ct])
 		var band := card.find_child("TierBand", true, false) as Control
-		if band == null or UI3Motion.reduced():
+		if band == null:
+			continue
+		UI3Motion.play(cid, band)   # drop + fragments + (Amber/Crystal) the first sweep, on the band only
+		if UI3Motion.reduced():
 			continue
 		card.pivot_offset = card.size / 2.0
-		if ct >= 1:
-			UI3Motion.sweep(band, 240.0 + 80.0 * k)
 		if ct == 2:
 			UI3Motion.sweep(band, 640.0 + 80.0 * k)
 		var tw := create_tween()
@@ -104,8 +102,9 @@ func _play_reveal_motion(cards: Array, tier: int) -> void:
 			tw.tween_property(card, "rotation_degrees", -3.0, 0.1)
 			tw.tween_property(card, "rotation_degrees", 0.0, 0.05)
 		elif ct == 2:
-			tw.tween_property(card, "position:y", card.position.y - 24.0, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-			tw.tween_property(card, "position:y", card.position.y, 0.2)
+			var y0 := card.position.y
+			tw.tween_property(card, "position:y", y0 - 24.0, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tw.tween_property(card, "position:y", y0, 0.2)
 
 
 ## Near-miss: the cap-held higher border breaks into the real tier, short reason line, small shake.
