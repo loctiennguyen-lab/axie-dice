@@ -42,8 +42,10 @@ func _ready() -> void:
 	dp.show_defeat(base)
 	await get_tree().process_frame
 	var cont: Button = dp.find_child("Continue", true, false)
-	_check(cont != null and not cont.disabled and cont.text == "Continue · 180 Gem", "paid label")
-	_check(dp.find_child("CostChip", true, false) != null, "paid shows a cost chip")
+	_check(cont != null and not cont.disabled and cont.text == "Continue", "paid label")
+	_check(cont.find_child("CostChip", true, false) != null and _texts(cont, []).has("180"), "paid: price once, inside the button")
+	_check(dp.find_children("CostChip", "", true, false).size() == 1, "paid: exactly one price chip")
+	
 
 	# Short of Gem: grey, says how many.
 	var short := base.duplicate()
@@ -64,7 +66,7 @@ func _ready() -> void:
 	dp.show_defeat(gift)
 	await get_tree().process_frame
 	cont = dp.find_child("Continue", true, false)
-	_check(cont.text == "Continue · Free" and _texts(dp.find_child("CostChip", true, false), []).has("Free"), "gift: free")
+	_check(cont.text == "Continue" and _texts(cont.find_child("CostChip", true, false), []).has("Free"), "gift: free")
 
 	# Mission: no Continue at all, End run is the primary button.
 	var mis := base.duplicate()
@@ -79,7 +81,7 @@ func _ready() -> void:
 	_check(_texts(dp, []).has("Mission lost: your 800 Shard stake is gone. Mission runs have no Continue."), "mission: stake line with the real stake")
 	_check(dp.find_child("EndRun", true, false).theme_type_variation == "ButtonPrimaryM", "mission: End run primary")
 	var mt := _texts(dp, [])
-	_check(not mt.has("Aid used") and not mt.has("Fight") and mt.has("Party") and mt.has("Fell on turn"), "mission: no Aid / Fight tiles")
+	_check(not mt.has("Aid used") and not mt.has("Fight") and not mt.has("Party") and mt.has("Fell on turn"), "mission: no Aid / Fight tiles")
 	dp.show_defeat(base)
 	await get_tree().process_frame
 	_check(_texts(dp, []).has("Aid used"), "normal run keeps the Aid tile")
@@ -91,7 +93,8 @@ func _ready() -> void:
 	cont = dp.find_child("Continue", true, false)
 	_check(cont.text == "Reviving…" and cont.disabled and dp.find_child("EndRun", true, false).disabled, "busy locks")
 	dp.set_busy(false)
-	_check(cont.text == "Continue · 180 Gem" and not cont.disabled, "busy restores")
+	_check(cont.text == "Continue" and not cont.disabled, "busy restores")
+	_check(dp.find_child("Recap", true, false).get_child_count() == 3, "recap is 3 cells")
 
 	# Boss block carries phase ticks.
 	var boss := base.duplicate()

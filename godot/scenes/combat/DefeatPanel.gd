@@ -63,9 +63,7 @@ func show_defeat(d: Dictionary) -> void:
 	theme = UI3Theme.get_theme()
 	var dim := ColorRect.new()
 	dim.name = "Scrim"
-	var sc := UI3Theme.color("bg")
-	sc.a = 0.9
-	dim.color = sc
+	dim.color = UI3Theme.color("scrim")   # neutral-1 @ 80%
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	var center := CenterContainer.new()
@@ -85,7 +83,9 @@ func show_defeat(d: Dictionary) -> void:
 	var t := UI3.label(TranslationServer.translate("Party down"), "LabelScreenTitle")
 	t.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
 	head.add_child(t)
+	# Sub-line: "Fight 4 of 18 · A6 · 5 Axies" (Fight / Party / Ascension moved here from the old recap boxes).
 	var ctx := UI3.label(String(d.get("title_line", "")), "LabelMuted")
+	ctx.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	head.add_child(ctx)
 
 	var boss: Dictionary = d.get("boss", {})
@@ -105,6 +105,25 @@ func show_defeat(d: Dictionary) -> void:
 	# Esc is swallowed on purpose.
 	var usable := _continue_button != null and _continue_button.visible and not _continue_button.disabled
 	(_continue_button if usable else _end_button).grab_focus()
+	_play_in(dim, panel)
+
+
+## Defeat moment (motion.md): scrim fades 240, the panel scales 0.96 -> 1 + fades from +200. Never blocks input.
+func _play_in(dim: ColorRect, panel: Control) -> void:
+	var full := dim.color
+	if UI3Motion.reduced() or not is_inside_tree():
+		return
+	dim.color = Color(full, 0.0)
+	create_tween().tween_property(dim, "color", full, 0.24).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	panel.modulate.a = 0.0
+	await get_tree().process_frame
+	if not is_instance_valid(panel):
+		return
+	panel.pivot_offset = panel.size * 0.5
+	var tw := get_tree().create_timer(0.2)
+	tw.timeout.connect(func() -> void:
+		if is_instance_valid(panel):
+			UI3Motion.play("defeat", panel))
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
@@ -143,20 +162,13 @@ func _boss_block(boss: Dictionary) -> Control:
 
 
 func _recap_grid(d: Dictionary) -> Control:
-	var g := GridContainer.new()
+	var g := HBoxContainer.new()
 	g.name = "Recap"
-	g.columns = 2
-	g.add_theme_constant_override("h_separation", UI3Theme.space("24"))
-	g.add_theme_constant_override("v_separation", UI3Theme.space("8"))
-	# 2 columns x 3 rows of cells (spec 30): each cell is a muted label over a Rowdies 18 value. Labels are our copy.
-	var mission := bool(d.get("mission", false))
+	g.add_theme_constant_override("separation", UI3Theme.space("16"))
+	# UI-04 C4: 3 numbers. Fight / Party / Ascension live in the sub-line. A mission run has no Aid, so no third cell.
 	var rows := [["Fell on turn", str(int(d.get("turn", 0)))], ["Enemies left", str(int(d.get("enemies_left", 0)))]]
-	if not mission:   # a mission run has no Aid, so "Aid used 0 of 6" would be a lie
+	if not bool(d.get("mission", false)):
 		rows.append(["Aid used", "%d of %d" % [int(d.get("aid_used", 0)), int(d.get("aid_cap", 6))]])
-	rows.append(["Party", "%d Axies" % (d.get("party", []) as Array).size()])
-	if not mission:   # the title line already says the fight kind; on a mission the tile only repeated "Fight"
-		rows.append(["Fight", String(d.get("kind_label", "Fight"))])
-	rows.append(["Ascension", "A%d" % int(d.get("asc", 0))])
 	for r in rows:
 		var cell := UI3.plate(&"row")
 		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -192,6 +204,9 @@ func _continue_block(d: Dictionary) -> Control:
 		return m
 	var box := UI3.plate(&"row")
 	box.name = "ContinueBlock"
+	# UI-04 C4: the revive card is the only violet surface (paid surfaces only: revive_bg + gem_border).
+	box.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("revive_bg"), UI3Theme.radius("m"), 2,
+		UI3Theme.color("gem_border"), Vector4(0, 0, 0, 0)))
 	var pad := MarginContainer.new()
 	for side in ["left", "right", "top", "bottom"]:
 		pad.add_theme_constant_override("margin_" + side, 16)
@@ -199,28 +214,22 @@ func _continue_block(d: Dictionary) -> Control:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", UI3Theme.space("16"))
 	pad.add_child(v)
-	var top := HBoxContainer.new()
-	top.add_theme_constant_override("separation", UI3Theme.space("16"))
-	v.add_child(top)
-	var texts := VBoxContainer.new()
-	texts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top.add_child(texts)
-	texts.add_child(UI3.label(TranslationServer.translate("Revive and keep fighting"), "LabelDisplay"))
+	v.add_child(UI3.label(TranslationServer.translate("Revive and keep fighting"), "LabelDisplay"))
 	var eff := UI3.label(_effect_line(d), "LabelMuted")
 	eff.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	eff.custom_minimum_size = Vector2(440, 0)
-	texts.add_child(eff)
+	v.add_child(eff)
 	var variant := String(d.get("variant", "paid"))
 	var shown := bool(d.get("continue_show", true))
 	var enabled := bool(d.get("continue_enabled", true))
 	var price := int(d.get("price", 0))
-	if shown:
-		top.add_child(UI3.cost_chip(&"free" if variant == "gift" else &"gem", price, not enabled))
-	_continue_button = UI3.button("", &"primary", &"L")
+	# The price appears once, inside the primary button.
+	_continue_button = UI3.button_with_cost("Continue", &"free" if variant == "gift" else &"gem", price, not enabled, &"L")
 	_continue_button.name = "Continue"
+	# UI3.button_with_cost reads the state styleboxes before the button is in the tree, where the type variation is not
+	# resolved yet: it bakes in the grey engine default (dark fill, dark text on the violet card). Re-take them once
+	# the button is in the tree, keeping the room it reserves for the chip. (UI3.gd is off limits for this lane.)
+	_continue_button.ready.connect(_restyle_continue, CONNECT_ONE_SHOT)
 	_continue_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_continue_button.text = "Continue · %s" % (TranslationServer.translate("Free") if variant == "gift"
-		else "%d Gem" % price)
 	_continue_button.pressed.connect(func(): continue_pressed.emit())
 	_continue_button.visible = shown
 	if shown and not enabled:
@@ -234,6 +243,16 @@ func _continue_block(d: Dictionary) -> Control:
 		box.visible = false
 	v.add_child(_continue_button)
 	return box
+
+
+func _restyle_continue() -> void:
+	if _continue_button == null or not is_instance_valid(_continue_button):
+		return
+	for st in ["normal", "hover", "pressed", "disabled"]:
+		_continue_button.remove_theme_stylebox_override(st)
+		var sb := _continue_button.get_theme_stylebox(st).duplicate() as StyleBoxFlat
+		sb.content_margin_right += 96 + UI3Theme.space("8")
+		_continue_button.add_theme_stylebox_override(st, sb)
 
 
 func _effect_line(d: Dictionary) -> String:

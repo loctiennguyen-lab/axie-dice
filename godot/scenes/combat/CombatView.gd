@@ -3325,8 +3325,49 @@ func _clear_all_previews() -> void:
 # EventBus reactions — each funnels into _rebuild_all() (see file-level comment)
 # ===========================================================================
 
-func _on_hp_changed(_uid: int, _hp: int, _max_hp: int, _shield: int) -> void:
+func _on_hp_changed(uid: int, _hp: int, _max_hp: int, shield: int) -> void:
+	if shield > int(_last_shield.get(uid, 0)):
+		_fx_over(uid, "shield_gain")
+	_last_shield[uid] = shield
 	_rebuild_all()
+
+## UI-04 combat motion. One throw-away Control sized like the unit's portrait (child of UnitVisualsRoot, so it
+## survives the portrait being hidden by a knockout) carries a UI3Motion moment: particles, sweep, hitstop, sfx.
+## It never moves the portrait and never blocks input or combat flow; it frees itself after the particles.
+func _fx_over(uid: int, id: String) -> void:
+	if disable_juice_for_tests or not is_inside_tree():
+		return
+	var p: UnitPortrait = _portraits.get(uid)
+	if p == null or not is_instance_valid(p):
+		return
+	_fx_rect(Rect2(p.position, p.size if p.size.x > 0.0 else Vector2(320, 120)), id)
+
+
+func _fx_rect(r: Rect2, id: String) -> void:
+	var a := Control.new()
+	a.name = "Fx_" + id
+	a.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	a.position = r.position
+	a.size = r.size
+	a.pivot_offset = r.size * 0.5
+	a.z_index = 20
+	_unit_visuals_root.add_child(a)
+	UI3Motion.play(id, a)
+	get_tree().create_timer(1.6).timeout.connect(func() -> void:
+		if is_instance_valid(a):
+			a.queue_free())
+
+
+## Hit / crit / big hit (>= 25% of the target's max HP, or a knockout; client-side).
+func _hit_moment_id(uid: int, value: int, crit: bool) -> String:
+	var t := _combat.by_uid(uid) if _combat != null else null
+	if t != null and value > 0 and (t.hp <= 0 or float(value) >= 0.25 * float(maxi(t.max_hp, 1))):
+		return "big_hit"
+	return "crit" if crit else "hit"
+
+
+var _last_shield: Dictionary = {}   ## uid -> shield seen at the last hp_changed (shield-gained detection)
+
 
 func _on_hit_landed(src_uid: int, uid: int, value: int, crit: bool) -> void:
 	# The log line is NOT deferred. It is a transcript, its order is the engine's, and
@@ -3337,11 +3378,15 @@ func _on_hit_landed(src_uid: int, uid: int, value: int, crit: bool) -> void:
 		if is_instance_valid(_stage3d):
 			_stage3d.play_hit_reaction(uid)   # `uid` is whoever just TOOK this hit — see
 				# CombatStage3D.play_hit_reaction()'s own comment for the damage_pipeline.gd cross-check
+		_fx_over(uid, _hit_moment_id(uid, value, crit))
 		_play_hit_juice())
 
 func _on_unit_died(uid: int) -> void:
 	_append_log("[death] %s" % _unit_name(uid))
 	var p: UnitPortrait = _portraits.get(uid)
+	var dead := _combat.by_uid(uid) if _combat != null else null
+	if dead != null and dead.side == "p":
+		_fx_over(uid, "axie_ko")
 	if p != null:
 		p.play_death_fade()
 	if is_instance_valid(_stage3d):
@@ -3686,6 +3731,7 @@ func _on_float_text(uid: int, text: String, css_class: String, big: int) -> void
 
 func _on_boss_phase_changed(uid: int) -> void:
 	_append_log("[phase] boss %s changed phase" % _unit_name(uid))
+	_fx_over(uid, "boss_phase")
 	_rebuild_all()
 
 func _on_enemy_intent_executed(uid: int) -> void:
@@ -3709,8 +3755,31 @@ func _on_turn_phase_changed(old_phase: int, new_phase: int) -> void:
 		var total := maxi(graph.rows.size(), 1)
 		_show_turn_banner(_first_enemy_action_line(), "ENEMY TURN")
 	_rebuild_all()
+	if new_phase == CombatPhase.EXECUTE and old_phase == CombatPhase.END_TURN:
+		_reveal_intents.call_deferred()
+
+## Intent reveal (after the turn banner): each enemy's intent block pops in, 80 ms x enemy index.
+func _reveal_intents() -> void:
+	if disable_juice_for_tests or not is_inside_tree() or _combat == null or _combat.won or _combat.lost:
+		return
+	var i := 0
+	for e in _combat.enemies:
+		if e.hp <= 0:
+			continue
+		var p: UnitPortrait = _portraits.get(e.uid)
+		var blk: Control = p.intent_block() if p != null and is_instance_valid(p) else null
+		if blk != null and blk.is_visible_in_tree():
+			blk.pivot_offset = blk.size * 0.5
+			var node := blk
+			get_tree().create_timer(0.08 * i).timeout.connect(func() -> void:
+				if is_instance_valid(node):
+					UI3Motion.play("intent_reveal", node))
+			i += 1
+
 
 func _on_combat_finished(won: bool) -> void:
+	if won and not disable_juice_for_tests and is_inside_tree():
+		_fx_rect(Rect2(Vector2.ZERO, _unit_visuals_root.size), "victory")
 	_append_log("[combat_finished] won=%s" % won)
 	_audio.stop_music()   # fades; a hard cut lands on top of the win/loss beat and reads as a bug
 	_rebuild_all()
@@ -4603,9 +4672,7 @@ func _show_defeat_panel() -> void:
 		keep = "Enemies keep their HP."
 	var clock_on := bool((hs.get("clock", {}) as Dictionary).get("active", false))
 	_defeat.show_defeat({
-		"title_line": "%s %s A%d %s your party fell on turn %d" % [
-			"Boss fight" if boss_fight else ("Elite fight" if kind == "elite" else "Fight"),
-			HudKit.dot(), asc, HudKit.dot(), _combat.turn],
+		"title_line": "%s %s A%d %s %d Axies" % [_fight_title(), HudKit.dot(), asc, HudKit.dot(), party.size()],
 		"boss": boss_d, "recap": rows, "turn": _combat.turn, "enemies_left": _combat.alive_enemies().size(), "aid_used": int(co["used"]), "aid_cap": int(co["cap"]),
 		"asc": asc, "kind_label": "Boss" if boss_fight else ("Elite" if kind == "elite" else "Fight"),
 		"continue_left": 1, "heal_pct": 25 if asc >= 6 else 40, "party": party,
