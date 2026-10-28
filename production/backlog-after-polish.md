@@ -5,7 +5,7 @@ Liam: "những việc còn đang dở, note lại để làm sau, sau khi xong p
 ## A. Đang làm song song, không ảnh hưởng polish (28/10)
 - [x] Báo cáo QA cuối `production/qa/beta-qa-report.md`: GO closed beta, NO-GO tester ngoài tới khi đủ 10 điều kiện.
 - [x] Kiểm Pass mùa 1 bắt đầu đúng 3/11 00:00 UTC (07:00 giờ VN) bằng test giả giờ: 9 test Worker + t_pass_season_start (28 check), không lỗi (17eac1a).
-- [ ] Sửa `live_smoke` để không bao giờ làm app desktop phải đăng nhập lại (tools, không deploy).
+- [x] Sửa `live_smoke`: dùng thiết bị "Smoke" riêng (`~/.axie-live-smoke/`, 600/700), không đụng phiên app desktop. Liam chạy `godot/tools/live_smoke.sh --login` một lần khi cần dùng.
 - [x] Soak 28/10 trên bản mới nhất: 27.069 run, 0 crash, 0 lệch replay, 3 run kẹt bỏ qua replay (`production/qa/soak/2026-10-28/SUMMARY.md`).
 
 ## B. Để sau polish
