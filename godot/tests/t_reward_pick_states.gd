@@ -179,6 +179,20 @@ func _ready() -> void:
 		(_f("ConfirmBar") as Node).call("_unhandled_key_input", esc)
 		await _frames(2)
 		_check(_f("ConfirmBar") == null and (_f("Footer") as Control).visible, "Esc on the bar = Back")
+		# Take it on the curse card: the bar closes and the curse is applied (no slot needed for a curse).
+		rm._select_reward(2)
+		rm._take_selected_reward()
+		await _frames(3)
+		var bar_c: Node = _f("ConfirmBar")
+		_check(bar_c != null, "curse asks too")
+		if bar_c != null:
+			(bar_c.find_child("TakeItButton", true, false) as Button).pressed.emit()
+			await _frames(2)
+			_check(_f("ConfirmBar") == null and RunState.bonus_reroll == reroll_before + 1, "Take it applies the curse (+1 max Reroll)")
+			var until := Time.get_ticks_msec() + 3000
+			while rm._taking and Time.get_ticks_msec() < until:
+				await get_tree().process_frame
+			_check(not rm._taking, "the take finishes (bounded wait)")
 
 	# A real Core offer (gacha tiers, axis / partner chips, per-card Reroll) fits the same fixed card, and the tier word
 	# is the RarityChip. Checked at 1920 and at the 1280 text floor.

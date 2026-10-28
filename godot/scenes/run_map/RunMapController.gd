@@ -1509,16 +1509,20 @@ func _ask_lasting_reward(r: Dictionary) -> void:
 	if foot != null:
 		foot.visible = false
 	col.add_child(bar)
-	bar.back_pressed.connect(func() -> void:
-		col.remove_child(bar)
-		bar.queue_free()
+	var close := func() -> void:
+		if is_instance_valid(bar) and bar.get_parent() == col:
+			col.remove_child(bar)
+			bar.queue_free()
 		if foot != null and is_instance_valid(foot):
 			foot.visible = true
+	bar.back_pressed.connect(func() -> void:
+		close.call()
 		if _reward_sel < _reward_cards.size() and is_instance_valid(_reward_cards[_reward_sel]):
 			_reward_cards[_reward_sel].grab_focus())
+	# Take it: the bar goes (the pick is answered); a full Core slot can still open the swap sheet, and "Leave it" there
+	# must find a working Footer, not a dead bar. `_taking` guards a second take while the take beat plays.
 	bar.confirmed.connect(func() -> void:
-		bar.take_button.disabled = true
-		bar.back_button.disabled = true
+		close.call()
 		_on_reward_chosen(r))
 
 
