@@ -1,5 +1,28 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (28/10 tối) — UI-05 QUA FIGMA; ROUND 1 CỦA CLAUDE DESIGN ĐÃ XONG
+**Việc đầu tiên của session mới:** Liam đã có round 1 (đợt 1 = trận đấu) từ Claude Design. Hỏi Liam đường dẫn file/zip, rồi:
+1. Giải nén vào thư mục riêng (`design/handoffs/ui-05-figma/round-1/`), kiểm đủ: `ui05-<batch>-screens.html`, `tokens.json`, `assets/`, prototype HTML từng moment + bảng motion, README.
+2. Kiểm theo brief `design/handoffs/ui-05-figma/PROMPT-UI05-FIGMA.md` (§3 HTML sạch: flex/grid, id = tên node Godot, biến CSS = tên token, `.frame` 1920 + 1280) và `NOTE-DIECARD-PARTS.md` (DieCard phải có chip part + xem trước SET "5 → 8" + dấu Wild/Held/Overcast). Ghi chỗ thiếu, hỏi Liam trước khi viết prompt sửa (memory ask-before-handoff).
+3. Đưa từng màn vào Figma của Liam bằng connector Figma chính thức `html_to_figma` (đã đăng nhập "Lộc Nguyễn", team starter; tối đa 20 frame/lần, ảnh phải inline base64). Gửi Liam link để chỉnh.
+4. Khi Liam chỉnh xong và gửi link frame (có node-id): đọc số bằng `get_design_context` / `get_variable_defs` / `get_screenshot` rồi code trên nhánh mới từ `godot-port`. Figma là bản chuẩn. Gom số layout về một nguồn token (bài học review UI-04).
+5. Hiệu ứng: chuyển prototype HTML + bảng thông số sang `motion_ui3.json` / `UI3Motion` (tôn trọng Reduce motion: bỏ rung, hitstop, particle, trượt; fade ≤ 120 ms).
+- Quy trình chi tiết: memory `ui05-figma-workflow.md`. UI-04 (`int/ui4`, worktree `../my-game-wt/ui4`, 14 làn + 7 sửa review) GIỮ, KHÔNG deploy; ghi chú + lỗi đã sửa ở `design/handoffs/ui-04-polish/round-1/APPLY-NOTES.md` trên nhánh đó. Dùng làm tham khảo code (component UI3, motion 41 id, test).
+- Gói đã gửi Claude Design: `design/handoffs/ui-05-figma/send/` (+ `AxieDice-UI04-built.zip`, 77 ảnh bản UI-04 đã code).
+
+**Art (làm SAU khi đợt 1 UI-05 chốt phong cách):**
+- Art bible `design/art/art-bible.md`: mục 1–4 Liam duyệt; 5–9 nháp. Số đo màu thật `design/art/palette-measured.md`.
+- Liam 28/10: bỏ "đất sét sơn bóng"; Bird = hồng; viền cùng tông không đen; plate #24140B; nền menu = Homeland mờ; màn thua lắng mà ấm; không có vai Leader riêng (bỏ khỏi 5.4); mọi quái cỡ gần bằng Axie (±10%), boss Chimera giữ cỡ; Luna = biome cuối + boss cuối (đúng code, không đổi).
+- CÒN HỎI LIAM: màu class giữ pastel UI hiện tại hay chuyển sang màu chính thức đo được (Aqua #00DFF3, Beast #FDB014, Bird #FF78B4, Bug #FF433E, Plant #AFDB1B, Reptile #9967FB). Lệch nhiều nhất Plant.
+- Danh sách thiếu art + câu trả lời Liam: `design/art/art-gap-audit-2026-10-28.md` (làm HẾT; AI được dùng nếu đúng phong cách Axie; quái thường = bộ Atia; không giới hạn dung lượng). Anchor = tranh minh hoạ cảnh dạng thẻ bài. Nhân vật luôn từ render 3D thật, AI chỉ vẽ nền.
+- Plugin gợi ý cho art: image-generation, Asset Generator (Liam tự cài).
+- Việc code nhỏ: Bird còn #8BDCFF ở `CombatView.gd` ~664 và `t_ui_laws.gd` ~84 (sửa cùng UI-05).
+
+**Đã deploy 28/10 tối:** Reduce motion phần còn sót (CombatStage3D lao/trượt, Spinner, lật gacha, hover Land) — xem `production/release/` (log deploy). Suite 281/281, Worker 395/395.
+**Đã xong 28/10 (ngoài UI):** báo cáo QA cuối `production/qa/beta-qa-report.md` (GO closed beta; NO-GO tester ngoài tới khi đủ 10 điều kiện); Pass mùa 1 mở đúng 3/11 00:00 UTC (test giả giờ); `live_smoke` dùng thiết bị "Smoke" riêng (Liam chạy `godot/tools/live_smoke.sh --login` một lần khi cần); script notarize Mac / ký Windows sẵn sàng, tắt mặc định (`production/release/signing-setup.md`).
+**Việc để sau polish:** `production/backlog-after-polish.md`.
+**Chờ Liam (không gấp):** phím ←/→ lật trang Pass; nhãn LEADER trên plate quái trong game giữ hay bỏ; boss có thu nhỏ không; tài khoản Apple Developer / Windows cert; tài khoản QA phụ.
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (28/10) — QA TỔNG XONG, SR-V CHẠY BÓNG, LIAM POLISH
 - Bàn giao polish: `production/qa/beta-status-2026-10-28.md` (bản đang chạy, còn mở, SR-V, cách ghi phản hồi `production/qa/bugs/liam-notes.md`).
 - 27/10 đã deploy QA1 (BUG-0006..0008, Worker b95a83d8, `deploy-2026-10-27-qa1.md`) và QA2 (S3/S4 review UX, web b554725a, desktop b1790, `deploy-2026-10-27-qa2.md`).
