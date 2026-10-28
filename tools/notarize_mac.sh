@@ -29,7 +29,7 @@ while (( $# )); do
   case "$1" in
     --dry-run) DRY=1; shift ;;
     --check-profile) CHECK_PROFILE=1; shift ;;
-    --app) [[ -n "${2:-}" ]] || die "--app cần đường dẫn"; APP="$2"; shift 2 ;;
+    --app) [[ -n "${2:-}" ]] || die "--app cần đường dẫn"; APP="${2%/}"; shift 2 ;;
     -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
     *) die "tham số lạ: $1 (usage: notarize_mac.sh [--dry-run] [--check-profile] --app <AxieDice.app>)" ;;
   esac
@@ -105,10 +105,11 @@ trap 'rm -rf "$WORK"' EXIT
 SIGN=(codesign --force --timestamp --options runtime --sign "$IDENTITY")
 
 echo "-- ký code lồng bên trong (Frameworks, dylib, binary phụ)"
-MAIN_COUNT=0
+MAIN_EXEC="$(plutil -extract CFBundleExecutable raw "$APP/Contents/Info.plist" 2>/dev/null || true)"
+[[ -n "$MAIN_EXEC" && -f "$APP/Contents/MacOS/$MAIN_EXEC" ]] || die "không đọc được CFBundleExecutable từ Info.plist"
 while IFS= read -r -d '' f; do
   file -b "$f" | grep -q "Mach-O" || continue
-  [[ "$f" == "$APP/Contents/MacOS/"* ]] && { MAIN_COUNT=$((MAIN_COUNT+1)); continue; }   # file chạy chính: ký cùng bundle ở dưới
+  [[ "$f" == "$APP/Contents/MacOS/$MAIN_EXEC" ]] && continue   # file chạy chính: ký cùng bundle ở dưới. Mach-O phụ trong MacOS/ vẫn được ký ở đây.
   echo "   $f"
   "${SIGN[@]}" "$f" || die "ký thất bại: $f"
 done < <(find "$APP/Contents" -type f -print0)

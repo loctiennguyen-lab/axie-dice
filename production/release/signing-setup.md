@@ -25,7 +25,7 @@ Không gửi cho mình (hay ai) mật khẩu, file .p12/.pfx, app-specific passw
    ```
    security find-identity -v -p codesigning
    ```
-   phải thấy dòng `Developer ID Application: <Tên> (<TEAMID>)`. Private key chỉ có trên máy tạo cert. Nên export một bản .p12 có mật khẩu mạnh cất vào chỗ an toàn (password manager), mất máy là phải xin cert mới.
+   phải thấy dòng `Developer ID Application: <Tên> (<TEAMID>)`. Private key chỉ có trên máy tạo cert. Nên export một bản .p12 có mật khẩu mạnh cất vào chỗ an toàn (password manager). File .p12 phải nằm NGOÀI repo (ví dụ `~/secrets/`), mất máy là phải xin cert mới.
 
 ## 3. macOS: lưu thông tin notarize vào keychain (một lần)
 
@@ -48,7 +48,7 @@ Qua build (khuyên dùng), nhớ tắt Godot editor như mọi lần build:
 ```
 AXIE_NOTARIZE_MAC=1 bash tools/build_desktop.sh macos
 ```
-Thứ tự: kiểm điều kiện (vài giây, thiếu là dừng ngay, chưa tốn thời gian export) > export > ký trong ra ngoài (hardened runtime) > nộp Apple và chờ (thường vài phút, có khi lâu hơn) > staple > `spctl` > mới tạo zip và dmg từ app đã staple. Không có cờ thì flow y như cũ.
+Dòng đầu của `BUILD_INFO.txt` giờ ghi trạng thái ký (mac=notarized/ad-hoc, windows=signed/unsigned). Thứ tự: kiểm điều kiện (vài giây, thiếu là dừng ngay, chưa tốn thời gian export) > export > ký trong ra ngoài (hardened runtime) > nộp Apple và chờ (thường vài phút, có khi lâu hơn) > staple > `spctl` > mới tạo zip và dmg từ app đã staple. Không có cờ thì flow y như cũ.
 
 Chạy riêng trên một .app có sẵn: `bash tools/notarize_mac.sh --app đường/dẫn/AxieDice.app`.
 
@@ -97,13 +97,13 @@ Khuyến nghị:
 ```
 brew install osslsigncode
 export AXIE_WIN_CERT=$HOME/secrets/axie-win.pfx       # NGOÀI repo
-security add-generic-password -a "$USER" -s axie-win-cert -w   # nhập mật khẩu khi được hỏi, hoặc đặt AXIE_WIN_CERT_PASSWORD
+security add-generic-password -a "$USER" -s axie-win-cert -w   # nhập mật khẩu khi được hỏi. Nên dùng keychain, tránh `export AXIE_WIN_CERT_PASSWORD=...` vì mật khẩu vào lịch sử shell
 bash tools/sign_windows.sh --dry-run                  # phải báo đủ điều kiện
 AXIE_SIGN_WINDOWS=1 bash tools/build_desktop.sh windows
 ```
 Chế độ token: đặt `AXIE_WIN_PKCS11_MODULE`, `AXIE_WIN_PKCS11_CERTS`, `AXIE_WIN_PKCS11_KEY` (xem đầu file `tools/sign_windows.sh`). Chưa thử, sẽ cần chỉnh khi có token thật.
 
-Sau khi ký: chữ ký làm exe to hơn vài KB, `publish_desktop.sh` tự tính lại sha256 từ zip nên không cần làm gì thêm. BẮT BUỘC mở thử exe đã ký trên một máy Windows thật (Godot gắn pck vào exe, mình chưa thử ký loại file này), và chuột phải > Properties > Digital Signatures phải thấy tên công ty và timestamp.
+Sau khi ký: script tự verify (cần 'Signature verification: ok' và có timestamp), không đạt thì giữ nguyên exe gốc và dừng. Cert .pfx cũ mà OpenSSL 3 không đọc được thì xem ghi chú `-legacy` đầu `sign_windows.sh`. Chữ ký làm exe to hơn vài KB, `publish_desktop.sh` tự tính lại sha256 từ zip nên không cần làm gì thêm. BẮT BUỘC mở thử exe đã ký trên một máy Windows thật (Godot gắn pck vào exe, mình chưa thử ký loại file này), và chuột phải > Properties > Digital Signatures phải thấy tên công ty và timestamp.
 
 ## 6. Rollback
 
@@ -115,7 +115,7 @@ Sau khi ký: chữ ký làm exe to hơn vài KB, `publish_desktop.sh` tự tính
 
 ## 7. Những thứ KHÔNG được làm
 
-- Không commit .p12/.pfx/.p8, mật khẩu, app-specific password. `.gitignore` nên giữ `*.p12`, `*.pfx`, `*.p8`, `*.pem` (mình không sửa `.gitignore` trong đợt này; nói nếu Liam muốn mình thêm).
+- Không commit cert/khoá/mật khẩu. `.gitignore` đã chặn: `*.p12 *.pfx *.p8 *.cer *.csr *.certSigningRequest *.keychain *.keychain-db *.mobileprovision *.provisionprofile *.jks *.keystore`. Không chặn `.pem/.crt/.der` (chưa kiểm repo có file hợp lệ loại này không), nên đừng để chúng trong repo. Cert luôn để ngoài repo; script cũng từ chối cert nằm trong repo (đã giải symlink).
 - Không dán mật khẩu vào chat hoặc truyền qua dòng lệnh.
 - Không ký trên máy chia sẻ mà người khác đọc được keychain.
 

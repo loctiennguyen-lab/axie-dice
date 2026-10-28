@@ -14,14 +14,19 @@
 #                   AXIE_WIN_PKCS11_MODULE=/đường/dẫn/libxxx.dylib  AXIE_WIN_PKCS11_CERTS=chain.pem
 #                   AXIE_WIN_PKCS11_KEY='pkcs11:...'  PIN: AXIE_WIN_CERT_PASSWORD hoặc keychain như trên
 # Chung:
-#   AXIE_WIN_TIMESTAMP_URL  (mặc định http://timestamp.digicert.com)
+#   AXIE_WIN_TIMESTAMP_URL  (mặc định http://timestamp.digicert.com; có thể đặt https://...)
+#   AXIE_WIN_CAFILE        bundle CA để verify (mặc định /etc/ssl/cert.pem nếu có)
+# Cert .pfx cũ mà OpenSSL 3 không đọc được ("unsupported" / RC2): thử thêm -legacy (osslsigncode >= 2.5) hoặc
+# convert lại .pfx bằng `openssl pkcs12 -legacy` rồi `openssl pkcs12 -export`.
 #   AXIE_WIN_NAME           tên hiển thị trong hộp thoại UAC (mặc định "Axie Dice")
 #
 # Bí mật: mật khẩu không bao giờ nằm trên dòng lệnh (không lộ qua `ps`), không bị in ra. Đưa cho osslsigncode
 # qua -readpass trên một đường ống (file descriptor), không ghi ra đĩa.
+set +x   # xtrace must never be on while a password can be touched
+unset SHELLOPTS BASH_XTRACEFD PS4 2>/dev/null || true
 set -uo pipefail
 
-TS_URL="${AXIE_WIN_TIMESTAMP_URL:-http://timestamp.digicert.com}"
+TS_URL="${AXIE_WIN_TIMESTAMP_URL:-http://timestamp.digicert.com}"   # https://... cũng được, chỉ cần đặt env
 NAME="${AXIE_WIN_NAME:-Axie Dice}"
 KC_SERVICE="axie-win-cert"
 EXE=""; DRY=0
@@ -48,19 +53,25 @@ command -v osslsigncode >/dev/null 2>&1 && ok "osslsigncode ($(osslsigncode --ve
 
 # Mật khẩu: chỉ kiểm CÓ hay không, không đọc ra màn hình.
 have_password() {
+  { set +x; } 2>/dev/null
   [[ -n "${AXIE_WIN_CERT_PASSWORD:-}" ]] && return 0
   security find-generic-password -s "$KC_SERVICE" >/dev/null 2>&1   # không có -w: không in mật khẩu
 }
-get_password() {   # in mật khẩu ra stdout, chỉ dùng trong ống nội bộ
-  if [[ -n "${AXIE_WIN_CERT_PASSWORD:-}" ]]; then printf '%s' "$AXIE_WIN_CERT_PASSWORD"
-  else security find-generic-password -s "$KC_SERVICE" -w 2>/dev/null; fi
+get_password() {   # in mật khẩu ra stdout, chỉ dùng trong ống nội bộ; xtrace tắt, stderr bỏ
+  {
+    set +x
+    if [[ -n "${AXIE_WIN_CERT_PASSWORD:-}" ]]; then printf '%s' "$AXIE_WIN_CERT_PASSWORD"
+    else security find-generic-password -s "$KC_SERVICE" -w 2>/dev/null; fi
+  } 2>/dev/null
 }
 
 MODE=""
 if [[ -n "${AXIE_WIN_CERT:-}" ]]; then
   MODE=pfx
   [[ -f "$AXIE_WIN_CERT" ]] && ok "cert pfx: $AXIE_WIN_CERT" || miss "AXIE_WIN_CERT không phải file: $AXIE_WIN_CERT"
-  case "$AXIE_WIN_CERT" in "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"/*) miss "cert nằm TRONG repo, dời ra ngoài (không được commit)";; esac
+  REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+  CERT_REAL="$(python3 -I -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$AXIE_WIN_CERT" 2>/dev/null || echo "$AXIE_WIN_CERT")"
+  case "$CERT_REAL" in "$REPO_ROOT"/*) miss "cert nằm TRONG repo, dời ra ngoài (không được commit)";; esac
 elif [[ -n "${AXIE_WIN_PKCS11_MODULE:-}" ]]; then
   MODE=pkcs11
   [[ -f "$AXIE_WIN_PKCS11_MODULE" ]] && ok "pkcs11 module: $AXIE_WIN_PKCS11_MODULE" || miss "không thấy AXIE_WIN_PKCS11_MODULE: $AXIE_WIN_PKCS11_MODULE"
@@ -96,8 +107,14 @@ else
   osslsigncode sign -pkcs11module "$AXIE_WIN_PKCS11_MODULE" -certs "$AXIE_WIN_PKCS11_CERTS" -key "$AXIE_WIN_PKCS11_KEY" \
     -readpass <(get_password) "${COMMON[@]}" || { rm -f "$OUT"; die "osslsigncode sign (pkcs11) thất bại"; }
 fi
-# Kiểm chữ ký còn đủ và có timestamp trước khi thay file. (-CAfile hệ thống có thể cần cho verify: nếu chỉ báo
-# lỗi chuỗi tin cậy trên Mac thì chữ ký vẫn đúng, kiểm thật trên Windows.)
-osslsigncode verify -in "$OUT" 2>&1 | tail -n 12
+# Bắt buộc verify thành công VÀ có timestamp trước khi thay file; không thì bỏ bản ký, giữ nguyên exe gốc.
+VERIFY_ARGS=(verify -in "$OUT")
+CAF="${AXIE_WIN_CAFILE:-/etc/ssl/cert.pem}"
+[[ -f "$CAF" ]] && VERIFY_ARGS+=(-CAfile "$CAF")
+VLOG="$(osslsigncode "${VERIFY_ARGS[@]}" 2>&1)"; VRC=$?
+echo "$VLOG" | tail -n 12
+if [[ $VRC -ne 0 ]] || ! echo "$VLOG" | grep -q "Signature verification: ok" || ! echo "$VLOG" | grep -qi "timestamp"; then
+  rm -f "$OUT"; die "verify sau khi ký KHÔNG đạt (rc=$VRC, cần 'Signature verification: ok' và có timestamp). Exe gốc giữ nguyên."
+fi
 mv "$EXE" "$EXE.unsigned" && mv "$OUT" "$EXE" || die "không thay được file"
 echo "== xong: $EXE đã ký (bản gốc: $EXE.unsigned, xoá trước khi zip). PHẢI thử mở bản đã ký trên máy Windows thật."
