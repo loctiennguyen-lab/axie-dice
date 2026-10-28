@@ -7,6 +7,9 @@ extends Node
 ## own input (U5TurnBanner / U5VictoryBand). UI only: never touches the fight.
 
 var _runs: Array[UI3Motion.Timeline] = []
+## The combat view (WeakRef). When the fight is over (the crit / big hit was the last blow) Space is not eaten:
+## it also reaches the Victory band / victory march.
+var view: WeakRef
 
 
 ## Track a timeline so a click / Space can skip it. Finished timelines drop out by themselves.
@@ -44,8 +47,16 @@ func _input(event: InputEvent) -> void:
 	if not (mouse or space):
 		return
 	skip_all()
-	if space and is_inside_tree():
+	if space and is_inside_tree() and not _fight_over():
 		get_viewport().set_input_as_handled()
+
+
+func _fight_over() -> bool:
+	var v: Variant = view.get_ref() if view != null else null
+	if not (v is CombatView):
+		return false
+	var cv: CombatView = v
+	return cv._combat != null and (cv._combat.won or cv._combat.lost)
 
 
 func _exit_tree() -> void:

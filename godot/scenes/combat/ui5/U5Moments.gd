@@ -40,6 +40,7 @@ static func root(v: Node) -> Control:
 		layer.add_child(r)
 		var c := U5SkipCatcher.new()
 		c.name = "SkipCatcher"
+		c.view = weakref(v)
 		layer.add_child(c)
 	return layer.get_node("Root") as Control
 
@@ -434,7 +435,7 @@ static func turn_banner(v: CombatView, player: bool, on_done := Callable()) -> v
 		return
 	for old in root(v).get_children():
 		if old is U5TurnBanner:
-			(old as U5TurnBanner).finish()
+			(old as U5TurnBanner).finish(false)   # its reveal belongs to a turn that is already over
 	U5TurnBanner.show_on(root(v), player, on_done)
 
 
@@ -443,22 +444,21 @@ static func intent_stagger_sec() -> float:
 	return float((UI3Motion.table().get("intent_reveal", {}) as Dictionary).get("delay_per_index_ms", 80)) / 1000.0
 
 
-## Hide every live enemy's intent block until the reveal pops it (so it does not show, vanish and pop). A safety
-## timer puts back any block the reveal did not reach.
+## Hide every live enemy's intent block until the reveal pops it (so it does not show, vanish and pop). The
+## U5IntentHider re-hides blocks a plate rebuild brings back during the band, and restores stragglers later.
 static func hide_intents(v: CombatView, until_sec: float) -> void:
 	if not on(v) or v._combat == null:
 		return
-	var hidden: Array = []
-	for e in v._combat.enemies:
-		var p: Variant = v._portraits.get(e.uid)
-		var blk: Control = (p as UnitPortrait).intent_block() if p is UnitPortrait and is_instance_valid(p) else null
-		if blk != null and e.hp > 0:
-			blk.modulate.a = 0.0
-			hidden.append(blk)
-	v.get_tree().create_timer(until_sec + 1.0).timeout.connect(func() -> void:
-		for b in hidden:
-			if is_instance_valid(b) and (b as Control).modulate.a < 0.01:
-				(b as Control).modulate.a = 1.0)
+	U5IntentHider.start(root(v).get_parent(), v, until_sec + 0.5)
+
+
+## The intent reveal starts (CombatView._reveal_intents): stop hiding the blocks.
+static func reveal_started(v: Node) -> void:
+	if v == null or not is_instance_valid(v):
+		return
+	var h := v.get_node_or_null(LAYER_NAME + "/IntentHider") as U5IntentHider
+	if h != null:
+		h.stop()
 
 
 ## Big-hit intent at reveal time: border flash (2 steps, cream over the red border), the BigHitStrip slides down,

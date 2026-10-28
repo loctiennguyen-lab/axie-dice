@@ -323,9 +323,10 @@ static func play(id: String, node: CanvasItem, opts: Dictionary = {}) -> Tween:
 static func _phase(tw: Tween, node: CanvasItem, p: Dictionary, k: float, base_pos: Vector2) -> void:
 	var sec := float(p.get("ms", 0.0)) * k / 1000.0
 	var props: Dictionary = p.get("props", {})
-	tw.set_parallel(true)
-	if props.is_empty():
-		tw.tween_interval(sec)
+	# The phase's FIRST tweener is a new sequential step, the others join it. (set_parallel(true) here used to make
+	# the first one join the step before it too, so a phase's delay_ms and the hold before "out" never waited.)
+	tw.set_parallel(false)
+	var first := true
 	for pn in props.keys():
 		var spec: Dictionary = props[pn]
 		if not spec.has("to"):
@@ -333,9 +334,13 @@ static func _phase(tw: Tween, node: CanvasItem, p: Dictionary, k: float, base_po
 		var tn := _tween_prop(String(pn), node, spec["to"], base_pos)
 		if tn.is_empty():
 			continue
-		var t := tw.tween_property(node, String(tn["path"]), tn["value"], sec)
+		var t := (tw.tween_property(node, String(tn["path"]), tn["value"], sec) if first
+			else tw.parallel().tween_property(node, String(tn["path"]), tn["value"], sec))
+		first = false
 		t.set_trans(_TRANS.get(String(spec.get("trans", p.get("trans", "LINEAR"))), Tween.TRANS_LINEAR))
 		t.set_ease(_EASE.get(String(spec.get("ease", p.get("ease", "IN_OUT"))), Tween.EASE_IN_OUT))
+	if first:
+		tw.tween_interval(sec)   # no prop to tween: the phase still takes its time
 	tw.set_parallel(false)
 
 

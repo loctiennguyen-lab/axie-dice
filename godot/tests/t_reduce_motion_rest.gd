@@ -5,6 +5,12 @@ extends Node
 ## giving Engine.time_scale back (also when the node / scene is freed), and the moment players under Reduce motion.
 var _fails: Array[String] = []
 var _checks := 0
+var _space_seen := 0   # Space presses that got past the moment layers (U5SkipCatcher eats them mid-fight)
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and (event as InputEventKey).pressed and (event as InputEventKey).keycode == KEY_SPACE:
+		_space_seen += 1
 
 
 func _ok(c: bool, m: String) -> void:
@@ -28,6 +34,7 @@ func _ready() -> void:
 	await _victory_case()
 	await _skip_case()
 	await _combat_hooks_case()
+	await _play_delay_case()
 	MetaState.reduce_motion = was
 	CombatView.disable_juice_for_tests = was_juice
 	if _fails.is_empty():
@@ -408,6 +415,7 @@ func _skip_case() -> void:
 	get_viewport().push_input(ev)
 	await get_tree().process_frame
 	_ok(run.done and not c.running(), "Space did not skip the moment")
+	_ok(_space_seen == 0, "a Space that skipped a mid-fight moment also reached the game")
 	_ok(lbl.modulate.a < 0.01, "skipped label not at its end state (alpha %f)" % lbl.modulate.a)
 	c.queue_free()
 	r.queue_free()
@@ -444,6 +452,18 @@ func _combat_hooks_case() -> void:
 	scene._on_turn_phase_changed(0, 2)   # ROLL -> EXECUTE: a turn starts
 	await get_tree().process_frame
 	_ok(root.find_child("TurnBanner", false, false) is U5TurnBanner, "turn start did not show the Your turn band")
+	# A rebuild during the band must not bring the intents back before the reveal pops them.
+	scene._rebuild_all()
+	await get_tree().process_frame
+	var shown := 0
+	for en in scene._combat.enemies:
+		var pp: Variant = scene._portraits.get(en.uid)
+		if en.hp > 0 and pp is UnitPortrait and (pp as UnitPortrait).intent_block() != null \
+				and (pp as UnitPortrait).intent_block().modulate.a > 0.01:
+			shown += 1
+	_ok(shown == 0, "%d intent block(s) visible during the Your turn band after a rebuild" % shown)
+	scene._reveal_intents()
+	_ok((scene.get_node("Ui5Moments/IntentHider") as U5IntentHider)._stopped, "the reveal did not stop the intent hider")
 	var hp0 := a.hp
 	a.hp = 0
 	scene._on_unit_died(a.uid)
@@ -458,9 +478,43 @@ func _combat_hooks_case() -> void:
 	await get_tree().process_frame
 	_ok(root.find_child("PhaseBand", false, false) != null, "boss phase did not show the Phase band")
 	await _real_wait(0.3)
+	# The big hit was the last blow: Space skips the moment AND reaches the Victory band / march.
+	scene._combat.won = true
+	var tg := Control.new()
+	root.add_child(tg)
+	var last := UI3Motion.play_timeline("crit", {"tag": tg}, {"host": root, "only": ["tag"]})
+	U5Moments.catcher(scene).add(last)
+	var seen0 := _space_seen
+	var ev := InputEventKey.new()
+	ev.keycode = KEY_SPACE
+	ev.pressed = true
+	get_viewport().push_input(ev)
+	await get_tree().process_frame
+	_ok(last.done and _space_seen == seen0 + 1, "Space after the last blow was eaten by the moment (victory not skippable)")
+	scene._combat.won = false
 	U5Moments.on_hit(scene, e.uid, "big_hit")
 	_ok(Engine.time_scale < 0.5, "big hit did not hit-stop")
 	scene.queue_free()
 	await _real_wait(0.3)
 	_ok(is_equal_approx(Engine.time_scale, 1.0), "time_scale %f after the combat scene was freed mid hit-stop" % Engine.time_scale)
 	guard.restore()
+
+
+## UI3Motion.play() waits a phase's delay_ms and the hold before "out" (it used to start every phase at once).
+func _play_delay_case() -> void:
+	MetaState.reduce_motion = false
+	var n := Control.new()
+	add_child(n)
+	UI3Motion.reset_table({"d": {"in": {"ms": 100, "delay_ms": 300, "props": {"alpha": {"from": 0.0, "to": 1.0}}},
+		"hold_ms": 600, "out": {"ms": 100, "props": {"alpha": {"to": 0.0}}}}})
+	UI3Motion.play("d", n)
+	await _real_wait(0.2)
+	_ok(n.modulate.a < 0.01, "play() ignored delay_ms (alpha %f at 200 ms)" % n.modulate.a)
+	await _real_wait(0.35)
+	_ok(n.modulate.a > 0.99, "play() in-phase did not end at 1 after its delay (alpha %f)" % n.modulate.a)
+	await _real_wait(0.2)
+	_ok(n.modulate.a > 0.99, "play() ignored hold_ms (alpha %f mid-hold)" % n.modulate.a)
+	await _real_wait(0.55)
+	_ok(n.modulate.a < 0.01, "play() out-phase did not run after the hold (alpha %f)" % n.modulate.a)
+	UI3Motion.reset_table()
+	n.queue_free()

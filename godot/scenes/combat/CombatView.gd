@@ -62,7 +62,6 @@ const _PORTRAIT_SCENE := preload("res://scenes/shared/UnitPortrait.tscn")
 # --- Juice tuning (unchanged from the pre-review pass) ---
 const _ROLL_ANIM_SCALE := 1.15
 const _ROLL_ANIM_DURATION := 0.25
-const _HITSTOP_DURATION := 0.08
 const _SHAKE_AMPLITUDE := 4.0
 const _SHAKE_DURATION := 0.2
 const _INPUT_LOCK_FAILSAFE := 0.6
@@ -3331,8 +3330,7 @@ func _awaken_hit_stop() -> void:
 	if motion_suppressed() or not is_inside_tree():
 		return
 	hit_stops += 1
-	Engine.time_scale = 0.05
-	get_tree().create_timer(0.1, true, false, true).timeout.connect(func() -> void: Engine.time_scale = 1.0)
+	UI3Motion.hitstop(self, 100.0)   # the one hit-stop path (always gives time_scale back)
 
 
 var hit_stops := 0
@@ -3502,8 +3500,6 @@ func _on_turn_phase_changed(old_phase: int, new_phase: int) -> void:
 			# again (§5.1a) until the first enemy_intent_executed(uid) of that phase arrives
 	elif _combat != null and old_phase != CombatPhase.END_TURN \
 			and not (_combat.won or _combat.lost):
-		var graph := RunMapGraph.from_data(RunState.map_graph)
-		var total := maxi(graph.rows.size(), 1)
 		U5Moments.turn_banner(self, false)   # UI-05 lane E: "Enemy turn" band (motion row turn_banner_enemy)
 	_rebuild_all()
 	if new_phase == CombatPhase.EXECUTE and old_phase == CombatPhase.ROLL and _combat != null \
@@ -3515,6 +3511,7 @@ func _on_turn_phase_changed(old_phase: int, new_phase: int) -> void:
 
 ## Intent reveal (after the turn banner): each enemy's intent block pops in, 80 ms x enemy index.
 func _reveal_intents() -> void:
+	U5Moments.reveal_started(self)   # UI-05 lane E: the U5IntentHider stops (and restores what is not revealed)
 	if disable_juice_for_tests or not is_inside_tree() or _combat == null or _combat.won or _combat.lost:
 		return
 	var i := 0

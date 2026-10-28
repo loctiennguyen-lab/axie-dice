@@ -46,8 +46,10 @@ static func show_on(parent: Control, is_player: bool, on_done := Callable()) -> 
 	return b
 
 
-## End the band now (a new turn banner replaces it, or a skip).
-func finish() -> void:
+## End the band now (a skip, or a new turn banner replaces it: then run_on_done = false drops its callback).
+func finish(run_on_done := true) -> void:
+	if not run_on_done:
+		_on_done = Callable()
 	if run != null and not run.done:
 		run.skip()
 	elif not is_queued_for_deletion():

@@ -72,9 +72,16 @@ func _ready() -> void:
 	await _at(0.9, "moment-victory-end", size)
 	U5Moments.end_victory(scene)
 	await _settle()
+	UI3Motion.record = true
+	UI3Motion.played.clear()
 	scene._show_defeat_panel()
 	U5Moments.defeat(scene)
-	await _at(1.1, "moment-defeat", size)
+	await _at(0.4, "moment-defeat-t400", size)
+	_defeat_alpha(scene, 400)
+	await _at(0.6, "moment-defeat", size)
+	_defeat_alpha(scene, 1000)
+	print("QA: defeat played ", UI3Motion.played, " (defeat x%d)" % UI3Motion.played.count("defeat"))
+	UI3Motion.record = false
 	scene.queue_free()
 	await get_tree().process_frame
 	Engine.time_scale = 1.0
@@ -100,3 +107,10 @@ func _at(sec: float, file_name: String, size: Vector2i) -> void:
 
 func _settle() -> void:
 	await get_tree().create_timer(1.6, true, false, true).timeout
+
+
+## Panel + tint alpha (the panel must still be hidden at 400 ms: it settles in at +700).
+func _defeat_alpha(scene: CombatView, at_ms: int) -> void:
+	var pn := scene._defeat.find_child("Panel", true, false) as Control
+	var tn := scene._defeat.find_child("DefeatTint", true, false) as Control
+	print("QA: defeat t %d ms: panel alpha %.2f, tint alpha %.2f" % [at_ms, pn.modulate.a if pn else -1.0, tn.modulate.a if tn else -1.0])
