@@ -1577,7 +1577,7 @@ func _show_toast(text: String, hold: float = 1.6, tone: StringName = &"ok") -> v
 	_layout_toasts()
 	var tw := create_tween()
 	tw.tween_interval(hold)
-	tw.tween_property(tw_node, "modulate:a", 0.0, 0.4)
+	tw.tween_property(tw_node, "modulate:a", 0.0, UI3Motion.REDUCED_MAX_SEC if UI3Motion.reduced() else 0.4)
 	tw.tween_callback(func() -> void:
 		if is_instance_valid(tw_node):
 			tw_node.queue_free()

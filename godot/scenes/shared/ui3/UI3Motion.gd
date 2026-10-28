@@ -11,7 +11,9 @@ extends RefCounted
 ##   "shake": { "px", "ms" }          position jitter, runs next to the "in" phase
 ##   "particles": { "texture", "amount", "lifetime_ms", "spread_deg", "color_token", "speed" }  one-shot burst
 ##   "sfx": event name in gacha_timing.json "sfx" (played through UI3Gacha.play_sfx, so tests stay silent)
-##   "skippable": true -> opts.skip / opts.reduced jumps straight to the final state
+##   "skippable": true -> opts.skip jumps straight to the final state
+## Reduce motion (opts.reduced, or MetaState.reduce_motion via UI3Motion.reduced(), applied automatically):
+## no shake, no particles, no delays, phases cut to <= 120 ms alpha fades, scale/offset/rotation just jump.
 ##   "hide_on_done" / "free_on_done": what happens to the node after the last phase
 ## Props: scale (number or [x, y]), alpha (modulate:a), offset ([x, y] added to the node position),
 ## rotation_deg. "trans"/"ease" are the Godot names without prefix: "BACK", "CUBIC", "OUT", "IN_OUT".
@@ -41,6 +43,17 @@ const _EASE := {
 	"IN": Tween.EASE_IN, "OUT": Tween.EASE_OUT, "IN_OUT": Tween.EASE_IN_OUT, "OUT_IN": Tween.EASE_OUT_IN,
 }
 const PROPS := ["scale", "alpha", "offset", "rotation_deg"]
+
+
+## True when the player turned on Settings -> Reduce motion (MetaState.reduce_motion). Every motion site
+## (shake, hit-stop, particles, slides, scale pops) asks this one function, so the UI-04 motion table
+## and any new effect get the setting for free. UI only: never read it from rules or replay code.
+static func reduced() -> bool:
+	return MetaState.reduce_motion
+
+
+## Longest a state change may take with Reduce motion on (a short fade so the change is still visible).
+const REDUCED_MAX_SEC := 0.12
 
 
 ## The whole table (cached). Keys starting with "_" are notes.
@@ -142,10 +155,14 @@ static func duration_sec(id: String, opts: Dictionary = {}) -> float:
 	var m: Dictionary = table()[id]
 	var k := float(opts.get("scale_ms", 1.0))
 	var hold := float(opts.get("hold_ms", m.get("hold_ms", 0.0)))
+	var red := bool(opts.get("reduced", false)) or reduced()
 	var total := 0.0
 	for ph in ["in", "out"]:
 		if m.has(ph):
-			total += (float((m[ph] as Dictionary).get("delay_ms", 0.0)) + float((m[ph] as Dictionary).get("ms", 0.0))) * k
+			if red:
+				total += minf(float((m[ph] as Dictionary).get("ms", 0.0)) * k, REDUCED_MAX_SEC * 1000.0)
+			else:
+				total += (float((m[ph] as Dictionary).get("delay_ms", 0.0)) + float((m[ph] as Dictionary).get("ms", 0.0))) * k
 	if m.has("in") and m.has("out"):
 		total += hold * k
 	return total / 1000.0
@@ -170,9 +187,14 @@ static func play(id: String, node: CanvasItem, opts: Dictionary = {}) -> Tween:
 	if record and played.size() < 64:
 		played.append(id)
 	var m: Dictionary = table()[id]
+	var red := bool(opts.get("reduced", false)) or reduced()
+	if red:
+		m = _reduced_moment(m)
 	var skip := bool(opts.get("skip", false)) or bool(opts.get("instant", false)) \
-		or (bool(opts.get("reduced", false)) and bool(m.get("skippable", true)))
+		or (red and not bool(m.get("_has_alpha", false)))
 	var k := float(opts.get("scale_ms", 1.0))
+	if red:
+		k = minf(k, 1.0)
 	var base_pos: Vector2 = node.position if node is Control or node is Node2D else Vector2.ZERO
 	var sfx := String(m.get("sfx", ""))
 	if sfx != "":
@@ -181,8 +203,12 @@ static func play(id: String, node: CanvasItem, opts: Dictionary = {}) -> Tween:
 	for ph in ["in", "out"]:
 		if m.has(ph):
 			_apply_from(node, m[ph] as Dictionary, base_pos)
+	if red and m.has("in"):
+		_settle(node, m["in"] as Dictionary, base_pos)
 	if skip or not node.is_inside_tree():
 		_finish_state(node, m, base_pos)
+		if red:
+			_settle(node, (m["out"] if m.has("out") else m["in"]) as Dictionary, base_pos)
 		_after(node, m, opts)
 		return null
 	var tw := node.create_tween()
@@ -206,6 +232,8 @@ static func play(id: String, node: CanvasItem, opts: Dictionary = {}) -> Tween:
 		if ph == "in" and m.has("particles"):
 			tw.parallel().tween_callback(_burst.bind(node, m["particles"] as Dictionary))
 	tw.set_parallel(false)
+	if red and m.has("out"):
+		tw.tween_callback(_settle.bind(node, m["out"] as Dictionary, base_pos))
 	tw.tween_callback(_after.bind(node, m, opts))
 	return tw
 
@@ -298,6 +326,48 @@ static func _apply_from(node: CanvasItem, p: Dictionary, base_pos: Vector2) -> v
 		if not spec.has("from"):
 			continue
 		var tn := _tween_prop(String(pn), node, spec["from"], base_pos)
+		if not tn.is_empty():
+			node.set_indexed(NodePath(String(tn["path"])), tn["value"])
+
+
+## Reduce motion: a copy of the moment with no shake, no particles, no delays, only alpha tweens, every phase
+## at most REDUCED_MAX_SEC. Scale / offset / rotation are not animated: they jump to their "to" value
+## (the in phase at the start, the out phase when the node is done). `_has_alpha` marks whether any fade is left.
+static func _reduced_moment(m: Dictionary) -> Dictionary:
+	var r: Dictionary = m.duplicate(true)
+	r.erase("shake")
+	r.erase("particles")
+	var has_alpha := false
+	for ph in ["in", "out"]:
+		if not r.has(ph):
+			continue
+		var p: Dictionary = r[ph]
+		p["ms"] = minf(float(p.get("ms", 0.0)), REDUCED_MAX_SEC * 1000.0)
+		p["delay_ms"] = 0.0
+		p["trans"] = "LINEAR"
+		p["ease"] = "IN_OUT"
+		var kept := {}
+		for pn in (p.get("props", {}) as Dictionary).keys():
+			var spec: Dictionary = (p["props"] as Dictionary)[pn]
+			if String(pn) == "alpha":
+				var a: Dictionary = spec.duplicate()
+				a["trans"] = "LINEAR"
+				a["ease"] = "IN_OUT"
+				kept[pn] = a
+				has_alpha = true
+			elif spec.has("to"):
+				# Non-alpha end state is applied by the settle step instead of being tweened.
+				p.get_or_add("_settle", {})[pn] = spec["to"]
+		p["props"] = kept
+		r[ph] = p
+	r["_has_alpha"] = has_alpha
+	r["_reduced"] = true
+	return r
+
+
+static func _settle(node: CanvasItem, p: Dictionary, base_pos: Vector2) -> void:
+	for pn in (p.get("_settle", {}) as Dictionary).keys():
+		var tn := _tween_prop(String(pn), node, (p["_settle"] as Dictionary)[pn], base_pos)
 		if not tn.is_empty():
 			node.set_indexed(NodePath(String(tn["path"])), tn["value"])
 

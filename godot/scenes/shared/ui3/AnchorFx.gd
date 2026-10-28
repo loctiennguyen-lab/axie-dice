@@ -61,7 +61,7 @@ static func arm(id: String) -> void:
 
 static func duration() -> float:
 	var t := UI3Gacha.timing()
-	return float(t.get("awaken_reduced_sec", 1.6)) if CombatView.flashes_suppressed() else float(t.get("awaken_sec", 2.5))
+	return float(t.get("awaken_reduced_sec", 1.6)) if CombatView.motion_suppressed() else float(t.get("awaken_sec", 2.5))
 
 
 ## Builds and starts the moment under `parent`. `extra_line` = merged Pair line ("PAIR: X . MUTATION: Y"), "" = plain.
@@ -225,7 +225,7 @@ func _show_final() -> void:
 
 
 func _animate() -> void:
-	var reduced := CombatView.flashes_suppressed()
+	var reduced := CombatView.motion_suppressed()
 	var total := duration()
 	await get_tree().process_frame   # CenterContainer has not sorted yet: size is 0 until the next frame
 	if not running or not is_inside_tree():
@@ -288,7 +288,7 @@ func _end() -> void:
 		_tw.kill()
 	log.append("end")
 	finished.emit()
-	if skipped or not is_inside_tree() or _fly_to.size == Vector2.ZERO or CombatView.flashes_suppressed():
+	if skipped or not is_inside_tree() or _fly_to.size == Vector2.ZERO or CombatView.motion_suppressed():
 		queue_free()
 		return
 	var tw := create_tween().set_parallel(true)

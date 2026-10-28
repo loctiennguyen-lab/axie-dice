@@ -107,7 +107,7 @@ func _tick(i: int) -> void:
 
 ## Slot-reel feel: each name pops in; the last one lands bigger. No pop with reduce flashing.
 func _pop(amount: float, sec: float) -> void:
-	if MetaState.reduce_flash or _label == null:
+	if MetaState.reduce_flash or UI3Motion.reduced() or _label == null:
 		return
 	_label.pivot_offset = _label.size / 2.0
 	_label.scale = Vector2.ONE * amount

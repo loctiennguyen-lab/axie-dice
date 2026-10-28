@@ -835,12 +835,17 @@ func transition_to_arena(biome_id: String) -> void:
 		set_arena(biome_id)
 		return
 	_ensure_flash()
+	var fade_in := 0.25
+	var fade_out := 0.35
+	if UI3Motion.reduced():
+		fade_in = UI3Motion.REDUCED_MAX_SEC
+		fade_out = UI3Motion.REDUCED_MAX_SEC
 	var tw := create_tween()
-	tw.tween_property(_flash, "color:a", 1.0, 0.25).set_ease(Tween.EASE_IN)
+	tw.tween_property(_flash, "color:a", 1.0, fade_in).set_ease(Tween.EASE_IN)
 	await tw.finished
 	set_arena(biome_id)
 	var tw2 := create_tween()
-	tw2.tween_property(_flash, "color:a", 0.0, 0.35).set_ease(Tween.EASE_OUT)
+	tw2.tween_property(_flash, "color:a", 0.0, fade_out).set_ease(Tween.EASE_OUT)
 	await tw2.finished
 
 
@@ -2245,7 +2250,7 @@ func skip_victory_march() -> void:
 ## returns before reaching it), but still guards here defensively in case something ever calls
 ## shake() directly.
 func shake(amplitude: float, duration: float) -> void:
-	if CombatView.disable_juice_for_tests or not is_inside_tree():
+	if CombatView.disable_juice_for_tests or UI3Motion.reduced() or not is_inside_tree():
 		return
 	if _active_shake_tween != null and _active_shake_tween.is_valid():
 		_active_shake_tween.kill()   # a second hit landed before the first shake finished

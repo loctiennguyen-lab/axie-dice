@@ -24,7 +24,7 @@ func start(cards: Array, tier: int, first: bool, jackpot: bool, shake_host: Cont
 	_tier = tier
 	_from = from_tier
 	_shake_host = shake_host
-	var reduce := MetaState.reduce_flash
+	var reduce := MetaState.reduce_flash or UI3Motion.reduced()
 	_plan = UI3Gacha.plan(cards.size(), tier, first, jackpot, reduce, flip_sec, from_tier)
 	if UI3Gacha.is_instant():
 		events.append("instant")
@@ -94,7 +94,7 @@ func _crack() -> void:
 		if why != null:
 			create_tween().tween_property(why, "modulate:a", 1.0, 0.15)
 		_crack_lines(cv)
-		if not MetaState.reduce_flash:
+		if not (MetaState.reduce_flash or UI3Motion.reduced()):
 			var base := cv.position
 			var tw := create_tween()
 			for j in 4:
@@ -159,7 +159,7 @@ func _jackpot() -> void:
 	for c in _cards:
 		if is_instance_valid(c) and bool((c as Control).get_meta("jackpot_card", false)):
 			_sparkle(c as Control)
-	if _shake_host == null or not is_instance_valid(_shake_host):
+	if _shake_host == null or not is_instance_valid(_shake_host) or UI3Motion.reduced():
 		return
 	var px := float(UI3Gacha.timing().get("shake_px", 10))
 	var base := _shake_host.position

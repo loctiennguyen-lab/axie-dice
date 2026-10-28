@@ -66,6 +66,10 @@ var audio_muted: bool = false
 ## game unplayable for someone sensitive to them.
 var reduce_flash: bool = false
 
+## Reduce motion (UI-04): no screen shake, hit-stop or particles; slides and scales become a short fade.
+## Separate from reduce_flash. Settings only, no rule or replay reads it (read through UI3Motion.reduced()).
+var reduce_motion: bool = false
+
 ## Rebound keyboard shortcuts: {action: [keycode, ...]}, only actions the player changed
 ## (scripts/ui/key_bindings.gd owns the defaults). Settings only, no rule reads it.
 var key_bindings: Dictionary = {}
@@ -905,6 +909,7 @@ func reload_from_store() -> void:
 	audio_sfx_volume = 1.0
 	audio_muted = false
 	reduce_flash = false
+	reduce_motion = false
 	key_bindings = {}
 	daily_date = ""
 	core_codex = {}
@@ -1109,6 +1114,7 @@ func load_from_disk() -> void:
 	audio_sfx_volume = clampf(float(parsed.get("audio_sfx_volume", 1.0)), 0.0, 1.0)
 	audio_muted = bool(parsed.get("audio_muted", false))
 	reduce_flash = bool(parsed.get("reduce_flash", false))
+	reduce_motion = bool(parsed.get("reduce_motion", false))
 	key_bindings = _key_bindings_from_json(parsed.get("key_bindings", {}))
 	daily_date = str(parsed.get("daily_date", ""))
 	core_codex = _flags_from_json(parsed.get("core_codex", {}), ["seen", "picked"])
@@ -1416,6 +1422,7 @@ func save_to_disk() -> void:
 		"audio_sfx_volume": audio_sfx_volume,
 		"audio_muted": audio_muted,
 		"reduce_flash": reduce_flash,
+		"reduce_motion": reduce_motion,
 		"key_bindings": key_bindings,
 		"daily_date": daily_date,
 		"core_codex": core_codex,

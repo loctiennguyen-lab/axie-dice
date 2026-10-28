@@ -235,6 +235,12 @@ static func enemy_step_gap() -> float:
 static func flashes_suppressed() -> bool:
 	return disable_juice_for_tests or MetaState.reduce_flash
 
+
+## True when the big MOTION effects must not play: everything flashes_suppressed() covers for shake,
+## plus Settings -> Reduce motion (UI3Motion.reduced()). Colour flashes keep using flashes_suppressed().
+static func motion_suppressed() -> bool:
+	return flashes_suppressed() or UI3Motion.reduced()
+
 @onready var _log_toggle_button: Button = %LogToggleButton
 @onready var _debug_log_container: PanelContainer = %DebugLogPanelContainer
 @onready var _log_panel: RichTextLabel = %LogPanel
@@ -2664,7 +2670,7 @@ func _spawn_foe_note(uid: int, text: String) -> void:
 	pos.x = clampf(pos.x, 24.0, vs.x - 24.0 - sz.x)
 	pos.y = clampf(pos.y, 24.0, vs.y - 24.0 - sz.y)
 	chip.position = pos
-	var rise := 16.0 if flashes_suppressed() else 40.0
+	var rise := 16.0 if motion_suppressed() else 40.0
 	var tw := chip.create_tween()
 	tw.tween_interval(1.0)
 	tw.set_parallel(true)
@@ -3481,7 +3487,7 @@ func _on_anchor_awakened(id: String) -> void:
 
 ## Spec 4.4: 0.1 s hit-stop when the Anchor wakes mid-fight. Real-time timer (ignores time_scale); skipped with reduce flashing / in tests.
 func _awaken_hit_stop() -> void:
-	if disable_juice_for_tests or MetaState.reduce_flash or not is_inside_tree():
+	if motion_suppressed() or not is_inside_tree():
 		return
 	hit_stops += 1
 	Engine.time_scale = 0.05
@@ -3613,7 +3619,7 @@ func _spawn_core_note(uid: int, lines: Array) -> void:
 	pos.y = clampf(pos.y, 24.0, vs.y - 24.0 - sz.y)
 	chip.position = pos
 	_core_float_live[target] = stack + 1
-	var rise := 8.0 if flashes_suppressed() else 24.0
+	var rise := 8.0 if motion_suppressed() else 24.0
 	var tw := chip.create_tween()
 	tw.tween_interval(1.1)
 	tw.chain().tween_property(chip, "position:y", maxf(24.0, pos.y - rise), 0.5)
@@ -4041,7 +4047,7 @@ func _start_dice_throw(fresh: Array) -> void:
 		_dm_audio.play("dm_roll")   # a pre-thrown roll already played it when the dice went up
 	last_throw = {"uids": entries.map(func(e): return int(e["uid"])), "reroll": rerolled}
 	var roller := _stage3d.get_dice_roller()
-	if MetaState.reduce_flash or roller == null or roller.will_skip():
+	if MetaState.reduce_flash or UI3Motion.reduced() or roller == null or roller.will_skip():
 		# No throw: the cards are already showing, the tags still go up.
 		for i in info:
 			_show_reroll_tags(i)
@@ -4104,7 +4110,7 @@ func _begin_pre_throw(uids: Array, rmode: int) -> void:
 			"faces": faces, "result_index": 0, "face_type": String(faces[0]["type"]),
 			"value": int(faces[0]["value"]), "small": (u as Unit).is_token, "uid": u.uid})
 	last_pre_throw = {"uids": units.map(func(u): return (u as Unit).uid), "thrown": false}
-	if disable_juice_for_tests or not is_instance_valid(_stage3d) or MetaState.reduce_flash:
+	if disable_juice_for_tests or not is_instance_valid(_stage3d) or MetaState.reduce_flash or UI3Motion.reduced():
 		return
 	var roller := _stage3d.get_dice_roller()
 	if roller == null or roller.will_skip():
@@ -4230,7 +4236,7 @@ func _after_impact(fn: Callable) -> void:
 
 
 func _play_hit_juice() -> void:
-	if flashes_suppressed():
+	if motion_suppressed():
 		return
 	var end_anim := _begin_hit_animation()
 	if is_inside_tree():

@@ -195,7 +195,7 @@ func _refresh(animate: bool = true) -> void:
 	if animate and is_inside_tree() and not MetaState.reduce_flash:
 		_map_layer.modulate.a = 0.0
 		var tw := create_tween()
-		tw.tween_property(_map_layer, "modulate:a", 1.0, UI3Theme.motion_sec("base"))
+		tw.tween_property(_map_layer, "modulate:a", 1.0, minf(UI3Theme.motion_sec("base"), UI3Motion.REDUCED_MAX_SEC) if UI3Motion.reduced() else UI3Theme.motion_sec("base"))
 	else:
 		_map_layer.modulate.a = 1.0
 	if _overlay_root == null or not _overlay_root.visible:

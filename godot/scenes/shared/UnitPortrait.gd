@@ -754,7 +754,7 @@ func spawn_float_text(text: String, css_class: String, big: int) -> void:
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lbl.position = Vector2(size.x * 0.5 - 20.0 + randf_range(-10.0, 10.0), -18.0)
 	add_child(lbl)
-	var rise := _FLOAT_RISE_REDUCED if CombatView.flashes_suppressed() else _FLOAT_RISE
+	var rise := _FLOAT_RISE_REDUCED if CombatView.motion_suppressed() else _FLOAT_RISE
 	var tw := create_tween()
 	tw.set_parallel(true)
 	tw.tween_property(lbl, "position:y", lbl.position.y - rise, _FLOAT_DURATION)

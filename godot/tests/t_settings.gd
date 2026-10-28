@@ -15,6 +15,7 @@ var _guard := SaveGuard.new()
 const EXPECTED_TESTS: Array[String] = [
 	"test_the_volume_sliders_move_the_real_audio_buses",
 	"test_reduce_flashing_actually_suppresses_the_effects_that_flash",
+	"test_reduce_motion_toggle_sets_the_setting_and_gates_combat_motion",
 	"test_abandon_run_is_hidden_when_there_is_no_run_to_abandon",
 	"test_abandon_run_needs_a_confirmation_and_then_deletes_the_save",
 	"test_settings_survive_a_reload",
@@ -28,6 +29,7 @@ func _ready() -> void:
 
 	await test_the_volume_sliders_move_the_real_audio_buses()
 	await test_reduce_flashing_actually_suppresses_the_effects_that_flash()
+	await test_reduce_motion_toggle_sets_the_setting_and_gates_combat_motion()
 	await test_abandon_run_is_hidden_when_there_is_no_run_to_abandon()
 	await test_abandon_run_needs_a_confirmation_and_then_deletes_the_save()
 	await test_settings_survive_a_reload()
@@ -102,6 +104,29 @@ func test_reduce_flashing_actually_suppresses_the_effects_that_flash() -> void:
 	_done("test_reduce_flashing_actually_suppresses_the_effects_that_flash")
 
 
+func test_reduce_motion_toggle_sets_the_setting_and_gates_combat_motion() -> void:
+	var was_test_flag := CombatView.disable_juice_for_tests
+	CombatView.disable_juice_for_tests = false
+	MetaState.reduce_motion = false
+	MetaState.reduce_flash = false
+	_assert(not CombatView.motion_suppressed(), "motion suppressed with the setting off")
+	var view := await _open()
+	var box := _find(view, CheckBox, "ReduceMotionCheck") as CheckBox
+	_assert(box != null, "there is no Reduce motion toggle on the settings screen")
+	if box != null:
+		box.button_pressed = true
+		await get_tree().process_frame
+		_assert(MetaState.reduce_motion and not MetaState.reduce_flash, "motion toggle did not set only reduce_motion")
+		_assert(CombatView.motion_suppressed(), "shake / hit-stop gate ignores reduce_motion")
+		_assert(not CombatView.flashes_suppressed(), "reduce_motion leaked into the flash gate")
+		_assert(box.focus_mode != Control.FOCUS_NONE, "motion toggle is not focusable")
+	view.queue_free()
+	await get_tree().process_frame
+	MetaState.reduce_motion = false
+	CombatView.disable_juice_for_tests = was_test_flag
+	_done("test_reduce_motion_toggle_sets_the_setting_and_gates_combat_motion")
+
+
 func test_abandon_run_is_hidden_when_there_is_no_run_to_abandon() -> void:
 	RunState.clear_saved_run()
 	var view := await _open()
@@ -155,14 +180,22 @@ func test_abandon_run_needs_a_confirmation_and_then_deletes_the_save() -> void:
 func test_settings_survive_a_reload() -> void:
 	MetaState.audio_sfx_volume = 0.4
 	MetaState.reduce_flash = true
+	MetaState.reduce_motion = true
 	MetaState.save_to_disk()
 	MetaState.audio_sfx_volume = 1.0
 	MetaState.reduce_flash = false
+	MetaState.reduce_motion = false
 	MetaState.load_from_disk()
 	_assert(is_equal_approx(MetaState.audio_sfx_volume, 0.4),
 		"sfx volume came back as %f after a reload" % MetaState.audio_sfx_volume)
 	_assert(MetaState.reduce_flash, "reduce_flash did not survive a reload")
+	_assert(MetaState.reduce_motion, "reduce_motion did not survive a reload")
 	MetaState.reduce_flash = false
+	MetaState.reduce_motion = false
+	MetaState.save_to_disk()
+	MetaState.reduce_motion = true
+	MetaState.reload_from_store()
+	_assert(not MetaState.reduce_motion, "reduce_motion not reset by reload_from_store with no saved value")
 	_done("test_settings_survive_a_reload")
 
 

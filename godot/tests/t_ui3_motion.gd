@@ -15,6 +15,7 @@ func _ready() -> void:
 	_test_loader()
 	_test_validation()
 	await _test_play()
+	await _test_reduced()
 	await _test_failed_load()
 	UI3Motion.record = false
 	UI3Motion.reset_table()
@@ -53,6 +54,38 @@ func _test_validation() -> void:
 	_ok(not UI3Motion.validate_moment("x", {"in": {"ms": 10}, "particles": {"texture": "res://nope.png"}}).is_empty(), "missing particle texture accepted")
 	_ok(UI3Motion.validate_moment("x", {"in": {"ms": 10, "trans": "BACK", "ease": "OUT", "props": {"alpha": {"to": 1}}}}).is_empty(), "valid moment rejected")
 	_ok(not UI3Motion.has_moment("does_not_exist") and not UI3Motion.has_moment("_note"), "unknown / note key counted as a moment")
+
+
+## Reduce motion: no shake, no particles, every phase <= 120 ms, scale/offset not tweened.
+func _test_reduced() -> void:
+	var table := {
+		"fx": {"in": {"ms": 400, "delay_ms": 200, "props": {"alpha": {"from": 0.0, "to": 1.0}, "scale": {"from": 0.5, "to": 1.0}}},
+			"out": {"ms": 300, "props": {"alpha": {"to": 0.0}}},
+			"shake": {"px": 8, "ms": 200},
+			"particles": {"texture": "res://icon.svg", "amount": 4, "lifetime_ms": 300}},
+	}
+	UI3Motion.reset_table(table)
+	_ok(not UI3Motion.reduced(), "reduced() on by default")
+	_ok(is_equal_approx(UI3Motion.duration_sec("fx"), 0.9), "normal duration changed: %f" % UI3Motion.duration_sec("fx"))
+	MetaState.reduce_motion = true
+	_ok(UI3Motion.reduced(), "reduced() ignores MetaState.reduce_motion")
+	_ok(UI3Motion.duration_sec("fx") <= 0.24 + 0.0001, "reduced duration > 2 x 0.12 s: %f" % UI3Motion.duration_sec("fx"))
+	var n := Control.new()
+	n.size = Vector2(40, 40)
+	add_child(n)
+	var base := n.position
+	var tw := UI3Motion.play("fx", n, {})
+	_ok(tw != null, "reduced play gave no fade tween")
+	_ok(is_equal_approx(n.scale.x, 1.0), "scale was not jumped to its end value: %f" % n.scale.x)
+	await tw.finished
+	await get_tree().process_frame
+	_ok(n.get_child_count() == 0, "particles spawned under Reduce motion")
+	_ok(n.position == base, "node shook / moved under Reduce motion")
+	_ok(is_equal_approx(n.modulate.a, 0.0), "reduced play did not end faded out")
+	n.queue_free()
+	MetaState.reduce_motion = false
+	UI3Motion.reset_table()
+	UI3Motion.record = true
 
 
 ## A table that failed to load must not leave a banner up or a chip stacked.

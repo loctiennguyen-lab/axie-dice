@@ -237,6 +237,10 @@ func _build_accessibility() -> void:
 		MetaState.reduce_flash, func(on: bool) -> void:
 			MetaState.reduce_flash = on
 			MetaState.save_to_disk())
+	_toggle("Reduce motion", "No shaking, no particles, quicker transitions",
+		MetaState.reduce_motion, func(on: bool) -> void:
+			MetaState.reduce_motion = on
+			MetaState.save_to_disk(), "ReduceMotionCheck")
 	_row("Colour-blind-safe glyphs", "Always on: every mechanic colour ships with its glyph and word.")
 
 
@@ -449,9 +453,9 @@ func _row(title: String, desc: String = "", ctrl: Control = null) -> HBoxContain
 
 
 ## A toggle that prints On / Off as text next to the check.
-func _toggle(label: String, desc: String, pressed: bool, on_toggle: Callable) -> void:
+func _toggle(label: String, desc: String, pressed: bool, on_toggle: Callable, node_name := "") -> void:
 	var box := CheckBox.new()
-	box.name = "%sCheck" % label.split(" ")[0]
+	box.name = node_name if node_name != "" else "%sCheck" % label.split(" ")[0]
 	box.text = "On" if pressed else "Off"
 	box.button_pressed = pressed
 	box.toggled.connect(func(on: bool) -> void:

@@ -792,7 +792,7 @@ func _on_first_bounce(d: Dictionary) -> void:
 
 
 func _shake() -> void:
-	if _camera == null or not is_instance_valid(_camera):
+	if UI3Motion.reduced() or _camera == null or not is_instance_valid(_camera):
 		return
 	if _shake_tween != null and _shake_tween.is_valid():
 		_shake_tween.kill()

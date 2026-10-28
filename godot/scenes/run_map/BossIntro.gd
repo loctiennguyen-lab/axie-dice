@@ -59,7 +59,7 @@ func setup(boss_key: String) -> bool:
 func _ready() -> void:
 	if data.is_empty():
 		return
-	_flash_on = not MetaState.reduce_flash
+	_flash_on = not (MetaState.reduce_flash or UI3Motion.reduced())
 	theme = UI3Theme.get_theme()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP

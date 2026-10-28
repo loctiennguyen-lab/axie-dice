@@ -158,7 +158,7 @@ func start_spin() -> void:
 	spinning = true
 	mouse_default_cursor_shape = Control.CURSOR_DRAG
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	if MetaState.reduce_flash:
+	if MetaState.reduce_flash or UI3Motion.reduced():
 		pivot.basis = settled_basis()
 	set_process(true)
 
@@ -191,7 +191,7 @@ func _process(dt: float) -> void:
 	if _resume_at > 0.0:
 		_resume_at -= dt
 		return
-	if MetaState.reduce_flash:
+	if MetaState.reduce_flash or UI3Motion.reduced():
 		return
 	var w := TAU / TURN_S
 	# rate form (x at 1 turn, y at 2 turns per 12 s) so a drag offset is kept
@@ -201,7 +201,7 @@ func _process(dt: float) -> void:
 ## 49-equip-moment: one extra 360 degree yaw plus a 0.12 m hop over 400 ms (TRANS_CUBIC EASE_OUT).
 ## Reduce flashing: no move.
 func play_equip() -> void:
-	if MetaState.reduce_flash or _busy:
+	if MetaState.reduce_flash or UI3Motion.reduced() or _busy:
 		return
 	_busy = true
 	var base := pivot.basis
@@ -226,7 +226,7 @@ signal landed
 func play_drop() -> void:
 	var rest := settled_basis()
 	var y_rest := pivot.position.y
-	if MetaState.reduce_flash or DisplayServer.get_name() == "headless":
+	if MetaState.reduce_flash or UI3Motion.reduced() or DisplayServer.get_name() == "headless":
 		pivot.basis = rest
 		landed.emit()
 		return

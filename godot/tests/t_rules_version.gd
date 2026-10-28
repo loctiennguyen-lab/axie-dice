@@ -264,7 +264,8 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Pinned, 2026-10-27 (SR-V): MetaState.run_bonuses adds no Pass perks while the economy is remote (server-owned; after the M1 reset
 ## nobody holds perks, the old Pass that granted them is gone, and a server replay cannot see them). Local econ and tests unchanged.
 ## Run result: NO, stays -v.
-const FINGERPRINT := "53196a9af2391ed77d61a11d1ac56d2f4ae00e8515da4ddb3873506971b52538"
+## Pinned, 2026-10-28 (UI-04 prep): MetaState.reduce_motion (Settings -> Reduce motion). Settings/UI only, no rule or replay input. Run result: NO, stays -v.
+const FINGERPRINT := "9c24ff4a89689eeb268ce70c90a5466f8a89085148ed9412dc5e324161390c56"
 
 
 func _ready() -> void:

@@ -39,7 +39,7 @@ static func attach(mi: MeshInstance3D, skin_id: String, animated: bool = true) -
 	for i in 6:
 		fx._faces.append(mi.get_surface_override_material(i + 1) as StandardMaterial3D)
 	fx._motion = (DiceSkin.info(skin_id).get("motion", {}) as Dictionary)
-	fx._moving = animated and not MetaState.reduce_flash
+	fx._moving = animated and not (MetaState.reduce_flash or UI3Motion.reduced())
 	mi.add_child(fx)
 	fx._build(mi)
 	return fx

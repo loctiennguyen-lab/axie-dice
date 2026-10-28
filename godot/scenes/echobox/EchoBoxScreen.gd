@@ -1270,7 +1270,7 @@ func _play_ceremony(out: Array) -> void:
 	v.add_child(chest)
 	if not _skip:
 		var t := create_tween()
-		var dur := 0.2 if reduce_flashing else (1.5 if _rarity_idx(top) >= 5 else 1.2)
+		var dur := 0.2 if (reduce_flashing or UI3Motion.reduced()) else (1.5 if _rarity_idx(top) >= 5 else 1.2)
 		t.tween_property(chest, "modulate", Color(rim.r, rim.g, rim.b, 1.0).lerp(Color.WHITE, 0.5), dur)
 		var elapsed := 0.0
 		while elapsed < dur and not _skip and is_inside_tree():
@@ -1344,7 +1344,7 @@ func _play_ceremony(out: Array) -> void:
 		close_modal()
 		_refresh_all())
 	btns.add_child(done)
-	if not (instant or reduce_flashing or MetaState.reduce_flash or DisplayServer.get_name() == "headless"):
+	if not (instant or reduce_flashing or MetaState.reduce_flash or UI3Motion.reduced() or DisplayServer.get_name() == "headless"):
 		_flip_in(cards, order)
 	_focus_later(done)
 	_refresh_all()

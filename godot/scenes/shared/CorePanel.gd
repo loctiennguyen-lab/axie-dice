@@ -106,7 +106,7 @@ func pulse(core_id: String) -> void:
 	s.set_meta("pulsed", int(s.get_meta("pulsed", 0)) + 1)
 	var hot := UI3Theme.color("text")
 	var tint := Color(1.0 + hot.r * 0.5, 1.0 + hot.g * 0.5, 1.0 + hot.b * 0.5, 1.0)
-	if CombatView.flashes_suppressed():
+	if CombatView.motion_suppressed():
 		s.modulate = tint
 		tw.tween_interval(0.3)
 		tw.tween_property(s, "modulate", Color.WHITE, 0.01)
