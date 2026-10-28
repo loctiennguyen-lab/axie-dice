@@ -1493,7 +1493,7 @@ static func enemy_tag(kind: StringName, word: String, inline := false) -> PanelC
 			fill = UI3Theme.color("tag_shell_bg")
 			border = UI3Theme.color("shell")
 			text_col = UI3Theme.color("shell")
-			rad = UI3Theme.radius("s")
+			rad = UI3Theme.radius("chip_square")   # the only square enemy tag
 			glyph = "face_shield"
 		_:
 			fill = UI3Theme.color("tag_boss_bg")

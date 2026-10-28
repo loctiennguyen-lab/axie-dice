@@ -939,7 +939,7 @@
     {
       "text": "text",
       "background": "tag_boss_bg",
-      "ratio": 2.92,
+      "ratio": 5.44,
       "pass": "AA body",
       "ui04": true
     },
@@ -1274,14 +1274,8 @@
       "blur": 0,
       "color": "#000000a0"
     },
-    "lip": {
-      "value": 6,
-      "meaning": "UI-05 NEW · hard lip under plates"
-    },
-    "lip_l": {
-      "value": 8,
-      "meaning": "UI-05 NEW · lip under buttons"
-    },
+    "lip": 6,
+    "lip_l": 8,
     "lip_pressed": 2,
     "text_on_viewport": {
       "x": 0,

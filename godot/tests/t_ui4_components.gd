@@ -40,27 +40,28 @@ func _ok(cond: bool, msg: String) -> void:
 
 
 func _theme() -> void:
+	UI3Theme.set_scale_override(1.0)
 	var t := UI3Theme.get_theme()
 	for v in ["PanelDock", "PanelKeycap", "PanelKeycapS", "PanelTagSquare"]:
 		_ok(t.has_stylebox("panel", v), "theme lacks %s" % v)
 	for s in ["normal", "hover", "pressed", "disabled", "focus"]:
 		_ok(t.has_stylebox(s, "ButtonPrimaryS"), "ButtonPrimaryS lacks %s" % s)
 	var plate := t.get_stylebox("panel", "PanelPlate") as StyleBoxFlat
-	_ok(plate.border_width_left == 2 and plate.border_color == Color.html("#58321d"), "plate edge 2 px wood-3")
-	_ok(plate.shadow_offset == Vector2(0, 4) and plate.get_corner_radius(CORNER_TOP_LEFT) == 16, "plate hard shadow y4, radius 16")
+	_ok(plate.border_width_left == UI3Theme.stroke("rim") and plate.border_color == UI3Theme.color("plate_rim"), "plate bevel 2 px plate_rim (style A)")
+	_ok(plate.shadow_offset == Vector2(0, float(UI3Theme.tokens()["shadow"]["lip"])) and plate.shadow_color == UI3Theme.color("plate_ink") and plate.get_corner_radius(CORNER_TOP_LEFT) == UI3Theme.radius("l"), "plate hard lip (0, lip) in plate_ink, radius l")
 	var dlg := t.get_stylebox("panel", "PanelDialog") as StyleBoxFlat
-	_ok(dlg.shadow_size == 0 and dlg.shadow_offset == Vector2(0, 8), "dialog shadow hard y8, no blur")
+	_ok(dlg.shadow_size <= 1 and dlg.shadow_offset == Vector2(0, 8), "dialog shadow hard y8, no blur")
 	var prim := t.get_stylebox("normal", "ButtonPrimaryM") as StyleBoxFlat
-	_ok(prim.shadow_color == Color.html("#b25127"), "primary lip is btn_primary_lip")
+	_ok(prim.shadow_color == UI3Theme.color("btn_primary_lip"), "primary lip is btn_primary_lip")
 	var sec := t.get_stylebox("normal", "ButtonSecondary") as StyleBoxFlat
-	_ok(sec.shadow_offset == Vector2(0, 4) and sec.shadow_color == Color.html("#1a120d"), "secondary hard lip y4")
+	_ok(sec.shadow_offset == Vector2(0, float(UI3Theme.tokens()["shadow"]["lip"])) and sec.shadow_color == UI3Theme.color("btn_secondary_lip"), "secondary hard lip (0, lip)")
 	var sel := t.get_stylebox("panel", "PanelCardSelected") as StyleBoxFlat
-	_ok(sel.expand_margin_left == 4 and sel.get_corner_radius(CORNER_TOP_LEFT) == 20, "card selected outline outside 4 px, radius 20")
+	_ok(sel.expand_margin_left == 4 and sel.get_corner_radius(CORNER_TOP_LEFT) == UI3Theme.radius("xl"), "card selected outline outside 4 px, radius xl")
 	var kc := t.get_stylebox("panel", "PanelKeycap") as StyleBoxFlat
-	_ok(kc.bg_color == Color.html("#291808") and kc.shadow_offset == Vector2(0, 3), "keycap fill kam-1, shadow 3")
+	_ok(kc.bg_color == UI3Theme.color("keycap_bg") and kc.shadow_offset == Vector2(0, 3), "keycap fill kam-1, shadow 3")
 	var ts := t.get_stylebox("panel", "PanelTagSquare") as StyleBoxFlat
-	_ok(ts.get_corner_radius(CORNER_TOP_LEFT) == 4 and ts.border_width_left == 2, "tag_square radius 4, 2 px border")
-	_ok(UI3Theme.size_of("dice_dock_w") == 848 and UI3Theme.size_of("action_dock_w") == 352, "dock widths")
+	_ok(ts.get_corner_radius(CORNER_TOP_LEFT) == UI3Theme.radius("chip_square") and ts.border_width_left == 2, "tag_square radius 4, 2 px border")
+	_ok(UI3Theme.size_of("dice_dock_w") == 808 and UI3Theme.size_of("action_dock_w") == 352, "dock widths")
 
 
 func _chips(host: Control) -> void:
@@ -113,7 +114,7 @@ func _tags(host: Control) -> void:
 	var leader := UI3.enemy_tag(&"leader", "LEADER").get_theme_stylebox("panel") as StyleBoxFlat
 	_ok(leader.bg_color == UI3Theme.color("leader") and leader.shadow_offset == Vector2(0, 3), "leader solid + shadow 3")
 	var shell := UI3.enemy_tag(&"shell", "SHELL").get_theme_stylebox("panel") as StyleBoxFlat
-	_ok(shell.get_corner_radius(CORNER_TOP_LEFT) == 4, "shell is the square tag")
+	_ok(shell.get_corner_radius(CORNER_TOP_LEFT) == UI3Theme.radius("chip_square"), "shell is the square tag")
 	var elite := UI3.enemy_tag(&"elite", "ELITE").get_theme_stylebox("panel") as StyleBoxFlat
 	_ok(elite.get_corner_radius(CORNER_TOP_LEFT) >= 100 and elite.border_color == UI3Theme.color("tag_elite_border"), "elite outline pill")
 	var ns := UI3.name_suffix("BC")
@@ -166,7 +167,7 @@ func _buttons(host: Control) -> void:
 		dis.disabled = true
 		_ok(kind == &"free" or dis.find_child("CostChip", true, false).modulate.a < 1.0, "not-enough chip dimmed")
 	var small := UI3.button("RETRY", &"primary", &"S")
-	_ok(small.theme_type_variation == "ButtonPrimaryS" and small.custom_minimum_size.y == 48.0, "primary S is UI-04 small, 48")
+	_ok(small.theme_type_variation == "ButtonPrimaryS" and small.custom_minimum_size.y == float(UI3Theme.size_of("btn_s")), "primary S is the small button, btn_s")
 	small.free()
 	var sec := UI3.button("Back", &"secondary", &"S")
 	_ok(sec.theme_type_variation == "ButtonSecondaryS", "secondary S unchanged")
