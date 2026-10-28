@@ -203,7 +203,7 @@ func _row(r: Dictionary) -> Control:
 	row.add_child(col)
 	var name_l := UI3.label(TranslationServer.translate(String(r.get("title", ""))), "LabelDisplay")
 	name_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	name_l.add_theme_font_size_override("font_size", 18)
+	name_l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	name_l.clip_text = true
 	if not on:
 		name_l.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
@@ -248,7 +248,7 @@ func _rebuild_offer() -> void:
 		return
 	_offer_card.visible = not _tray.visible
 	var once := UI3.label(TranslationServer.translate("Aid offer · once"), "LabelMuted")
-	once.add_theme_font_size_override("font_size", 18)
+	once.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	_offer_box.add_child(once)
 	_offer_box.add_child(UI3.label(TranslationServer.translate(String(offer.get("title", ""))), "LabelDisplay"))
 	var what := UI3.label(TranslationServer.translate(String(offer.get("what", ""))), "LabelMuted")

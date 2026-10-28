@@ -678,7 +678,7 @@ func _cosmetic_reward_block(v: VBoxContainer, cos_id: String, st: String) -> voi
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	nm.clip_text = true
-	nm.add_theme_font_size_override("font_size", 18)
+	nm.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(nm)
 	var tw := UI3.label(DiceSkin.TIER_NAMES.values()[clampi(tier, 0, 5)])

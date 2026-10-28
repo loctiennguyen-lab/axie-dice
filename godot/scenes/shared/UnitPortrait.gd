@@ -226,7 +226,7 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	_tag_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_tag_chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_tag_label = UI3.label(tag, "LabelDisplay")
-	_tag_label.add_theme_font_size_override("font_size", 16)
+	_tag_label.add_theme_font_size_override("font_size", UI3Theme.size_of("text_key_hint"))
 	_tag_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_tag_chip.add_child(_tag_label)
 	_tag_chip.visible = tag != ""
@@ -272,7 +272,7 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	_shell_row.add_child(_shell_bar)
 	_shell_label = UI3.label("", "LabelDisplay")
 	_shell_label.name = "ShellText"
-	_shell_label.add_theme_font_size_override("font_size", 18)
+	_shell_label.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	_shell_label.add_theme_color_override("font_color", UI3Theme.color("shell"))
 	_shell_label.anchor_left = 1.0
 	_shell_label.anchor_right = 1.0

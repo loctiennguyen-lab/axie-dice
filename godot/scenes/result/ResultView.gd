@@ -324,7 +324,7 @@ func _best_set_line(stats: Dictionary) -> Control:
 	var b: Dictionary = stats["best_bo"] if stats["best_bo"] is Dictionary else {}
 	var l := UI3.label("", "LabelDisplay")
 	l.name = "BestSetLine"
-	l.add_theme_font_size_override("font_size", 24)
+	l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
 	if b.is_empty() or int(b.get("size", 0)) < 3:
 		l.text = tr("No Set this run. Next time try keeping 3 dice of the same part.")
 		l.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
@@ -653,7 +653,7 @@ func _build_relics_card(relic_ids: Array, run_rule_id: String = "", impact: Dict
 			txt = tr("Most impact") + " · " + txt
 		var im := UI3.label(txt, "LabelMuted" if (e.is_empty() or is_pact) else "")
 		im.name = "CoreImpact"
-		im.add_theme_font_size_override("font_size", 18)   # review: the description is never below 18
+		im.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))   # review: the description is never below 18
 		im.add_theme_color_override("font_color", UI3Theme.color("text"))   # full cream, muted greys read too faint here
 		im.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		im.custom_minimum_size.x = 360.0

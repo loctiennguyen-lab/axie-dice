@@ -1512,7 +1512,7 @@ func _layout_row_strip(x0: float, col_w: float, gap: float, top: float) -> void:
 		var w: float = (sp[1] - sp[0] + 1) * col_w + (sp[1] - sp[0]) * gap
 		var word := "FRONT" if r == 0 else "BACK"
 		var l := UI3.label(word, "LabelDisplay")
-		l.add_theme_font_size_override("font_size", 18)
+		l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		l.add_theme_color_override("font_color", UI3Theme.color("text" if r == 0 else "text_muted"))
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.position = Vector2(x, top - 52.0)   # clear of a picked card, which lifts 18 px
@@ -1648,20 +1648,8 @@ func _show_turn_banner(eyebrow: String, phase_text: String) -> void:
 		banner.visible = false
 		return
 	banner.pivot_offset = banner.get_combined_minimum_size() * 0.5
-	banner.scale = Vector2(0.9, 0.9)
-	banner.modulate = Color(1, 1, 1, 0)
-	var tw := create_tween()
-	tw.set_parallel(true)
-	tw.tween_property(banner, "modulate:a", 1.0, 0.39)
-	tw.tween_property(banner, "scale", Vector2.ONE, 0.39).set_trans(Tween.TRANS_BACK) \
-		.set_ease(Tween.EASE_OUT)
-	tw.set_parallel(false)
-	tw.tween_interval(0.75)
-	tw.set_parallel(true)
-	tw.tween_property(banner, "modulate:a", 0.0, 0.36)
-	tw.tween_property(banner, "scale", Vector2(1.04, 1.04), 0.36)
-	tw.set_parallel(false)
-	tw.tween_callback(func(): banner.visible = false)
+	# Timings live in assets/data/ui/motion_ui3.json ("turn_banner").
+	UI3Motion.play("turn_banner", banner, {"hide_on_done": true})   # opts only matter if the table failed to load
 
 
 func _connect_event_bus() -> void:
@@ -2105,7 +2093,7 @@ func _build_unit_inspect(u: Unit, compact := false) -> Control:
 	head.add_child(nm)
 	var tag := "Egg" if is_egg else ("Boss" if (u.side == "e" and u.is_boss) else ("Enemy" if u.side == "e" else "Axie"))
 	var hp_l := UI3.label("%s · %d / %d HP" % [TranslationServer.translate(tag), maxi(u.hp, 0), maxi(u.max_hp, 1)], "LabelDisplay")
-	hp_l.add_theme_font_size_override("font_size", 18)
+	hp_l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	head.add_child(hp_l)
 	col.add_child(UI3.hp_bar(maxi(u.hp, 0), maxi(u.max_hp, 1), maxi(u.shield, 0), int(u.status.get("poison", 0)),
 		&"enemy" if u.side == "e" else &"axie"))
@@ -2333,11 +2321,11 @@ func _inspect_faces(col: VBoxContainer, u: Unit) -> void:
 		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		row.add_child(ic)
 		var value := UI3.label("–" if face_type == "blank" else str(_live_face_value(u, i)), "LabelDisplay")
-		value.add_theme_font_size_override("font_size", 24)
+		value.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
 		value.custom_minimum_size = Vector2(36, 0)
 		row.add_child(value)
 		var word := UI3.label(UI3.face_word(fk), "LabelDisplay")
-		word.add_theme_font_size_override("font_size", 18)
+		word.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		word.add_theme_color_override("font_color", UI3Theme.color(String(UI3.FACE_WORD_COLOR[fk])))
 		word.custom_minimum_size = Vector2(88, 0)
 		row.add_child(word)
@@ -2355,7 +2343,7 @@ func _inspect_faces(col: VBoxContainer, u: Unit) -> void:
 		row.add_child(cap)
 		if i == rolled_index:
 			var mark := UI3.label(TranslationServer.translate("Rolled"), "LabelDisplay")
-			mark.add_theme_font_size_override("font_size", 18)
+			mark.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 			mark.add_theme_color_override("font_color", UI3Theme.color("success_text"))
 			row.add_child(mark)
 		list.add_child(cell)
@@ -3399,14 +3387,9 @@ func _spawn_combo_name(nm: String, full := false) -> void:
 	_combo_banners_live += 1
 	chip.global_position = Vector2((vs.x - sz.x) / 2.0, 120.0 + float(slot) * (sz.y + 12.0))
 	chip.pivot_offset = sz / 2.0
-	chip.scale = Vector2(0.7, 0.7)
-	var tw := chip.create_tween()
-	tw.tween_property(chip, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tw.tween_interval(COMBO_FLOAT_SEC - 0.25)
-	tw.tween_property(chip, "modulate:a", 0.0, 0.25)
-	tw.tween_callback(func():
-		_combo_banners_live = maxi(_combo_banners_live - 1, 0)
-		chip.queue_free())
+	# Timings live in assets/data/ui/motion_ui3.json ("combo_banner"); the chip lives COMBO_FLOAT_SEC in total.
+	UI3Motion.play("combo_banner", chip, {"hold_ms": (COMBO_FLOAT_SEC - 0.25) * 1000.0, "free_on_done": true,
+		"on_done": func(): _combo_banners_live = maxi(_combo_banners_live - 1, 0)})
 
 
 ## Anchor lane: mutation fires. First one of the fight = small banner (house glyph, "MUTATION", 1.0 s, never blocks);
@@ -3456,7 +3439,7 @@ func _spawn_mutation_banner(house: String, nm: String) -> void:
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(ic)
 	var tag := UI3.label(TranslationServer.translate("MUTATION"), "LabelMuted")
-	tag.add_theme_font_size_override("font_size", 18)
+	tag.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	tag.add_theme_color_override("font_color", col)
 	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(tag)
@@ -4953,7 +4936,7 @@ func _update_coach() -> void:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 16)
 		_coach_label = UI3.label("")
-		_coach_label.add_theme_font_size_override("font_size", 18)
+		_coach_label.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		_coach_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_coach_label.custom_minimum_size = Vector2(520, 0)
 		row.add_child(_coach_label)

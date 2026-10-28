@@ -78,11 +78,15 @@ static func hex(value: String) -> Color:
 
 
 ## Integer size token (tokens.size.<name>), e.g. size_of("btn_m") == 56. Use `size_dict` for w/h pairs.
-static func size_of(token: String) -> int:
+## When the token is missing: returns `fallback` if given (>= 0), else 18 for `text_*` tokens (a 0 px font
+## makes text vanish), else 0.
+static func size_of(token: String, fallback := -1) -> int:
 	var v: Variant = (tokens().get("size", {}) as Dictionary).get(token)
 	if v == null or typeof(v) == TYPE_DICTIONARY:
 		push_error("UI3Theme: unknown or non-scalar size token '%s'" % token)
-		return 0
+		if fallback >= 0:
+			return fallback
+		return 18 if token.begins_with("text_") else 0
 	return int(v)
 
 

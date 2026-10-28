@@ -26,7 +26,7 @@ func _init() -> void:
 	line.add_theme_color_override("font_color", UI3Theme.color("text"))
 	line.add_theme_color_override("font_outline_color", UI3Theme.color("panel"))
 	line.add_theme_constant_override("outline_size", 0)
-	line.add_theme_font_size_override("font_size", 18)
+	line.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	var bg := UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("s"))
 	bg.bg_color.a = 0.94
 	bg.content_margin_left = 10
@@ -44,7 +44,7 @@ func _init() -> void:
 	safe_button = UI3.button("Safe", &"secondary", &"S")
 	safe_button.name = "SafeButton"
 	for b in [gamble_button, safe_button]:
-		b.add_theme_font_size_override("font_size", 18)
+		b.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		b.clip_text = true
 		b.size = Vector2(BTN_W, ROW_H)
 		add_child(b)

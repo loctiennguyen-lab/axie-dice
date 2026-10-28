@@ -168,7 +168,7 @@ func _build_curtain() -> void:
 	center.add_child(col)
 
 	_curtain_title = UI3.label("", "LabelScreenTitle")
-	_curtain_title.add_theme_font_size_override("font_size", 36)
+	_curtain_title.add_theme_font_size_override("font_size", UI3Theme.size_of("text_banner"))
 	_curtain_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(_curtain_title)
 

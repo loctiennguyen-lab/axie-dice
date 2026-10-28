@@ -43,14 +43,14 @@ static func build(btn: Button) -> Dictionary:
 	plate.set_anchors_preset(Control.PRESET_FULL_RECT)
 	body.add_child(plate)
 	var name_label := UI3.label("")
-	name_label.add_theme_font_size_override("font_size", 18)
+	name_label.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	name_label.add_theme_color_override("font_color", UI3Theme.color("text"))
 	name_label.clip_text = true
 	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(name_label)
 	var hp_label := UI3.label("", "LabelDisplay")
-	hp_label.add_theme_font_size_override("font_size", 18)
+	hp_label.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	hp_label.add_theme_color_override("font_color", UI3Theme.color("text"))
 	hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	hp_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -236,7 +236,7 @@ static func _update_v4(content: Dictionary, d: Dictionary) -> void:
 	if pv != "" and not content.has("pv_label"):
 		var l := UI3.label("", "LabelDisplay")
 		l.name = "SetPreview"
-		l.add_theme_font_size_override("font_size", 18)
+		l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		l.add_theme_color_override("font_color", UI3Theme.color("accent"))
 		l.add_theme_color_override("font_outline_color", UI3Theme.color("panel"))
 		l.add_theme_constant_override("outline_size", 4)
@@ -261,7 +261,7 @@ static func _update_crack(content: Dictionary, d: Dictionary) -> void:
 		var chip := UI3.chip("1/2")
 		chip.name = "CrackChip"
 		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		((chip.get_child(0)) as Label).add_theme_font_size_override("font_size", 18)
+		((chip.get_child(0)) as Label).add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		chip.position = Vector2(W - 62.0, 34.0)   # 10 px clear of the card edge (chip is ~48 wide at 18)
 		body.add_child(chip)
 		content["crack_chip"] = chip

@@ -121,7 +121,7 @@ func _build(extra_line: String) -> void:
 	cc.add_child(_card)
 	var tag := UI3.label(TranslationServer.translate("ANCHOR AWAKENED"), "LabelDisplay")
 	tag.name = "AwakenTag"
-	tag.add_theme_font_size_override("font_size", 24)
+	tag.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
 	tag.add_theme_color_override("font_color", gold)
 	tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -173,7 +173,7 @@ func _build(extra_line: String) -> void:
 	_card.add_child(an)
 	var ar := UI3.label(AnchorAdapter.awaken_rule(anchor_id), "LabelMuted")
 	ar.name = "AwakenRule"
-	ar.add_theme_font_size_override("font_size", 24)
+	ar.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
 	ar.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ar.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	ar.custom_minimum_size.x = 760

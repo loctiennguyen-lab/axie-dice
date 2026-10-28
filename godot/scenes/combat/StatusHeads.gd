@@ -142,12 +142,12 @@ static func _preview_chip(text: String) -> PanelContainer:
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var big := UI3.label(text, "LabelDisplay")
 	big.name = "Value"
-	big.add_theme_font_size_override("font_size", 24)
+	big.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
 	big.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(big)
 	var hint := UI3.label(TranslationServer.translate("Break with debuff / poison / pierce / AoE"), "LabelMuted")
 	hint.name = "Hint"
-	hint.add_theme_font_size_override("font_size", 18)
+	hint.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(hint)
 	p.add_child(v)

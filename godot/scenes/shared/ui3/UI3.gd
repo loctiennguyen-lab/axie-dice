@@ -434,7 +434,7 @@ static func icon_chip(text: String, tex: Texture2D, border: Color, chip_name := 
 		row.add_child(ic)
 	var l := label(text, "LabelDisplay")
 	l.name = "Text"
-	l.add_theme_font_size_override("font_size", 18)
+	l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(l)
 	p.add_child(row)
@@ -470,7 +470,7 @@ static func mini_badge(text: String, tex: Texture2D, border: Color, badge_name :
 		row.add_child(ic)
 	var l := label(text, "LabelDisplay")
 	l.name = "Text"
-	l.add_theme_font_size_override("font_size", 18)
+	l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(l)
 	p.add_child(row)
@@ -491,7 +491,7 @@ static func float_chip(text: String, debuff := true) -> PanelContainer:
 	sb.content_margin_bottom = 4
 	p.add_theme_stylebox_override("panel", sb)
 	var l := label(text, "LabelDisplay")
-	l.add_theme_font_size_override("font_size", 18)
+	l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(l)
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -516,7 +516,7 @@ static func core_float(lines: Array) -> PanelContainer:
 	p.add_child(col)
 	for ln in lines:
 		var l := label(String((ln as Dictionary).get("text", "")), "LabelDisplay")
-		l.add_theme_font_size_override("font_size", 18)
+		l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		l.add_theme_color_override("font_color", UI3Theme.color(String((ln as Dictionary).get("token", "text"))))
 		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		col.add_child(l)

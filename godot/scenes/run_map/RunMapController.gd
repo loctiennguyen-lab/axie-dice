@@ -1372,7 +1372,7 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 		if not is_rule:
 			var lc := UI3.label((tr("%d reroll left") if left == 1 else tr("%d rerolls left")) % left, "LabelDisplay")
 			lc.name = "RerollLeft"
-			lc.add_theme_font_size_override("font_size", 18)
+			lc.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 			actions.add_child(lc)
 	else:
 		var reroll := UI3.button((tr("Reroll · %d left")) % left, &"secondary", &"M")
