@@ -58,3 +58,16 @@ Nhánh tích hợp: `int/ui4` (worktree `../my-game-wt/ui4`).
   - Ô báo thua chưa có viền đỏ.
   - Thanh số dư trên đầu màn vẫn hiện.
   - Khoảng cách giữa bảng và khung chi tiết là 24, thiết kế là 0.
+
+## Quyết định của Liam (28/10)
+Giữ nhánh `int/ui4`, KHÔNG deploy. Làm lại UI theo quy trình mới Claude Design → Figma → đọc qua MCP (Framelink + Figma chính thức). Prompt: `design/handoffs/ui-05-figma/PROMPT-UI05-FIGMA.md` (trên godot-port).
+
+## Review int/ui4 (lead-programmer, dừng sớm, APPROVE WITH CHANGES, không có lỗi chặn)
+1. `RunMapController._apply_and_finish`: `await take_tw.finished` có thể treo bản đồ run nếu thẻ bị xoá giữa tween. Phải chờ có giới hạn thời gian.
+2. `UI3Motion.hitstop` chỉ kiểm reduce_motion. Phải kiểm cả reduce_flash cho khớp CombatView.
+3. `CombatHud` ~890–905: bật/tắt chờ server liên tục trong 300 ms vẫn có thể làm mờ sớm. Tween cũ không bị huỷ.
+4. `CombatView` ~1566: `font_color` bị đặt hai lần, nên nhãn FRONT cũng bị mờ.
+5. Thẻ Attrition dưới chồng plate quái có thể đè ActionDock khi có boss và 4–5 quái. Chưa kiểm ở 1280x720.
+- Hằng số layout bị lặp ở nhiều file (dock 848, DOCK_H 244, thẻ 153.6x184, Aid 320, plate 400/460/416, cột Nhiệm vụ). Khi làm lại phải gom về một nguồn token.
+- `check_tokens` báo nhầm cho các key đọc theo tiền tố `house_` và `tier_`. Cần đưa vào whitelist.
+- Chưa review: EchoBox, RunSetup, Pass, NetNotice/Update, Land, chữ số tiền ở Result/Pass/Echo Box.
