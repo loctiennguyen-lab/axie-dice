@@ -417,7 +417,10 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 	for fgt in _fights:   # a fight the bot could not finish inside MAX_TURNS (hang candidate), whatever the run did afterwards
 		if int((fgt as Dictionary)["turns"]) >= MAX_TURNS:
 			end_state = "STUCK_TURNS"
-	var vres := _verify_run(won, seed_value) if _verify else ["", ""]
+	var vres := ["", ""]
+	if _verify:
+		# A fight unfinished at MAX_TURNS has no sound end state to compare (false diff:score, soak 27/10): do not replay it.
+		vres = ["skip_stuck", ""] if end_state == "STUCK_TURNS" else _verify_run(won, seed_value)
 	return {"seed": seed_value, "policy": policy, "core_policy": core_policy, "team": team_name, "asc": asc,
 		"end": end_state, "verify": vres[0], "vdetail": vres[1],
 		"won": won, "death_kind": death_kind, "death_row": death_row, "rule": RunState.run_rule,
@@ -430,7 +433,7 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 
 
 ## Soak (--verify=1): the run just played is replayed through RunVerifier from its own action log + epoch tape. "ok" = the replay accepted
-## every action AND reached the same end state (won, score, phase, power, relics, nodes, shards); "skip_forced" = a forced Anchor / Run Rule the
+## every action AND reached the same end state (won, score, phase, power, relics, nodes, shards); "skip_stuck" = the run ended STUCK_TURNS (not replayed); "skip_forced" = a forced Anchor / Run Rule the
 ## verifier cannot rebuild; "diff:<field>" / "rejected:<error>@<index>" = a real mismatch (bug candidate). Runs AFTER the record is read from RunState,
 ## because the verifier takes RunState over.
 func _verify_run(won: bool, seed_value: int) -> Array:

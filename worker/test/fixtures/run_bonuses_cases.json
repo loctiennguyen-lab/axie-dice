@@ -1,0 +1,19 @@
+{
+ "_doc": "Shared by godot/tests/t_run_bonuses_fixture.gd (MetaState.run_bonuses, remote econ, perks stuffed but ignored) and worker/test/run_bonuses_fixture.test.mjs (verify_job.js runBonuses). Change either implementation => change this file, or a test fails.",
+ "cases": [
+  {"unlocks": [], "expected": {"bonus_reroll": 0, "hp_bonus": 0, "start_relic_max_rarity": -1, "reward_reroll_max": 1}},
+  {"unlocks": ["u_reroll"], "expected": {"bonus_reroll": 1, "hp_bonus": 0, "start_relic_max_rarity": -1, "reward_reroll_max": 1}},
+  {"unlocks": ["u_reroll2"], "expected": {"bonus_reroll": 1, "hp_bonus": 0, "start_relic_max_rarity": -1, "reward_reroll_max": 1}},
+  {"unlocks": ["u_hp"], "expected": {"bonus_reroll": 0, "hp_bonus": 3, "start_relic_max_rarity": -1, "reward_reroll_max": 1}},
+  {"unlocks": ["u_hp2"], "expected": {"bonus_reroll": 0, "hp_bonus": 2, "start_relic_max_rarity": -1, "reward_reroll_max": 1}},
+  {"unlocks": ["u_start"], "expected": {"bonus_reroll": 0, "hp_bonus": 0, "start_relic_max_rarity": 0, "reward_reroll_max": 1}},
+  {"unlocks": ["u_full"], "expected": {"bonus_reroll": 0, "hp_bonus": 0, "start_relic_max_rarity": -1, "reward_reroll_max": 1}},
+  {"unlocks": ["u_relic1"], "expected": {"bonus_reroll": 0, "hp_bonus": 0, "start_relic_max_rarity": -1, "reward_reroll_max": 1}},
+  {"unlocks": ["u_relic2"], "expected": {"bonus_reroll": 0, "hp_bonus": 0, "start_relic_max_rarity": -1, "reward_reroll_max": 1}},
+  {"unlocks": ["u_face1"], "expected": {"bonus_reroll": 0, "hp_bonus": 0, "start_relic_max_rarity": -1, "reward_reroll_max": 1}},
+  {"unlocks": ["u_face2"], "expected": {"bonus_reroll": 0, "hp_bonus": 0, "start_relic_max_rarity": -1, "reward_reroll_max": 1}},
+  {"unlocks": ["u_reroll", "u_hp"], "expected": {"bonus_reroll": 1, "hp_bonus": 3, "start_relic_max_rarity": -1, "reward_reroll_max": 1}},
+  {"unlocks": ["u_reroll", "u_reroll2", "u_hp", "u_hp2", "u_start"], "expected": {"bonus_reroll": 2, "hp_bonus": 5, "start_relic_max_rarity": 0, "reward_reroll_max": 1}},
+  {"unlocks": ["u_not_a_real_unlock"], "expected": {"bonus_reroll": 0, "hp_bonus": 0, "start_relic_max_rarity": -1, "reward_reroll_max": 1}}
+ ]
+}

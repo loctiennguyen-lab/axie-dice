@@ -52,7 +52,9 @@ out=sys.argv[1]; end=collections.Counter(); ver=collections.Counter(); bad=[]; n
 for f in glob.glob(out+'/cells/*/sim-*.csv'):
     for r in csv.DictReader(open(f)):
         n+=1; end[r.get('end','?')]+=1; v=r.get('verify','?'); ver[v.split(':')[0] if v.startswith('diff') else v]+=1
-        if r.get('end','').startswith('STUCK') or v not in ('ok','skip_forced'):
+        # skip_stuck (end=STUCK_TURNS, not replayed) is counted in the verify line on its own and is NOT a bad verify;
+        # the run still shows below when its end is STUCK, because a stuck fight is its own finding.
+        if r.get('end','').startswith('STUCK') or v not in ('ok','skip_forced','skip_stuck'):
             bad.append(f"seed={r['seed']} policy={r['policy']} team={r['team']} asc={r['asc']} cfg={r['cfg']} anchor={r['anchor']} rule={r['rule']} end={r['end']} verify={v} {r.get('vdetail','')}  [{f.split('/')[-2]}]")
 logs=collections.Counter(); lines=[]
 for f in glob.glob(out+'/logs/*.log'):
