@@ -1083,7 +1083,18 @@ func _build_hud_r1() -> void:
 	_tray_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_tray_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_tray_root.z_index = 6
+	_dock_plate = UI3.dock(848)
+	_dock_plate.name = "DiceDock"
+	_dock_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dock_plate.z_index = 5
+	_dock_plate.add_to_group("ui3_tip_avoid")
+	_shell_root.add_child(_dock_plate)
 	_shell_root.add_child(_tray_root)
+	_dock_pill = UI3.waiting_pill(TranslationServer.translate("Waiting for server…"))
+	_dock_pill.visible = false
+	_dock_pill.z_index = 8
+	_shell_root.add_child(_dock_pill)
+	_hud_frame.wait_dim_changed.connect(_on_wait_dim)
 	_bo_layer = BoLayer.new()
 	_shell_root.add_child(_bo_layer)
 	_bo_layer.cards_provider = _card_rects
@@ -1469,7 +1480,7 @@ func _layout_tray() -> void:
 		gap = clampf((vs.x - 32.0 - col_w * n) / float(n - 1), 4.0, 16.0)
 	var total := n * col_w + maxf(n - 1, 0.0) * gap
 	var x0 := (vs.x - total) * 0.5
-	var top := vs.y - 24.0 - TrayColumn.H   # card top at y 892 on 1080: 24 margin, party row stays clear
+	var top := TrayColumn.card_top(vs.y)   # DiceDock: cards sit under the plate padding and the FRONT/BACK row
 	var i := 0
 	for b in _die_slot_buttons:
 		var btn: Button = b
@@ -1478,11 +1489,43 @@ func _layout_tray() -> void:
 		btn.position = Vector2(x0 + i * (col_w + gap), top)
 		btn.size = Vector2(col_w, TrayColumn.H)
 		i += 1
+	_layout_dice_dock(vs, x0, total)
 	_layout_row_strip(x0, col_w, gap, top)
 	_refresh_bo_layer()
 
 
 var _row_strip: Control = null
+var _dock_plate: PanelContainer = null
+var _dock_pill: PanelContainer = null
+
+
+## DiceDock plate (848 wide, grows only when summoned tokens widen the row) + the waiting pill centred on it.
+func _layout_dice_dock(vs: Vector2, x0: float, total: float) -> void:
+	if _dock_plate == null:
+		return
+	var w := maxf(848.0, total + 32.0)
+	_dock_plate.size = Vector2.ZERO
+	_dock_plate.position = Vector2((vs.x - w) * 0.5, TrayColumn.dock_top(vs.y))
+	_dock_plate.size = Vector2(w, TrayColumn.DOCK_H)
+	_dock_plate.visible = total > 0.0
+	if _dock_pill != null:
+		_dock_pill.size = Vector2.ZERO
+		_dock_pill.position = _dock_plate.position + (_dock_plate.size - _dock_pill.get_combined_minimum_size()) * 0.5
+		_dock_pill.size = _dock_pill.get_combined_minimum_size()
+
+
+## Waiting for the server (HUD dim fires 300 ms after the request): the card grid drops to 0.4, a pill says why,
+## and the Aid offer hides. 120 ms fade, instant when motion is reduced.
+func _on_wait_dim(on: bool) -> void:
+	if _tray_root != null:
+		if UI3Motion.reduced() or not is_inside_tree():
+			_tray_root.modulate.a = 0.4 if on else 1.0
+		else:
+			create_tween().tween_property(_tray_root, "modulate:a", 0.4 if on else 1.0, 0.12)
+	if _dock_pill != null:
+		_dock_pill.visible = on
+	if _aid != null:
+		_aid.set_waiting(on)
 
 
 ## Depth v3 4: a FRONT / BACK bracket over the tray columns (front = the first rows.front_size Axies).
@@ -1519,19 +1562,20 @@ func _layout_row_strip(x0: float, col_w: float, gap: float, top: float) -> void:
 		var word := "FRONT" if r == 0 else "BACK"
 		var l := UI3.label(word, "LabelDisplay")
 		l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
-		l.add_theme_color_override("font_color", UI3Theme.color("text" if r == 0 else "text_muted"))
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.position = Vector2(x, top - 52.0)   # clear of a picked card, which lifts 18 px
-		l.size = Vector2(w, 24)
+		l.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		l.position = Vector2(x, top - 8.0 - TrayColumn.DOCK_LABEL_H)
+		l.size = Vector2(l.get_minimum_size().x, TrayColumn.DOCK_LABEL_H)
+		var lab_w := l.size.x
 		l.mouse_filter = Control.MOUSE_FILTER_PASS
 		UI3Tooltip.bind(l, "Front row (first %d Axies) takes single-target hits first. Back row is only hit once the front is down, or by area / piercing attacks." % _combat.front_row_size()
 			if r == 0 else "Back row: safe from single-target hits while a front-row Axie stands.")
 		_row_strip.add_child(l)
 		l.visible = _combat.bo.is_empty()
 		var line := ColorRect.new()
-		line.color = UI3Theme.color("text" if r == 0 else "text_muted")
-		line.position = Vector2(x + 4.0, top - 26.0)
-		line.size = Vector2(w - 8.0, 2)
+		line.color = UI3Theme.color("btn_secondary")   # wood-3
+		line.position = Vector2(x + lab_w + 8.0, top - 8.0 - TrayColumn.DOCK_LABEL_H * 0.5 - 1.0)
+		line.size = Vector2(maxf(w - lab_w - 8.0, 0.0), 2)
 		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_row_strip.add_child(line)
 
@@ -2575,6 +2619,8 @@ func _layout_unit_visuals() -> void:
 		var card := ep as UnitPortrait
 		card.position = Vector2(canvas_w - 24.0 - card.size.x, y)
 		y += card.stack_height() + 8.0
+	if _hud_frame != null:   # AttritionCard: last card of the enemy column
+		_hud_frame.place_attrition(Vector2(canvas_w - 24.0 - UnitPortrait.WIDTH, y))
 
 	for uid in _portraits.keys():
 		var p: UnitPortrait = _portraits[uid]
@@ -3278,8 +3324,49 @@ func _clear_all_previews() -> void:
 # EventBus reactions — each funnels into _rebuild_all() (see file-level comment)
 # ===========================================================================
 
-func _on_hp_changed(_uid: int, _hp: int, _max_hp: int, _shield: int) -> void:
+func _on_hp_changed(uid: int, _hp: int, _max_hp: int, shield: int) -> void:
+	if shield > int(_last_shield.get(uid, 0)):
+		_fx_over(uid, "shield_gain")
+	_last_shield[uid] = shield
 	_rebuild_all()
+
+## UI-04 combat motion. One throw-away Control sized like the unit's portrait (child of UnitVisualsRoot, so it
+## survives the portrait being hidden by a knockout) carries a UI3Motion moment: particles, sweep, hitstop, sfx.
+## It never moves the portrait and never blocks input or combat flow; it frees itself after the particles.
+func _fx_over(uid: int, id: String) -> void:
+	if disable_juice_for_tests or not is_inside_tree():
+		return
+	var p: UnitPortrait = _portraits.get(uid)
+	if p == null or not is_instance_valid(p):
+		return
+	_fx_rect(Rect2(p.position, p.size if p.size.x > 0.0 else Vector2(320, 120)), id)
+
+
+func _fx_rect(r: Rect2, id: String) -> void:
+	var a := Control.new()
+	a.name = "Fx_" + id
+	a.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	a.position = r.position
+	a.size = r.size
+	a.pivot_offset = r.size * 0.5
+	a.z_index = 20
+	_unit_visuals_root.add_child(a)
+	UI3Motion.play(id, a)
+	get_tree().create_timer(1.6).timeout.connect(func() -> void:
+		if is_instance_valid(a):
+			a.queue_free())
+
+
+## Hit / crit / big hit (>= 25% of the target's max HP, or a knockout; client-side).
+func _hit_moment_id(uid: int, value: int, crit: bool) -> String:
+	var t := _combat.by_uid(uid) if _combat != null else null
+	if t != null and value > 0 and (t.hp <= 0 or float(value) >= 0.25 * float(maxi(t.max_hp, 1))):
+		return "big_hit"
+	return "crit" if crit else "hit"
+
+
+var _last_shield: Dictionary = {}   ## uid -> shield seen at the last hp_changed (shield-gained detection)
+
 
 func _on_hit_landed(src_uid: int, uid: int, value: int, crit: bool) -> void:
 	# The log line is NOT deferred. It is a transcript, its order is the engine's, and
@@ -3290,11 +3377,15 @@ func _on_hit_landed(src_uid: int, uid: int, value: int, crit: bool) -> void:
 		if is_instance_valid(_stage3d):
 			_stage3d.play_hit_reaction(uid)   # `uid` is whoever just TOOK this hit — see
 				# CombatStage3D.play_hit_reaction()'s own comment for the damage_pipeline.gd cross-check
+		_fx_over(uid, _hit_moment_id(uid, value, crit))
 		_play_hit_juice())
 
 func _on_unit_died(uid: int) -> void:
 	_append_log("[death] %s" % _unit_name(uid))
 	var p: UnitPortrait = _portraits.get(uid)
+	var dead := _combat.by_uid(uid) if _combat != null else null
+	if dead != null and dead.side == "p":
+		_fx_over(uid, "axie_ko")
 	if p != null:
 		p.play_death_fade()
 	if is_instance_valid(_stage3d):
@@ -3639,6 +3730,7 @@ func _on_float_text(uid: int, text: String, css_class: String, big: int) -> void
 
 func _on_boss_phase_changed(uid: int) -> void:
 	_append_log("[phase] boss %s changed phase" % _unit_name(uid))
+	_fx_over(uid, "boss_phase")
 	_rebuild_all()
 
 func _on_enemy_intent_executed(uid: int) -> void:
@@ -3662,8 +3754,31 @@ func _on_turn_phase_changed(old_phase: int, new_phase: int) -> void:
 		var total := maxi(graph.rows.size(), 1)
 		_show_turn_banner(_first_enemy_action_line(), "ENEMY TURN")
 	_rebuild_all()
+	if new_phase == CombatPhase.EXECUTE and old_phase == CombatPhase.END_TURN:
+		_reveal_intents.call_deferred()
+
+## Intent reveal (after the turn banner): each enemy's intent block pops in, 80 ms x enemy index.
+func _reveal_intents() -> void:
+	if disable_juice_for_tests or not is_inside_tree() or _combat == null or _combat.won or _combat.lost:
+		return
+	var i := 0
+	for e in _combat.enemies:
+		if e.hp <= 0:
+			continue
+		var p: UnitPortrait = _portraits.get(e.uid)
+		var blk: Control = p.intent_block() if p != null and is_instance_valid(p) else null
+		if blk != null and blk.is_visible_in_tree():
+			blk.pivot_offset = blk.size * 0.5
+			var node := blk
+			get_tree().create_timer(0.08 * i).timeout.connect(func() -> void:
+				if is_instance_valid(node):
+					UI3Motion.play("intent_reveal", node))
+			i += 1
+
 
 func _on_combat_finished(won: bool) -> void:
+	if won and not disable_juice_for_tests and is_inside_tree():
+		_fx_rect(Rect2(Vector2.ZERO, _unit_visuals_root.size), "victory")
 	_append_log("[combat_finished] won=%s" % won)
 	_audio.stop_music()   # fades; a hard cut lands on top of the win/loss beat and reads as a bug
 	_rebuild_all()
@@ -4556,9 +4671,7 @@ func _show_defeat_panel() -> void:
 		keep = "Enemies keep their HP."
 	var clock_on := bool((hs.get("clock", {}) as Dictionary).get("active", false))
 	_defeat.show_defeat({
-		"title_line": "%s %s A%d %s your party fell on turn %d" % [
-			"Boss fight" if boss_fight else ("Elite fight" if kind == "elite" else "Fight"),
-			HudKit.dot(), asc, HudKit.dot(), _combat.turn],
+		"title_line": "%s %s A%d %s %d Axies" % [_fight_title(), HudKit.dot(), asc, HudKit.dot(), party.size()],
 		"boss": boss_d, "recap": rows, "turn": _combat.turn, "enemies_left": _combat.alive_enemies().size(), "aid_used": int(co["used"]), "aid_cap": int(co["cap"]),
 		"asc": asc, "kind_label": "Boss" if boss_fight else ("Elite" if kind == "elite" else "Fight"),
 		"continue_left": 1, "heal_pct": 25 if asc >= 6 else 40, "party": party,
@@ -4611,7 +4724,7 @@ func _play_victory_march() -> void:
 	_exit_running = true
 	# UI-03 45: only the 3D stage + title + Skip. Restored below in case the scene stays in combat.
 	var hidden: Array[CanvasItem] = []
-	var to_hide: Array = [_hud_frame, _aid, _tray_root]
+	var to_hide: Array = [_hud_frame, _aid, _tray_root, _dock_plate]
 	to_hide.append_array(_portraits.values())   # enemy plates + status chips
 	for n in to_hide:
 		if is_instance_valid(n) and (n as CanvasItem).visible:
@@ -4736,7 +4849,7 @@ func _on_bo_changed(groups: Array) -> void:
 	if _bo_layer == null or _combat == null:
 		return
 	_refresh_bo_layer()
-	var tray_top := get_viewport_rect().size.y - 24.0 - TrayColumn.H
+	var tray_top := TrayColumn.dock_top(get_viewport_rect().size.y)
 	_bo_layer.announce(groups, tray_top)
 	_log_bo_changes(groups)
 	_sync_row_labels()
@@ -4879,7 +4992,7 @@ func _update_wild_picker() -> void:
 		rows[best]["best"] = true
 	_wild_picker.update(rows)
 	var vs := get_viewport_rect().size
-	var tray_top := vs.y - 24.0 - TrayColumn.H
+	var tray_top := TrayColumn.dock_top(vs.y)
 	_wild_picker.position = Vector2((vs.x - _wild_picker.size.x) * 0.5, tray_top - _wild_picker.size.y - 12.0)
 
 
@@ -4956,4 +5069,4 @@ func _update_coach() -> void:
 	_coach_box.size = Vector2.ZERO
 	var vs := get_viewport_rect().size
 	var w := _coach_box.get_combined_minimum_size().x
-	_coach_box.position = Vector2((vs.x - w) * 0.5, vs.y - 24.0 - TrayColumn.H - 190.0)
+	_coach_box.position = Vector2((vs.x - w) * 0.5, TrayColumn.dock_top(vs.y) - 190.0)

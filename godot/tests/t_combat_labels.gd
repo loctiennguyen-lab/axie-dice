@@ -48,9 +48,9 @@ func _ready() -> void:
 	p.set_leader(true)
 	_ok(p._name_label.text == "Elite Bulwark", "leader keeps full name: %s" % p._name_label.text)
 	p.set_intent({"show": true, "type": "blank", "num": 0, "label": "BLANK", "target": ""})
-	_ok(p._intent_action.text == "IDLE" and p._intent_num.text == "-", "blank intent wording")
+	_ok(p._intent_action.text == "IDLE" and p._intent_num.text == "–", "blank intent wording")
 	p.set_intent({"show": true, "type": "dmg", "num": 24, "label": "ATTACK", "target": "Rex", "big_hit": true})
-	_ok(p._intent_next.text.begins_with("!"), "big-hit glyph")
+	_ok(p.is_big_hit() and p._bang.visible and p._strip.visible, "big-hit badge + strip")
 
 	var host := Control.new()
 	host.size = Vector2(1280, 720)

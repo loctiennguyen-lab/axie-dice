@@ -18,14 +18,19 @@ signal hold_pressed   ## depth v3 3.2: the Hold button (CombatView turns it into
 
 const TOP := 24.0
 const EDGE := 24.0
-const RIGHT_W := 240.0
+const RIGHT_W := 320.0   ## ActionDock content width (352 dock - 2 x 16)
+const DOCK_W := 352.0     ## tokens size.action_dock_w
+const DOCK_PAD := 16.0
+const DOCK_GAP := 12.0
+const TOOL_W := 74.0      ## (320 - 3 x 8) / 4
+const TOOL_GAP := 8.0
 const GAP := 12.0
-const END_H := 64.0
-const SMALL_H := 48.0
-const HINT_H := 26.0
-const TILE := 48.0
+const END_H := 72.0
+const SMALL_H := 56.0
+const HINT_H := 24.0
+const TILE := 56.0   ## ToolKey height (tokens size.tool_key_h)
 const TILE_LABEL_W := 80.0
-const TILE_LABEL_H := 26.0
+const TILE_LABEL_H := 24.0
 const UNDO_W := 88.0
 const ROW_GAP := 12.0   # Undo | Reroll: a clear gap, the two must not read as one button
 const INFO_W := 288.0
@@ -36,6 +41,10 @@ var actives_row: HBoxContainer
 
 var _top_plate: PanelContainer
 var _fight_label: Label
+var _fight_sub: Label
+var _asc_pill: PanelContainer
+var _asc_label: Label
+var _anchor_chip: PanelContainer
 var _turn_label: Label
 var _shard_box: HBoxContainer
 var _shard_label: Label
@@ -46,7 +55,9 @@ var _mana_box: HBoxContainer
 var _mana_holder: Control
 var _attr_card: PanelContainer
 var _attr_title: Label
-var _attr_sub: Label
+var _attr_pips: HBoxContainer
+var _attr_dashed := false
+var _attr_right_pos := Vector2(-1.0, -1.0)
 var _speed: HBoxContainer          ## 1x / 2x / Skip, takes the Undo+Reroll row while a resolve plays
 var _info: PanelContainer           ## die info panel (288 w, wood-2), only while a die is picked
 var _info_title: Label
@@ -59,6 +70,12 @@ var _skip_button: Button
 
 ## Right-zone buttons are owned by the scene (%UndoButton etc. keep their names for the tests);
 ## CombatView hands them over via `adopt_right_zone()`.
+var _dock: PanelContainer         ## ActionDock plate (352 wide), behind the buttons
+var _reroll_cap: PanelContainer
+signal wait_dim_changed(on: bool)
+var _wait_dim := false
+var _dim_tweens: Array[Tween] = []
+var _dim_timer_gen := 0   ## bumps on every set_seed_wait: a stale 300 ms dim timer checks it and does nothing
 var undo_button: Button
 var reroll_button: Button
 var end_turn_button: Button
@@ -100,22 +117,58 @@ func _ignore(c: Control) -> Control:
 
 
 func _build_top() -> void:
-	# TopLeft plate: menu icon button 40, "Fight 4 of 12" Rowdies 20, "A3 · Turn 2" Work Sans 18 muted.
+	# UI-04 run plate (80 high, padding 0 20 0 12): menu 56 · "Fight 4" 32 + "of 18" 24 muted · divider ·
+	# A-level pill · Turn · Shard chip.
 	_top_plate = UI3.plate(&"plate")
 	_top_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_top_plate.custom_minimum_size = Vector2(0, 80)
+	var tsb := (_top_plate.get_theme_stylebox("panel") as StyleBoxFlat).duplicate() as StyleBoxFlat
+	tsb.content_margin_left = 12.0
+	tsb.content_margin_right = 20.0
+	tsb.content_margin_top = 0.0
+	tsb.content_margin_bottom = 0.0
+	_top_plate.add_theme_stylebox_override("panel", tsb)
 	add_child(_top_plate)
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("separation", GAP)
+	row.add_theme_constant_override("separation", UI3Theme.space("16"))
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	_top_plate.add_child(row)
 	_menu_button = UI3.icon_button("ui_menu", "Menu")
+	_menu_button.custom_minimum_size = Vector2(56, 56)
 	_menu_button.pressed.connect(func(): menu_pressed.emit())
 	row.add_child(_menu_button)
+	var title_row := HBoxContainer.new()
+	title_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title_row.add_theme_constant_override("separation", 8)
+	title_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(title_row)
 	_fight_label = UI3.label("", "LabelDisplay")
-	_fight_label.add_theme_font_size_override("font_size", 20)
+	_fight_label.add_theme_font_size_override("font_size", UI3Theme.size_of("text_screen_title"))   # 32
 	_ignore(_fight_label)
-	row.add_child(_fight_label)
+	title_row.add_child(_fight_label)
+	_fight_sub = UI3.label("", "LabelDisplay")
+	_fight_sub.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))   # 24
+	_fight_sub.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
+	_ignore(_fight_sub)
+	title_row.add_child(_fight_sub)
+	var rule := ColorRect.new()
+	rule.color = UI3Theme.color("plate_edge")
+	rule.custom_minimum_size = Vector2(2, 40)
+	rule.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(rule)
+	_asc_pill = PanelContainer.new()
+	_asc_pill.custom_minimum_size = Vector2(0, 40)
+	_asc_pill.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_asc_pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_asc_pill.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("pill"), 0,
+		Color.TRANSPARENT, Vector4(14, 0, 14, 0)))
+	_asc_label = UI3.label("", "LabelDisplay")
+	_asc_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_ignore(_asc_label)
+	_asc_pill.add_child(_asc_label)
+	row.add_child(_asc_pill)
 	_turn_label = UI3.label("", "LabelMuted")
 	_ignore(_turn_label)
 	row.add_child(_turn_label)
@@ -125,13 +178,14 @@ func _build_top() -> void:
 	_shard_box.add_theme_constant_override("separation", 6)
 	var ic := TextureRect.new()
 	ic.texture = UI3.icon("cur_shard")
-	ic.custom_minimum_size = Vector2.ONE * UI3Theme.size_of("icon_l")
+	ic.custom_minimum_size = Vector2.ONE * 28
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_shard_box.add_child(ic)
 	_shard_label = UI3.label("0", "LabelDisplay")
-	_shard_label.add_theme_font_size_override("font_size", 20)
+	_shard_label.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
 	_ignore(_shard_label)
 	_shard_box.add_child(_shard_label)
 	row.add_child(_shard_box)
@@ -178,33 +232,52 @@ func _build_top() -> void:
 
 
 func _build_attrition() -> void:
-	_attr_card = UI3.plate(&"notice")
+	# AttritionCard (UI-04): 416 x 56 plate, attrition glyph 28, ONE Rowdies 18 line in the attrition colour, 3 pips
+	# before it starts. Dashed edge before start, solid while running, red edge + red text at MAX.
+	_attr_card = UI3.plate(&"plate")
+	_attr_card.custom_minimum_size = Vector2(UI3Theme.size_of("enemy_plate_w"), UI3Theme.size_of("attrition_h"))
 	_attr_card.mouse_filter = Control.MOUSE_FILTER_STOP   # hover = attrition tooltip
 	add_child(_attr_card)
+	_attr_card.draw.connect(_draw_attr_edge)
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("separation", 8)
+	row.add_theme_constant_override("separation", 10)
 	_attr_card.add_child(row)
 	var ic := TextureRect.new()
 	ic.texture = HudKit.icon("attrition")
-	ic.custom_minimum_size = Vector2(32, 32)
+	ic.custom_minimum_size = Vector2(28, 28)
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(ic)
-	var col := VBoxContainer.new()
-	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_theme_constant_override("separation", 0)
-	row.add_child(col)
 	_attr_title = UI3.label("", "LabelDisplay")
-	_attr_title.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
+	_attr_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_attr_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_attr_title.add_theme_color_override("font_color", UI3Theme.color("attrition"))
 	_ignore(_attr_title)
-	col.add_child(_attr_title)
-	_attr_sub = UI3.label("", "LabelMuted")
-	_attr_sub.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
-	_ignore(_attr_sub)
-	col.add_child(_attr_sub)
+	row.add_child(_attr_title)
+	_attr_pips = HBoxContainer.new()
+	_attr_pips.name = "Pips"
+	_attr_pips.add_theme_constant_override("separation", 4)
+	_attr_pips.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_ignore(_attr_pips)
+	row.add_child(_attr_pips)
+
+
+## Dashed edge while the attrition has not started (a StyleBox cannot dash).
+func _draw_attr_edge() -> void:
+	if not _attr_dashed:
+		return
+	var r := Rect2(Vector2.ZERO, _attr_card.size).grow(-1.0)
+	var col := UI3Theme.color("attrition")
+	var tl := r.position
+	var tr := Vector2(r.end.x, r.position.y)
+	var br := r.end
+	var bl := Vector2(r.position.x, r.end.y)
+	for seg in [[tl + Vector2(12, 0), tr - Vector2(12, 0)], [tr + Vector2(0, 12), br - Vector2(0, 12)],
+			[bl + Vector2(12, 0), br - Vector2(12, 0)], [tl + Vector2(0, 12), bl - Vector2(0, 12)]]:
+		_attr_card.draw_dashed_line(seg[0], seg[1], col, 2.0, 8.0)
 
 
 # ── Foe card: boss rhythm (3 chips) and the Elite affix chip (depth v3 6.3 / 6.4, spec design/ux/depth-v3/combat-hud.md)
@@ -214,21 +287,36 @@ const _PHASE_WORD := {"prep": "Prep", "strike": "Strike", "hollow": "Hollow"}
 
 
 func _build_foe_card() -> void:
-	_foe_card = UI3.plate(&"notice")
+	# Boss rhythm plate (UI-04): plate family, 400 wide, padding 16, 12 between rows.
+	_foe_card = UI3.plate(&"plate")
 	_foe_card.name = "FoeCard"
+	_foe_card.custom_minimum_size = Vector2(400, 0)
+	var fsb := (_foe_card.get_theme_stylebox("panel") as StyleBoxFlat).duplicate() as StyleBoxFlat
+	fsb.set_content_margin_all(16.0)
+	_foe_card.add_theme_stylebox_override("panel", fsb)
 	_foe_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_foe_card.visible = false
 	_foe_card.add_to_group("ui3_tip_avoid")
 	add_child(_foe_card)
 	_foe_rows = VBoxContainer.new()
 	_foe_rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_foe_rows.add_theme_constant_override("separation", 6)
+	_foe_rows.add_theme_constant_override("separation", 12)
 	_foe_card.add_child(_foe_rows)
 
 
-## d: {rhythm: {phase, next, turns_to_strike, tell}, affix: {name, tip, note}}. Either key may be missing;
-## with neither the card hides. Phase chips carry the WORD (colour never alone); the current one is the
-## selected plate, the next one is marked "next".
+## Dashed rounded-ish border for a Control (StyleBoxFlat cannot dash): drawn on its `draw` signal.
+func _dashed(c: Control, col: Color) -> void:
+	c.draw.connect(func() -> void:
+		var r := Rect2(Vector2.ZERO, c.size).grow(-1.0)
+		var tl := r.position
+		var tr := Vector2(r.end.x, r.position.y)
+		var br := r.end
+		var bl := Vector2(r.position.x, r.end.y)
+		for seg in [[tl + Vector2(10, 0), tr - Vector2(10, 0)], [tr + Vector2(0, 10), br - Vector2(0, 10)],
+				[bl + Vector2(10, 0), br - Vector2(10, 0)], [tl + Vector2(0, 10), bl - Vector2(0, 10)]]:
+			c.draw_dashed_line(seg[0], seg[1], col, 2.0, 8.0))
+
+
 func update_foe(d: Dictionary) -> void:
 	for c in _foe_rows.get_children():
 		_foe_rows.remove_child(c)
@@ -242,7 +330,7 @@ func update_foe(d: Dictionary) -> void:
 		cl.name = "CoachPlating"
 		cl.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		cl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		cl.custom_minimum_size.x = 320
+		cl.custom_minimum_size.x = 368
 		cl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_foe_rows.add_child(cl)
 	if not a.is_empty():
@@ -271,40 +359,54 @@ func update_foe(d: Dictionary) -> void:
 	if not r.is_empty():
 		var title := UI3.label("BOSS RHYTHM", "LabelDisplay")
 		title.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
+		title.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
 		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_foe_rows.add_child(title)
 		var chips := HBoxContainer.new()
 		chips.name = "RhythmChips"
 		chips.mouse_filter = Control.MOUSE_FILTER_PASS
-		chips.add_theme_constant_override("separation", 6)
+		chips.add_theme_constant_override("separation", 8)
 		for ph in _PHASES:
 			var is_now: bool = String(r.get("phase", "")) == ph
 			var is_next: bool = String(r.get("next", "")) == ph
-			var p := UI3.plate(&"card_selected" if is_now else &"row")
+			# Step cell: 3 equal, 56 high, radius m. Current = plate_edge fill + 4 px cream outline; next = dashed accent.
+			var p := PanelContainer.new()
 			p.name = "Phase_" + ph
 			p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			p.custom_minimum_size = Vector2(0, 56)
+			if is_now:
+				p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("plate_edge"), UI3Theme.radius("m"), 4, UI3Theme.color("selected_outline")))
+			else:
+				p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("m")))
+			if is_next and not is_now:
+				_dashed(p, UI3Theme.color("accent"))
+			var cc := VBoxContainer.new()
+			cc.alignment = BoxContainer.ALIGNMENT_CENTER
+			cc.add_theme_constant_override("separation", 0)
+			cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			p.add_child(cc)
 			var l2 := UI3.label(String(_PHASE_WORD[ph]), "LabelDisplay")
 			l2.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
+			l2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			if not is_now:
+				l2.add_theme_color_override("font_color", UI3Theme.color("text_muted") if not is_next else UI3Theme.color("text"))
 			l2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			cc.add_child(l2)
 			if is_next and not is_now:
-				var pv := VBoxContainer.new()
-				pv.add_theme_constant_override("separation", 0)
-				pv.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				pv.add_child(l2)
 				var nl := UI3.label("Next", "LabelMuted")
 				nl.name = "NextTag"
 				nl.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 				nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 				nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				pv.add_child(nl)
-				p.add_child(pv)
-			else:
-				p.add_child(l2)
+				cc.add_child(nl)
 			chips.add_child(p)
 		UI3Tooltip.bind(chips, "Boss rhythm: 3-turn cycle. Prep, then Strike (its strongest face), then Hollow (it takes +30% from damage faces and deals -30%). The chip tagged Next is the phase that comes next.")
 		_foe_rows.add_child(chips)
-		var tell := UI3.label(String(r.get("tell", "")), "LabelMuted")
+		var tell := UI3.label(String(r.get("tell", "")), "")
 		tell.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
+		tell.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		tell.custom_minimum_size.x = 368
 		tell.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_foe_rows.add_child(tell)
 	layout()
@@ -400,30 +502,24 @@ func adopt_log(text: RichTextLabel) -> PanelContainer:
 	return _log_plate
 
 
-## 48 x 48 square action tile (combat-v4.md 5.1b): flat glyph inside, 16 px word under it. `button.text` keeps the
-## full state words ("Hold: pick a die", "Wild: need 2 mana") for tooltips, tests and screen readers but is not
-## drawn on the tile (transparent font), the word under the tile is the short name.
+## ToolKey (UI-04): 74 x 56 tile, glyph 28 centred, Work Sans 18 word under it. `button.text` keeps the full state words
+## ("Hold: pick a die", "Wild: need 2 mana") for tooltips, tests and screen readers but is not drawn on the tile.
 func _make_tile(b: Button, glyph: StringName, word: String) -> void:
-	b.custom_minimum_size = Vector2(TILE, TILE)
+	b.custom_minimum_size = Vector2(TOOL_W, TILE)
 	b.clip_text = true
 	b.icon = null
 	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_disabled_color", "font_focus_color", "font_hover_pressed_color"]:
 		b.add_theme_color_override(c, Color(0, 0, 0, 0))
 	var g := ActionGlyph.new(glyph)
-	g.offset_left = 12
-	g.offset_top = 12
-	g.offset_right = -12
-	g.offset_bottom = -12
+	g.offset_left = (TOOL_W - 28.0) * 0.5
+	g.offset_top = (TILE - 28.0) * 0.5
+	g.offset_right = -(TOOL_W - 28.0) * 0.5
+	g.offset_bottom = -(TILE - 28.0) * 0.5
 	b.add_child(g)
-	var l := UI3.label(word, "LabelMuted")
+	var l := UI3.label(word, "")
 	l.name = "TileLabel_%s" % b.name
 	l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	l.add_theme_color_override("font_color", UI3Theme.color("text"))
-	var lbg := UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("s"))
-	lbg.bg_color.a = 0.94
-	lbg.content_margin_left = 4
-	lbg.content_margin_right = 4
-	l.add_theme_stylebox_override("normal", lbg)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -435,14 +531,14 @@ func _make_tile(b: Button, glyph: StringName, word: String) -> void:
 	_tile_style(b)
 
 
-## Solid panel-token fill + border so the tile reads against the stone ground (usable and unusable look the same
-## apart from the dimmed glyph; the tooltip says why a tile is off).
+## ToolKey look: panel_raised fill, 2 px plate_edge, radius m (12); hover = plate_edge fill. Usable and unusable look the
+## same apart from the dimmed glyph; the tooltip says why a tile is off.
 func _tile_style(b: Button) -> void:
 	for st in ["normal", "hover", "pressed", "disabled", "hover_pressed"]:
-		var bg := UI3Theme.color("panel")
+		var bg := UI3Theme.color("panel_raised")
 		if st == "hover" or st == "hover_pressed":
-			bg = UI3Theme.color("panel_raised")
-		b.add_theme_stylebox_override(st, UI3Theme.flat(bg, UI3Theme.radius("s"), 2, UI3Theme.color("text_muted" if st == "disabled" else "text")))
+			bg = UI3Theme.color("plate_edge")
+		b.add_theme_stylebox_override(st, UI3Theme.flat(bg, UI3Theme.radius("m"), 2, UI3Theme.color("plate_edge")))
 
 
 func _sync_tile(b: Button) -> void:
@@ -450,50 +546,34 @@ func _sync_tile(b: Button) -> void:
 		(b.get_meta("tile_glyph") as ActionGlyph).dim = b.disabled and not b.has_meta("tile_on")
 
 
-## Tiles in a row: evenly spread over the 240 column, only the visible ones take a slot.
+## Tools in a row: only the unlocked ones take a slot, TOOL_W wide with an 8 px gap (the dock grid). Returns how many.
 func _place_tiles(x: float, y: float, tiles: Array) -> int:
 	var vis: Array = []
 	for b in tiles:
 		if b != null and b.visible:
 			vis.append(b)
-	var n := vis.size()
-	var pitch := 0.0 if n <= 1 else (RIGHT_W - TILE) / float(n - 1)
-	var labs: Array = []
-	var xs: Array = []
-	var ws: Array = []
-	for i in n:
+	for i in vis.size():
 		var b: Button = vis[i]
-		b.position = Vector2(x + pitch * i, y)
-		b.size = Vector2(TILE, TILE)
+		b.position = Vector2(x + (TOOL_W + TOOL_GAP) * i, y)
+		b.size = Vector2(TOOL_W, TILE)
 		var l: Label = b.get_meta("tile_label")
 		l.visible = true
-		var lf := l.get_theme_font("font")
-		var lw := lf.get_string_size(l.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 8.0   # text + the plate's padding
-		l.size = Vector2(lw, TILE_LABEL_H)
-		labs.append(l)
-		ws.append(lw)
-		xs.append(b.position.x + (TILE - lw) * 0.5)
-	# words never overlap: pushed right past the previous one, then pulled back left from the column edge
-	# (12 px of slack past it; the screen margin is 24), so the last word never sits on top of its neighbour
-	var lo := x - 12.0
-	var hi := x + RIGHT_W + 12.0
-	for i in n:
-		xs[i] = maxf(xs[i], lo if i == 0 else xs[i - 1] + ws[i - 1] + 2.0)
-	for i in range(n - 1, -1, -1):
-		var lim: float = hi - ws[i] if i == n - 1 else xs[i + 1] - 2.0 - ws[i]
-		xs[i] = minf(xs[i], lim)
-	for i in n:
-		(labs[i] as Label).position = Vector2(xs[i], y + TILE + 2.0)
+		l.size = Vector2(TOOL_W + 12.0, TILE_LABEL_H)
+		l.position = Vector2(b.position.x - 6.0, y + TILE + 4.0)
 	for b in tiles:
 		if b != null and b.has_meta("tile_label") and not b.visible:
 			(b.get_meta("tile_label") as Label).visible = false
-	return n
+	return vis.size()
 
 
 func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 	undo_button = undo
 	reroll_button = reroll
 	end_turn_button = end_turn
+	_dock = UI3.dock(int(DOCK_W))
+	_dock.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dock.add_to_group("ui3_tip_avoid")
+	add_child(_dock)
 	for b in [undo, reroll, end_turn]:
 		if b.get_parent() != null:
 			b.get_parent().remove_child(b)
@@ -507,26 +587,29 @@ func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 		add_child(b)
 	reroll.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	undo.theme_type_variation = "ButtonSecondaryS"
-	reroll.theme_type_variation = "ButtonSecondaryS"
+	reroll.theme_type_variation = "ButtonSecondary"
 	reroll.text = "Reroll"
 	reroll.tooltip_text = "Reroll unused dice (%s)" % KeyBindings.text(KeyBindings.COMBAT_REROLL)
 	end_turn.theme_type_variation = "ButtonPrimaryL"
 	end_turn.text = "End turn"
-	end_turn.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))   # "Enemy turn" must fit the 240 px column
-	_end_cap = UI3.plate(&"info")
+	end_turn.add_theme_font_size_override("font_size", UI3Theme.size_of("text_screen_title"))   # 32; "Enemy turn" must fit the 320 px dock
+	_end_cap = UI3.keycap(KeyBindings.text(KeyBindings.COMBAT_END_TURN))
 	_end_cap.name = "EndKeyCap"
-	_end_cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_end_cap_label = UI3.label(KeyBindings.text(KeyBindings.COMBAT_END_TURN), "LabelDisplay")
-	_end_cap_label.add_theme_font_size_override("font_size", UI3Theme.size_of("text_key_hint"))   # key hint size
-	_end_cap_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_end_cap.add_child(_end_cap_label)
+	_end_cap_label = _end_cap.find_child("Key", true, false) as Label
 	end_turn.add_child(_end_cap)
+	_reroll_cap = UI3.keycap(KeyBindings.text(KeyBindings.COMBAT_REROLL), true)
+	_reroll_cap.name = "RerollKeyCap"
+	reroll.add_child(_reroll_cap)
 	reroll.custom_minimum_size = Vector2(RIGHT_W, SMALL_H)
 	end_turn.custom_minimum_size = Vector2(RIGHT_W, END_H)
 	# Backstop: a label can never grow its button past the 240 px column (test: t_combat_right_block).
 	for b in [undo, reroll, end_turn]:
 		b.clip_text = true
 	_make_tile(undo, &"undo", "Undo")
+	var ucap := UI3.keycap(KeyBindings.text(KeyBindings.COMBAT_UNDO), true)
+	ucap.name = "UndoKeyCap"
+	ucap.position = Vector2(TOOL_W - 22.0, -14.0)
+	undo.add_child(ucap)
 	overcast_button = UI3.button("Overcast", &"secondary", &"S")
 	overcast_button.name = "OvercastButton"
 	overcast_button.pressed.connect(func(): overcast_pressed.emit())
@@ -542,17 +625,10 @@ func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 	hold_button.pressed.connect(func(): hold_pressed.emit())
 	add_child(hold_button)
 	_make_tile(hold_button, &"hold", "Hold")
-	_hint = UI3.label("", "LabelMuted")
+	_hint = UI3.label("", "LabelMuted")   # status line inside the ActionDock: one Work Sans 18 line, muted, centred
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_hint.add_theme_color_override("font_color", UI3Theme.color("text"))   # sits on the 3D view: full cream, not muted
 	_hint.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
-	var hbg := UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("s"))
-	hbg.bg_color.a = 0.94
-	hbg.content_margin_left = 8
-	hbg.content_margin_right = 8
-	_hint.add_theme_stylebox_override("normal", hbg)
-	_hint.add_theme_constant_override("outline_size", 4)
-	_hint.add_theme_color_override("font_outline_color", UI3Theme.color("panel"))
+	_hint.clip_text = true
 	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_hint)
 	layout()
@@ -592,9 +668,15 @@ func update_top(d: Dictionary) -> void:
 	_divider.visible = (d.get("actives", []) as Array).size() > 0 and (relics.size() > 0 or has_cores)
 	relic_strip.visible = relics.size() > 0
 	_relic_plate.visible = has_cores or relics.size() > 0 or (d.get("actives", []) as Array).size() > 0
-	_fight_label.text = String(d.get("title", ""))
+	var title := String(d.get("title", ""))
+	var of_at := title.find(" " + TranslationServer.translate("of") + " ")
+	_fight_label.text = title.substr(0, of_at) if of_at > 0 else title
+	_fight_sub.text = title.substr(of_at + 1) if of_at > 0 else ""
 	var asc := int(d.get("ascension", 0))
-	_turn_label.text = ("A%d · " % asc if asc > 0 else "") + TranslationServer.translate("Turn") + " %d" % int(d.get("turn", 1))
+	_asc_pill.visible = asc > 0
+	_asc_label.text = "A%d" % asc
+	_turn_label.text = TranslationServer.translate("Turn") + " %d" % int(d.get("turn", 1))
+	_refresh_anchor_chip()
 	_shard_label.text = str(int(d.get("shards", 0)))
 	layout()
 
@@ -680,7 +762,8 @@ func _active_slot(a: Dictionary) -> Control:
 	return b
 
 
-## Attrition card. state = hud_state().attrition; turn; hidden for newcomers.
+## Attrition card. state = hud_state().attrition; turn; hidden for newcomers. Build strings only:
+## "ATTRITION · TURN N" (before), "ATTRITION +N%" (running), "ATTRITION +N% · MAX" (cap).
 func update_attrition(state: Dictionary, turn: int, newcomer: bool) -> void:
 	_newcomer = newcomer
 	_attr_card.visible = (not newcomer) and CombatLabels.attrition_visible(state, turn)   # only a few turns before it starts
@@ -691,15 +774,42 @@ func update_attrition(state: Dictionary, turn: int, newcomer: bool) -> void:
 	var pct := int(state.get("pct", 0))
 	var start := int(state.get("start_turn", 6))
 	var maxed := pct >= 25
-	if pct <= 0:
+	var running := pct > 0
+	var col := UI3Theme.color("danger_text" if maxed else "attrition")
+	if not running:
 		_attr_title.text = "ATTRITION %s TURN %d" % [HudKit.dot(), start]
-		_attr_sub.text = "enemies hit +5%%/turn %s max +25%%" % HudKit.dot()
 	elif maxed:
 		_attr_title.text = "ATTRITION +%d%% %s MAX" % [pct, HudKit.dot()]
-		_attr_sub.text = "since turn %d" % (start + 4)
 	else:
 		_attr_title.text = "ATTRITION +%d%%" % pct
-		_attr_sub.text = "+5%% each turn %s max +25%%" % HudKit.dot()
+	_attr_title.add_theme_color_override("font_color", col)
+	_attr_dashed = not running
+	var sb := (_attr_card.get_theme_stylebox("panel") as StyleBoxFlat).duplicate() as StyleBoxFlat
+	sb.content_margin_left = 16.0
+	sb.content_margin_right = 16.0
+	sb.content_margin_top = 0.0
+	sb.content_margin_bottom = 0.0
+	sb.set_border_width_all(0 if _attr_dashed else 2)
+	sb.border_color = col
+	_attr_card.add_theme_stylebox_override("panel", sb)
+	for c in _attr_pips.get_children():
+		_attr_pips.remove_child(c)
+		c.queue_free()
+	if not running:   # 3 pips only before start: 4 - N turns to go filled
+		var filled := clampi(4 - (start - turn), 0, 3)
+		for i in 3:
+			var d := Panel.new()
+			d.custom_minimum_size = Vector2(14, 14)
+			d.add_theme_stylebox_override("panel", UI3Theme.flat(col if i < filled else Color.TRANSPARENT, 7, 2, col))
+			d.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_attr_pips.add_child(d)
+	_attr_card.queue_redraw()
+
+
+## CombatView puts the card under the enemy plates (right column); Vector2(-1, -1) = default left column.
+func place_attrition(pos: Vector2) -> void:
+	_attr_right_pos = pos
+	layout()
 
 
 ## Right zone texts + enabled states. Disabled buttons say why (UI3 rule).
@@ -718,7 +828,7 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary, hold: D
 	if n > 0:
 		reroll_button.text = "Reroll %s" % nm
 	elif cost > 0 and not bool(reroll.get("capped", false)):
-		reroll_button.text = "Reroll %d MP" % cost if not reroll_button.disabled else "Need %d MP" % cost
+		reroll_button.text = "Reroll %d MP" % cost if not reroll_button.disabled else "Reroll · need %d MP" % cost
 	else:
 		reroll_button.text = "No rerolls"
 	var stakes := int(reroll.get("stakes", 0))
@@ -746,14 +856,13 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary, hold: D
 	for tb in [undo_button, hold_button, wild_button, overcast_button]:
 		_sync_tile(tb)
 	_hint.text = ("%s · skip" % KeyBindings.text(KeyBindings.COMBAT_END_TURN)) if resolving else String(end.get("sub", ""))
-	if need_mp and not resolving:
-		_hint.text = "Reroll: need %d MP\n%s" % [cost, _hint.text]
 	if _end_cap != null:
 		_end_cap_label.text = KeyBindings.text(KeyBindings.COMBAT_END_TURN)
 		_end_cap.visible = not resolving
 		# text goes left while the cap sits on the right ("Space" is wide), centred again for "Enemy turn"
 		end_turn_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_pad_end_for_cap(not resolving)
+		_reroll_cap.visible = reroll_button.visible and not reroll_button.disabled
 	_apply_seed_wait()
 	layout()
 
@@ -765,11 +874,45 @@ func set_seed_wait(on: bool) -> void:
 		_seed_wait = on
 		return
 	_seed_wait = on
+	_dim_timer_gen += 1
 	if on:
 		_apply_seed_wait()
 		layout()
+		# Waiting state (motion `waiting_server`): the actions dim only after 300 ms, so a quick answer never flickers.
+		if is_inside_tree():
+			var gen := _dim_timer_gen
+			get_tree().create_timer(0.3).timeout.connect(func() -> void:
+				if _seed_wait and gen == _dim_timer_gen:
+					_set_dim(true))
 	else:
 		_hint.text = _hint_before_wait   # the next update_right() refreshes everything else
+		_set_dim(false)
+
+
+## Waiting: every dock action at 0.4 (tools with their words, Reroll, End turn). 120 ms fade, instant when reduced.
+func _set_dim(on: bool) -> void:
+	if on == _wait_dim or undo_button == null:
+		return
+	_wait_dim = on
+	wait_dim_changed.emit(on)
+	for old in _dim_tweens:   # a flip within the 120 ms fade must not leave two tweens fighting over alpha
+		if old != null and old.is_valid():
+			old.kill()
+	_dim_tweens.clear()
+	var a := 0.4 if on else 1.0
+	for b in [undo_button, hold_button, wild_button, overcast_button, reroll_button, end_turn_button]:
+		if b == null:
+			continue
+		var items: Array = [b]
+		if b.has_meta("tile_label"):
+			items.append(b.get_meta("tile_label"))
+		for it in items:
+			if UI3Motion.reduced() or not is_inside_tree():
+				(it as CanvasItem).modulate.a = a
+			else:
+				var tw := create_tween()
+				tw.tween_property(it, "modulate:a", a, 0.12)
+				_dim_tweens.append(tw)
 
 
 func _apply_seed_wait() -> void:
@@ -833,6 +976,36 @@ func tray_top() -> float:
 	return _tray_top
 
 
+## Anchor chip (under the run plate): shared HouseChip, 48 high; pips fill per House Core held, word "Awakened" at 2/2.
+func _refresh_anchor_chip() -> void:
+	var key := "%s/%s/%d" % [AnchorAdapter.current_id(), AnchorAdapter.awakened(), AnchorAdapter.house_count()]
+	if _anchor_chip != null and is_instance_valid(_anchor_chip) and String(_anchor_chip.get_meta("key", "")) == key:
+		return
+	if _anchor_chip != null and is_instance_valid(_anchor_chip):
+		_anchor_chip.get_parent().remove_child(_anchor_chip)
+		_anchor_chip.queue_free()
+	_anchor_chip = null
+	if not AnchorAdapter.has_anchor():
+		layout()
+		return
+	var house := AnchorAdapter.house_id(AnchorAdapter.current_id())
+	var hk := StringName(house.trim_prefix("h_"))
+	var awake := AnchorAdapter.awakened()
+	var n := AnchorAdapter.house_count()
+	var chip := UI3.house_chip(hk, AnchorAdapter.house_name(house), mini(n, 2), 2, awake, UI3Theme.size_of("anchor_chip_h"))
+	chip.name = "AnchorChip"
+	chip.set_meta("key", key)
+	var txt := chip.find_child("Text", true, false) as Label
+	txt.add_theme_color_override("font_color", UI3Theme.color("anchor_awake") if awake else AnchorAdapter.house_color(house))
+	var more := UI3.label(TranslationServer.translate("Awakened") if awake else "%s %d/2" % [TranslationServer.translate("House Cores"), mini(n, 2)], "LabelMuted")
+	more.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	more.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	txt.get_parent().add_child(more)
+	add_child(chip)
+	_anchor_chip = chip
+	layout()
+
+
 func layout() -> void:
 	if not is_inside_tree():
 		return
@@ -844,42 +1017,67 @@ func layout() -> void:
 		h = vs.y
 	_top_plate.size = Vector2.ZERO
 	_top_plate.position = Vector2(EDGE, TOP)
+	# Left column, top to bottom: run plate (80) · 16 · Anchor chip (48) · Cores plate · boss rhythm / affix · log.
+	var col_bottom := TOP + maxf(_top_plate.get_combined_minimum_size().y, 80.0)
+	if _anchor_chip != null and is_instance_valid(_anchor_chip):
+		_anchor_chip.size = Vector2.ZERO
+		_anchor_chip.position = Vector2(EDGE, col_bottom + 16.0)
+		col_bottom = _anchor_chip.position.y + _anchor_chip.get_combined_minimum_size().y
 	_relic_plate.size = Vector2.ZERO
-	_relic_plate.position = Vector2(EDGE, TOP + _top_plate.get_combined_minimum_size().y + 8.0)
+	_relic_plate.position = Vector2(EDGE, col_bottom + 8.0)
 	var rel_bottom := _relic_plate.position.y + _relic_plate.get_combined_minimum_size().y \
-		if _relic_plate.visible else TOP + _top_plate.get_combined_minimum_size().y
+		if _relic_plate.visible else col_bottom
 	_attr_card.size = Vector2.ZERO
-	_attr_card.position = Vector2(EDGE, rel_bottom + 8.0)
+	if _attr_right_pos.x >= 0.0:
+		_attr_card.position = _attr_right_pos
+		_attr_card.size = Vector2(UI3Theme.size_of("enemy_plate_w"), UI3Theme.size_of("attrition_h"))
+	else:
+		_attr_card.position = Vector2(EDGE, rel_bottom + 8.0)
 	if undo_button != null:
-		var x := w - EDGE - RIGHT_W
-		var hint_h := HINT_H * (2.0 if _hint.text.contains("\n") else 1.0)   # 2nd line = "Need N MP to reroll"
-		var y := h - EDGE - hint_h
+		# ActionDock: plate 352 wide, bottom right, 16 padding, 12 between rows:
+		# ToolKeys (56 + word) · Reroll 56 · End turn 72 · status line.
+		var x := w - EDGE - DOCK_W + DOCK_PAD
+		var y := h - EDGE - DOCK_PAD
+		y -= HINT_H
 		_hint.position = Vector2(x, y)
-		_hint.size = Vector2(RIGHT_W, hint_h)
-		_hint.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-		y -= 8.0 + END_H
+		_hint.size = Vector2(RIGHT_W, HINT_H)
+		_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		y -= DOCK_GAP + END_H
 		end_turn_button.position = Vector2(x, y)
 		end_turn_button.size = Vector2(RIGHT_W, END_H)
 		if _end_cap != null:
 			_end_cap.size = Vector2.ZERO
-			_end_cap.position = Vector2(RIGHT_W - 12.0 - _end_cap.get_combined_minimum_size().x, (END_H - _end_cap.get_combined_minimum_size().y) * 0.5)
-		y -= GAP + SMALL_H
+			_end_cap.position = Vector2(RIGHT_W - 16.0 - _end_cap.get_combined_minimum_size().x, (END_H - _end_cap.get_combined_minimum_size().y) * 0.5)
+		y -= DOCK_GAP + SMALL_H
 		reroll_button.position = Vector2(x, y)
 		reroll_button.size = Vector2(RIGHT_W, SMALL_H)
-		_tray_top = y
+		if _reroll_cap != null:
+			_reroll_cap.size = Vector2.ZERO
+			_reroll_cap.position = Vector2(RIGHT_W - 12.0 - 28.0, (SMALL_H - 28.0) * 0.5)
 		overcast_button.visible = _overcast_wanted and not _speed.visible
 		wild_button.visible = _wild_wanted and not _speed.visible
 		hold_button.visible = _hold_wanted and not _speed.visible
 		undo_button.visible = not _speed.visible
 		reroll_button.visible = not _speed.visible
-		# Tile row above the Reroll row: only the unlocked tiles take a slot (no gaps), spread evenly.
-		var ty := y - GAP - TILE - TILE_LABEL_H - 2.0
+		var top := y
+		# Tool row above the Reroll row: only the unlocked tools take a slot (no gaps).
+		var ty := y - DOCK_GAP - TILE - 4.0 - TILE_LABEL_H
 		if _place_tiles(x, ty, [undo_button, hold_button, wild_button, overcast_button]) > 0:
-			_tray_top = ty
+			top = ty
+		_tray_top = top - DOCK_PAD
+		_dock.size = Vector2(DOCK_W, h - EDGE - _tray_top)
+		_dock.position = Vector2(w - EDGE - DOCK_W, _tray_top)
+		# A tall enemy column (boss + 4-5 enemies) pushes the Attrition card down behind the ActionDock: keep it above.
+		if _attr_right_pos.x >= 0.0 and _attr_card.visible:
+			var max_y := _tray_top - 8.0 - UI3Theme.size_of("attrition_h")
+			if _attr_card.position.y > max_y:
+				_attr_card.position.y = max_y
 		_speed.position = reroll_button.position
 		_speed.size = Vector2(RIGHT_W, SMALL_H)
 	if _log_plate != null:
-		var ltop := (_attr_card.position.y + _attr_card.get_combined_minimum_size().y) if _attr_card.visible else rel_bottom
+		var ltop := rel_bottom
+		if _attr_right_pos.x < 0.0 and _attr_card.visible:
+			ltop = _attr_card.position.y + _attr_card.get_combined_minimum_size().y
 		_foe_card.size = Vector2.ZERO
 		_foe_card.position = Vector2(EDGE, ltop + 8.0)
 		if _foe_card.visible:

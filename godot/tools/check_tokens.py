@@ -112,6 +112,10 @@ def main(argv):
     for (acc, key), where in sorted(used_keys().items()):
         group, kind = ACCESSORS[acc]
         grp = cand.get(group, {})
+        if key.endswith("_"):   # prefix read, e.g. color("house_" + id): fine when at least one token starts with it
+            if not any(k.startswith(key) for k in grp):
+                errors.append("MISSING any %s.%s* (prefix read by UI3Theme.%s at %s)" % (group, key, acc, where[0]))
+            continue
         if key not in grp:
             errors.append("MISSING %s.%s (read by UI3Theme.%s at %s)" % (group, key, acc, where[0]))
             continue

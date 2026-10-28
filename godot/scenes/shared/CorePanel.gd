@@ -5,7 +5,7 @@ extends VBoxContainer
 ## Slot colour = tier token, tier WORD in the tooltip. Spec: design/ux/depth-v3/core-offer.md
 
 const TIER_NAME := ["Moss", "Amber", "Crystal"]
-const TIER_TOKEN := ["rarity_rare", "rarity_legendary", "rarity_epic"]
+const TIER_TOKEN := ["tier_moss", "tier_amber", "tier_crystal"]   # UI-04 tier tokens (always with pips + the word)
 
 ## Axis -> icon (assets/ui3/icons) and word. One glyph per axis so the axis never relies on colour alone.
 const AXIS_ICON := {"stat": "face_buff", "dice": "face_dmg", "pos": "face_summon", "mana": "face_mana",
@@ -217,7 +217,9 @@ func refresh() -> bool:
 		sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_slots.add_child(sep)
 		if not show_counts:
-			_chip_row.add_child(house_chip(false))
+			var hc := house_chip(false)
+			hc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			_chip_row.add_child(hc)
 	var cores: Array[String] = RelicSlots.owned_cores(RunState.owned_relic_ids)
 	var n_slots := RelicSlots.tuning().core_slots
 	for i in n_slots:
@@ -311,6 +313,13 @@ func _slot(def, is_rule: bool, empty_name: String) -> PanelContainer:
 		s.add_child(ic)
 		l.visible = false
 	s.add_child(l)
+	if filled and not is_rule and not show_counts:
+		var pips := UI3._pips(tier + 1, 10, UI3Theme.color(TIER_TOKEN[tier]))   # UI-04: 1/2/3 pips = Moss/Amber/Crystal
+		pips.name = "TierPips"
+		pips.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		pips.size_flags_vertical = Control.SIZE_SHRINK_END
+		pips.add_theme_constant_override("separation", 0)
+		s.add_child(pips)
 	var tip := "%s: empty" % empty_name
 	if filled:
 		var head := String(def.name) if is_rule else "%s · %s" % [String(def.name), TranslationServer.translate(TIER_NAME[tier])]
@@ -323,22 +332,39 @@ func _slot(def, is_rule: bool, empty_name: String) -> PanelContainer:
 	return s
 
 
-## "House Cores x/2" chip, or the lit "Awakened" chip once latched. `short` = glyph + x/2 only (tight 1280x720 combat HUD).
-static func house_chip(short := false) -> PanelContainer:
+## UI-04 HouseChip for the Anchor: "<Kin> ●○ 1/2" (+ "awakens <Unison>" on the right unless `short`), or the lit
+## "Kin · Awakened" chip once latched. `short` = glyph + name + pips + x/2 only (tight 1280x720 combat HUD).
+## Children kept for tests: "Text" (house/Anchor name), "Count" (x/2), "Awakens" (right text, not in short).
+static func house_chip(short := false, height := 48) -> PanelContainer:
 	var id := AnchorAdapter.current_id()
 	var house := AnchorAdapter.house_id(id)
+	var hk := StringName(house.trim_prefix("h_"))
+	var hname := AnchorAdapter.house_name(house)
+	var c: PanelContainer
 	if AnchorAdapter.awakened():
-		var aw_txt: String = TranslationServer.translate("Awakened") if short else "%s · %s" % [AnchorAdapter.name_of(id), TranslationServer.translate("Awakened")]
-		var c := UI3.icon_chip(aw_txt, UI3.icon(AWAKEN_ICON), UI3Theme.color("anchor_awake"), "HouseChip")
+		c = UI3.house_chip(hk, "%s · %s" % [hname, TranslationServer.translate("Awakened")], Anchors.AWAKEN_NEED, Anchors.AWAKEN_NEED, true, height)
 		c.set_meta("state", "awakened")
 		return c
-	var txt := "%d/%d" % [AnchorAdapter.house_count(), Anchors.AWAKEN_NEED]
+	c = UI3.house_chip(hk, hname, AnchorAdapter.house_count(), Anchors.AWAKEN_NEED, false, height)
+	c.set_meta("state", "count")
+	var row := c.get_child(0) as HBoxContainer
+	var cnt := UI3.label("%d/%d" % [AnchorAdapter.house_count(), Anchors.AWAKEN_NEED], "LabelDisplay")
+	cnt.name = "Count"
+	cnt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	cnt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(cnt)
 	if not short:
-		txt = "%s · %s %s" % [AnchorAdapter.name_of(id), TranslationServer.translate("House Cores"), txt]
-		txt += " · %s %s" % [TranslationServer.translate("awakens"), AnchorAdapter.awaken_name(id)]
-	var chip := UI3.icon_chip(txt, UI3.icon(AnchorAdapter.house_icon(house)), AnchorAdapter.house_color(house), "HouseChip")
-	chip.set_meta("state", "count")
-	return chip
+		var aw := UI3.label("%s %s" % [TranslationServer.translate("awakens"), AnchorAdapter.awaken_name(id)], "LabelMuted")
+		aw.name = "Awakens"
+		aw.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		aw.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		aw.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		aw.custom_minimum_size.x = 160   # spec 03-run-map: right text budget 160, truncate
+		aw.clip_text = true
+		aw.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		aw.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(aw)
+	return c
 
 
 ## Anchor tile: house-coloured frame + house glyph; awakened = double frame + awaken glyph. Tooltip lists rule, price,

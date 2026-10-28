@@ -55,6 +55,7 @@ func _ready() -> void:
 	rm._select_reward(0)
 	await _frames(2)
 	rm._take_selected_reward()
+	await get_tree().create_timer(0.6).timeout   # UI-04 core_take (320 ms) plays before the overlay closes
 	await _frames(8)
 	_check(RunState.pending_rewards.is_empty(), "no pending offer after Core 1")
 	_check(not rm._overlay_root.visible and rm._board.visible, "overlay closed, map visible")
@@ -75,6 +76,7 @@ func _ready() -> void:
 	rm._select_reward(0)
 	await _frames(2)
 	rm._take_selected_reward()
+	await get_tree().create_timer(0.6).timeout
 	await _frames(8)
 	_check(RunState.pending_rewards.is_empty() and not rm._overlay_root.visible, "bonus offer closes back to the map")
 	_check(RelicSlots.owned_cores(RunState.owned_relic_ids).size() == 2, "Core panel holds 2 Cores")

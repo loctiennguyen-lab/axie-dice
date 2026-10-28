@@ -1,23 +1,1539 @@
 {
-  "_note": "UI-04 motion table: one entry per 'moment'. Read by UI3Motion (scenes/shared/ui3/UI3Motion.gd). Times in ms. trans/ease are Godot names without the TRANS_/EASE_ prefix. Seeded with the timings that were hardcoded in code before UI-04, so adding this file changed nothing visible. See design/handoffs/ui-04-polish/token-audit.md.",
-  "turn_banner": {
-    "_note": "CombatView._show_turn_banner: PLAYER TURN / ENEMY TURN plate. 390 in, 750 hold, 360 out.",
-    "in": {"ms": 390, "props": {
-      "alpha": {"from": 0.0, "to": 1.0, "trans": "LINEAR"},
-      "scale": {"from": 0.9, "to": 1.0, "trans": "BACK", "ease": "OUT"}}},
-    "hold_ms": 750,
-    "out": {"ms": 360, "props": {
-      "alpha": {"to": 0.0, "trans": "LINEAR"},
-      "scale": {"to": 1.04, "trans": "LINEAR"}}},
-    "skippable": true,
-    "hide_on_done": true
+ "_note": "UI-04 motion table: one entry per 'moment'. Read by UI3Motion (scenes/shared/ui3/UI3Motion.gd). Times in ms. trans/ease are Godot names without the TRANS_/EASE_ prefix. Seeded with the timings that were hardcoded in code before UI-04, so adding this file changed nothing visible. See design/handoffs/ui-04-polish/token-audit.md. UI-04 round 1 (handoff motion.md): one entry per row below the two seeded moments. Engine fields (UI3Motion.play): in/hold/out, shake, particles + particles2, hitstop_ms, sweep, hide/free_on_done. Other fields are data for the screen that plays the moment: trigger, delay_chain / delay_per_index_ms, sfx_name (design name; NOT in gacha_timing.json yet, so nothing plays), skip (rule text), reduce_flash (what the reduce_flash setting changes), star (a moment: any click/Space skips to the end state via opts.skip). Reduce motion (MetaState.reduce_motion) strips shake, hitstop, particles and slides inside play().",
+ "turn_banner": {
+  "_note": "CombatView._show_turn_banner: PLAYER TURN / ENEMY TURN plate. 390 in, 750 hold, 360 out.",
+  "in": {
+   "ms": 390,
+   "props": {
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    },
+    "scale": {
+     "from": 0.9,
+     "to": 1.0,
+     "trans": "BACK",
+     "ease": "OUT"
+    }
+   }
   },
-  "combo_banner": {
-    "_note": "CombatView combo chip: pops in, lives COMBO_FLOAT_SEC (1.8 s) in total (caller passes hold_ms 1550), fades 250.",
-    "in": {"ms": 180, "props": {"scale": {"from": 0.7, "to": 1.0, "trans": "BACK", "ease": "OUT"}}},
-    "hold_ms": 1550,
-    "out": {"ms": 250, "props": {"alpha": {"to": 0.0, "trans": "LINEAR"}}},
-    "skippable": true,
-    "free_on_done": true
-  }
+  "hold_ms": 750,
+  "out": {
+   "ms": 360,
+   "props": {
+    "alpha": {
+     "to": 0.0,
+     "trans": "LINEAR"
+    },
+    "scale": {
+     "to": 1.04,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "skippable": true,
+  "hide_on_done": true
+ },
+ "combo_banner": {
+  "_note": "CombatView combo chip: pops in, lives COMBO_FLOAT_SEC (1.8 s) in total (caller passes hold_ms 1550), fades 250.",
+  "in": {
+   "ms": 180,
+   "props": {
+    "scale": {
+     "from": 0.7,
+     "to": 1.0,
+     "trans": "BACK",
+     "ease": "OUT"
+    }
+   }
+  },
+  "hold_ms": 1550,
+  "out": {
+   "ms": 250,
+   "props": {
+    "alpha": {
+     "to": 0.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "skippable": true,
+  "free_on_done": true
+ },
+ "die_select": {
+  "trigger": "click / 1-5",
+  "_note": "die lift -18, side shadow 6->12, cream outline in; other dice modulate 0.85 (caller sets the others)",
+  "in": {
+   "ms": 120,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "to": [
+      0,
+      -18
+     ]
+    }
+   }
+  },
+  "sfx_name": "ui_die_pick",
+  "others_alpha": 0.85,
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "die_drop": {
+  "trigger": "Esc / click again",
+  "_note": "reverse of die_select",
+  "in": {
+   "ms": 120,
+   "trans": "CUBIC",
+   "ease": "IN",
+   "props": {
+    "offset": {
+     "to": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "sfx_name": "ui_die_drop",
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "die_used": {
+  "trigger": "die resolves (after the hit lands)",
+  "_note": "die scale 1->0.92, alpha 0.4, 'used' tag fades in (caller)",
+  "in": {
+   "ms": 140,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "to": 0.92
+    },
+    "alpha": {
+     "to": 0.4
+    }
+   }
+  },
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "hit": {
+  "trigger": "damage < 10 and not crit",
+  "_note": "enemy 3D flash modulate white 0->60%->0 over 80 ms (CombatView), float_0 rises 48 over 700 CUBIC OUT",
+  "in": {
+   "ms": 700,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "from": [
+      0,
+      0
+     ],
+     "to": [
+      0,
+      -48
+     ]
+    }
+   }
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/face_dmg.png",
+   "amount": 6,
+   "lifetime_ms": 400,
+   "spread_deg": 50,
+   "speed": 120,
+   "color_token": "face_attack",
+   "scale": 0.25
+  },
+  "sfx_name": "hit_s",
+  "flash_ms": 80,
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no flash, no sweep",
+  "skippable": false
+ },
+ "crit": {
+  "trigger": "crit face",
+  "_note": "as hit + float_1 + number pop 1->1.25->1 (160 BACK OUT + 120 CUBIC IN) + shake +-6 (3 steps SINE)",
+  "in": {
+   "ms": 240,
+   "trans": "SINE",
+   "ease": "IN_OUT",
+   "props": {
+    "scale": {
+     "from": 1.0,
+     "to": 1.0
+    }
+   }
+  },
+  "shake": {
+   "px": 6,
+   "ms": 240
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/face_dmg.png",
+   "amount": 12,
+   "lifetime_ms": 500,
+   "spread_deg": 70,
+   "speed": 160,
+   "color_token": "face_attack"
+  },
+  "particles2": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 8,
+   "lifetime_ms": 500,
+   "spread_deg": 360,
+   "speed": 120,
+   "color_token": "egg"
+  },
+  "sfx_name": "hit_crit",
+  "number_pop": {
+   "scale": 1.25,
+   "up_ms": 160,
+   "down_ms": 120
+  },
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "big_hit": {
+  "trigger": "damage >= 25% of target max HP or a knockout (client-side)",
+  "_note": "hitstop 60 ms (Engine.time_scale 0.05), shake +-10, float_2 + pop, light sweep over the enemy plate at +60",
+  "in": {
+   "ms": 320,
+   "trans": "SINE",
+   "ease": "IN_OUT",
+   "props": {
+    "scale": {
+     "from": 1.0,
+     "to": 1.0
+    }
+   }
+  },
+  "hitstop_ms": 60,
+  "shake": {
+   "px": 10,
+   "ms": 320
+  },
+  "sweep": {
+   "delay_ms": 60
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/face_dmg.png",
+   "amount": 20,
+   "lifetime_ms": 600,
+   "spread_deg": 120,
+   "speed": 220,
+   "color_token": "face_attack",
+   "gravity": 600
+  },
+  "sfx_name": "hit_big",
+  "number_pop": {
+   "scale": 1.25,
+   "up_ms": 160,
+   "down_ms": 120
+  },
+  "star": true,
+  "skip": "not skippable (60 + 320 ms)",
+  "reduce_flash": "no flash, no sweep",
+  "skippable": false
+ },
+ "axie_ko": {
+  "trigger": "HP -> 0",
+  "_note": "dice card modulate 0.4 grey, HP bar drains 300, 3D Axie tips over (owner anim), name strikes through (caller)",
+  "in": {
+   "ms": 300,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "alpha": {
+     "to": 0.4
+    }
+   }
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/status_vuln.png",
+   "amount": 8,
+   "lifetime_ms": 800,
+   "spread_deg": 40,
+   "speed": 80,
+   "color_token": "text_muted",
+   "direction_deg": -90
+  },
+  "sfx_name": "ko_axie",
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "shield_gain": {
+  "trigger": "shield face resolves",
+  "_note": "shield segment grows on the HP bar, chip pops",
+  "in": {
+   "ms": 160,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 0.8,
+     "to": 1.0
+    }
+   }
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/face_shield.png",
+   "amount": 6,
+   "lifetime_ms": 400,
+   "spread_deg": 180,
+   "speed": 100,
+   "color_token": "face_shield",
+   "ring": true
+  },
+  "sfx_name": "shield_up",
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "turn_banner_player": {
+  "trigger": "turn start (Your turn: plate)",
+  "_note": "UI-04 slide 200 / 500 / 200. The old id turn_banner (390/750/360, scale) stays until the combat lane switches",
+  "in": {
+   "ms": 200,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "from": [
+      -480,
+      0
+     ],
+     "to": [
+      0,
+      0
+     ]
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "hold_ms": 500,
+  "out": {
+   "ms": 200,
+   "trans": "CUBIC",
+   "ease": "IN",
+   "props": {
+    "offset": {
+     "to": [
+      480,
+      0
+     ]
+    },
+    "alpha": {
+     "to": 0.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "sfx_name": "turn_player",
+  "hide_on_done": true,
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "turn_banner_enemy": {
+  "trigger": "turn start (Enemy turn: red-2 band)",
+  "in": {
+   "ms": 200,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "from": [
+      -480,
+      0
+     ],
+     "to": [
+      0,
+      0
+     ]
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "hold_ms": 500,
+  "out": {
+   "ms": 200,
+   "trans": "CUBIC",
+   "ease": "IN",
+   "props": {
+    "offset": {
+     "to": [
+      480,
+      0
+     ]
+    },
+    "alpha": {
+     "to": 0.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "sfx_name": "turn_enemy",
+  "hide_on_done": true,
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "intent_reveal": {
+  "trigger": "after the turn banner, one block per enemy",
+  "_note": "80 ms x enemy index (caller passes opts delay); big-hit plates get the red border at the end with one 2-step border flash",
+  "in": {
+   "ms": 160,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 0.8,
+     "to": 1.0
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "delay_per_index_ms": 80,
+  "sfx_name": "intent_tick",
+  "intent_danger_sfx": "intent_danger",
+  "border_flash_steps": 2,
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no flash, no sweep",
+  "skippable": false
+ },
+ "attrition_card": {
+  "trigger": "3 turns before attrition starts",
+  "_note": "slides down 16 + fade after the banner; each new turn one pip fills with a number pop (caller)",
+  "in": {
+   "ms": 160,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "from": [
+      0,
+      -16
+     ],
+     "to": [
+      0,
+      0
+     ]
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "sfx_name": "attrition_tick",
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "boss_phase": {
+  "trigger": "HP crosses a phase tick",
+  "_note": "hitstop 80, shake +-12, tick bursts, banner 'Phase 2' (36, red-2) holds 700, boss plate sweep; 80+200+700+200",
+  "in": {
+   "ms": 200,
+   "trans": "SINE",
+   "ease": "IN_OUT",
+   "props": {
+    "scale": {
+     "from": 0.9,
+     "to": 1.0,
+     "trans": "BACK",
+     "ease": "OUT"
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "hold_ms": 700,
+  "out": {
+   "ms": 200,
+   "trans": "CUBIC",
+   "ease": "IN",
+   "props": {
+    "alpha": {
+     "to": 0.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "hitstop_ms": 80,
+  "shake": {
+   "px": 12,
+   "ms": 200
+  },
+  "sweep": {
+   "delay_ms": 120
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 24,
+   "lifetime_ms": 900,
+   "spread_deg": 360,
+   "speed": 200,
+   "color_token": "danger_text",
+   "ring": true
+  },
+  "sfx_name": "boss_phase",
+  "star": true,
+  "hide_on_done": true,
+  "skip": "Skip ends the banner",
+  "reduce_flash": "no flash, no sweep",
+  "skippable": true
+ },
+ "waiting_server": {
+  "trigger": "server request pending > 300 ms",
+  "_note": "all actions modulate 1->0.4, the pill fades in, dots pulse 0.3<->1 (900 loop); only after 300 ms of waiting",
+  "in": {
+   "ms": 120,
+   "trans": "LINEAR",
+   "ease": "IN_OUT",
+   "props": {
+    "alpha": {
+     "from": 1.0,
+     "to": 0.4
+    }
+   }
+  },
+  "show_after_ms": 300,
+  "pulse": {
+   "prop": "alpha",
+   "from": 0.3,
+   "to": 1.0,
+   "ms": 900,
+   "trans": "SINE",
+   "ease": "IN_OUT",
+   "loop": true
+  },
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "victory": {
+  "trigger": "last enemy dies",
+  "_note": "hitstop 100, slow-mo 0.4x for 400, 'Victory' band (36) + sweep, HUD fades 160, then the round-2 Victory march",
+  "in": {
+   "ms": 900,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "hitstop_ms": 100,
+  "sweep": {
+   "delay_ms": 300
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_shard.png",
+   "amount": 30,
+   "lifetime_ms": 1200,
+   "spread_deg": 60,
+   "speed": 420,
+   "color_token": "accent",
+   "gravity": 900,
+   "direction_deg": -90
+  },
+  "particles2": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 10,
+   "lifetime_ms": 1200,
+   "spread_deg": 60,
+   "speed": 300,
+   "color_token": "egg",
+   "gravity": 900,
+   "direction_deg": -90
+  },
+  "slowmo": {
+   "scale": 0.4,
+   "ms": 400
+  },
+  "hud_fade_ms": 160,
+  "band_delay_ms": 300,
+  "sfx_name": "win_fight",
+  "star": true,
+  "skip": "Skip -> reward screen",
+  "reduce_flash": "no flash, no sweep",
+  "skippable": true
+ },
+ "defeat": {
+  "trigger": "party down",
+  "_note": "3D desaturate via WorldEnvironment, scrim fade 240, panel scale 0.96->1 at +200, primary live after 1000",
+  "in": {
+   "ms": 240,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 0.96,
+     "to": 1.0
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "delay_chain": "panel at +200",
+  "scrim_fade_ms": 240,
+  "primary_live_after_ms": 1000,
+  "desaturate_3d": true,
+  "sfx_name": "lose_fight",
+  "star": true,
+  "skip": "Skip -> panel at once (primary still live after 1000)",
+  "reduce_flash": "no change",
+  "skippable": true
+ },
+ "core_reveal_moss": {
+  "trigger": "Core offer opens (Moss only)",
+  "_note": "3 cards drop from y-40 + fade, 80 ms x card, tier band last; 6 fragments per card",
+  "in": {
+   "ms": 240,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "from": [
+      0,
+      -40
+     ],
+     "to": [
+      0,
+      0
+     ]
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 6,
+   "lifetime_ms": 400,
+   "spread_deg": 60,
+   "speed": 110,
+   "color_token": "tier_moss"
+  },
+  "delay_per_index_ms": 80,
+  "tier_band_last": true,
+  "sfx_name": "core_reveal_1",
+  "star": true,
+  "skip": "Skip -> all placed",
+  "reduce_flash": "no change",
+  "skippable": true
+ },
+ "core_reveal_amber": {
+  "trigger": "Core offer with at least one Amber",
+  "_note": "as Moss + the Amber card wobbles (+-3 deg, 2 steps) + sweep on its band at +240",
+  "in": {
+   "ms": 240,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "from": [
+      0,
+      -40
+     ],
+     "to": [
+      0,
+      0
+     ]
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 12,
+   "lifetime_ms": 600,
+   "spread_deg": 360,
+   "speed": 110,
+   "color_token": "tier_amber"
+  },
+  "delay_per_index_ms": 80,
+  "tier_band_last": true,
+  "sfx_name": "core_reveal_2",
+  "star": true,
+  "sweep": {
+   "delay_ms": 240
+  },
+  "wobble": {
+   "deg": 3,
+   "steps": 2,
+   "ms": 200
+  },
+  "skip": "Skip -> all placed",
+  "reduce_flash": "no flash, no sweep",
+  "skippable": true
+ },
+ "core_reveal_crystal": {
+  "trigger": "Core offer with at least one Crystal",
+  "_note": "as Amber + 2 sweeps, card hop (y-24 and back), shake +-4",
+  "in": {
+   "ms": 240,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "from": [
+      0,
+      -40
+     ],
+     "to": [
+      0,
+      0
+     ]
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 20,
+   "lifetime_ms": 900,
+   "spread_deg": 360,
+   "speed": 110,
+   "color_token": "tier_crystal"
+  },
+  "delay_per_index_ms": 80,
+  "tier_band_last": true,
+  "sfx_name": "core_reveal_3",
+  "star": true,
+  "sweep": {
+   "delay_ms": 240
+  },
+  "sweeps": 2,
+  "hop": {
+   "px": 24,
+   "at_ms": 240,
+   "ms": 400
+  },
+  "shake": {
+   "px": 4,
+   "ms": 400
+  },
+  "skip": "Skip -> all placed",
+  "reduce_flash": "no flash, no sweep",
+  "skippable": true
+ },
+ "gacha_flip": {
+  "trigger": "click a face-down Core card (screens 60-62)",
+  "_note": "scale x 1->0->1 with the new face + tier band colour (caller); particles per tier = the core_reveal_* rows",
+  "in": {
+   "ms": 240,
+   "trans": "CUBIC",
+   "ease": "IN_OUT",
+   "props": {
+    "scale": {
+     "from": 1.0,
+     "to": 1.0
+    }
+   }
+  },
+  "flip_x": true,
+  "sfx_name": "card_flip",
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "core_take": {
+  "trigger": "Take / Enter",
+  "_note": "chosen card shrinks into its slot in the Cores plate, others fade 120; trail in the tier colour (caller sets color)",
+  "in": {
+   "ms": 320,
+   "trans": "CUBIC",
+   "ease": "IN_OUT",
+   "props": {
+    "scale": {
+     "to": 0.3
+    },
+    "alpha": {
+     "to": 0.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "fly_to": "cores_plate_slot",
+  "others_fade_ms": 120,
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 6,
+   "lifetime_ms": 400,
+   "spread_deg": 30,
+   "speed": 60
+  },
+  "sfx_name": "core_take",
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "anchor_awaken": {
+  "trigger": "2nd House Core taken",
+  "_note": "scrim 160, card 0.6->1.1->1, 8 rays 12 deg/s, title letters pop one by one, Anchor chip turns lemon at the end. AnchorFx stays the implementation",
+  "in": {
+   "ms": 360,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 0.6,
+     "to": 1.0
+    }
+   }
+  },
+  "hold_ms": 900,
+  "out": {
+   "ms": 160,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "alpha": {
+     "to": 1.0
+    }
+   }
+  },
+  "scrim_ms": 160,
+  "rays": {
+   "count": 8,
+   "deg_per_sec": 12
+  },
+  "title_delay_ms": 200,
+  "text_delay_ms": 500,
+  "chip_turns_lemon_at_end": true,
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 40,
+   "lifetime_ms": 1200,
+   "spread_deg": 360,
+   "speed": 260,
+   "color_token": "anchor_awake"
+  },
+  "particles2": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 12,
+   "lifetime_ms": 2400,
+   "spread_deg": 360,
+   "speed": 30,
+   "color_token": "anchor_awake"
+  },
+  "sfx_name": "anchor_awaken",
+  "star": true,
+  "skip": "Skip -> chip state",
+  "reduce_flash": "no flash, no sweep, rays static",
+  "skippable": true
+ },
+ "level_up": {
+  "trigger": "Level reward taken",
+  "_note": "Axie card hop 160, level number pop, light sweep on the card",
+  "in": {
+   "ms": 240,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "to": [
+      0,
+      -18
+     ]
+    }
+   }
+  },
+  "hop_ms": 160,
+  "sweep": {
+   "delay_ms": 160
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/face_buff.svg",
+   "amount": 10,
+   "lifetime_ms": 600,
+   "spread_deg": 40,
+   "speed": 140,
+   "color_token": "face_buff",
+   "direction_deg": -90
+  },
+  "sfx_name": "level_up",
+  "star": true,
+  "skip": "Skip -> final",
+  "reduce_flash": "no flash, no sweep",
+  "skippable": true
+ },
+ "reward_take": {
+  "trigger": "click Take on a reward",
+  "_note": "card lifts -18 (200) then flies to its HUD target (280)",
+  "in": {
+   "ms": 200,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "to": [
+      0,
+      -18
+     ]
+    }
+   }
+  },
+  "out": {
+   "ms": 280,
+   "trans": "CUBIC",
+   "ease": "IN_OUT",
+   "props": {
+    "scale": {
+     "to": 0.3
+    },
+    "alpha": {
+     "to": 0.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "fly_to": "hud_target",
+  "sfx_name": "reward_take",
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "treasure_open": {
+  "trigger": "Treasure opens",
+  "_note": "lid shakes 3 steps (300), opens (owner anim, 600), relic card rises 40 + fade (240) at +700, sweep",
+  "in": {
+   "ms": 300,
+   "trans": "SINE",
+   "ease": "IN_OUT",
+   "props": {
+    "scale": {
+     "from": 1.0,
+     "to": 1.0
+    }
+   }
+  },
+  "shake": {
+   "px": 6,
+   "ms": 300
+  },
+  "sweep": {
+   "delay_ms": 700
+  },
+  "lid_open_ms": 600,
+  "reveal_card": {
+   "rise_px": 40,
+   "delay_ms": 700,
+   "ms": 240,
+   "trans": "BACK",
+   "ease": "OUT"
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_shard.png",
+   "amount": 16,
+   "lifetime_ms": 800,
+   "spread_deg": 50,
+   "speed": 380,
+   "color_token": "accent",
+   "gravity": 900,
+   "direction_deg": -90
+  },
+  "sfx_name": "treasure_open",
+  "star": true,
+  "skip": "Skip -> opened",
+  "reduce_flash": "no flash, no sweep",
+  "skippable": true
+ },
+ "echo_idle": {
+  "trigger": "Echo Box screen open",
+  "_note": "chest bob y +-6, 2400 ms loop (caller loops in+out); 3 slow motes",
+  "in": {
+   "ms": 1200,
+   "trans": "SINE",
+   "ease": "IN_OUT",
+   "props": {
+    "offset": {
+     "to": [
+      0,
+      -6
+     ]
+    }
+   }
+  },
+  "out": {
+   "ms": 1200,
+   "trans": "SINE",
+   "ease": "IN_OUT",
+   "props": {
+    "offset": {
+     "to": [
+      0,
+      6
+     ]
+    }
+   }
+  },
+  "loop": true,
+  "motes": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 3,
+   "life_ms": 3000,
+   "color_token": "egg"
+  },
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "echo_open": {
+  "trigger": "Open 1 (normal)",
+  "_note": "squash 1.1/0.9 x2, shake +-6, burst, chest swaps to the rarity tier chest, card rises at +700 (300); particles cur_stone or cur_fragment",
+  "in": {
+   "ms": 300,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 1.0,
+     "to": 1.1
+    }
+   }
+  },
+  "hold_ms": 0,
+  "out": {
+   "ms": 400,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "to": 1.0
+    }
+   }
+  },
+  "shake": {
+   "px": 6,
+   "ms": 300
+  },
+  "squash": {
+   "x": 1.1,
+   "y": 0.9,
+   "times": 2
+  },
+  "reveal_card_delay_ms": 700,
+  "reveal_card_ms": 300,
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_stone.png",
+   "amount": 20,
+   "lifetime_ms": 800,
+   "spread_deg": 50,
+   "speed": 380,
+   "color_token": "accent",
+   "gravity": 700,
+   "direction_deg": -90
+  },
+  "sfx_name": "box_open",
+  "star": true,
+  "skip": "Skip -> card",
+  "reduce_flash": "no change",
+  "skippable": true
+ },
+ "echo_dupe": {
+  "trigger": "reveal is a duplicate",
+  "_note": "DUPLICATE chip stamps in 1.4->1, one Fragment sprite per Fragment flies to the meter at +200, meter counts up 400",
+  "in": {
+   "ms": 160,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 1.4,
+     "to": 1.0
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "hold_ms": 0,
+  "out": {
+   "ms": 480,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "alpha": {
+     "to": 1.0
+    }
+   }
+  },
+  "fly_delay_ms": 200,
+  "meter_count_up_ms": 400,
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 5,
+   "lifetime_ms": 480,
+   "spread_deg": 20,
+   "speed": 200
+  },
+  "sfx_name": "box_dupe",
+  "star": true,
+  "skip": "Skip -> final",
+  "reduce_flash": "no change",
+  "skippable": true
+ },
+ "echo_rare": {
+  "trigger": "reveal rarity >= Rare",
+  "_note": "before the card: band in rarity colour, 2-step sweep, rays (Legendary+), hold +600; Mythic adds shake +-10; 30-60 fragments tinted rarity (caller sets color_token per rarity)",
+  "in": {
+   "ms": 600,
+   "trans": "SINE",
+   "ease": "IN_OUT",
+   "props": {
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "hold_ms": 600,
+  "sweep": {
+   "delay_ms": 0
+  },
+  "sweeps": 2,
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 45,
+   "lifetime_ms": 900,
+   "spread_deg": 360,
+   "speed": 240,
+   "color_token": "rarity_epic",
+   "ring": true
+  },
+  "mythic_shake": {
+   "px": 10,
+   "ms": 300
+  },
+  "rays_from": "legendary",
+  "sfx_name": "box_rare",
+  "sfx_by_rarity": {
+   "rare": "box_rare",
+   "legendary": "box_legend",
+   "mythic": "box_mythic"
+  },
+  "star": true,
+  "skip": "Skip -> card",
+  "reduce_flash": "no flash, no sweep, rays static",
+  "skippable": true
+ },
+ "echo_open10": {
+  "trigger": "Open 10 confirmed",
+  "_note": "10 cards flip one by one (120 each, 80 ms x index); best one last with its Rare+ treatment",
+  "in": {
+   "ms": 120,
+   "trans": "CUBIC",
+   "ease": "IN_OUT",
+   "props": {
+    "scale": {
+     "from": 1.0,
+     "to": 1.0
+    }
+   }
+  },
+  "flip_x": true,
+  "delay_per_index_ms": 80,
+  "best_last": true,
+  "sfx_name": "box_flip",
+  "skip": "Skip -> all face up",
+  "reduce_flash": "no change",
+  "skippable": true
+ },
+ "pass_level_up": {
+  "trigger": "XP crosses a level",
+  "_note": "XP bar fills (count-up 600), level badge pop + sweep, the level card on the track gets the cream outline",
+  "in": {
+   "ms": 600,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 1.0,
+     "to": 1.0
+    }
+   }
+  },
+  "hold_ms": 0,
+  "out": {
+   "ms": 240,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 1.0,
+     "to": 1.0
+    }
+   }
+  },
+  "count_up_ms": 600,
+  "badge_pop_ms": 240,
+  "sweep": {
+   "delay_ms": 600
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_shard.png",
+   "amount": 12,
+   "lifetime_ms": 700,
+   "spread_deg": 40,
+   "speed": 220,
+   "color_token": "accent",
+   "direction_deg": -90
+  },
+  "sfx_name": "pass_level",
+  "star": true,
+  "skip": "Skip -> final",
+  "reduce_flash": "no flash, no sweep",
+  "skippable": true
+ },
+ "daily_claim": {
+  "trigger": "Claim",
+  "_note": "reward chip pops, 8 sprites of the reward icon fly to the HUD chip",
+  "in": {
+   "ms": 160,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 0.7,
+     "to": 1.0
+    }
+   }
+  },
+  "hold_ms": 0,
+  "out": {
+   "ms": 480,
+   "trans": "CUBIC",
+   "ease": "IN_OUT",
+   "props": {
+    "alpha": {
+     "to": 1.0
+    }
+   }
+  },
+  "fly_to_chip": true,
+  "fly_sprites": 8,
+  "fly_stagger_ms": 40,
+  "fly_delay_ms": 160,
+  "sfx_name": "daily_claim",
+  "star": true,
+  "skip": "Skip -> final",
+  "reduce_flash": "no change",
+  "skippable": true
+ },
+ "land_tier_up": {
+  "trigger": "Land upgrade completes",
+  "_note": "band in 240, camera push-in 4% over 600, Stone particles, sweep +400, hold 1400, band out 240",
+  "in": {
+   "ms": 240,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "from": [
+      0,
+      -80
+     ],
+     "to": [
+      0,
+      0
+     ]
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "hold_ms": 1400,
+  "out": {
+   "ms": 240,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "to": [
+      0,
+      -80
+     ]
+    },
+    "alpha": {
+     "to": 0.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "camera_push_in": {
+   "pct": 4,
+   "ms": 600
+  },
+  "sweep": {
+   "delay_ms": 400
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_stone.png",
+   "amount": 24,
+   "lifetime_ms": 1000,
+   "spread_deg": 40,
+   "speed": 380,
+   "color_token": "accent",
+   "gravity": 700,
+   "direction_deg": -90
+  },
+  "chip_updates_as_band_leaves": true,
+  "sfx_name": "land_tier",
+  "star": true,
+  "hide_on_done": true,
+  "skip": "Skip -> chip updated",
+  "reduce_flash": "no flash, no sweep",
+  "skippable": true
+ },
+ "currency_gain": {
+  "trigger": "any Shard/Stone/Gem/ticket gain",
+  "_note": "count-up on the chip + fly-to-chip (8 sprites of that currency, 40 ms stagger); chip pops when the first sprite lands",
+  "in": {
+   "ms": 480,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 1.0,
+     "to": 1.0
+    }
+   }
+  },
+  "count_up_ms": 480,
+  "fly_to_chip": true,
+  "fly_sprites": 8,
+  "fly_stagger_ms": 40,
+  "chip_pop": {
+   "scale": 1.25,
+   "up_ms": 160,
+   "down_ms": 120
+  },
+  "sfx_name": "coin_gain",
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "run_end_win": {
+  "trigger": "Result opens after a win",
+  "_note": "panel scale 0.96->1, Shard hero count-up 800 at +240, fly-to-chip, shard fountain",
+  "in": {
+   "ms": 240,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 0.96,
+     "to": 1.0
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "hold_ms": 0,
+  "out": {
+   "ms": 800,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "alpha": {
+     "to": 1.0
+    }
+   }
+  },
+  "count_delay_ms": 240,
+  "fly_to_chip": true,
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_shard.png",
+   "amount": 20,
+   "lifetime_ms": 900,
+   "spread_deg": 60,
+   "speed": 400,
+   "color_token": "accent",
+   "gravity": 900,
+   "direction_deg": -90
+  },
+  "sfx_name": "run_win",
+  "star": true,
+  "skip": "Skip -> final numbers",
+  "reduce_flash": "no change",
+  "skippable": true
+ },
+ "run_end_lose": {
+  "trigger": "Result opens after a loss",
+  "_note": "panel only, no particles",
+  "in": {
+   "ms": 240,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 0.96,
+     "to": 1.0
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "sfx_name": "run_lose",
+  "star": true,
+  "skip": "Skip -> final numbers",
+  "reduce_flash": "no change",
+  "skippable": true
+ },
+ "toast": {
+  "trigger": "toast queued (one at a time)",
+  "in": {
+   "ms": 160,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "from": [
+      0,
+      -16
+     ],
+     "to": [
+      0,
+      0
+     ]
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "hold_ms": 4000,
+  "out": {
+   "ms": 160,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "alpha": {
+     "to": 0.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "sfx_name": "toast",
+  "free_on_done": true,
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "net_notice": {
+  "trigger": "request failed",
+  "_note": "RETRY spinner replaces the label while retrying",
+  "in": {
+   "ms": 160,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "from": [
+      0,
+      -16
+     ],
+     "to": [
+      0,
+      0
+     ]
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "sfx_name": "net_warn",
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "update_bar": {
+  "trigger": "modal closed",
+  "_note": "bar slides down 56, the screen's top margin animates 0->56 (caller)",
+  "in": {
+   "ms": 200,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "from": [
+      0,
+      -56
+     ],
+     "to": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "margin_push_px": 56,
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ }
 }

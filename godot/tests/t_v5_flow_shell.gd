@@ -72,7 +72,7 @@ func _ready() -> void:
 	var p := _shell_plate(v, boss)
 	_ok(p != null and p.has_shell(), "stage2: SHELL bar visible")
 	var lbl := p.find_child("ShellText", true, false) as Label if p != null else null
-	_ok(lbl != null and lbl.text == "SHELL %d/%d" % [sh, sh], "plate label SHELL n/n: " + (lbl.text if lbl != null else "?"))
+	_ok(lbl != null and lbl.text == "%d/%d" % [sh, sh], "plate label SHELL n/n: " + (lbl.text if lbl != null else "?"))
 	_ok(v.coach_shown_id == "C8", "C8 coach shown first time (%s)" % v.coach_shown_id)
 	boss.hp = 9999
 	boss.max_hp = 9999

@@ -18,12 +18,14 @@ signal tray_toggled(open: bool)
 signal offer_dismissed
 
 const FAIRNESS := "Aid makes you stronger for one run. Players who buy more can win more. The Pure leaderboard only counts runs without Aid."
-const BTN_W := 288.0
-const BTN_H := 48.0
-const EDGE := 16.0
+const BTN_W := 320.0   ## UI-04: Aid zone 320 wide, 24 from the edges
+const BTN_H := 56.0
+const EDGE := 24.0
+const OFFER_GAP := 16.0
 const TRAY_W := 420.0
 const ROW_H := 64.0
 
+var waiting := false           ## server request in flight: the offer hides
 var enabled := true            ## false for newcomers: the whole zone disappears
 var used := 0
 var cap := 6
@@ -55,6 +57,12 @@ func _init() -> void:
 func _build_button() -> void:
 	_button = UI3.button("", &"secondary")
 	_button.name = "AidButton"
+	# Aid bar: plate fill, 2 px wood-3 border, radius 16 (the bar is a toggle, not a second secondary button)
+	for st in ["normal", "hover", "pressed", "disabled", "hover_pressed"]:
+		var bar := UI3Theme.flat(UI3Theme.color("panel"), 16, 2, UI3Theme.color("btn_secondary"))
+		if st == "hover" or st == "hover_pressed":
+			bar.bg_color = UI3Theme.color("panel_raised")
+		_button.add_theme_stylebox_override(st, bar)
 	_button.custom_minimum_size = Vector2(BTN_W, BTN_H)
 	_button.pressed.connect(toggle_tray)
 	add_child(_button)
@@ -74,7 +82,8 @@ func _build_button() -> void:
 	_used_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_used_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(_used_label)
-	var key := UI3.key_hint(KeyBindings.text(KeyBindings.COMBAT_AID))
+	var key := UI3.keycap(KeyBindings.text(KeyBindings.COMBAT_AID), true)
+	key.custom_minimum_size = Vector2(32, 32)
 	key.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	key.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(key)
@@ -131,7 +140,7 @@ func set_state(d: Dictionary) -> void:
 	rows = d.get("rows", [])
 	offer = d.get("offer", {})
 	visible = enabled
-	var u := TranslationServer.translate("used %d of %d") % [used, cap]
+	var u := TranslationServer.translate("%d of %d used") % [used, cap]
 	_used_label.text = u
 	_tray_used.text = u
 	_rebuild_rows()
@@ -154,7 +163,7 @@ func set_open(v: bool) -> void:
 	if not enabled:
 		return
 	_tray.visible = v
-	_offer_card.visible = not v and not offer.is_empty()
+	_offer_card.visible = not v and not offer.is_empty() and not waiting
 	layout()
 	tray_toggled.emit(v)
 	if v:
@@ -246,35 +255,46 @@ func _rebuild_offer() -> void:
 	if offer.is_empty():
 		_offer_card.visible = false
 		return
-	_offer_card.visible = not _tray.visible
+	_offer_card.visible = not _tray.visible and not waiting
 	var once := UI3.label(TranslationServer.translate("Aid offer · once"), "LabelMuted")
 	once.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	_offer_box.add_child(once)
 	_offer_box.add_child(UI3.label(TranslationServer.translate(String(offer.get("title", ""))), "LabelDisplay"))
 	var what := UI3.label(TranslationServer.translate(String(offer.get("what", ""))), "LabelMuted")
 	what.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	what.custom_minimum_size = Vector2(BTN_W - 34.0, 0)
+	what.custom_minimum_size = Vector2(BTN_W - 36.0, 0)
 	_offer_box.add_child(what)
 	for cap_line in offer.get("caps", []):
 		_offer_box.add_child(UI3.label(String(cap_line), "LabelMuted"))
-	# Secondary with a violet (paid) border: End turn stays the ONE amber primary on this screen (spec 39).
-	var buy := UI3.button(TranslationServer.translate("Buy · %d Gem") % int(offer.get("price", 0)), &"secondary")
-	_violet_border(buy)
+	# Buy with the gem chip inside (UI-04). Violet = the one place Aid says "this costs Gem"; End turn stays the one amber primary.
+	var buy := UI3.button_with_cost(TranslationServer.translate("Buy"), &"gem", int(offer.get("price", 0)), _short(offer) > 0)
+	for st in ["normal", "hover", "pressed", "disabled"]:
+		var sb := buy.get_theme_stylebox(st).duplicate() as StyleBoxFlat
+		sb.bg_color = UI3Theme.color("gem_bg")
+		sb.border_color = UI3Theme.color("gem_border")
+		sb.set_border_width_all(2)
+		buy.add_theme_stylebox_override(st, sb)
+	for fc in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color", "font_disabled_color"]:
+		buy.add_theme_color_override(fc, UI3Theme.color("text"))   # cream on violet, not the primary's dark ink
 	buy.name = "OfferBuy"
-	buy.custom_minimum_size = Vector2(BTN_W - 34.0, 48)
+	buy.custom_minimum_size = Vector2(0, 56)
+	buy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	buy.pressed.connect(_ask.bind(String(offer.get("id", ""))))
 	if _short(offer) > 0:
 		UI3.set_disabled_reason(buy, TranslationServer.translate("Need %d more Gem") % _short(offer))
-	_offer_box.add_child(buy)
-	var no := UI3.button(TranslationServer.translate("Not now"), &"secondary")
+	var brow := HBoxContainer.new()
+	brow.add_theme_constant_override("separation", UI3Theme.space("12"))
+	brow.add_child(buy)
+	_offer_box.add_child(brow)
+	var no := UI3.button(TranslationServer.translate("Not now"), &"quiet", &"S")
 	no.name = "OfferNotNow"
-	no.custom_minimum_size = Vector2(BTN_W - 34.0, 48)   # same size as the buy button, always
+	no.custom_minimum_size = Vector2(0, 56)   # same height as Buy, always
 	no.pressed.connect(func():
 		offer = {}
 		offer_dismissed.emit()
 		_rebuild_offer()
 		layout())
-	_offer_box.add_child(no)
+	brow.add_child(no)
 
 
 # ── Purchase confirm ─────────────────────────────────────────────────────────────────────────
@@ -370,6 +390,13 @@ func handle_escape() -> bool:
 	return false
 
 
+## Server request in flight: the offer hides (UI-04 waiting state); the bar stays.
+func set_waiting(on: bool) -> void:
+	waiting = on
+	_offer_card.visible = not on and not offer.is_empty() and not _tray.visible
+	layout()
+
+
 func tray_top_hint(tray_top: float) -> void:
 	_tray_top = tray_top
 	layout()
@@ -399,7 +426,7 @@ func layout() -> void:
 	_offer_card.size = Vector2.ZERO
 	var oh := _offer_card.get_combined_minimum_size().y
 	_offer_card.size = Vector2(BTN_W, oh)
-	_offer_card.position = Vector2(EDGE, btn_top - 8.0 - oh)
+	_offer_card.position = Vector2(EDGE, btn_top - OFFER_GAP - oh)
 	_tray.size = Vector2.ZERO
 	var th := _tray.get_combined_minimum_size().y
 	_tray.size = Vector2(TRAY_W, th)
