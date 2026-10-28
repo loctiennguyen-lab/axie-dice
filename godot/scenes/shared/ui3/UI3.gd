@@ -1670,7 +1670,10 @@ static func button_with_cost(text: String, kind: StringName, amount: int, not_en
 	chip.offset_right = -UI3Theme.space("16")
 	b.add_child(chip)
 	for st in ["normal", "hover", "pressed", "disabled"]:
-		var s := b.get_theme_stylebox(st).duplicate() as StyleBoxFlat
+		# Read the style from the theme by variation: before the button is in the tree, get_theme_stylebox() does not
+		# resolve theme_type_variation yet and returns the grey engine default (dark fill, dark text).
+		var src: StyleBox = UI3Theme.get_theme().get_stylebox(st, b.theme_type_variation)
+		var s := (src if src is StyleBoxFlat else b.get_theme_stylebox(st)).duplicate() as StyleBoxFlat
 		s.content_margin_right += 96 + UI3Theme.space("8")
 		b.add_theme_stylebox_override(st, s)
 	return b
