@@ -201,7 +201,7 @@ func _ready() -> void:
 		_check(lost, "C4: mission counted as a loss in the ledger")
 	h3.call("_show_toast", "one", 5.0)
 	h3.call("_show_toast", "two", 5.0, &"error")
-	await get_tree().process_frame
+	await get_tree().create_timer(0.4).timeout   # UI-04: the toast slides down 16 px over 160 ms first
 	var tl: Array = h3.get("_toasts")
 	_check(tl.size() == 1 and is_equal_approx((tl[0] as Control).position.y, 24.0), "UI3: first toast 24 px from the top")
 	_check((h3.get("_toast_queue") as Array).size() == 1, "S4-14: the second toast waits in the queue, no stacking over the chip")
