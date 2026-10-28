@@ -1083,7 +1083,18 @@ func _build_hud_r1() -> void:
 	_tray_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_tray_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_tray_root.z_index = 6
+	_dock_plate = UI3.dock(848)
+	_dock_plate.name = "DiceDock"
+	_dock_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dock_plate.z_index = 5
+	_dock_plate.add_to_group("ui3_tip_avoid")
+	_shell_root.add_child(_dock_plate)
 	_shell_root.add_child(_tray_root)
+	_dock_pill = UI3.waiting_pill(TranslationServer.translate("Waiting for server…"))
+	_dock_pill.visible = false
+	_dock_pill.z_index = 8
+	_shell_root.add_child(_dock_pill)
+	_hud_frame.wait_dim_changed.connect(_on_wait_dim)
 	_bo_layer = BoLayer.new()
 	_shell_root.add_child(_bo_layer)
 	_bo_layer.cards_provider = _card_rects
@@ -1469,7 +1480,7 @@ func _layout_tray() -> void:
 		gap = clampf((vs.x - 32.0 - col_w * n) / float(n - 1), 4.0, 16.0)
 	var total := n * col_w + maxf(n - 1, 0.0) * gap
 	var x0 := (vs.x - total) * 0.5
-	var top := vs.y - 24.0 - TrayColumn.H   # card top at y 892 on 1080: 24 margin, party row stays clear
+	var top := TrayColumn.card_top(vs.y)   # DiceDock: cards sit under the plate padding and the FRONT/BACK row
 	var i := 0
 	for b in _die_slot_buttons:
 		var btn: Button = b
@@ -1478,11 +1489,43 @@ func _layout_tray() -> void:
 		btn.position = Vector2(x0 + i * (col_w + gap), top)
 		btn.size = Vector2(col_w, TrayColumn.H)
 		i += 1
+	_layout_dice_dock(vs, x0, total)
 	_layout_row_strip(x0, col_w, gap, top)
 	_refresh_bo_layer()
 
 
 var _row_strip: Control = null
+var _dock_plate: PanelContainer = null
+var _dock_pill: PanelContainer = null
+
+
+## DiceDock plate (848 wide, grows only when summoned tokens widen the row) + the waiting pill centred on it.
+func _layout_dice_dock(vs: Vector2, x0: float, total: float) -> void:
+	if _dock_plate == null:
+		return
+	var w := maxf(848.0, total + 32.0)
+	_dock_plate.size = Vector2.ZERO
+	_dock_plate.position = Vector2((vs.x - w) * 0.5, TrayColumn.dock_top(vs.y))
+	_dock_plate.size = Vector2(w, TrayColumn.DOCK_H)
+	_dock_plate.visible = total > 0.0
+	if _dock_pill != null:
+		_dock_pill.size = Vector2.ZERO
+		_dock_pill.position = _dock_plate.position + (_dock_plate.size - _dock_pill.get_combined_minimum_size()) * 0.5
+		_dock_pill.size = _dock_pill.get_combined_minimum_size()
+
+
+## Waiting for the server (HUD dim fires 300 ms after the request): the card grid drops to 0.4, a pill says why,
+## and the Aid offer hides. 120 ms fade, instant when motion is reduced.
+func _on_wait_dim(on: bool) -> void:
+	if _tray_root != null:
+		if UI3Motion.reduced() or not is_inside_tree():
+			_tray_root.modulate.a = 0.4 if on else 1.0
+		else:
+			create_tween().tween_property(_tray_root, "modulate:a", 0.4 if on else 1.0, 0.12)
+	if _dock_pill != null:
+		_dock_pill.visible = on
+	if _aid != null:
+		_aid.set_waiting(on)
 
 
 ## Depth v3 4: a FRONT / BACK bracket over the tray columns (front = the first rows.front_size Axies).
@@ -1520,18 +1563,20 @@ func _layout_row_strip(x0: float, col_w: float, gap: float, top: float) -> void:
 		var l := UI3.label(word, "LabelDisplay")
 		l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		l.add_theme_color_override("font_color", UI3Theme.color("text" if r == 0 else "text_muted"))
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.position = Vector2(x, top - 52.0)   # clear of a picked card, which lifts 18 px
-		l.size = Vector2(w, 24)
+		l.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		l.position = Vector2(x, top - 8.0 - TrayColumn.DOCK_LABEL_H)
+		l.size = Vector2(l.get_minimum_size().x, TrayColumn.DOCK_LABEL_H)
+		var lab_w := l.size.x
 		l.mouse_filter = Control.MOUSE_FILTER_PASS
 		UI3Tooltip.bind(l, "Front row (first %d Axies) takes single-target hits first. Back row is only hit once the front is down, or by area / piercing attacks." % _combat.front_row_size()
 			if r == 0 else "Back row: safe from single-target hits while a front-row Axie stands.")
 		_row_strip.add_child(l)
 		l.visible = _combat.bo.is_empty()
 		var line := ColorRect.new()
-		line.color = UI3Theme.color("text" if r == 0 else "text_muted")
-		line.position = Vector2(x + 4.0, top - 26.0)
-		line.size = Vector2(w - 8.0, 2)
+		line.color = UI3Theme.color("btn_secondary")   # wood-3
+		line.position = Vector2(x + lab_w + 8.0, top - 8.0 - TrayColumn.DOCK_LABEL_H * 0.5 - 1.0)
+		line.size = Vector2(maxf(w - lab_w - 8.0, 0.0), 2)
 		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_row_strip.add_child(line)
 
@@ -4613,7 +4658,7 @@ func _play_victory_march() -> void:
 	_exit_running = true
 	# UI-03 45: only the 3D stage + title + Skip. Restored below in case the scene stays in combat.
 	var hidden: Array[CanvasItem] = []
-	var to_hide: Array = [_hud_frame, _aid, _tray_root]
+	var to_hide: Array = [_hud_frame, _aid, _tray_root, _dock_plate]
 	to_hide.append_array(_portraits.values())   # enemy plates + status chips
 	for n in to_hide:
 		if is_instance_valid(n) and (n as CanvasItem).visible:
@@ -4738,7 +4783,7 @@ func _on_bo_changed(groups: Array) -> void:
 	if _bo_layer == null or _combat == null:
 		return
 	_refresh_bo_layer()
-	var tray_top := get_viewport_rect().size.y - 24.0 - TrayColumn.H
+	var tray_top := TrayColumn.dock_top(get_viewport_rect().size.y)
 	_bo_layer.announce(groups, tray_top)
 	_log_bo_changes(groups)
 	_sync_row_labels()
@@ -4881,7 +4926,7 @@ func _update_wild_picker() -> void:
 		rows[best]["best"] = true
 	_wild_picker.update(rows)
 	var vs := get_viewport_rect().size
-	var tray_top := vs.y - 24.0 - TrayColumn.H
+	var tray_top := TrayColumn.dock_top(vs.y)
 	_wild_picker.position = Vector2((vs.x - _wild_picker.size.x) * 0.5, tray_top - _wild_picker.size.y - 12.0)
 
 
@@ -4958,4 +5003,4 @@ func _update_coach() -> void:
 	_coach_box.size = Vector2.ZERO
 	var vs := get_viewport_rect().size
 	var w := _coach_box.get_combined_minimum_size().x
-	_coach_box.position = Vector2((vs.x - w) * 0.5, vs.y - 24.0 - TrayColumn.H - 190.0)
+	_coach_box.position = Vector2((vs.x - w) * 0.5, TrayColumn.dock_top(vs.y) - 190.0)

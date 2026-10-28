@@ -72,6 +72,7 @@ var _skip_button: Button
 ## CombatView hands them over via `adopt_right_zone()`.
 var _dock: PanelContainer         ## ActionDock plate (352 wide), behind the buttons
 var _reroll_cap: PanelContainer
+signal wait_dim_changed(on: bool)
 var _wait_dim := false
 var undo_button: Button
 var reroll_button: Button
@@ -889,6 +890,7 @@ func _set_dim(on: bool) -> void:
 	if on == _wait_dim or undo_button == null:
 		return
 	_wait_dim = on
+	wait_dim_changed.emit(on)
 	var a := 0.4 if on else 1.0
 	for b in [undo_button, hold_button, wild_button, overcast_button, reroll_button, end_turn_button]:
 		if b == null:

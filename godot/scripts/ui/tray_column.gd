@@ -6,18 +6,35 @@ extends RefCounted
 ## (toggle) so `%DieSlot0`, focus, keys and the tests keep working; the DieTile is click-through.
 ## The card is bottom-anchored in a fixed 164 px button: "used" is a stamp on the tile, the word stays one line, so the tray top never moves.
 
-const W := 152.0
-const H := 164.0
+const W := 153.6          ## DiceDock: (848 - 2x16 pad - 4x12 gap) / 5
+const H := 184.0
+const DOCK_H := 244.0      ## 12 pad + 24 FRONT/BACK row + 8 + card H + 16 pad
+const DOCK_LABEL_H := 24.0
 const PAD := 6.0
-const TILE_Y := 4.0
+const TILE_Y := 10.0
 const HOLDER_H := 88.0     # DieTile's holder is 100 high for its shadow; 88 + the 6 px gap is enough
-const PART_CHIP := 44.0     # glyph 40 design px = 27 px at 1280x720
-const BODY_NORMAL := 164.0
-const BODY_USED := 164.0
+const PART_CHIP := 36.0     # UI-04 part badge 36, glyph 24
+const BODY_NORMAL := 184.0
+const BODY_USED := 184.0
+
+
+## Top edge of the DiceDock plate on a screen `vs_y` high (24 margin).
+static func dock_top(vs_y: float) -> float:
+	return vs_y - 24.0 - DOCK_H
+
+
+## Top edge of the DieCards (below the dock padding and the FRONT/BACK row).
+static func card_top(vs_y: float) -> float:
+	return dock_top(vs_y) + 12.0 + DOCK_LABEL_H + 8.0
 
 ## Game face type -> UI3 face name.
 const _FACE := {"dmg": &"attack", "debuff": &"weaken"}
 const _STATUS_ICON := {"poison": "status_poison", "vulnerable": "status_vuln"}
+
+
+## DieCard fill (UI-04 DiceDock): panel_raised, radius 14.
+static func _raised() -> StyleBoxFlat:
+	return UI3Theme.flat(UI3Theme.color("panel_raised"), 14)
 
 
 static func ui3_face(game_type: String) -> StringName:
@@ -38,6 +55,7 @@ static func build(btn: Button) -> Dictionary:
 	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(body)
 	var plate := UI3.plate(&"card")
+	plate.add_theme_stylebox_override("panel", _raised())
 	plate.name = "Plate"
 	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	plate.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -124,7 +142,7 @@ static func update(content: Dictionary, d: Dictionary) -> void:
 		content["skin_node"] = null
 		_apply_skin(content, skin)
 
-	var row_y := TILE_Y + HOLDER_H + 6.0 + 22.0 + 2.0
+	var row_y := TILE_Y + HOLDER_H + 6.0 + 24.0 + 6.0
 	var hp_now := int(d.get("hp", 0))
 	var hp_max := int(d.get("max_hp", 1))
 	var hl: Label = content["hp_label"]
@@ -140,12 +158,17 @@ static func update(content: Dictionary, d: Dictionary) -> void:
 	var hp: HPBar = content["hp"]
 	hp.set_stats(hp_now, hp_max)
 	hp.set_at_risk(mini(hp_now, maxi(0, int(d.get("incoming", 0)) - int(d.get("shield", 0)))))
-	hp.position = Vector2(PAD, row_y + 26.0)
-	hp.size = Vector2(W - PAD * 2.0, 10)
+	hp.position = Vector2(PAD, row_y + 28.0)
+	hp.size = Vector2(W - PAD * 2.0, 8)
 
 	# Card frame: selected / legal ally target = selected plate; focus ring on the button.
 	var lit := selected or bool(d.get("legal_target", false))
-	(content["plate"] as PanelContainer).theme_type_variation = "PanelCardSelected" if lit else "PanelCard"
+	var pl := content["plate"] as PanelContainer
+	pl.theme_type_variation = "PanelCardSelected" if lit else "PanelCard"
+	if lit:
+		pl.remove_theme_stylebox_override("panel")
+	else:
+		pl.add_theme_stylebox_override("panel", _raised())
 	var empty := StyleBoxEmpty.new()
 	for st in ["normal", "hover", "pressed", "disabled", "hover_pressed"]:
 		btn.add_theme_stylebox_override(st, empty)
@@ -217,12 +240,12 @@ static func _update_v4(content: Dictionary, d: Dictionary) -> void:
 		chip.custom_minimum_size = Vector2(PART_CHIP, PART_CHIP)
 		var tr := TextureRect.new()
 		tr.name = "Glyph"
-		tr.custom_minimum_size = Vector2(PART_CHIP - 4.0, PART_CHIP - 4.0)
+		tr.custom_minimum_size = Vector2(24, 24)
 		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		chip.add_child(tr)
-		chip.position = Vector2(-4, -4)   # hangs off the corner: the glyph is 24 px at 1280, the die tile stays clear
+		chip.position = Vector2((W - 96.0) * 0.5 - 10.0, TILE_Y - 10.0)   # hangs off the die corner (-10,-10)
 		body.add_child(chip)
 		content["part_chip"] = chip
 	if content.has("part_chip"):
