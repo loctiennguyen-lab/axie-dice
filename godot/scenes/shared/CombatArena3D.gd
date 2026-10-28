@@ -26,6 +26,14 @@ const LAND_SUN_ENERGY := 1.25
 const LAND_AMBIENT := Color("fff1d6")
 const LAND_AMBIENT_ENERGY := 0.75
 const BASE_FOG_DENSITY := 0.006
+## The web build renders with gl_compatibility (no HDR tonemap): the same sun/ambient read much brighter there and
+## burned bright grounds (Savannah) to flat yellow (Liam 28/10). Scale both down on that renderer only.
+const COMPAT_LIGHT_MUL := 0.68
+## Same renderer: the flat ground albedo reads louder than on Forward+, so tone it down a little there.
+const COMPAT_GROUND_SAT := 0.8
+const COMPAT_GROUND_VAL := 0.88
+## Whole-frame saturation on that renderer (per biome override: "compat_saturation").
+const COMPAT_SATURATION := 0.78
 ## Default for registry "path_end_gap": the path lane ends this far in front of the portal origin
 ## (tile centre), so the pedestal stays visible.
 const PATH_END_GAP := 2.8
@@ -134,7 +142,7 @@ func _apply_boss_look() -> void:
 	sky_mat.sky_curve = 0.12
 	_env.fog_density = BOSS_FOG_DENSITY
 	_env.fog_light_color = Color("8a3a22")
-	_env.ambient_light_energy = 0.7
+	_env.ambient_light_energy = 0.7 * (COMPAT_LIGHT_MUL if _is_compat() else 1.0)
 	if _ground_mat != null:
 		var c := _ground_mat.albedo_color
 		_ground_mat.albedo_color = Color.from_hsv(c.h, minf(c.s * 1.3, 1.0), c.v * 0.85)
@@ -169,6 +177,15 @@ func _tint_environment(b: Dictionary) -> void:
 	_env.fog_density = float(b.get("fog_density", BASE_FOG_DENSITY))
 	_sun.light_color = LAND_SUN.lerp(Color(String(b.get("light", "#ffffff"))), 0.3)
 	_sun.light_energy = LAND_SUN_ENERGY * lerpf(1.0, float(b.get("light_energy", 1.15)) / 1.15, 0.5)
+	if _is_compat():
+		_sun.light_energy *= COMPAT_LIGHT_MUL
+		_env.ambient_light_energy *= COMPAT_LIGHT_MUL
+		_env.adjustment_enabled = true
+		_env.adjustment_saturation = float(b.get("compat_saturation", COMPAT_SATURATION))
+		_env.adjustment_brightness = float(b.get("compat_brightness", 1.0))
+		_env.adjustment_contrast = 1.0
+	else:
+		_env.adjustment_enabled = false
 
 
 func _add_ground(b: Dictionary) -> void:
@@ -176,6 +193,9 @@ func _add_ground(b: Dictionary) -> void:
 	plane.size = Vector2(GROUND_SIZE, GROUND_SIZE)
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(String(b.get("ground", "#c9b46a")))
+	if _is_compat():
+		var g := mat.albedo_color
+		mat.albedo_color = Color.from_hsv(g.h, g.s * COMPAT_GROUND_SAT, g.v * COMPAT_GROUND_VAL)
 	mat.roughness = 1.0
 	_ground_mat = mat
 	var mi := MeshInstance3D.new()
@@ -428,3 +448,7 @@ func portal_world_aabb() -> AABB:
 ## World position of the portal, or ZERO when this arena has none.
 func portal_position() -> Vector3:
 	return _portal.global_position if _portal != null else Vector3.ZERO
+
+
+static func _is_compat() -> bool:
+	return RenderingServer.get_current_rendering_method() == "gl_compatibility"
