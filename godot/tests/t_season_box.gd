@@ -132,7 +132,7 @@ func _run() -> void:
 	await get_tree().process_frame
 	s.select_tab("seasonal")
 	await get_tree().process_frame
-	_ok(s.find_child("SeasonOpen", true, false) != null and s.find_child("SeasonCost", true, false) != null, "Open button with ticket cost chip")
+	_ok(s.find_child("SeasonOpen", true, false) != null and s.find_child("SeasonOpen", true, false).find_child("CostChip", true, false) != null, "Open button with ticket cost chip")
 	_ok(s.find_child("Open1", true, false) == null and s.find_child("PullsLeft", true, false) != null, "no normal Open on season tab, pulls left shown")
 	_ok((s.find_child("PullsLeft", true, false) as Label).text.contains("8 / 8"), "pulls left 8 / 8")
 	_ok(s.find_child("SeasonGrid", true, false).get_child_count() == 11, "11-item pool grid")

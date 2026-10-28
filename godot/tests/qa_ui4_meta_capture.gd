@@ -68,6 +68,31 @@ func _make(screen: String) -> void:
 			UpdateRequired.web_override = 1
 			UpdateRequired.show_bar(get_tree())
 
+		"echobox", "echobox_new", "echobox_dupe":
+			MetaState.shard_pool = 4200
+			MetaState.tickets = {"normal": 12, "season": 0}
+			MetaState.echobox_pity = {"fragments": 0, "since_rare": 17, "since_epic": 8, "since_legendary": 31, "since_mythic": 44}
+			var eb: EchoBoxScreen = load("res://scenes/echobox/EchoBoxScreen.tscn").instantiate()
+			eb.use_account = false
+			eb.remote_on = false
+			eb.no_scene_change = true
+			eb.instant = true
+			add_child(eb)
+			await get_tree().process_frame
+			var ids := EchoBox.pool_ids(eb.box_cfg(), "common")
+			var item := String(ids[0])
+			if screen == "echobox":
+				eb.set_last_open({"ok": true, "kind": "cosmetic", "item": item, "rarity": "common", "duplicate": true, "fragments": 5})
+			elif screen == "echobox_new":
+				eb.pull_hook = func(_n: int) -> Array:
+					return [{"ok": true, "kind": "cosmetic", "item": item, "rarity": "common", "duplicate": false}]
+				eb.pull(1)
+			else:
+				MetaState.echobox_pity["fragments"] = 5
+				eb.pull_hook = func(_n: int) -> Array:
+					return [{"ok": true, "kind": "cosmetic", "item": item, "rarity": "common", "duplicate": true, "fragments": 5}]
+				eb.pull(1)
+			await get_tree().process_frame
 
 ## Result screen (UI-04 10): "result_won" (mission win), "result_lost_stake" (mission lost, 800 stake),
 ## "result_mission_lost" (mission lost, fullest case: Cores that fired).

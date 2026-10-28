@@ -49,7 +49,7 @@ var remote_on: bool = String(ProjectSettings.get_setting("axie/gem_wallet", ""))
 ## Tests: replaces AccountService.status. Returns an AccountService.Status int.
 var account_status_hook: Callable
 
-const DETAIL_W := 440
+const DETAIL_W := 456
 ## Rarity -> UI-03 colour token (the tokens have four tiers; uncommon reads as rare, mythic as legendary).
 const RARITY_TOKEN := {"common": "rarity_common", "uncommon": "rarity_uncommon", "rare": "rarity_rare",
 	"epic": "rarity_epic", "legendary": "rarity_legendary", "mythic": "rarity_mythic"}
@@ -66,6 +66,11 @@ var _body: HBoxContainer
 var _banner_host: VBoxContainer
 var _bar_host: HBoxContainer
 var _stage_host: VBoxContainer
+var _stage_v: VBoxContainer
+## Last result shown in the strip under the chest (EchoBox.open_normal shape); empty = nothing yet.
+var last_open: Dictionary = {}
+var _opening := false
+var _idle_tw: Tween
 var _side_host: VBoxContainer
 var _tab_btns: Dictionary = {}
 var _modal_layer: Control
@@ -114,7 +119,7 @@ func _unhandled_key_input(ev: InputEvent) -> void:
 				_on_back()
 			if is_inside_tree():   # a handler above may have changed scene
 				get_viewport().set_input_as_handled()
-		elif ev.keycode == KEY_SPACE and _modal_layer.get_child_count() > 0:
+		elif ev.keycode == KEY_SPACE and (_modal_layer.get_child_count() > 0 or _opening):
 			_skip = true
 
 
@@ -228,7 +233,7 @@ func pull(n: int) -> Array:
 		return out
 	error_text = "Opened %d of %d" % [out.size(), n] if out.size() < n else ""
 	results = out
-	_refresh_all()
+	_refresh_bar()
 	await _play_ceremony(out)
 	return out
 
@@ -405,14 +410,19 @@ func _build() -> void:
 	_stage_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_stage_host.add_theme_constant_override("separation", UI3Theme.space("16"))
 	_body.add_child(_stage_host)
-	var bar := UI3.plate(&"plate")
-	bar.name = "TicketPlate"
+	# One stage plate: ticket bar on top, chest stage + buttons + last-open strip below (UI-04 M3).
+	var plate := UI3.plate(&"plate")
+	plate.name = "StagePlate"
+	plate.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_stage_v = VBoxContainer.new()
+	_stage_v.name = "StageV"
+	_stage_v.add_theme_constant_override("separation", UI3Theme.space("16"))
+	plate.add_child(_stage_v)
 	_bar_host = HBoxContainer.new()
 	_bar_host.name = "TicketBar"
-	_bar_host.add_theme_constant_override("separation", UI3Theme.space("24"))
-	bar.add_child(_bar_host)
-	_stage_host.add_child(bar)
-	_stage_host.move_child(bar, 0)
+	_bar_host.add_theme_constant_override("separation", UI3Theme.space("16"))
+	_stage_v.add_child(_bar_host)
+	_stage_host.add_child(plate)
 	_side_host = VBoxContainer.new()
 	_side_host.name = "Side"
 	_side_host.custom_minimum_size = Vector2(DETAIL_W, 0)
@@ -466,6 +476,11 @@ func _rarity_color(rar: String) -> Color:
 	return UI3Theme.color(String(RARITY_TOKEN.get(rar, "rarity_common")))
 
 
+## Rarity colour for text on a dark plate (mythic has its own text token).
+func _rarity_text(rar: String) -> Color:
+	return UI3Theme.color("rarity_mythic_text") if rar == "mythic" else _rarity_color(rar)
+
+
 # ---------------------------------------------------------------- refresh
 
 func _clear(n: Node) -> void:
@@ -489,53 +504,136 @@ func _sync_wallet() -> void:
 		w.call("sync")
 
 
+## Pill (64 high by default) on the stage plate: raised fill, no border.
+func _pill(h := 64) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.theme = UI3Theme.get_theme()
+	p.custom_minimum_size = Vector2(0, h)
+	p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("pill"), 0,
+		Color.TRANSPARENT, Vector4(12, 0, 20, 0)))
+	return p
+
+
+func _icon(icon_name: String, px: float, node_name := "") -> TextureRect:
+	var t := TextureRect.new()
+	if node_name != "":
+		t.name = node_name
+	t.texture = UI3.currency_icon(icon_name, px)
+	t.custom_minimum_size = Vector2(px, px)
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return t
+
+
+## Rowdies label at `size` in a given colour.
+func _dlabel(text: String, col: Color, size := 18) -> Label:
+	var l := UI3.label(text, "LabelDisplay")
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", col)
+	return l
+
+
+func _meter(w: float, h: float, value: float, max_v: float, fill: Color, node_name := "") -> ProgressBar:
+	var pb := ProgressBar.new()
+	if node_name != "":
+		pb.name = node_name
+	pb.theme = UI3Theme.get_theme()
+	pb.custom_minimum_size = Vector2(w, h)
+	pb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	pb.max_value = max_v
+	pb.value = value
+	pb.show_percentage = false
+	pb.add_theme_stylebox_override("background", UI3Theme.flat(UI3Theme.color("hp_track"), int(h / 2.0)))
+	pb.add_theme_stylebox_override("fill", UI3Theme.flat(fill, int(h / 2.0)))
+	return pb
+
+
+## Price chip inside a button (secondary variant; the primary one goes through UI3.button_with_cost).
+func _cost_in_button(b: Button, kind: StringName, amount: int, reserve := 96, primary := false) -> void:
+	var chip := UI3.cost_chip(kind, amount)
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for c in chip.find_children("*", "Control", true, false):
+		(c as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("keycap_bg" if primary else "panel"),
+		UI3Theme.radius("pill"), 0, Color.TRANSPARENT, Vector4(10, 0, 14, 0)))
+	chip.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+	chip.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	chip.grow_vertical = Control.GROW_DIRECTION_BOTH
+	chip.offset_right = -UI3Theme.space("16")
+	b.add_child(chip)
+	for st in ["normal", "hover", "pressed", "disabled"]:
+		var s := b.get_theme_stylebox(st, b.theme_type_variation).duplicate() as StyleBoxFlat
+		s.content_margin_right += reserve + UI3Theme.space("8")
+		b.add_theme_stylebox_override(st, s)
+
+
+## Primary button with the price chip inside (same as UI3.button_with_cost, but resolves the theme variation
+## by name: button_with_cost reads the default-theme stylebox when the button is not in the tree yet).
+func _primary_cost(text: String, kind: StringName, amount: int, size := &"L") -> Button:
+	var b := UI3.button(text, &"primary", size)
+	_cost_in_button(b, kind, amount, 96, true)
+	return b
+
+
+## DUPLICATE chip: square (radius 4), 2 px muted border, Rowdies 18 uppercase, with side padding.
+func _dup_chip() -> PanelContainer:
+	var p := PanelContainer.new()
+	p.name = "DupChip"
+	p.theme = UI3Theme.get_theme()
+	p.custom_minimum_size = Vector2(0, 32)
+	p.add_theme_stylebox_override("panel", UI3Theme.flat(Color.TRANSPARENT, 4, 2, UI3Theme.color("text_muted"), Vector4(10, 0, 10, 0)))
+	var l := _dlabel("DUPLICATE", UI3Theme.color("text"))
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	p.add_child(l)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return p
+
+
+func _drop_cost_chip(b: Button) -> void:
+	for cc in b.find_children("CostChip", "Control", true, false):
+		cc.queue_free()
+
+
 func _refresh_bar() -> void:
 	_sync_wallet()
 	_clear(_bar_host)
-	var tk := TextureRect.new()
-	tk.name = "TicketIcon"
-	tk.texture = UI3.currency_icon("cur_ticket", 32.0)
-	tk.custom_minimum_size = Vector2(32, 32)
-	tk.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	tk.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	tk.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_bar_host.add_child(tk)
-	var t := UI3.label("Tickets  %d / 999" % tickets(), "LabelScreenTitle")
+	var tp := _pill()
+	tp.name = "TicketsChip"
+	var th := HBoxContainer.new()
+	th.add_theme_constant_override("separation", 10)
+	tp.add_child(th)
+	th.add_child(_icon("cur_ticket", 44, "TicketIcon"))
+	var t := UI3.label("%d" % tickets(), "LabelScreenTitle")
 	t.name = "Tickets"
 	if state == "offline" and remote_on:
 		t.modulate.a = 0.6   # cached count
-	_bar_host.add_child(t)
+	th.add_child(t)
+	var tl := UI3.label("tickets", "LabelMuted")
+	tl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	th.add_child(tl)
+	_bar_host.add_child(tp)
 	var per := int(_Econ.get_table("echobox").get("fragments_per_ticket", 10))
 	var frags := int(MetaState.echobox_pity.get("fragments", 0))
-	var fi := TextureRect.new()
-	fi.name = "FragmentIcon"
-	fi.texture = UI3.currency_icon("cur_fragment", 32.0)
-	fi.custom_minimum_size = Vector2(32, 32)
-	fi.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	fi.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	fi.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_bar_host.add_child(fi)
-	var fl := UI3.label("Fragments  %d/%d" % [frags, per], "LabelMuted")
-	fl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_bar_host.add_child(fl)
-	var fb := ProgressBar.new()
-	fb.name = "Fragments"
-	fb.theme = UI3Theme.get_theme()
-	fb.custom_minimum_size = Vector2(220, 16)
-	fb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	fb.max_value = per
-	fb.value = frags
-	fb.show_percentage = false
-	_bar_host.add_child(fb)
+	var fp := _pill()
+	fp.name = "FragmentsChip"
+	var fh := HBoxContainer.new()
+	fh.add_theme_constant_override("separation", 12)
+	fp.add_child(fh)
+	fh.add_child(_icon("cur_fragment", 36, "FragmentIcon"))
+	fh.add_child(_meter(180, 12, frags, per, UI3Theme.color("tier_crystal"), "Fragments"))
+	var fl := _dlabel("%d/%d" % [frags, per], UI3Theme.color("text"))
+	fl.name = "FragmentsCount"
+	fh.add_child(fl)
+	fp.tooltip_text = "%d Fragments = 1 ticket" % per
+	_bar_host.add_child(fp)
 	var sp := Control.new()
 	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_bar_host.add_child(sp)
 	var price := next_price()
-	var pl := UI3.label("Next ticket  %s Shards" % (UI3.fmt(price) if price >= 0 else "-"), "LabelMuted")
-	pl.name = "NextPrice"
-	pl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_bar_host.add_child(pl)
-	var buy := UI3.button("Buy ticket  %s" % (UI3.fmt(price) if price >= 0 else "max today"), &"secondary", &"S")
+	var buy := UI3.button("Buy ticket", &"secondary", &"M")
 	buy.name = "BuyTicket"
 	var why := ""
 	if _account_blocks() or state == "loading":
@@ -547,6 +645,8 @@ func _refresh_bar() -> void:
 	if why != "":
 		UI3.set_disabled_reason(buy, why)
 		buy.tooltip_text = why
+	else:
+		_cost_in_button(buy, &"shard", price, 96)
 	buy.pressed.connect(_on_buy_pressed)
 	_bar_host.add_child(buy)
 
@@ -560,41 +660,161 @@ func _on_buy_pressed() -> void:
 		buy_ticket()
 
 
-func _refresh_stage() -> void:
-	# keep the ticket plate (child 0), rebuild the rest
-	while _stage_host.get_child_count() > 1:
-		var c := _stage_host.get_child(1)
-		_stage_host.remove_child(c)
-		c.queue_free()
-	var seasonal := tab == "seasonal"
-	var stage := UI3.plate(&"plate")
-	stage.name = "StagePlate"
-	stage.custom_minimum_size = Vector2(0, 360)
-	stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var cc := CenterContainer.new()
-	stage.add_child(cc)
-	var v := VBoxContainer.new()
-	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	v.add_theme_constant_override("separation", UI3Theme.space("16"))
-	cc.add_child(v)
-	# Real chest art (assets/echobox/chests): Gold tier for the daily box, Mystic themed for the season box.
+## Gold (or Mystic) chest on two chest_disc circles (520 / 360) and a floor shadow; idle bob via echo_idle.
+func _chest_stage(seasonal: bool) -> Control:
+	var host := Control.new()
+	host.name = "ChestStage"
+	host.custom_minimum_size = Vector2(520, 520)
+	host.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var disc := UI3Theme.color("chest_disc")
+	for d in [["DiscOuter", 520.0, Vector2(0, 0)], ["DiscInner", 360.0, Vector2(80, 80)]]:
+		var p := Panel.new()
+		p.name = String(d[0])
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = disc
+		sb.set_corner_radius_all(int(float(d[1]) / 2.0))
+		p.add_theme_stylebox_override("panel", sb)
+		p.position = d[2]
+		p.size = Vector2(float(d[1]), float(d[1]))
+		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		host.add_child(p)
+	var sh := Panel.new()
+	sh.name = "FloorShadow"
+	var ssb := StyleBoxFlat.new()
+	ssb.bg_color = Color(0.043, 0.047, 0.059, 0.4)
+	ssb.set_corner_radius_all(12)
+	sh.add_theme_stylebox_override("panel", ssb)
+	sh.position = Vector2(100, 460)
+	sh.size = Vector2(320, 24)
+	sh.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(sh)
 	var chest := TextureRect.new()
 	chest.name = "Chest"
 	chest.texture = load("res://assets/echobox/chests/themed/mystic-chest.png" if seasonal else "res://assets/echobox/chests/tiers/chest_gold.png")
 	chest.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	chest.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	chest.custom_minimum_size = Vector2(240, 200)
+	chest.size = Vector2(360, 360)
+	chest.position = Vector2(80, 70)
+	chest.pivot_offset = Vector2(180, 340)
 	chest.tooltip_text = "Mystic Chest" if seasonal else "Gold Chest"
-	v.add_child(chest)
+	host.add_child(chest)
+	return host
+
+
+## echo_idle: first cycle through the motion table, then a smooth ping-pong with the table's numbers.
+func _start_idle(chest: Control) -> void:
+	if instant or UI3Motion.reduced() or chest == null:
+		return
+	var m: Dictionary = UI3Motion.table().get("echo_idle", {})
+	if m.is_empty():
+		return
+	var home := chest.position
+	var ms_in := float((m["in"] as Dictionary).get("ms", 1200)) / 1000.0
+	var ms_out := float((m["out"] as Dictionary).get("ms", 1200)) / 1000.0
+	_idle_tw = UI3Motion.play("echo_idle", chest, {"on_done": func() -> void:
+		if not is_instance_valid(chest) or not chest.is_inside_tree():
+			return
+		var tw := chest.create_tween().set_loops()
+		_idle_tw = tw
+		tw.tween_property(chest, "position", home + Vector2(0, -6), ms_in).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		tw.tween_property(chest, "position", home + Vector2(0, 6), ms_out).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)})
+
+
+func _chest_tex(tier: String) -> Texture2D:
+	return load("res://assets/echobox/chests/tiers/chest_%s.png" % tier.to_lower()) as Texture2D
+
+
+func _result_name(r: Dictionary) -> String:
+	if String(r.get("kind")) == "stone":
+		return "%s Stone" % UI3.fmt(int(r.get("amount", 0)))
+	return CosmeticTile.any_name(String(r.get("item", "")))
+
+
+## What the "Last open" strip shows (every pull sets it; public so captures can).
+func set_last_open(r: Dictionary) -> void:
+	last_open = r.duplicate()
+	if _stage_v != null and not _shell.is_empty():
+		_refresh_stage()
+
+
+func _last_open_strip() -> Control:
+	var s := PanelContainer.new()
+	s.name = "LastOpen"
+	s.theme = UI3Theme.get_theme()
+	s.custom_minimum_size = Vector2(0, 80)
+	s.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), 16, 0, Color.TRANSPARENT,
+		Vector4(20, 0, 20, 0)))
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 16)
+	s.add_child(h)
+	h.add_child(_dlabel("LAST OPEN", UI3Theme.color("text_muted")))
+	if last_open.is_empty():
+		var none := UI3.label("Nothing yet. Open a box to see it here.", "LabelMuted")
+		none.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		h.add_child(none)
+		return s
+	var ic := TextureRect.new()
+	ic.texture = _chest_tex(_chest_tier(last_open))
+	ic.custom_minimum_size = Vector2(48, 48)
+	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(ic)
+	var nm := _dlabel(_result_name(last_open).left(60), UI3Theme.color("text"))
+	nm.name = "LastName"
+	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	h.add_child(nm)
+	var kind := UI3.label(_reward_title(last_open), "LabelMuted")
+	kind.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	kind.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	h.add_child(kind)
+	if bool(last_open.get("duplicate", false)):
+		h.add_child(_dup_chip())
+		var fr := HBoxContainer.new()
+		fr.add_theme_constant_override("separation", 6)
+		fr.add_child(_icon("cur_fragment", 24))
+		var fv := int(last_open.get("tickets_back", 0)) if last_open.has("season") else int(last_open.get("fragments", 0))
+		fr.add_child(_dlabel("+%d" % fv, UI3Theme.color("text")))
+		h.add_child(fr)
+	return s
+
+
+func _refresh_stage() -> void:
+	# keep the ticket bar (child 0 of StageV), rebuild the rest
+	while _stage_v.get_child_count() > 1:
+		var c := _stage_v.get_child(1)
+		_stage_v.remove_child(c)
+		c.queue_free()
+	for c in _stage_host.get_children():
+		if c.name == "SummaryScroll":
+			_stage_host.remove_child(c)
+			c.queue_free()
+	var seasonal := tab == "seasonal"
+	var has_summary := not results.is_empty()
+	var plate := _stage_host.get_node("StagePlate") as Control
+	plate.size_flags_vertical = Control.SIZE_SHRINK_BEGIN if has_summary else Control.SIZE_EXPAND_FILL
+	var cs := _chest_stage(seasonal)
+	if has_summary:
+		cs.custom_minimum_size = Vector2(520, 0)
+		cs.visible = false
+	_stage_v.add_child(cs)
+	var chest := cs.find_child("Chest", true, false) as Control
+	var v := VBoxContainer.new()
+	v.name = "StageActions"
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.add_theme_constant_override("separation", UI3Theme.space("16"))
+	_stage_v.add_child(v)
 	if seasonal:
 		var l := UI3.label("5 tickets per pull. A small set of rare items. A full set is guaranteed within 80 pulls (400 tickets). Max 8 pulls a day.", "LabelMuted")
 		l.name = "SeasonLine"
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		l.custom_minimum_size.x = 640
+		l.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		v.add_child(l)
 		var left := UI3.label("Pulls left today  %d / %d" % [season_pulls_left(), season_cap_day()], "LabelTitle")
 		left.name = "PullsLeft"
+		left.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		v.add_child(left)
 		var srow := HBoxContainer.new()
 		srow.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -603,30 +823,34 @@ func _refresh_stage() -> void:
 		var n_big := clampi(season_pulls_left(), 1, PULL_N)
 		var ok1 := pull_block_reason(1) == ""
 		var okn := n_big > 1 and pull_block_reason(n_big) == ""
-		var so := UI3.button("Open 1", &"primary" if (ok1 and not okn) else &"secondary", &"L" if (ok1 and not okn) else &"M")
+		var so: Button
+		if ok1 and not okn:
+			so = _primary_cost("Open 1", &"ticket", season_cost())
+		else:
+			so = UI3.button("Open 1", &"secondary", &"M")
+			if ok1:
+				_cost_in_button(so, &"ticket", season_cost(), 96)
 		so.name = "SeasonOpen"
 		so.pressed.connect(_on_season_open.bind(1))
 		srow.add_child(so)
 		if not ok1:
 			UI3.set_disabled_reason(so, pull_block_reason(1))
 			so.tooltip_text = pull_block_reason(1)
-		else:
-			var cc1 := UI3.cost_chip(&"ticket", season_cost())
-			cc1.name = "SeasonCost"
-			srow.add_child(cc1)
+			_drop_cost_chip(so)
 		if n_big > 1:
-			var sn := UI3.button("Open %d" % n_big, &"primary" if okn else &"secondary", &"L" if okn else &"M")
+			var sn: Button
+			if okn:
+				sn = _primary_cost("Open %d" % n_big, &"ticket", season_cost() * n_big)
+			else:
+				sn = UI3.button("Open %d" % n_big, &"secondary", &"M")
 			sn.name = "SeasonOpenN"
 			sn.pressed.connect(_on_season_open.bind(n_big))
 			srow.add_child(sn)
 			if not okn:
 				UI3.set_disabled_reason(sn, pull_block_reason(n_big))
 				sn.tooltip_text = pull_block_reason(n_big)
-			else:
-				var ccn := UI3.cost_chip(&"ticket", season_cost() * n_big)
-				ccn.name = "SeasonCostN"
-				srow.add_child(ccn)
-		var srt := UI3.button("Rates", &"secondary", &"S")
+				_drop_cost_chip(sn)
+		var srt := UI3.button("Rates", &"quiet", &"S")
 		srt.name = "Rates"
 		srt.pressed.connect(open_rates)
 		srow.add_child(srt)
@@ -636,51 +860,54 @@ func _refresh_stage() -> void:
 		row.add_theme_constant_override("separation", UI3Theme.space("16"))
 		v.add_child(row)
 		var n_big := PULL_N
-		# One primary: Open N when usable, else Open 1, else (below) the buy button.
+		# One primary: Open 10 when usable, else Open 1 when usable.
 		var n_ok := pull_block_reason(n_big) == ""
 		var one_ok := pull_block_reason(1) == ""
-		var o1 := UI3.button(open_label(1), &"primary" if (one_ok and not n_ok) else &"secondary", &"L" if (one_ok and not n_ok) else &"M")
+		var o1: Button
+		if one_ok and not n_ok:
+			o1 = _primary_cost("Open 1", &"ticket", 1)
+		else:
+			o1 = UI3.button("Open 1", &"secondary", &"M")
+			if one_ok:
+				_cost_in_button(o1, &"ticket", 1, 96)
 		o1.name = "Open1"
 		o1.pressed.connect(func() -> void: pull(1))
-		# A disabled reason must not be taller than "Open 1": only a usable Open N gets the big size.
-		var on := UI3.button(open_label(n_big), &"primary" if n_ok else &"secondary", &"L" if n_ok else &"M")
+		var on: Button
+		if n_ok:
+			on = _primary_cost("Open %d" % n_big, &"ticket", n_big)
+		else:
+			on = UI3.button("Open %d" % n_big, &"secondary", &"M")
 		on.name = "OpenN"
 		on.pressed.connect(_on_open_many.bind(n_big))
-		var rt := UI3.button("Rates", &"secondary", &"S")   # a visible button, not a bare underline
-		rt.name = "Rates"
-		rt.pressed.connect(open_rates)
 		for b in [o1, on]:
 			var why := pull_block_reason(1 if b == o1 else n_big)
 			if why != "":
 				UI3.set_disabled_reason(b, why)   # a disabled button says why
 				b.tooltip_text = why
+				_drop_cost_chip(b)
 		row.add_child(o1)
 		row.add_child(on)
-		row.add_child(rt)
-		var why1 := pull_block_reason(1)
-		# The reason lives inside the disabled buttons only (one place in every state).
-		if why1 != "":
-			if why1.begins_with("Not enough") and not _account_blocks():
-				var can_buy := not (next_price() < 0 or MetaState.shard_pool < next_price())
-				var sc := UI3.button("Buy enough for 1 pull", &"primary" if can_buy else &"secondary", &"M")
-				sc.name = "BuyEnough"
-				sc.pressed.connect(buy_ticket)
-				sc.disabled = not can_buy
-				v.add_child(sc)
-	_stage_host.add_child(stage)
-	if not results.is_empty():
-		# the result list takes the room: the stage shrinks, the summary scrolls instead of overflowing
-		stage.custom_minimum_size = Vector2(0, 0)
-		stage.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		chest.custom_minimum_size = Vector2(0, 80)
+		if pull_block_reason(1).begins_with("Not enough") and not _account_blocks():
+			var bt := _bar_host.find_child("BuyTicket", true, false) as Control
+			if bt != null:
+				_focus_later(bt)
+	if not has_summary:
+		var fill := Control.new()
+		fill.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		_stage_v.add_child(fill)
+	_stage_v.add_child(_last_open_strip())
+	if has_summary:
+		# the result list takes the room: the summary scrolls instead of overflowing
 		var sc := UI3Meta.scroll(_build_summary())
 		sc.name = "SummaryScroll"
 		_stage_host.add_child(sc)
+	elif chest != null:
+		_start_idle(chest)
 
 
-## Button text for a normal pull: the ticket cost is on the button ("Open 10 · 10 tickets").
+## Button text for a normal pull; the ticket cost is a chip inside the button.
 static func open_label(n: int) -> String:
-	return "Open %d · %d ticket%s" % [n, n, "" if n == 1 else "s"]
+	return "Open %d" % n
 
 
 ## Spending several tickets in one press asks first (S3-16); the dialog says what it costs and what is left.
@@ -736,47 +963,60 @@ func _refresh_side() -> void:
 	var pity := UI3.plate(&"plate")
 	pity.name = "PityPanel"
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", UI3Theme.space("8"))
+	v.add_theme_constant_override("separation", 14)
 	pity.add_child(v)
-	v.add_child(UI3.label("Pity · cosmetic pulls only", "LabelTitle"))
-	var ph := UI3.label("Each bar counts pulls toward a guaranteed rarity. Chest colour (Bronze to Lunacian) shows how rare the item is.", "LabelMuted")
-	ph.name = "PityHelp"
-	ph.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v.add_child(ph)
+	var th := HBoxContainer.new()
+	th.add_theme_constant_override("separation", 10)
+	th.add_child(UI3.label("Pity", "LabelTitle"))
+	var sub := UI3.label("cosmetic pulls only", "LabelMuted")
+	sub.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	sub.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	th.add_child(sub)
+	var rt := UI3.button("Rates", &"quiet", &"S")
+	rt.name = "Rates"
+	rt.pressed.connect(open_rates)
+	th.add_child(rt)
+	v.add_child(th)
 	for s in (box_cfg().get("pity", {}) as Dictionary).get("steps", []):
 		var rar := String(s["min_rarity"])
 		var need := int(s["pulls"])
 		var have := mini(int(MetaState.echobox_pity.get("since_" + rar, 0)), need)
-		var r := HBoxContainer.new()
-		r.add_theme_constant_override("separation", UI3Theme.space("8"))
-		var nm := UI3.label(rar.capitalize())
-		nm.custom_minimum_size = Vector2(110, 0)
-		r.add_child(nm)
-		var pb := ProgressBar.new()
-		pb.name = "Pity_" + rar
-		pb.theme = UI3Theme.get_theme()
-		pb.custom_minimum_size = Vector2(120, 16)
-		pb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var r := VBoxContainer.new()
+		r.add_theme_constant_override("separation", 6)
+		var top := HBoxContainer.new()
+		var nm := _dlabel(rar.capitalize(), _rarity_text(rar))
+		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		top.add_child(nm)
+		top.add_child(UI3.label("%d/%d" % [have, need], "LabelMuted"))
+		r.add_child(top)
+		var pb := _meter(120, 10, have, need, _rarity_color(rar), "Pity_" + rar)
 		pb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		pb.max_value = need
-		pb.value = have
-		pb.show_percentage = false
-		pb.add_theme_stylebox_override("fill", UI3Theme.flat(_rarity_color(rar), UI3Theme.radius("s")))
 		r.add_child(pb)
-		r.add_child(UI3.label("%d/%d" % [have, need], "LabelMuted"))
 		v.add_child(r)
+	var ph := UI3.label("Each bar fills toward a guaranteed rarity.", "LabelMuted")
+	ph.name = "PityHelp"
+	ph.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(ph)
 	_side_host.add_child(pity)
 	var pool := UI3.plate(&"plate")
 	pool.name = "PoolPanel"
 	var pv := VBoxContainer.new()
-	pv.add_theme_constant_override("separation", UI3Theme.space("8"))
+	pv.add_theme_constant_override("separation", 14)
 	pool.add_child(pv)
 	var total := 0
 	var grid := GridContainer.new()
+	grid.name = "PoolGrid"
 	grid.columns = 3
 	grid.add_theme_constant_override("h_separation", UI3Theme.space("8"))
 	grid.add_theme_constant_override("v_separation", UI3Theme.space("8"))
-	pv.add_child(UI3.label("Pool", "LabelTitle"))
+	var ph2 := HBoxContainer.new()
+	ph2.add_child(UI3.label("Pool", "LabelTitle"))
+	var cnt_l := UI3.label("", "LabelMuted")
+	cnt_l.name = "PoolCount"
+	cnt_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cnt_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	ph2.add_child(cnt_l)
+	pv.add_child(ph2)
 	pv.add_child(grid)
 	for rar in EchoBox.RARITIES:
 		var spec: Dictionary = (box_cfg().get("pool", {}) as Dictionary).get(rar, {})
@@ -790,18 +1030,35 @@ func _refresh_side() -> void:
 		var tile := UI3.plate(&"row")
 		tile.name = "Pool_" + rar
 		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		tile.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("m"), 3,
-			_rarity_color(String(rar)), Vector4(8, 8, 8, 8)))
-		var tl := UI3.label("%s\n%d/%d" % [String(rar).capitalize(), own, c])
-		tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		tile.add_child(tl)
+		var tsb := UI3Theme.flat(UI3Theme.color("panel_raised"), 12, 0, Color.TRANSPARENT, Vector4(8, 10, 8, 10))
+		tsb.border_width_top = 4
+		tsb.border_color = _rarity_color(String(rar))
+		tile.add_theme_stylebox_override("panel", tsb)
+		var tv := VBoxContainer.new()
+		tv.alignment = BoxContainer.ALIGNMENT_CENTER
+		tv.add_theme_constant_override("separation", 2)
+		var ti := TextureRect.new()
+		ti.name = "PoolChest"
+		ti.texture = _chest_tex(String(CHEST_BY_RARITY.get(String(rar), "Bronze")))
+		ti.custom_minimum_size = Vector2(40, 40)
+		ti.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ti.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ti.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		tv.add_child(ti)
+		var tn := _dlabel(String(rar).capitalize(), _rarity_text(String(rar)))
+		tn.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		tv.add_child(tn)
+		var tc := UI3.label("%d/%d" % [own, c], "LabelMuted")
+		tc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		tv.add_child(tc)
+		tile.add_child(tv)
 		grid.add_child(tile)
-	pv.add_child(UI3.label("%d cosmetics in the pool" % total, "LabelMuted"))
-	_side_host.add_child(pool)
+	cnt_l.text = "%d cosmetics" % total
 	var dup := UI3.label("A duplicate becomes Fragments; 10 Fragments = 1 ticket. Never Shards.", "LabelMuted")
 	dup.name = "DupLine"
 	dup.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_side_host.add_child(dup)
+	pv.add_child(dup)
+	_side_host.add_child(pool)
 
 
 func _season_names() -> Dictionary:
@@ -1248,59 +1505,76 @@ func _build_skeleton() -> void:
 
 # ---------------------------------------------------------------- ceremony
 
-## Idle -> pressed -> opening -> reveal -> (Open 10 grid) -> summary. Skip (Space / button)
-## is available from the first frame. Mythic <= 2 s. Reduce flashing: static rim, 200 ms fade.
+## Open: chest animation on the stage (echo_open / echo_open10), then the reveal dialog. Skip (Space) is live
+## from the first frame. Reduce motion / instant: no animation, dialog straight away.
 func _play_ceremony(out: Array) -> void:
 	_skip = instant
 	var top := out[0] as Dictionary
 	for r in out:
 		if _rarity_idx(r) > _rarity_idx(top):
 			top = r
-	var m := _modal("Opening...", 600)
-	m.name = "Ceremony"
-	var v: VBoxContainer = m.find_child("V", true, false)
-	var skip := UI3.button("Skip", &"secondary", &"M")
-	skip.name = "Skip"
-	skip.tooltip_text = "Space"
-	skip.pressed.connect(func() -> void: _skip = true)
-	v.add_child(skip)
-	var rim := _rarity_color("common" if String(top.get("kind")) == "stone" else String(top.get("rarity", "common")))
-	var chest := UI3.label("%s chest" % _chest_tier(top), "LabelScreenTitle")
-	chest.name = "CeremonyChest"
-	v.add_child(chest)
-	if not _skip:
-		var t := create_tween()
-		var dur := 0.2 if (reduce_flashing or UI3Motion.reduced()) else (1.5 if _rarity_idx(top) >= 5 else 1.2)
-		t.tween_property(chest, "modulate", Color(rim.r, rim.g, rim.b, 1.0).lerp(Color.WHITE, 0.5), dur)
-		var elapsed := 0.0
-		while elapsed < dur and not _skip and is_inside_tree():
-			await get_tree().process_frame
-			elapsed += get_process_delta_time()
-		t.kill()
-	v.remove_child(chest)
-	chest.queue_free()
-	v.remove_child(skip)
-	skip.queue_free()
-	(v.get_child(0) as Label).text = "Reveal" if out.size() == 1 else "Open %d" % out.size()
+	set_last_open(out[out.size() - 1] if out.size() == 1 else top)
 	var single := out.size() == 1
-	if not single:
-		(m.find_child("Card", true, false) as Control).custom_minimum_size.x = 1760.0
-	var grid := GridContainer.new()
-	grid.name = "RevealGrid"
-	grid.columns = 1 if single else 5
-	grid.add_theme_constant_override("h_separation", 24)
-	grid.add_theme_constant_override("v_separation", 24)
+	var chest := find_child("Chest", true, false) as TextureRect
+	if chest != null and chest.is_inside_tree() and not _skip and not UI3Motion.reduced():
+		_opening = true
+		if _idle_tw != null and _idle_tw.is_valid():
+			_idle_tw.kill()   # the idle bob
+		chest.position = Vector2(80, 70)
+		var tier_tex := _chest_tex(_chest_tier(top))
+		var swap := get_tree().create_timer(0.3)
+		swap.timeout.connect(func() -> void:
+			if is_instance_valid(chest) and tier_tex != null:
+				chest.texture = tier_tex)
+		var tw := UI3Motion.play("echo_open" if single else "echo_open10", chest, {"skip": false})
+		if tw == null:
+			tw = UI3Motion.play("echo_open", chest, {})
+		var t0 := Time.get_ticks_msec()
+		while tw != null and tw.is_valid() and tw.is_running() and not _skip and is_inside_tree() \
+				and Time.get_ticks_msec() - t0 < 2500:
+			await get_tree().process_frame
+		if tw != null and tw.is_valid():
+			tw.kill()
+		if is_instance_valid(chest):
+			chest.scale = Vector2.ONE
+			chest.position = Vector2(80, 70)
+			if tier_tex != null:
+				chest.texture = tier_tex
+		_opening = false
+		if is_inside_tree() and not _skip and not reduce_flashing and not MetaState.reduce_flash and _rarity_idx(top) >= 2 \
+				and String(top.get("kind")) != "stone":
+			var hold := get_tree().create_timer(0.6 if _rarity_idx(top) < 5 else 0.9)
+			while hold.time_left > 0.0 and not _skip and is_inside_tree():
+				await get_tree().process_frame
+	_refresh_bar()
+	_refresh_side()
+	var m := _modal("Reveal" if single else "Open %d" % out.size(), 720 if single else 1760)
+	m.name = "Ceremony"
+	var card := m.find_child("Card", true, false) as Control
+	var v: VBoxContainer = m.find_child("V", true, false)
+	var title := v.get_child(0) as Label
+	var first := out[0] as Dictionary
 	var order: Array = range(out.size())
-	order.sort_custom(func(x: int, y: int) -> bool: return _rarity_idx(out[x]) < _rarity_idx(out[y]))   # best last
 	var cards: Array = []
-	cards.resize(out.size())
-	for i in out.size():
-		var cd := _result_cell(out[i], "single" if single else "grid")
-		cards[i] = cd
-		grid.add_child(cd)
-	var gc := CenterContainer.new()
-	gc.add_child(grid)
-	v.add_child(gc)
+	if single:
+		title.queue_free()
+		_single_reveal(v, first)
+	else:
+		(v.get_child(0) as Label).text = "Open %d" % out.size()
+		order.sort_custom(func(x: int, y: int) -> bool: return _rarity_idx(out[x]) < _rarity_idx(out[y]))   # best last
+		var grid := GridContainer.new()
+		grid.name = "RevealGrid"
+		grid.columns = 5
+		grid.add_theme_constant_override("h_separation", 24)
+		grid.add_theme_constant_override("v_separation", 24)
+		cards.resize(out.size())
+		for i in out.size():
+			var cd := _result_cell(out[i], "grid")
+			cards[i] = cd
+			grid.add_child(cd)
+		var gc := CenterContainer.new()
+		gc.add_child(grid)
+		v.add_child(gc)
 	var mls: Array[String] = _milestone_lines(out)
 	if not mls.is_empty():
 		var mrow := HBoxContainer.new()
@@ -1311,43 +1585,189 @@ func _play_ceremony(out: Array) -> void:
 			mrow.add_child(UI3.chip(t))
 		v.add_child(mrow)
 	var btns := HBoxContainer.new()
-	btns.alignment = BoxContainer.ALIGNMENT_CENTER
+	btns.name = "RevealButtons"
 	btns.add_theme_constant_override("separation", UI3Theme.space("16"))
 	v.add_child(btns)
-	var first := out[0] as Dictionary
 	if single and String(first.get("kind")) == "cosmetic" and Cosmetics.art_id(String(first.get("item", ""))) != "":
 		var art_id := Cosmetics.art_id(String(first.get("item", "")))
-		var eqb := UI3.button("Equip now", &"secondary", &"M")
-		eqb.name = "EquipNow"
-		eqb.pressed.connect(func() -> void:
-			var why := MetaState.equip_cosmetic(art_id)
-			eqb.text = "Equipped" if why == "" else "Couldn't equip"
-			eqb.disabled = true)
-		btns.add_child(eqb)
-	var again_n := out.size()
-	var again := UI3.button("Open again" if single else "Open %d again" % again_n, &"primary", &"L")
-	again.name = "OpenAgain"
-	var ar := pull_block_reason(again_n)
-	if ar != "":
-		UI3.set_disabled_reason(again, ar)
-	again.pressed.connect(func() -> void:
-		close_modal()
-		pull(again_n))
-	btns.add_child(again)
-	if ar == "":
-		var cc := UI3.cost_chip(&"ticket", again_n * (season_cost() if tab == "seasonal" else 1))
-		cc.name = "AgainCost"
-		btns.add_child(cc)
+		var is_eq := MetaState.equipped_die_skin == art_id or MetaState.equipped_frame == art_id
+		if not (bool(first.get("duplicate", false)) and is_eq):   # accepted rule: hidden on an already-equipped duplicate
+			var eqb := UI3.button("Equip now", &"quiet", &"M")
+			eqb.name = "EquipNow"
+			eqb.pressed.connect(func() -> void:
+				var why := MetaState.equip_cosmetic(art_id)
+				eqb.text = "Equipped" if why == "" else "Couldn't equip"
+				eqb.disabled = true)
+			btns.add_child(eqb)
+	var sp := Control.new()
+	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btns.add_child(sp)
 	var done := UI3.button("Done", &"secondary", &"M")
 	done.name = "Done"
 	done.pressed.connect(func() -> void:
 		close_modal()
 		_refresh_all())
 	btns.add_child(done)
+	var again_n := out.size()
+	var ar := pull_block_reason(again_n)
+	var again_label := "Open again" if single else "Open %d again" % again_n
+	var again: Button
+	if ar == "":
+		again = _primary_cost(again_label, &"ticket", again_n * (season_cost() if tab == "seasonal" else 1))
+	else:
+		again = UI3.button(again_label, &"primary", &"L")
+		UI3.set_disabled_reason(again, ar)
+	again.name = "OpenAgain"
+	again.pressed.connect(func() -> void:
+		close_modal()
+		pull(again_n))
+	btns.add_child(again)
 	if not (instant or reduce_flashing or MetaState.reduce_flash or UI3Motion.reduced() or DisplayServer.get_name() == "headless"):
-		_flip_in(cards, order)
+		if single:
+			card.modulate.a = 0.0
+			create_tween().tween_property(card, "modulate:a", 1.0, 0.3)
+		else:
+			_flip_in(cards, order)
 	_focus_later(done)
-	_refresh_all()
+	if not instant and DisplayServer.get_name() != "headless":
+		_play_reveal_moments(v, first, single)
+
+
+## Single reveal body (M3b): rarity band, art 280, name, DUPLICATE row with Fragments meter.
+func _single_reveal(v: VBoxContainer, r: Dictionary) -> void:
+	v.alignment = BoxContainer.ALIGNMENT_BEGIN
+	v.add_theme_constant_override("separation", 20)
+	var stone := String(r.get("kind")) == "stone"
+	var rar := "common" if stone else String(r.get("rarity", "common"))
+	var dup := bool(r.get("duplicate", false))
+	var rc := _rarity_color(rar)
+	var band := PanelContainer.new()
+	band.name = "RarityBand"
+	band.theme = UI3Theme.get_theme()
+	band.custom_minimum_size = Vector2(0, 48)
+	band.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel").lerp(rc, 0.22), 12, 2, rc, Vector4(12, 0, 12, 0)))
+	var bh := HBoxContainer.new()
+	bh.alignment = BoxContainer.ALIGNMENT_CENTER
+	bh.add_theme_constant_override("separation", 10)
+	band.add_child(bh)
+	var bi := TextureRect.new()
+	bi.texture = _chest_tex(_chest_tier(r))
+	bi.custom_minimum_size = Vector2(32, 32)
+	bi.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bi.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	bi.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bh.add_child(bi)
+	var bw := _dlabel("STONE" if stone else rar.to_upper(), _rarity_text(rar))
+	bw.add_theme_constant_override("outline_size", 0)
+	bh.add_child(bw)
+	v.add_child(band)
+	var art_box := Panel.new()
+	art_box.name = "CardArt"
+	art_box.custom_minimum_size = Vector2(280, 280)
+	art_box.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	art_box.clip_contents = true
+	art_box.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), 24))
+	v.add_child(art_box)
+	if stone:
+		var ic := TextureRect.new()
+		ic.name = "StoneIcon"
+		ic.texture = UI3.icon("cur_stone_reveal")
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.size = Vector2(200, 200)
+		ic.position = Vector2(40, 40)
+		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		art_box.add_child(ic)
+	else:
+		var item := String(r.get("item", ""))
+		var a := _cosmetic_art(item, 240.0, not dup)
+		if a == null:
+			a = _fx_badge(240.0)
+		a.position = Vector2(20, 20)
+		art_box.add_child(a)
+	var nb := VBoxContainer.new()
+	nb.alignment = BoxContainer.ALIGNMENT_CENTER
+	nb.add_theme_constant_override("separation", 4)
+	var title := _result_name(r)
+	var nm := UI3.label(title, "LabelScreenTitle")
+	nm.name = "CardName"
+	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	nm.custom_minimum_size.x = 640
+	if title.length() > 20:
+		nm.add_theme_font_size_override("font_size", 24)   # shrink to 24, then ellipsis
+	nb.add_child(nm)
+	var line := "Currency"
+	if not stone:
+		var slot_word := "dice skin" if Cosmetics.slot_of(String(r.get("item", ""))) == Cosmetics.SLOT_DIE else \
+			("frame" if Cosmetics.slot_of(String(r.get("item", ""))) == Cosmetics.SLOT_FRAME else "dice FX")
+		line = "%s %s" % [rar.capitalize(), slot_word]
+	var ln := UI3.label(line, "LabelMuted")
+	ln.name = "CardLine"
+	ln.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nb.add_child(ln)
+	v.add_child(nb)
+	if dup:
+		var season := r.has("season")
+		var gain := int(r.get("tickets_back", 0)) if season else int(r.get("fragments", 0))
+		var row := PanelContainer.new()
+		row.name = "DupRow"
+		row.theme = UI3Theme.get_theme()
+		row.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), 16, 0, Color.TRANSPARENT, Vector4(20, 16, 20, 16)))
+		var h := HBoxContainer.new()
+		h.add_theme_constant_override("separation", 16)
+		row.add_child(h)
+		var chip := _dup_chip()
+		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		h.add_child(chip)
+		h.add_child(_icon("cur_ticket" if season else "cur_fragment", 32))
+		var gl := UI3.label("+%d %s" % [gain, "tickets" if season else "Fragments"], "LabelTitle")
+		gl.name = "DupGain"
+		h.add_child(gl)
+		if not season:
+			var per := int(_Econ.get_table("echobox").get("fragments_per_ticket", 10))
+			var now := int(MetaState.echobox_pity.get("fragments", 0))
+			var from_v := maxi(now - gain, 0)
+			var mt := _meter(0, 12, now, per, UI3Theme.color("tier_crystal"), "DupMeter")
+			mt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			mt.set_meta("from", from_v)
+			h.add_child(mt)
+			var cl := _dlabel("%d/%d" % [now, per], UI3Theme.color("text"))
+			cl.name = "DupMeterCount"
+			h.add_child(cl)
+		v.add_child(row)
+	else:
+		var nc := UI3.chip("New")
+		nc.name = "NewChip"
+		nc.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		if not stone:
+			v.add_child(nc)
+			v.move_child(nc, v.get_child_count() - 1)
+		else:
+			nc.queue_free()
+
+
+## echo_rare on the band (Rare+), echo_dupe on the DUPLICATE chip with the meter counting up.
+func _play_reveal_moments(v: Control, r: Dictionary, single: bool) -> void:
+	if not single:
+		return
+	var band := v.find_child("RarityBand", true, false) as CanvasItem
+	if band != null and String(r.get("kind")) != "stone" and _rarity_idx(r) >= 2:
+		UI3Motion.play("echo_rare", band, {})
+	var chip := v.find_child("DupChip", true, false) as Control
+	if chip != null:
+		chip.pivot_offset = chip.size / 2.0
+		UI3Motion.play("echo_dupe", chip, {})
+		var mt := v.find_child("DupMeter", true, false) as ProgressBar
+		if mt != null and mt.has_meta("from"):
+			var to_v := mt.value
+			mt.value = float(mt.get_meta("from"))
+			if not UI3Motion.reduced():
+				var tw := mt.create_tween()
+				tw.tween_interval(0.2)
+				tw.tween_property(mt, "value", to_v, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+			else:
+				mt.value = to_v
 
 
 ## Cards flip in (scale x 0 -> 1, 160 ms) 120 ms apart, the highest tier last. Reduce flashing: all at once.
