@@ -52,7 +52,7 @@ func _ready() -> void:
 			_ok(money != null, "%s money block" % id)
 			_ok(all.find(UI3.fmt(int(o.stake))) >= 0 and all.find(UI3.fmt(int(o.payout))) >= 0 and all.find("+" + UI3.fmt(int(o.net))) >= 0,
 				"%s shows stake, win back and net" % id)
-			_ok(all.find("Estimated win chance (simulated)") >= 0 and all.find("Estimate (bot)") < 0, "%s estimate is labelled simulated" % id)
+			_ok(all.find("Estimated win chance") >= 0 and all.find("Simulated with a bot") >= 0 and all.find("Estimate (bot)") < 0, "%s estimate is labelled simulated" % id)
 			_ok(s.find_child("Estimate", true, false) != null and s.find_child("LockedTitle", true, false) == null, "%s: same estimate line, no lock title" % id)
 		else:
 			# S3-2: a locked tier shows what opens it, not stake money / lose box / warning / estimate

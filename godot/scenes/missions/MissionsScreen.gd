@@ -43,6 +43,10 @@ var _shell: Dictionary
 var _banner_host: VBoxContainer
 var _modal_layer: Control
 var _balance: Label
+var _balance_unit: Label
+var _starter: Label
+var _stake_chip: Control
+var _starter_chip: Control
 var _table_host: VBoxContainer
 var _detail: PanelContainer
 
@@ -387,10 +391,9 @@ func close_modal() -> void:
 
 # ---------------------------------------------------------------- build
 
-const COLS := [["TIER", 120, false], ["MODE", 140, false], ["STAKE", 160, true], ["WIN BACK", 160, true],
-	["STONE", 120, true], ["RULES", 0, false]]
-const ROW_H := 96
-const DETAIL_W := 440
+## UI-04 40-missions: grid columns 120 / 160 / 200 / 300 / 120 / rest, rows 128 high (tokens size.mission_row_h / mission_detail_w).
+const COLS := [["TIER", 120], ["MODE", 160], ["STAKE", 200], ["WIN BACK", 300], ["STONE", 120], ["RULES", 0]]
+const ROW_PAD := 24
 
 
 func _build() -> void:
@@ -399,26 +402,37 @@ func _build() -> void:
 	(_shell["panel"] as Control).name = "PlateHost"   # t_ui_laws L0
 	_modal_layer = _shell["modal_layer"]
 	var col: VBoxContainer = _shell["col"]
-	var note := UI3.plate(&"plate")
-	note.name = "Explainer"
-	var nrow := HBoxContainer.new()
-	nrow.add_theme_constant_override("separation", UI3Theme.space("24"))
-	note.add_child(nrow)
-	var exv := VBoxContainer.new()
-	exv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	exv.add_theme_constant_override("separation", UI3Theme.space("8"))
-	var ex := UI3.label("Win a hard run to get your stake back with a bonus. Lose it and the stake is gone.", "LabelMuted")
-	ex.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	exv.add_child(ex)
-	var gl := UI3.label("A = Ascension (extra difficulty). Stone = Land currency. Starter Shard = the free Shards you began with; they can't be staked. Win chances are simulated with a bot.", "LabelMuted")
-	gl.name = "Glossary"
-	gl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	exv.add_child(gl)
-	nrow.add_child(exv)
+	# header: How it works (quiet) + stakeable / starter chips (UI-04 [changed]: one balance line became two chips)
+	var hr: HBoxContainer = _shell["header_right"]
+	hr.add_theme_constant_override("separation", UI3Theme.space("12"))
+	hr.alignment = BoxContainer.ALIGNMENT_CENTER
+	var how := UI3.button("How it works", &"quiet")
+	how.name = "HowItWorks"
+	how.pressed.connect(_open_how)
+	hr.add_child(how)
+	var sc_row := HBoxContainer.new()
+	sc_row.name = "StakeChip"
+	sc_row.add_theme_constant_override("separation", UI3Theme.space("8"))
+	sc_row.add_child(_tex("cur_shard", UI3Theme.size_of("icon_l")))
 	_balance = UI3.label("", "LabelTitle")
 	_balance.name = "Balance"
-	nrow.add_child(_balance)
-	col.add_child(note)
+	sc_row.add_child(_balance)
+	_balance_unit = UI3.label("stakeable", "LabelMuted")
+	_balance_unit.name = "BalanceUnit"
+	sc_row.add_child(_balance_unit)
+	_stake_chip = _pill(sc_row, UI3Theme.color("panel"), UI3Theme.color("plate_edge"))
+	_stake_chip.name = "StakeableChip"
+	hr.add_child(_stake_chip)
+	var st_row := HBoxContainer.new()
+	st_row.add_theme_constant_override("separation", UI3Theme.space("8"))
+	_starter = UI3.label("", "LabelTitle")
+	_starter.name = "Starter"
+	_starter.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
+	st_row.add_child(_starter)
+	st_row.add_child(UI3.label("starter", "LabelMuted"))
+	_starter_chip = _pill(st_row, UI3Theme.color("locked_cell"), UI3Theme.color("disabled"))
+	_starter_chip.name = "StarterChip"
+	hr.add_child(_starter_chip)
 	var body := HBoxContainer.new()
 	body.name = "Body"
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -428,6 +442,9 @@ func _build() -> void:
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	left.add_theme_constant_override("separation", UI3Theme.space("16"))
 	body.add_child(left)
+	var ex := UI3.label("Win a hard run to get your stake back with a bonus. Lose it and the stake is gone.")
+	ex.name = "RuleLine"
+	left.add_child(ex)
 	_table_host = VBoxContainer.new()
 	_table_host.name = "TableHost"
 	_table_host.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -435,7 +452,7 @@ func _build() -> void:
 	left.add_child(_table_host)
 	_detail = UI3.plate(&"plate")
 	_detail.name = "Detail"
-	_detail.custom_minimum_size = Vector2(DETAIL_W, 0)
+	_detail.custom_minimum_size = Vector2(UI3Theme.size_of("mission_detail_w"), 0)
 	body.add_child(_detail)
 
 
@@ -483,35 +500,97 @@ func _cell(text: String, w: int, variation := "", right := false) -> Label:
 	return l
 
 
+func _tex(icon_name: String, px: int) -> TextureRect:
+	var t := TextureRect.new()
+	t.texture = UI3.currency_icon(icon_name, px) if icon_name.begins_with("cur_") else UI3.icon(icon_name)
+	t.custom_minimum_size = Vector2(px, px)
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return t
+
+
+## Pill with one child, `fill` + 2 px `border`, 56 high (header chips, tokens size.currency_chip_h).
+func _pill(child: Control, fill: Color, border: Color, h := 56) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.theme = UI3Theme.get_theme()
+	p.custom_minimum_size = Vector2(0, h)
+	p.add_theme_stylebox_override("panel", UI3Theme.flat(fill, UI3Theme.radius("pill"), 2, border, Vector4(12, 0, 16, 0)))
+	child.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(child)
+	return p
+
+
+## Thin meter: `frac` 0..1 of `fill` on a hp_track.
+func _meter(frac: float, fill: Color, h: int) -> Control:
+	var track := Panel.new()
+	track.custom_minimum_size = Vector2(0, h)
+	track.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("hp_track"), h / 2))
+	var bar := Panel.new()
+	bar.name = "Fill"
+	bar.add_theme_stylebox_override("panel", UI3Theme.flat(fill, h / 2))
+	bar.anchor_right = clampf(frac, 0.0, 1.0)
+	bar.anchor_bottom = 1.0
+	track.add_child(bar)
+	return track
+
+
+## UI3.risk_bars with the fill colour chosen by the TIER (N5 and N6: every lit bar is risk_bar_high), as in M1.
+func _bars(tier: int) -> Control:
+	var row := UI3.risk_bars(tier)
+	var hi := UI3Theme.color("risk_bar_high" if tier >= 5 else "risk_bar")
+	for i in mini(tier, row.get_child_count()):
+		(row.get_child(i) as Panel).add_theme_stylebox_override("panel", UI3Theme.flat(hi, 2))
+	return row
+
+
+func _open_how() -> void:
+	close_modal()
+	var ok := UI3.button("Got it", &"primary", &"M")
+	ok.name = "HowClose"
+	ok.pressed.connect(close_modal)
+	var gl := "A = Ascension (extra difficulty).\nStone = Land currency.\nStarter Shard = the free Shards you began with; they can't be staked.\nWin chances are simulated with a bot."
+	var m := UI3.modal("How it works", gl, [ok], 0)
+	m.name = "HowModal"
+	m.cancelled.connect(close_modal)
+	_modal_layer.add_child(m)
+
+
 func _refresh() -> void:
 	if _shell.is_empty():
 		return
 	var usable := usable_shards()
-	if is_guest_view():   # a guest has no wallet: no numbers (the cached ones belong to nobody)
-		_balance.text = "Sign in to see your Shards"
-	else:
-		_balance.text = "Stakeable %s · Starter %s" % [UI3.fmt(usable), UI3.fmt(maxi(MetaState.shard_pool - usable, 0))]
+	var guest := is_guest_view()   # a guest has no wallet: no numbers (the cached ones belong to nobody)
+	_balance.text = "Sign in to see your Shards" if guest else UI3.fmt(usable)
+	_balance_unit.visible = not guest
+	_starter_chip.visible = not guest
+	if not guest:
+		_starter.text = UI3.fmt(maxi(MetaState.shard_pool - usable, 0))
+	_banner_host.visible = _banner_host.get_child_count() > 0   # an empty host would still cost one 24 px gap
 	UI3Meta.clear(_table_host)
 	if state == "loading":
 		for i in 4:
-			_table_host.add_child(UI3.skeleton_row(ROW_H))
+			_table_host.add_child(UI3.skeleton_row(UI3Theme.size_of("mission_row_h")))
 		UI3Meta.clear(_detail)
 		return
 	if offer(selected).is_empty():
 		selected = _default_tier()
 	var head := HBoxContainer.new()
 	head.name = "Head"
-	head.add_theme_constant_override("separation", UI3Theme.space("16"))
+	head.add_theme_constant_override("separation", 0)
 	var hpad := MarginContainer.new()
-	hpad.add_theme_constant_override("margin_left", 24)
-	hpad.add_theme_constant_override("margin_right", 24)
+	hpad.add_theme_constant_override("margin_left", ROW_PAD)
+	hpad.add_theme_constant_override("margin_right", ROW_PAD)
 	hpad.add_child(head)
 	for c in COLS:
-		head.add_child(_cell(String(c[0]), int(c[1]), "LabelMuted", bool(c[2])))
+		var hl := _cell(String(c[0]), int(c[1]), "LabelDisplay")
+		hl.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
+		head.add_child(hl)
 	_table_host.add_child(hpad)
 	var rows := VBoxContainer.new()
 	rows.name = "Grid"
-	rows.add_theme_constant_override("separation", UI3Theme.space("8"))
+	rows.add_theme_constant_override("separation", UI3Theme.space("12"))
 	for o in offers():
 		rows.add_child(_row(o))
 	var sc := UI3Meta.scroll(rows)
@@ -527,47 +606,113 @@ func _rule_names(o: Dictionary) -> String:
 	return ", ".join(names) if not names.is_empty() else "Standard only"
 
 
+func _row_style(fill: Color, ring: bool) -> StyleBoxFlat:
+	if ring:   # selected = 4 px cream outline, inset (outline-offset -4 in the frame)
+		return UI3Theme.flat(fill, UI3Theme.radius("l"), 4, UI3Theme.color("selected_outline"))
+	return UI3Theme.flat(fill, UI3Theme.radius("l"))
+
+
 func _row(o: Dictionary) -> Control:
 	var id := String(o.tier)
 	var locked := not bool(o.unlocked)
+	var sel := id == selected
 	var b := UI3.button("", &"secondary", &"M")
 	b.name = "Card_" + id
-	b.set_meta("selected", id == selected)   # not a toggle: the pressed style would fill the row cream
-	if id == selected:
-		# selected = 4 px cream outline (selected-card style), drawn as an overlay: no lift, no fill change
-		var ring := Panel.new()
-		ring.name = "SelectedRing"
-		ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		ring.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		ring.add_theme_stylebox_override("panel", UI3Theme.flat(Color.TRANSPARENT, UI3Theme.radius("m"), 4,
-			UI3Theme.color("selected_outline")))
-		b.add_child(ring)
-	b.custom_minimum_size = Vector2(0, ROW_H)
+	b.set_meta("selected", sel)   # not a toggle: the pressed style would fill the row cream
+	var fill := UI3Theme.color("locked_cell" if locked else ("btn_secondary" if sel else "panel_raised"))
+	for st in ["normal", "hover", "pressed", "disabled"]:
+		b.add_theme_stylebox_override(st, _row_style(fill.lightened(0.06) if st == "hover" and not sel else fill, sel))
+	b.custom_minimum_size = Vector2(0, UI3Theme.size_of("mission_row_h"))
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if locked:
-		b.modulate = Color(1, 1, 1, 0.55)   # locked rows read as not playable; "Locked: ..." in the row says why
+		b.modulate = Color(1, 1, 1, 0.75)   # neutral-2 row at 0.75: reads as not playable, the lock note says why
 	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", UI3Theme.space("16"))
+	h.add_theme_constant_override("separation", 0)
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	h.offset_left = 24
-	h.offset_right = -24
+	h.offset_left = ROW_PAD
+	h.offset_right = -ROW_PAD
 	b.add_child(h)
-	h.add_child(_cell(id, 120, "LabelScreenTitle"))
-	h.add_child(_cell("%s · A%d" % [String(o.mode).capitalize(), int(o.ascension)], 140))
-	h.add_child(_cell(UI3.fmt(int(o.stake)), 160, "LabelTitle", true))
-	h.add_child(_cell("%s (×%s)" % [UI3.fmt(int(o.payout)), _num(float(o.m))], 160, "", true))
-	h.add_child(_cell("+%d" % int(o.stone), 120, "", true))
+	# TIER: id 32 + risk bars (1..6 lit = tier number)
+	var tc := VBoxContainer.new()
+	tc.custom_minimum_size = Vector2(int(COLS[0][1]), 0)
+	tc.alignment = BoxContainer.ALIGNMENT_CENTER
+	tc.add_theme_constant_override("separation", UI3Theme.space("8"))
+	tc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var tl := UI3.label(id, "LabelScreenTitle")
+	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tc.add_child(tl)
+	var bars := _bars(int(id.substr(1)))
+	bars.alignment = BoxContainer.ALIGNMENT_BEGIN
+	tc.add_child(bars)
+	h.add_child(tc)
+	h.add_child(_cell("%s · A%d" % [String(o.mode).capitalize(), int(o.ascension)], int(COLS[1][1])))
+	# STAKE and WIN BACK are the two big numbers (32); the multiplier is a green pill
+	var sk := HBoxContainer.new()
+	sk.custom_minimum_size = Vector2(int(COLS[2][1]), 0)
+	sk.add_theme_constant_override("separation", UI3Theme.space("8"))
+	sk.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sk.add_child(_tex("cur_shard", UI3Theme.size_of("icon_m")))
+	var skn := _cell(UI3.fmt(int(o.stake)), 0, "LabelScreenTitle")
+	skn.size_flags_horizontal = Control.SIZE_FILL
+	skn.autowrap_mode = TextServer.AUTOWRAP_OFF
+	sk.add_child(skn)
+	h.add_child(sk)
+	var wb := HBoxContainer.new()
+	wb.custom_minimum_size = Vector2(int(COLS[3][1]), 0)
+	wb.add_theme_constant_override("separation", UI3Theme.space("12"))
+	wb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var wbn := _cell(UI3.fmt(int(o.payout)), 0, "LabelScreenTitle")
+	wbn.size_flags_horizontal = Control.SIZE_FILL
+	wbn.autowrap_mode = TextServer.AUTOWRAP_OFF
+	wb.add_child(wbn)
+	wb.add_child(_mult_pill("×" + _num(float(o.m)), 32))
+	h.add_child(wb)
+	var sn := HBoxContainer.new()
+	sn.custom_minimum_size = Vector2(int(COLS[4][1]), 0)
+	sn.add_theme_constant_override("separation", 6)
+	sn.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sn.add_child(_tex("cur_stone", 24))
+	var snn := _cell("+%d" % int(o.stone), 0, "LabelTitle")
+	snn.size_flags_horizontal = Control.SIZE_FILL
+	snn.autowrap_mode = TextServer.AUTOWRAP_OFF
+	sn.add_child(snn)
+	h.add_child(sn)
+	var rc := HBoxContainer.new()
+	rc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rc.add_theme_constant_override("separation", UI3Theme.space("8"))
+	rc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if locked:
-		var lk := _cell("Locked: " + lock_text(o), 0)
+		rc.add_child(_tex("ui_lock", UI3Theme.size_of("icon_s")))   # lock glyph + the full condition, never a colour alone
+		var lk := _cell(lock_text(o), 0)
 		lk.name = "LockNote"
-		h.add_child(lk)
+		lk.add_theme_color_override("font_color", UI3Theme.color("text_on_viewport"))
+		rc.add_child(lk)
 	else:
-		var rl := _cell(_rule_names(o), 0)
+		var rl := _cell(_rule_names(o), 0, "LabelMuted")
 		rl.name = "Rules"
-		h.add_child(rl)
+		rc.add_child(rl)
+	h.add_child(rc)
 	b.pressed.connect(select_tier.bind(id))
 	return b
+
+
+## Multiplier pill: green-2 fill, Rowdies 18 green-7 text.
+func _mult_pill(text: String, h: int) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.theme = UI3Theme.get_theme()
+	p.custom_minimum_size = Vector2(0, h)
+	p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("success_bg"), UI3Theme.radius("pill"), 0,
+		Color.TRANSPARENT, Vector4(10, 0, 10, 0)))
+	var l := UI3.label(text, "LabelDisplay")
+	l.name = "Mult"
+	l.add_theme_color_override("font_color", UI3Theme.color("success_text"))
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(l)
+	return p
 
 
 func _tinted(kind: String, title: String, text: String) -> Control:
@@ -609,27 +754,36 @@ func _draw_detail() -> void:
 	sc.name = "DetailScroll"
 	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	outer.add_child(sc)
-	var t := UI3.label("%s · %s, A%d" % [id, String(o.mode).capitalize(), int(o.ascension)], "LabelScreenTitle")
+	# 1. title 36 + mode 24 muted
+	var th := HBoxContainer.new()
+	th.add_theme_constant_override("separation", UI3Theme.space("12"))
+	var t := UI3.label(id, "LabelDisplay")
+	t.add_theme_font_size_override("font_size", UI3Theme.size_of("text_banner"))   # 36, token
 	t.name = "DetailTitle"
-	v.add_child(t)
+	th.add_child(t)
+	var tm := UI3.label("%s · A%d" % [String(o.mode).capitalize(), int(o.ascension)], "LabelTitle")
+	tm.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
+	tm.size_flags_vertical = Control.SIZE_SHRINK_END
+	th.add_child(tm)
+	v.add_child(th)
 	var tier_locked := not bool(o.unlocked) and not _account_blocks()
 	if tier_locked:
 		var lk := UI3.label("Locked", "LabelTitle")
 		lk.name = "LockedTitle"
 		v.add_child(lk)
-	# 1. rules in words (same names as the chips in the run)
+	# 2. rules in words (same names as the chips in the run)
 	var rules := VBoxContainer.new()
 	rules.name = "RuleLines"
 	rules.add_theme_constant_override("separation", UI3Theme.space("8"))
 	for line in rule_lines(o):
-		var rl := UI3.label(String(line))
+		var rl := UI3.label(String(line), "LabelMuted")
 		rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		rules.add_child(rl)
 	v.add_child(rules)
 	if not tier_locked:   # a tier you cannot play shows what opens it, not stake money, the lose box, a warning or an estimate
 		_draw_detail_money(v, o)
 	var why := block_reason(id)
-	var b := UI3.button("Stake %d and play" % int(o.stake), &"primary", &"M")
+	var b := UI3.button("Stake %d and play" % int(o.stake), &"primary", &"L")
 	b.name = "Stake"
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if is_guest_view():
@@ -640,44 +794,103 @@ func _draw_detail() -> void:
 		if why != "":
 			UI3.set_disabled_reason(b, why)
 			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			b.custom_minimum_size.y = 72
 		b.pressed.connect(open_confirm.bind(id))
 	outer.add_child(b)
 
 
-## Stake -> Win back -> Net, the lose box, the warning and the estimate line (open tiers only).
+## Money table (Stake, Win back + x, Net green 32, Stone), then the lose box, then the win-chance meter.
 func _draw_detail_money(v: VBoxContainer, o: Dictionary) -> void:
-	var money := VBoxContainer.new()
+	var money := PanelContainer.new()
 	money.name = "Money"
-	money.add_theme_constant_override("separation", UI3Theme.space("8"))
-	for row in [["Stake", "%s Shards" % UI3.fmt(int(o.stake)), "StakeValue"],
-			["Win back", "%s Shards (×%s)" % [UI3.fmt(int(o.payout)), _num(float(o.m))], "PayValue"],
-			["Net if you win", "%s Shards" % _signed(int(o.net)), "NetValue"],
-			["Stone if you win", "+%d" % int(o.stone), "StoneValue"]]:
+	money.theme = UI3Theme.get_theme()
+	money.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("m"), 0,
+		Color.TRANSPARENT, Vector4(16, 4, 16, 4)))
+	var mv := VBoxContainer.new()
+	mv.add_theme_constant_override("separation", 0)
+	money.add_child(mv)
+	var rows := [["Stake", "StakeValue"], ["Win back", "PayValue"], ["Net if you win", "NetValue"], ["Stone if you win", "StoneValue"]]
+	for i in rows.size():
 		var hb := HBoxContainer.new()
-		hb.add_theme_constant_override("separation", UI3Theme.space("16"))
-		var kl := UI3.label(String(row[0]), "LabelMuted")
+		hb.custom_minimum_size = Vector2(0, 52)
+		hb.add_theme_constant_override("separation", UI3Theme.space("8"))
+		var kl := UI3.label(String(rows[i][0]))
 		kl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		kl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		hb.add_child(kl)
-		var vl := UI3.label(String(row[1]), "LabelTitle")
-		vl.name = String(row[2])
-		hb.add_child(vl)
-		money.add_child(hb)
+		match i:
+			0:
+				hb.add_child(_tex("cur_shard", 24))
+				var vl := UI3.label(UI3.fmt(int(o.stake)), "LabelTitle")
+				vl.name = String(rows[i][1])
+				hb.add_child(vl)
+			1:
+				var vl := UI3.label(UI3.fmt(int(o.payout)), "LabelTitle")
+				vl.name = String(rows[i][1])
+				hb.add_child(vl)
+				hb.add_child(_mult_pill("×" + _num(float(o.m)), 28))
+			2:
+				var vl := UI3.label(_signed(int(o.net)), "LabelScreenTitle")
+				vl.name = String(rows[i][1])
+				vl.add_theme_color_override("font_color", UI3Theme.color("success_text"))
+				hb.add_child(vl)
+			3:
+				hb.add_child(_tex("cur_stone", 24))
+				var vl := UI3.label("+%d" % int(o.stone), "LabelTitle")
+				vl.name = String(rows[i][1])
+				hb.add_child(vl)
+		for c in hb.get_children():
+			if c is Label:
+				(c as Label).vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		mv.add_child(hb)
+		if i < rows.size() - 1:   # 2 px divider in the plate colour
+			var dv := ColorRect.new()
+			dv.color = UI3Theme.color("panel")
+			dv.custom_minimum_size = Vector2(0, 2)
+			mv.add_child(dv)
 	v.add_child(money)
 	v.add_child(_tinted("lose", "Lose or abandon", "You lose %s Shards. No refund, no Stone." % UI3.fmt(int(o.stake))))
+	# win-chance meter (amber), warning with a "!" mark, then the simulated note
+	var est_box := VBoxContainer.new()
+	est_box.name = "WinChance"
+	est_box.add_theme_constant_override("separation", UI3Theme.space("8"))
+	var er := HBoxContainer.new()
+	var el := UI3.label("Estimated win chance")
+	el.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	el.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	er.add_child(el)
+	var ev := UI3.label("about %s%%" % _num(float(o.est_win_pct)), "LabelTitle")
+	ev.name = "WinChanceValue"
+	ev.add_theme_color_override("font_color", UI3Theme.color("accent"))
+	er.add_child(ev)
+	est_box.add_child(er)
+	est_box.add_child(_meter(float(o.est_win_pct) / 100.0, UI3Theme.color("accent"), 12))
 	var wt := warning_text(effective_warning(o))
 	if wt != "":
-		var wl := UI3.label(wt)
+		var wr := HBoxContainer.new()
+		wr.add_theme_constant_override("separation", UI3Theme.space("8"))
+		var mark := PanelContainer.new()
+		mark.theme = UI3Theme.get_theme()
+		mark.custom_minimum_size = Vector2(24, 24)
+		mark.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("accent"), 12))
+		var ml := UI3.label("!", "LabelDisplay")
+		ml.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
+		ml.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ml.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		mark.add_child(ml)
+		wr.add_child(mark)
+		var wl := UI3.label(wt, "LabelDisplay")
 		wl.name = "Warning"
 		wl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		wl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		wl.add_theme_color_override("font_color", UI3Theme.color("anchor_price"))
-		v.add_child(wl)
-	# same line on every tier: simulated win chance and average return (numbers from missions.json)
-	var est := UI3.label("Estimated win chance (simulated): about %s%%. On average you get back about %d%% of your stake. Real players may do better or worse." % [
-		_num(float(o.est_win_pct)), roundi(float(o.est_return_pct))])
+		wr.add_child(wl)
+		est_box.add_child(wr)
+	# same line on every tier: simulated average return (numbers from missions.json)
+	var est := UI3.label("Simulated with a bot. On average you get back about %d%% of your stake. Real players may do better or worse." % roundi(float(o.est_return_pct)), "LabelMuted")
 	est.name = "Estimate"
 	est.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v.add_child(est)
+	est_box.add_child(est)
+	v.add_child(est_box)
 	v.add_child(UI3.label("No Continue and no Aid.", "LabelMuted"))
 
 

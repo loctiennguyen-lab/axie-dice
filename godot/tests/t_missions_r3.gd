@@ -163,7 +163,7 @@ func _ready() -> void:
 	s.set_state("guest")
 	_ok(s.is_guest_view() and s.find_child("Balance", true, false).text == "Sign in to see your Shards", "guest: no Shard numbers")
 	var gb := s.find_child("Stake", true, false) as Button
-	_ok(not gb.disabled and gb.text == "Sign in to stake Shard" and gb.theme_type_variation == "ButtonPrimaryM", "guest: sign-in button looks active (primary)")
+	_ok(not gb.disabled and gb.text == "Sign in to stake Shard" and gb.theme_type_variation == "ButtonPrimaryL", "guest: sign-in button looks active (primary)")
 	gb.pressed.emit()
 	_ok(s.sign_in_calls == 1, "guest: the button signs in")
 	var gbn := s.find_child("SignIn", true, false) as Button
@@ -173,10 +173,10 @@ func _ready() -> void:
 	_ok(s.sign_in_calls == 2, "guest: banner button signs in")
 	_ok(s.block_reason("N1") != "", "guest: still cannot stake")
 	s.set_state("offline")
-	_ok(not s.is_guest_view() and s.find_child("Balance", true, false).text.begins_with("Stakeable"), "offline: numbers stay")
+	_ok(not s.is_guest_view() and s.find_child("Balance", true, false).text == UI3.fmt(s.usable_shards()), "offline: numbers stay")
 	s.remote_on = false
 	s.set_state("guest")
-	_ok(not s.is_guest_view() and s.find_child("Balance", true, false).text.begins_with("Stakeable"), "local guest: numbers stay")
+	_ok(not s.is_guest_view() and s.find_child("Balance", true, false).text == UI3.fmt(s.usable_shards()), "local guest: numbers stay")
 	# S3-2 lock text = the full condition
 	MetaState.runs = 2
 	MetaState.runs_with_battle = 2
