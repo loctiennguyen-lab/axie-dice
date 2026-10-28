@@ -30,6 +30,12 @@ func _ready() -> void:
 
 func _make(screen: String) -> void:
 	match screen:
+		"result_won":
+			_result(true, false, false)
+		"result_lost_stake":
+			_result(false, true, false)
+		"result_mission_lost":
+			_result(false, true, true)
 		"missions":
 			MetaState.shard_pool = 4200
 			MetaState.starter_shard_locked = 0
@@ -43,3 +49,21 @@ func _make(screen: String) -> void:
 			add_child(ms)
 			await get_tree().process_frame
 			ms.select_tier("N3")
+
+
+## Result screen (UI-04 10): "result_won" (mission win), "result_lost_stake" (mission lost, 800 stake),
+## "result_mission_lost" (mission lost, fullest case: Cores that fired).
+func _result(won: bool, stake: bool, full: bool) -> void:
+	RunState.start_new_run(777001, TEAM, "short", 5, false)
+	RunState.power_level = 2
+	RunState.shards_this_run = 87
+	RunState.owned_relic_ids.assign(["r_claw", "r_carapace", "r_pierceall", "r_bloodmouth", "r_heart"])
+	RunState.run_stats = {"dmg": 913, "dmg_dealt_clamped": 913, "taken": 140, "turns": 41, "kills": 23, "max_hit": 31}
+	if full:
+		RunState.core_impact = {"r_claw": {"n": 4, "by": {"dmg": 120}}, "r_heart": {"n": 2, "by": {"dmg": 30}}}
+	RunState.mission = {"mission_id": "m_cap", "condition": ""}
+	MetaState.mission_escrow = {"mission_id": "m_cap", "tier": "N3", "stake": 800, "payout": 1600 if (stake or won) else 0, "stone": 0}
+	MetaState.shard_pool = 794
+	RunState.set_phase(RunState.RunPhase.WON if won else RunState.RunPhase.LOST)
+	var v: Node = (load("res://scenes/result/Result.tscn") as PackedScene).instantiate()
+	add_child(v)

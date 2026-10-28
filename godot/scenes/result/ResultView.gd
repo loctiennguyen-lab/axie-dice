@@ -12,10 +12,10 @@ extends Control
 
 const BG_DIR := "res://assets/ui3/result_bg/"   # pre-rendered empty biome arenas (Blender dioramas), 1440x810 jpg
 const BG_FALLBACK := "savannah"
-const PLATE_W := 640.0
 
 var _plate: Control = null
-var _plate_scroll: ScrollContainer = null
+var _shard_amount: Label = null   # the hero count-up target (null on a lost stake)
+var _shard_src: Label = null
 var _body: VBoxContainer = null
 var _notice_host: VBoxContainer = null
 var _run_id := ""
@@ -83,8 +83,7 @@ func _ready() -> void:
 		n.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		n.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_notice_host.add_child(n)
-	_fit.call_deferred()
-	_on_notice_layout.call_deferred()   # second pass once row heights settled (Cores rows were clipped)
+	_play_motion.call_deferred()
 	_back.grab_focus.call_deferred()
 
 
@@ -109,9 +108,11 @@ func _build_ui(s: Dictionary) -> void:
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(center)
 
+	# UI-04 10-result: one 880 panel, no inner scroll. Groups: header (title, sub, new title, party), Shards, Pass,
+	# Stats, Cores (+ Anchor, Combos), tip, notices, footer.
 	var plate := UI3.plate(&"dialog")
 	plate.name = "ResultPlate"
-	plate.custom_minimum_size = Vector2(PLATE_W, 0)
+	plate.custom_minimum_size = Vector2(UI3Theme.size_of("result_panel_w"), 0)
 	center.add_child(plate)
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 16)
@@ -122,25 +123,43 @@ func _build_ui(s: Dictionary) -> void:
 	if unlock != null:
 		outer.add_child(unlock)
 	outer.add_child(_build_party_row(s["roster"] as Array))
-	outer.add_child(_build_stat_grid(s["stats"] as Dictionary))
-	# Fit-or-scroll: only the earnings column scrolls when the window is short; header, stats, the
-	# offline notice and the actions always stay in view.
-	_plate_scroll = ScrollContainer.new()
-	_plate_scroll.name = "CardScroll"
-	_plate_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_plate_scroll.get_v_scroll_bar().custom_minimum_size.x = UI3Theme.SCROLL_W   # visible overflow (t_ui_laws L2)
-	outer.add_child(_plate_scroll)
 	_body = _build_card_rows(s)
-	_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_plate_scroll.add_child(_body)
+	outer.add_child(_body)
 	_notice_host = VBoxContainer.new()
 	_notice_host.name = "NoticeHost"
-	outer.add_child(_notice_host)   # outside the scroll: an offline notice is never hidden
+	outer.add_child(_notice_host)   # an offline notice is never hidden
 	outer.add_child(_build_actions())
 	_plate = plate
 
 	_build_version_tag()
 	_build_equipped_avatar()
+
+
+## UI-04 run_end_win / run_end_lose: panel scale 0.96 -> 1 + fade, and the Shard hero counts up on a win.
+func _play_motion() -> void:
+	if _plate == null:
+		return
+	_plate.pivot_offset = _plate.size * 0.5
+	var won := bool(_snap.get("won", false))
+	# UI3Motion._burst draws the 512 px shard texture at full size (no particle size in the table): shrink the
+	# fountain to a 32 px shard when it is added. Shared fix wanted in UI3Motion (see report).
+	_plate.child_entered_tree.connect(func(c: Node) -> void:
+		if c is CPUParticles2D and (c as CPUParticles2D).texture != null:
+			var cp := c as CPUParticles2D
+			cp.scale_amount_min = 32.0 / float(cp.texture.get_width())
+			cp.scale_amount_max = cp.scale_amount_min)
+	UI3Motion.play("run_end_win" if won else "run_end_lose", _plate)
+	if won and _shard_amount != null and not UI3Motion.reduced() and DisplayServer.get_name() != "headless":
+		var total := int(_snap.get("shards_this_run", 0))
+		var lbl := _shard_amount
+		var tw := create_tween()
+		tw.tween_method(func(v: float) -> void:
+			if is_instance_valid(lbl):
+				lbl.text = tr("+%s Shards") % UI3.fmt(int(v)), 0.0, float(total), 0.8).set_delay(0.24) \
+			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tw.finished.connect(func() -> void:
+			if is_instance_valid(lbl):
+				lbl.text = tr("+%s Shards") % UI3.fmt(total))
 
 
 ## Backdrop jpg for the run's biome: the boss biome on a win, the biome of the node the run ended on
@@ -160,21 +179,6 @@ func _bg_path(won: bool) -> String:
 		biome = CombatArena3D.biome_for(row, is_boss, total)
 	var path := BG_DIR + biome + ".jpg"
 	return path if biome != "" and ResourceLoader.exists(path) else BG_DIR + BG_FALLBACK + ".jpg"
-
-
-## Caps the scroll area to what the window can show; below that the plate hugs its content.
-func _fit() -> void:
-	if _body == null or _plate == null:
-		return
-	_plate_scroll.custom_minimum_size.y = 0.0
-	var others := _plate.get_combined_minimum_size().y   # everything but the scroll (it is 0 now)
-	var avail := get_viewport_rect().size.y - 48.0 - others - 24.0
-	_plate_scroll.custom_minimum_size.y = minf(_body.get_combined_minimum_size().y, maxf(avail, 120.0))
-
-
-func _on_notice_layout() -> void:
-	await get_tree().process_frame
-	_fit()
 
 
 ## B12: the player's avatar in its equipped frame, top-left. Only drawn when a frame is equipped.
@@ -215,7 +219,7 @@ func _build_header(s: Dictionary) -> Control:
 	var won := bool(s["won"])
 	var col := VBoxContainer.new()
 	col.name = "TitleBand"
-	col.add_theme_constant_override("separation", 12)
+	col.add_theme_constant_override("separation", 8)
 	var new_best := won and int(s["power_level"]) > int(s["best_before"])
 	if new_best:
 		var chip := UI3.chip(tr("New best") + " · A%d" % int(s["ascension"]))
@@ -224,6 +228,7 @@ func _build_header(s: Dictionary) -> Control:
 		col.add_child(chip)
 	var title := _centered(tr("Run won") if won else tr("Defeated"), "LabelScreenTitle")
 	title.name = "ResultTitle"
+	title.add_theme_font_size_override("font_size", UI3Theme.size_of("text_banner"))   # spec: title 36
 	if not won:
 		title.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
 	col.add_child(title)
@@ -251,9 +256,7 @@ func _build_title_unlock(s: Dictionary) -> Control:
 	return row
 
 
-# ---------------------------------------------------------------------------
-# Party row: this run's five Axies (name, tier).
-# ---------------------------------------------------------------------------
+
 func _build_party_row(roster: Array) -> Control:
 	var row := HBoxContainer.new()
 	row.name = "PartyRow"
@@ -264,17 +267,14 @@ func _build_party_row(roster: Array) -> Control:
 		var def: Dictionary = ContentDB.heroes.get(hero_key, {})
 		var p := UI3.plate(&"row")
 		p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var v := VBoxContainer.new()
-		v.add_theme_constant_override("separation", 0)
-		p.add_child(v)
-		var nm := _centered(String(def.get("n", hero_key)), "LabelDisplay")
+		var nm := _centered("%s · T%d" % [String(def.get("n", hero_key)), int(entry.get("tier", 1))], "LabelMuted")
 		nm.autowrap_mode = TextServer.AUTOWRAP_OFF
 		nm.clip_text = true
 		nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		v.add_child(nm)
-		v.add_child(_centered("T%d" % int(entry.get("tier", 1)), "LabelMuted"))
+		p.add_child(nm)
 		row.add_child(p)
 	return row
+
 
 
 # ---------------------------------------------------------------------------
@@ -304,15 +304,7 @@ func _build_stat_grid(stats: Dictionary) -> Control:
 		v.add_child(UI3.label(String(t[1]), "LabelTitle"))
 		v.add_child(UI3.label(String(t[0]), "LabelMuted"))
 		grid.add_child(v)
-	var best := _best_set_line(stats)
-	if best == null:
-		return grid
-	var block := VBoxContainer.new()
-	block.name = "StatBlock"
-	block.add_theme_constant_override("separation", 12)
-	block.add_child(grid)
-	block.add_child(best)
-	return block
+	return grid
 
 
 ## "Best set: FIVE HORNS ×2.6" (combat-v4.md 6.2). Reads `best_bo` {part,size,m100} from the run stats; while
@@ -322,9 +314,10 @@ func _best_set_line(stats: Dictionary) -> Control:
 	if not stats.has("best_bo"):
 		return null
 	var b: Dictionary = stats["best_bo"] if stats["best_bo"] is Dictionary else {}
-	var l := UI3.label("", "LabelDisplay")
+	var l := UI3.label("", "LabelMuted")
 	l.name = "BestSetLine"
-	l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))   # UI-04: tip is body 18, not a 24 headline
 	if b.is_empty() or int(b.get("size", 0)) < 3:
 		l.text = tr("No Set this run. Next time try keeping 3 dice of the same part.")
 		l.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
@@ -334,34 +327,66 @@ func _best_set_line(stats: Dictionary) -> Control:
 	return l
 
 
-# ---------------------------------------------------------------------------
-# Earnings: Gene Shard, Lunacia Pass, relics, mission stake.
-# ---------------------------------------------------------------------------
 func _build_card_rows(s: Dictionary) -> VBoxContainer:
 	var col := VBoxContainer.new()
 	col.name = "CardRow"
-	col.add_theme_constant_override("separation", 12)
+	col.add_theme_constant_override("separation", 16)
 	col.add_child(_build_shard_card(s))
-	col.add_child(_build_pass_card(s))
-	var anchor := _build_anchor_card(s)
-	if anchor != null:
-		col.add_child(anchor)
-	col.add_child(_build_relics_card(s["relic_ids"] as Array, String(s.get("run_rule", "")), s.get("core_impact", {}) as Dictionary))
-	var combos := _build_combos_card(s)
-	if combos != null:
-		col.add_child(combos)
 	var stake := _build_stake_box(s)
 	if stake != null:
 		col.add_child(stake)
-	var pad := Control.new()   # breathing room under the last card so the scroll never ends on a clipped line
-	pad.name = "EndPad"
-	pad.custom_minimum_size.y = 16
-	col.add_child(pad)
+	col.add_child(_build_pass_card(s))
+	col.add_child(_build_stat_grid(s["stats"] as Dictionary))
+	col.add_child(_build_cores_group(s))
+	var tip := _best_set_line(s["stats"] as Dictionary)
+	if tip != null:
+		col.add_child(tip)
 	return col
 
 
-## Lane GM (D3): combos the run put together (Pair / Full, Full in a gold frame) and the near-miss line "Skipped"
-## (up to 3 Crystal Cores that were offered and not taken). Hidden when there is nothing to say and no combo data.
+## Cores group: Anchor line, the Cores card, Combos (only when there is something to say).
+func _build_cores_group(s: Dictionary) -> Control:
+	var g := VBoxContainer.new()
+	g.name = "CoresGroup"
+	g.add_theme_constant_override("separation", 8)
+	var anchor := _build_anchor_card(s)
+	if anchor != null:
+		g.add_child(anchor)
+	g.add_child(_build_relics_card(s["relic_ids"] as Array, String(s.get("run_rule", "")), s.get("core_impact", {}) as Dictionary))
+	var combos := _build_combos_card(s)
+	if combos != null:
+		g.add_child(combos)
+	return g
+
+
+## A name chip: panel-raised, radius s, optional 4 px accent frame (Most impact / Full combo).
+func _name_chip(text: String, count_text := "", framed := false) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.theme = UI3Theme.get_theme()
+	var sb := UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 4 if framed else 0,
+		UI3Theme.color("accent") if framed else UI3Theme.color("panel_raised"))
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 4
+	p.add_theme_stylebox_override("panel", sb)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	p.add_child(row)
+	var nm := UI3.label(text, "LabelDisplay")
+	nm.name = "CoreName"
+	nm.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
+	row.add_child(nm)
+	if count_text != "":
+		var c := UI3.label(count_text, "LabelDisplay")
+		c.name = "CoreCount"
+		c.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
+		c.add_theme_color_override("font_color", UI3Theme.color("accent"))   # kam-6
+		row.add_child(c)
+	return p
+
+
+## Combos: caption "COMBOS · n" + chips (Full = accent frame) + the near-miss "Skipped" line.
 func _build_combos_card(s: Dictionary) -> Control:
 	var done: Dictionary = s.get("combo_done", {})
 	var skipped := RunCard.skipped_names(s.get("skipped_t", []) as Array)
@@ -372,32 +397,24 @@ func _build_combos_card(s: Dictionary) -> Control:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
 	card.add_child(col)
-	col.add_child(_card_caption(tr("Combos") + " · %d" % done.size()))
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 12)
+	col.add_child(head)
+	head.add_child(_card_caption(tr("Combos") + " · %d" % done.size()))
 	if done.is_empty():
 		var none := UI3.label(tr("No combos this run."), "LabelMuted")
 		none.name = "NoCombos"
-		col.add_child(none)
-	for cid in done:
-		var full := String(done[cid]) == "full"
-		var p := UI3.plate(&"row")
-		p.name = "ComboRow_%s" % cid
-		var sb := UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 4 if full else 0,
-			UI3Theme.color("accent") if full else UI3Theme.color("panel_raised"))
-		sb.content_margin_left = 12
-		sb.content_margin_right = 12
-		sb.content_margin_top = 8
-		sb.content_margin_bottom = 8
-		p.add_theme_stylebox_override("panel", sb)
-		var row := HBoxContainer.new()
-		p.add_child(row)
-		var nm := UI3.label(UI3.title_case(ComboAdapter.display_name(String(cid))), "LabelDisplay")
-		nm.name = "ComboName"
-		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(nm)
-		var tier := UI3.label(tr("Full") if full else tr("Pair"), "LabelDisplay")
-		tier.name = "ComboTier"
-		row.add_child(tier)
-		col.add_child(p)
+		head.add_child(none)
+	else:
+		var flow := HFlowContainer.new()
+		flow.add_theme_constant_override("h_separation", 8)
+		flow.add_theme_constant_override("v_separation", 8)
+		col.add_child(flow)
+		for cid in done:
+			var full := String(done[cid]) == "full"
+			var chip := _name_chip(UI3.title_case(ComboAdapter.display_name(String(cid))), tr("Full") if full else tr("Pair"), full)
+			chip.name = "ComboRow_%s" % cid
+			flow.add_child(chip)
 	if not skipped.is_empty():
 		var sk := UI3.label(tr("Skipped") + ": " + ", ".join(skipped), "LabelMuted")
 		sk.name = "SkippedLine"
@@ -406,7 +423,7 @@ func _build_combos_card(s: Dictionary) -> Control:
 	return card
 
 
-## Own card ABOVE the Cores card: the run's Anchor, awake state and the Mutations it reached. null = no Anchor this run.
+## Anchor: one row (house glyph, "Anchor · Name", awake state) + the Mutations line. null = no Anchor this run.
 func _build_anchor_card(s: Dictionary) -> Control:
 	var anchor_id := String(s.get("anchor_id", ""))
 	if anchor_id == "":
@@ -414,14 +431,14 @@ func _build_anchor_card(s: Dictionary) -> Control:
 	var card := UI3.plate(&"row")
 	card.name = "AnchorCard"
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 8)
+	col.add_theme_constant_override("separation", 4)
 	card.add_child(col)
-	col.add_child(_card_caption(tr("Anchor")))
 	col.add_child(_anchor_row(anchor_id, bool(s.get("anchor_awakened", false))))
 	var mut := _mutation_line(s.get("house_tiers", {}) as Dictionary)
 	if mut != null:
 		col.add_child(mut)
 	return card
+
 
 
 func _anchor_row(id: String, awake: bool) -> Control:
@@ -471,48 +488,75 @@ func _card_caption(text: String) -> Label:
 	l.name = "Caption"
 	return l
 
-
 func _build_shard_card(s: Dictionary) -> Control:
 	var card := UI3.plate(&"row")
 	card.name = "ShardCard"
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 12)
+	col.add_theme_constant_override("separation", 8)
 	card.add_child(col)
 	var mrun := bool(s.get("mission_run", false))
-	col.add_child(_card_caption(tr("Run reward (separate from your stake)") if mrun else tr("Gene Shard earned")))
+	var stake := int((s.get("stake_before", {}) as Dictionary).get("stake", 0))
+	# Loss with a settled stake (spec state 46): the hero is the stake gone, in a red-2 box, no particles.
+	var lost_stake := mrun and not bool(s.get("mission_won", false)) and not bool(s.get("stake_open", false)) and stake > 0
 	var row := HBoxContainer.new()
-	row.custom_minimum_size.y = UI3Theme.size_of("row")
-	row.add_theme_constant_override("separation", 12)
+	row.custom_minimum_size.y = 72
+	row.add_theme_constant_override("separation", 16)
 	col.add_child(row)
 	var ic := TextureRect.new()
+	ic.name = "ShardGlyph"
 	ic.texture = UI3.icon("cur_shard")
-	ic.custom_minimum_size = Vector2.ONE * UI3Theme.size_of("icon_m")
+	ic.custom_minimum_size = Vector2.ONE * 72.0
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(ic)
-	var amount := UI3.label("+%s" % UI3.fmt(int(s["shards_this_run"])), "LabelTitle")
+	var mid := VBoxContainer.new()
+	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mid.alignment = BoxContainer.ALIGNMENT_CENTER
+	mid.add_theme_constant_override("separation", 0)
+	row.add_child(mid)
+	var amount := UI3.label("", "LabelTitle")
 	amount.name = "ShardAmount"
-	row.add_child(amount)
-	var right := VBoxContainer.new()
-	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_child(right)
+	amount.add_theme_font_size_override("font_size", UI3Theme.size_of("text_banner"))   # spec: 36
+	if lost_stake:
+		amount.text = "−" + tr("%s Shards") % UI3.fmt(stake)
+		amount.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
+		var box := PanelContainer.new()
+		box.name = "StakeLostBox"
+		box.theme = UI3Theme.get_theme()
+		box.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("trade_cost_bg"), UI3Theme.radius("m"), 0,
+			Color.TRANSPARENT, Vector4(12, 4, 12, 4)))
+		box.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		box.add_child(amount)
+		mid.add_child(box)
+	else:
+		amount.text = tr("+%s Shards") % UI3.fmt(int(s["shards_this_run"]))
+		mid.add_child(amount)
+	_shard_amount = amount if not lost_stake else null
 	var daily_bonus := ContentDB.DAILY_MISSION_SHARD if bool(s.get("daily_mission_granted", false)) else 0
-	var breakdown := UI3.label((tr("%d from the run itself") if mrun else tr("%d run payout")) % (int(s["shards_this_run"]) - daily_bonus)
-		+ (" · " + tr("%d daily") % daily_bonus if daily_bonus > 0 else ""), "LabelMuted")
-	breakdown.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	breakdown.clip_text = true
-	breakdown.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	right.add_child(breakdown)
-	var pool := UI3.label(tr("Shards now %s") % UI3.fmt(MetaState.shard_pool), "LabelDisplay")
+	var src_text := tr("Mission stake lost") if lost_stake else (tr("Run reward, separate from your stake") if mrun
+		else (tr("%d run payout") % (int(s["shards_this_run"]) - daily_bonus)
+			+ (" · " + tr("%d daily") % daily_bonus if daily_bonus > 0 else "")))
+	_shard_src = UI3.label(src_text, "LabelMuted")
+	_shard_src.name = "ShardSource"
+	_shard_src.clip_text = true
+	_shard_src.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	mid.add_child(_shard_src)
+	var right := VBoxContainer.new()
+	right.alignment = BoxContainer.ALIGNMENT_CENTER
+	right.add_theme_constant_override("separation", 0)
+	row.add_child(right)
+	var cap := UI3.label(tr("Shards now"), "LabelMuted")
+	cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	right.add_child(cap)
+	var pool := UI3.label(UI3.fmt(MetaState.shard_pool), "LabelTitle")
+	pool.name = "ShardPool"
 	pool.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	pool.clip_text = true
-	pool.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	right.add_child(pool)
 	if not mrun:   # a staked mission is never Ranked: "no verifiable score" would be the wrong message
 		col.add_child(_build_ranked_caption(s))
 	return card
+
 
 
 ## The RANKED / SAVE RUN RECORD line (see the file header): three states, never a button that does nothing.
@@ -548,47 +592,41 @@ func _build_ranked_caption(s: Dictionary) -> Control:
 func _build_pass_card(s: Dictionary) -> Control:
 	var card := UI3.plate(&"row")
 	card.name = "PassCard"
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 12)
-	card.add_child(col)
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 12)
-	col.add_child(head)
-	var cap := _card_caption(tr(PassSummary.NAME))
-	cap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(cap)
 	var info: Dictionary = PassSummary.info(MetaState.pass_season)
 	var row := HBoxContainer.new()
-	row.custom_minimum_size.y = UI3Theme.size_of("row")
-	row.add_theme_constant_override("separation", 12)
-	col.add_child(row)
-	# The art kit has no Pass XP icon (spec flag): a plain "XP" circle stands in.
+	row.add_theme_constant_override("separation", 16)
+	card.add_child(row)
+	# The art kit has no Pass XP icon (spec flag): a plain "XP" circle stands in (48 in UI-04).
 	var xp := PanelContainer.new()
 	xp.name = "XpIcon"
-	xp.custom_minimum_size = Vector2.ONE * 40.0
+	xp.custom_minimum_size = Vector2.ONE * 48.0
 	xp.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	xp.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("accent"),
-		20, 0, Color.TRANSPARENT, Vector4(0, 0, 0, 0)))
+		24, 0, Color.TRANSPARENT, Vector4(0, 0, 0, 0)))
 	var xl := UI3.label("XP", "LabelDisplay")
 	xl.add_theme_color_override("font_color", UI3Theme.color("die_ink"))
 	xl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	xl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	xp.add_child(xl)
 	row.add_child(xp)
-	row.add_child(UI3.label(tr("Lv %d") % int(info["level"]), "LabelTitle"))
+	var v := VBoxContainer.new()
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_theme_constant_override("separation", 4)
+	row.add_child(v)
+	var head := UI3.label("%s · %s" % [tr(PassSummary.NAME), tr("Lv %d") % int(info["level"])], "LabelTitle")
+	head.name = "PassHead"
+	v.add_child(head)
 	var line := UI3.label(PassSummary.line(info, int(s.get("pass_xp_gained", -1))), "LabelMuted")
 	line.name = "PassXpLine"
-	line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	line.clip_text = true
 	line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	row.add_child(line)
-	# Progress bar: a Panel (not a container) so the partial fill keeps its width.
+	v.add_child(line)
+	# Progress bar 12 high: a Panel (not a container) so the partial fill keeps its width.
 	var track := Panel.new()
-	track.custom_minimum_size = Vector2(0, 16)
+	track.custom_minimum_size = Vector2(0, 12)
 	track.clip_contents = true
-	track.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("hp_track"), 8, 2, UI3Theme.color("disabled_border")))
-	col.add_child(track)
+	track.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("hp_track"), 6, 2, UI3Theme.color("disabled_border")))
+	v.add_child(track)
 	var fill := ColorRect.new()
 	fill.color = UI3Theme.color("accent")
 	fill.set_anchors_preset(Control.PRESET_LEFT_WIDE)
@@ -598,72 +636,68 @@ func _build_pass_card(s: Dictionary) -> Control:
 	return card
 
 
-## Depth v3: the run's Cores plus the Run Rule it played under (the old "Relics carried" card).
+
+## Depth v3: the run's Cores plus the Run Rule, as ONE line (UI-04): caption "CORES · n", "none triggered this run"
+## when nothing fired, then a name chip per Core ("×n" in accent when it fired). The per-Core detail (what it did,
+## Most impact, Pact passive) moved into each chip's tooltip; the biggest contributor keeps the 4 px accent frame.
 func _build_relics_card(relic_ids: Array, run_rule_id: String = "", impact: Dictionary = {}) -> Control:
 	var card := UI3.plate(&"row")
 	card.name = "RelicsCard"
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 12)
+	col.add_theme_constant_override("separation", 8)
 	card.add_child(col)
-	col.add_child(_card_caption(tr("Cores") + " · %d" % relic_ids.size()))
-	if run_rule_id != "":
-		var rdef = RelicRegistry.get_def(run_rule_id)
-		var rname := String(rdef.name) if rdef != null else run_rule_id
-		col.add_child(UI3.label(tr("Run Rule") + ": " + UI3.title_case(UI3.player_text(rname))))
-	if relic_ids.is_empty():
-		col.add_child(UI3.label(tr("None this run.")))
-		return card
-	# Depth v3 lane VZ: one row per Core with what it did this run; the biggest contributor is highlighted.
 	var ids: Array = relic_ids.map(func(x): return String(x))
 	var real_ids: Array = ids.filter(func(x): return not RelicSlots.is_pact(String(x)))   # Pacts never take "Most impact"
 	var top := CoreFeedback.top_core(impact, real_ids)
-	var list := VBoxContainer.new()
-	list.name = "CoreImpactList"
-	list.add_theme_constant_override("separation", 8)
-	col.add_child(list)
+	var any_fired := false
+	for id in ids:
+		if not RelicSlots.is_pact(String(id)) and int((impact.get(String(id), {}) as Dictionary).get("n", 0)) > 0:
+			any_fired = true
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 12)
+	col.add_child(head)
+	head.add_child(_card_caption(tr("Cores") + " · %d" % ids.size()))
+	if ids.is_empty():
+		head.add_child(UI3.label(tr("None this run."), "LabelMuted"))
+		return card
+	if not any_fired:
+		var none := UI3.label(tr("none triggered this run"), "LabelMuted")
+		none.name = "NoneTriggered"
+		head.add_child(none)
+	if run_rule_id != "":
+		var rdef = RelicRegistry.get_def(run_rule_id)
+		var rname := String(rdef.name) if rdef != null else run_rule_id
+		var rr := UI3.label(tr("Run Rule") + ": " + UI3.title_case(UI3.player_text(rname)), "LabelMuted")
+		rr.name = "RunRuleLine"
+		rr.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		rr.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		head.add_child(rr)
+	var flow := HFlowContainer.new()
+	flow.name = "CoreImpactList"
+	flow.add_theme_constant_override("h_separation", 8)
+	flow.add_theme_constant_override("v_separation", 8)
+	col.add_child(flow)
 	for id in ids:
 		var def = RelicRegistry.get_def(String(id))
-		var p := UI3.plate(&"row")
-		p.name = "CoreRow_%s" % id
-		var is_top := String(id) == top
-		var hi := UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 4 if is_top else 0,
-			UI3Theme.color("accent") if is_top else UI3Theme.color("panel_raised"))
-		hi.content_margin_left = 12
-		hi.content_margin_right = 12
-		hi.content_margin_top = 8
-		hi.content_margin_bottom = 8
-		p.add_theme_stylebox_override("panel", hi)
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 12)
-		p.add_child(row)
-		var nm := UI3.label(UI3.title_case(UI3.player_text(String(def.name) if def != null else String(id))), "LabelDisplay")
-		nm.name = "CoreName"
-		row.add_child(nm)
-		var sp := Control.new()
-		sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(sp)
 		var e: Dictionary = impact.get(String(id), {})
 		var is_pact := RelicSlots.is_pact(String(id))
+		var n := int(e.get("n", 0))
+		var is_top := String(id) == top
+		var chip := _name_chip(UI3.title_case(UI3.player_text(String(def.name) if def != null else String(id))),
+			("×%d" % n) if (n > 0 and not is_pact) else "", is_top)
+		chip.name = "CoreRow_%s" % id
 		var txt := CoreFeedback.impact_text(e) if not e.is_empty() else tr("Not triggered this run")
 		if is_pact:
 			txt = tr("Pact · passive")
 			if def != null and String(def.description) != "":
 				txt += "\n" + UI3.player_text(String(def.description))
-		if String(id) == top:
+		if is_top:
 			txt = tr("Most impact") + " · " + txt
-		var im := UI3.label(txt, "LabelMuted" if (e.is_empty() or is_pact) else "")
-		im.name = "CoreImpact"
-		im.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))   # review: the description is never below 18
-		im.add_theme_color_override("font_color", UI3Theme.color("text"))   # full cream, muted greys read too faint here
-		im.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		im.custom_minimum_size.x = 360.0
-		im.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		row.add_child(im)
-		list.add_child(p)
-	var pad := Control.new()
-	pad.custom_minimum_size.y = 4
-	col.add_child(pad)
+		chip.mouse_filter = Control.MOUSE_FILTER_STOP
+		UI3Tooltip.bind(chip, txt)
+		flow.add_child(chip)
 	return card
+
 
 
 ## Mission runs: the stake settles with the run. Won = payout (it includes the stake) comes back; lost = the
@@ -716,12 +750,13 @@ func _show_notice(ok: bool, code: String, retrying := false) -> void:
 		c.queue_free()
 	if ok:
 		return
+	if code == "offline" and _shard_src != null:
+		_shard_src.text = tr("Saved, syncs when online")   # spec state 47
 	var msg := tr("Score not submitted: you are offline. Your run and rewards are saved.") if code == "offline" \
 		else tr("Score not submitted: the server did not accept it. Your run and rewards are saved.")
 	var n := UI3.net_notice(msg, tr("Retry"), _retry_submit, retrying)
 	n.name = "NetNotice"
 	_notice_host.add_child(n)
-	_on_notice_layout()
 
 
 func _retry_submit() -> void:
@@ -762,7 +797,7 @@ func _build_actions() -> Control:
 	copy.custom_minimum_size.y = UI3Theme.size_of("btn_l")
 	copy.pressed.connect(_on_copy_card.bind(copy))
 	host.add_child(copy)
-	_back = UI3.button(tr("Back to Missions") if mission_run else tr("Back to Land"), &"primary", &"L")
+	_back = UI3.button(tr("Back to Missions") if mission_run else tr("Back to Land"), &"primary", &"L")   # primary 72
 	_back.name = "BackButton"
 	_back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_back.pressed.connect(_on_missions_pressed if mission_run else _on_menu_pressed)
@@ -790,3 +825,4 @@ func _on_missions_pressed() -> void:
 
 func _on_menu_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/main_menu/MainMenu.tscn")
+
