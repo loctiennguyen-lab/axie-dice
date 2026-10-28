@@ -115,7 +115,7 @@ Sau khi ký: script tự verify (cần 'Signature verification: ok' và có time
 
 ## 7. Những thứ KHÔNG được làm
 
-- Không commit cert/khoá/mật khẩu. `.gitignore` đã chặn: `*.p12 *.pfx *.p8 *.cer *.csr *.certSigningRequest *.keychain *.keychain-db *.mobileprovision *.provisionprofile *.jks *.keystore`. Không chặn `.pem/.crt/.der` (chưa kiểm repo có file hợp lệ loại này không), nên đừng để chúng trong repo. Cert luôn để ngoài repo; script cũng từ chối cert nằm trong repo (đã giải symlink).
+- Không commit cert/khoá/mật khẩu. `.gitignore` đã chặn: `*.p12 *.pfx *.p8 *.cer *.csr *.certSigningRequest *.keychain *.keychain-db *.mobileprovision *.provisionprofile *.jks *.keystore *.crt *.der` (lúc thêm, repo không có file .crt/.der hợp lệ nào). `.pem` KHÔNG bị chặn, đừng để trong repo. Cert luôn để ngoài repo; script cũng từ chối cert nằm trong repo (đã giải symlink).
 - Không dán mật khẩu vào chat hoặc truyền qua dòng lệnh.
 - Không ký trên máy chia sẻ mà người khác đọc được keychain.
 
