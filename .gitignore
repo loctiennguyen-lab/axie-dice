@@ -269,3 +269,19 @@ design/handoffs/ui-03-redesign/send-r2/
 
 # Reset snapshots hold every player's data: never commit
 reset-snapshot-*.sql
+
+# Signing secrets / certs: never commit (see production/release/signing-setup.md)
+*.p12
+*.pfx
+*.p8
+*.cer
+*.csr
+*.certSigningRequest
+*.keychain
+*.keychain-db
+*.mobileprovision
+*.provisionprofile
+*.jks
+*.keystore
+*.crt
+*.der

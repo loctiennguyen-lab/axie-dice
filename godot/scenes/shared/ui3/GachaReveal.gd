@@ -126,6 +126,15 @@ func _flip(i: int) -> void:
 		return
 	events.append("flip:%d" % i)
 	var card := _cards[i] as Control
+	if UI3Motion.reduced():
+		# Reduce motion: no scale flip. Cut to the revealed face with a short alpha fade.
+		_reveal(i)
+		var col := card.get_child(0) as Control
+		col.modulate.a = 0.0
+		create_tween().tween_property(col, "modulate:a", 1.0, UI3Motion.REDUCED_MAX_SEC)
+		if i == _cards.size() - 1 and bool(_plan["jackpot"]):
+			_jackpot()
+		return
 	card.pivot_offset = card.size / 2.0
 	var half := float(_plan["flip"]) / 2.0
 	var tw := create_tween()
@@ -157,7 +166,7 @@ func _jackpot() -> void:
 	UI3Gacha.play_sfx(self, "jackpot")
 	# Gold ring + sparkles on the card(s) that complete a combo, plus a shake of the whole card row.
 	for c in _cards:
-		if is_instance_valid(c) and bool((c as Control).get_meta("jackpot_card", false)):
+		if is_instance_valid(c) and bool((c as Control).get_meta("jackpot_card", false)) and not UI3Motion.reduced():
 			_sparkle(c as Control)
 	if _shake_host == null or not is_instance_valid(_shake_host) or UI3Motion.reduced():
 		return

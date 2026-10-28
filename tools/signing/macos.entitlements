@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Entitlements cho tools/notarize_mac.sh (hardened runtime). Giữ tối thiểu, khớp preset macOS trong
+     godot/export_presets.cfg (chỉ disable_library_validation=true). Không có JIT, không sandbox.
+     Chưa kiểm trên bản đã ký thật: nếu app mở không lên sau khi notarize, xem production/release/signing-setup.md mục 6. -->
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.cs.disable-library-validation</key>
+	<true/>
+</dict>
+</plist>

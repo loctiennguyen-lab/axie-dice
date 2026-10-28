@@ -14,7 +14,13 @@
 #   build/AxieDice-<version>-b<build>-<hash>[-dirty].sha256
 #   build/AxieDice-<version>-b<build>-<hash>[-dirty].BUILD_INFO.txt
 #
-# Nothing here signs, notarizes, uploads or deploys. Every artifact is unsigned (macOS gets an
+# Optional signing (OFF by default; today's flow is unchanged when the flags are unset):
+#   AXIE_NOTARIZE_MAC=1   Developer ID sign + notarize + staple the .app before zip/dmg (tools/notarize_mac.sh)
+#   AXIE_SIGN_WINDOWS=1   Authenticode-sign AxieDice.exe before zip (tools/sign_windows.sh)
+# Both run a prerequisite check BEFORE the long export, so a missing cert fails in seconds. Credentials
+# come only from the keychain / env, never from this repo; see production/release/signing-setup.md.
+#
+# Nothing here uploads or deploys. Without the flags above every artifact is unsigned (macOS gets an
 # ad-hoc signature, which Apple Silicon needs in order to run the binary at all). Testers open
 # them by hand; see production/qa/l1-install-guide.md.
 #
@@ -51,6 +57,17 @@ guard_no_temp_override
 
 [[ -x "$GODOT" ]] || die "Godot binary not found at $GODOT (set GODOT_OVERRIDE)"
 [[ -f "$LOCK_WRAP" ]] || die "missing $LOCK_WRAP"
+
+# Optional signing flags (off unless exactly "1"). Preflight now, before the 10+ minute export.
+SIGN_MAC=0; SIGN_WIN=0
+[[ "${AXIE_NOTARIZE_MAC:-0}" == 1 ]] && SIGN_MAC=1
+[[ "${AXIE_SIGN_WINDOWS:-0}" == 1 ]] && SIGN_WIN=1
+if [[ $SIGN_MAC -eq 1 && ( "$WHAT" == all || "$WHAT" == macos ) ]]; then
+  bash "$ROOT/tools/notarize_mac.sh" --dry-run --check-profile || die "AXIE_NOTARIZE_MAC=1 but prerequisites are missing (see above)"
+fi
+if [[ $SIGN_WIN -eq 1 && ( "$WHAT" == all || "$WHAT" == windows ) ]]; then
+  bash "$ROOT/tools/sign_windows.sh" --dry-run || die "AXIE_SIGN_WINDOWS=1 but prerequisites are missing (see above)"
+fi
 
 # --- 0. version stamp ------------------------------------------------------------------------
 HASH="$(git rev-parse --short HEAD 2>/dev/null)" || die "not a git checkout"
@@ -118,6 +135,10 @@ if [[ "$WHAT" == all || "$WHAT" == macos ]]; then
   echo "   archs: ${ARCHS:-unknown}"
   codesign --verify --deep --strict "$MAC_APP" 2>>"$STAGE/codesign.log" \
     && echo "   codesign verify: ok (ad-hoc)" || echo "   codesign verify: FAILED, see $STAGE/codesign.log" >&2
+  if [[ $SIGN_MAC -eq 1 ]]; then
+    echo "-- macOS: Developer ID sign + notarize + staple (tools/notarize_mac.sh)"
+    bash "$ROOT/tools/notarize_mac.sh" --app "$MAC_APP" || die "notarization failed (the ad-hoc build is NOT shipped; fix and re-run)"
+  fi
   # ditto keeps the exec bit, symlinks and resource forks; plain `zip` can break the .app.
   ZIP="$OUT/${STAMP}-macos.zip"
   rm -f "$ZIP"
@@ -142,6 +163,11 @@ if [[ "$WHAT" == all || "$WHAT" == windows ]]; then
   export_one "Windows" "$WIN_DIR/AxieDice.exe" || die "Windows export failed"
   file "$WIN_DIR/AxieDice.exe" | grep -q "PE32+.*x86-64" \
     && echo "   PE check: x86_64 ok" || echo "   PE check: NOT x86_64 PE32+, check the file" >&2
+  if [[ $SIGN_WIN -eq 1 ]]; then
+    echo "-- Windows: Authenticode sign (tools/sign_windows.sh)"
+    bash "$ROOT/tools/sign_windows.sh" "$WIN_DIR/AxieDice.exe" || die "Windows signing failed"
+    rm -f "$WIN_DIR/AxieDice.exe.unsigned"
+  fi
   WZIP="$OUT/${STAMP}-windows.zip"; rm -f "$WZIP"
   ( cd "$WIN_DIR" && zip -q -9 "$WZIP" AxieDice.exe ) || die "zip (windows) failed"
   echo "   zip: $(du -h "$WZIP" | cut -f1)  $WZIP"
@@ -150,7 +176,7 @@ fi
 # --- 5. checksums + build info ---------------------------------------------------------------
 ( cd "$OUT" && shasum -a 256 "${STAMP}"-*.zip "${STAMP}"-*.dmg 2>/dev/null > "${STAMP}.sha256" )
 cat > "$OUT/${STAMP}.BUILD_INFO.txt" <<EOF
-Axie Dice L1 internal build (unsigned)
+Axie Dice L1 internal build (signing: mac=$([[ $SIGN_MAC -eq 1 ]] && echo notarized || echo ad-hoc), windows=$([[ $SIGN_WIN -eq 1 ]] && echo signed || echo unsigned))
 version:   ${APP_VERSION}
 build:     ${BUILD_NO}   (git rev-list --count HEAD)
 commit:    $(git rev-parse HEAD)${DIRTY:+   (working tree had local changes under godot/ or tools/)}
