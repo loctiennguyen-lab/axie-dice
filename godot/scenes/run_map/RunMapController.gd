@@ -1828,6 +1828,7 @@ func _apply_and_finish(reward: Dictionary) -> void:
 	var before_owned: Array = RunState.owned_relic_ids.duplicate()
 	var was_awake := AnchorAdapter.awakened()
 	var is_core := _is_core_card(reward) and not bool(reward.get("rule", false))
+	var take_tw: Tween = null
 	var pool_names: Array = []
 	if is_core and String(reward.get("key", "")) == "c_dim_stone":
 		for d in CoreOffer.valid_pool(RunState._core_ctx(RunState._core_offer_pick)):
@@ -1836,6 +1837,15 @@ func _apply_and_finish(reward: Dictionary) -> void:
 	var pick_rect := Rect2()
 	if _reward_sel >= 0 and _reward_sel < _reward_cards.size() and is_instance_valid(_reward_cards[_reward_sel]):
 		pick_rect = (_reward_cards[_reward_sel] as Control).get_global_rect()
+	# UI-04 motion rows (copied from int/ui4, UI-05 b1 lane 0): core_take / level_up / reward_take on the picked card.
+	if not UI3Gacha.is_instant() and not bool(reward.get("rule", false)) and _reward_sel >= 0 and _reward_sel < _reward_cards.size() \
+			and is_instance_valid(_reward_cards[_reward_sel]):
+		var pc := _reward_cards[_reward_sel] as Control
+		var mid := "core_take" if _is_core_card(reward) else ("level_up" if String(reward.get("t", "")) == "level" else "reward_take")
+		pc.pivot_offset = pc.size / 2.0
+		var mtw := UI3Motion.play(mid, pc)
+		if mtw != null and mtw.is_valid() and mid != "level_up":
+			take_tw = mtw
 	RunState.apply_chosen_reward(reward)
 	var granted := ""
 	if not pool_names.is_empty():
@@ -1862,8 +1872,21 @@ func _apply_and_finish(reward: Dictionary) -> void:
 		var ban := _combo_banner(formed)
 		if ban != null and ban.running:
 			await ban.finished
+	await _wait_tween_bounded(take_tw, TAKE_TWEEN_CAP_MS)
 	_taking = false
 	_finish_node()
+
+
+const TAKE_TWEEN_CAP_MS := 1000   ## longest core_take / reward_take beat is ~400 ms; this is the hard stop
+
+## Waits for `tw` but never forever: if the card the tween is bound to is freed mid-take the tween dies without
+## emitting `finished`, so a plain `await tw.finished` would leave `_taking` true and the node unfinished.
+func _wait_tween_bounded(tw: Tween, cap_ms: int) -> void:
+	if tw == null:
+		return
+	var deadline := Time.get_ticks_msec() + cap_ms
+	while tw.is_valid() and tw.is_running() and Time.get_ticks_msec() < deadline and is_inside_tree():
+		await get_tree().process_frame
 
 
 ## Plays the awaken moment when one is pending and this run has not seen it yet. null = nothing to play.
