@@ -4558,9 +4558,7 @@ func _show_defeat_panel() -> void:
 		keep = "Enemies keep their HP."
 	var clock_on := bool((hs.get("clock", {}) as Dictionary).get("active", false))
 	_defeat.show_defeat({
-		"title_line": "%s %s A%d %s your party fell on turn %d" % [
-			"Boss fight" if boss_fight else ("Elite fight" if kind == "elite" else "Fight"),
-			HudKit.dot(), asc, HudKit.dot(), _combat.turn],
+		"title_line": "%s %s A%d %s %d Axies" % [_fight_title(), HudKit.dot(), asc, HudKit.dot(), party.size()],
 		"boss": boss_d, "recap": rows, "turn": _combat.turn, "enemies_left": _combat.alive_enemies().size(), "aid_used": int(co["used"]), "aid_cap": int(co["cap"]),
 		"asc": asc, "kind_label": "Boss" if boss_fight else ("Elite" if kind == "elite" else "Fight"),
 		"continue_left": 1, "heal_pct": 25 if asc >= 6 else 40, "party": party,
