@@ -1481,7 +1481,9 @@ static func enemy_tag(kind: StringName, word: String, inline := false) -> PanelC
 		&"leader":
 			fill = UI3Theme.color("leader")
 			text_col = UI3Theme.color("leader_text")
-			shadow = {"y": 3, "color": UI3Theme.color("keycap_bg")}
+			# components.md: "solid pill, hard 3 px shadow" -> the keycap hard shadow token (y 3).
+			var ks: Dictionary = UI3Theme.tokens().get("shadow", {}).get("keycap", {})
+			shadow = {"y": int(ks.get("y", 3)), "color": UI3Theme.hex(String(ks.get("color", "#000000a0")))}
 		&"shell":
 			fill = UI3Theme.color("tag_shell_bg")
 			border = UI3Theme.color("shell")
