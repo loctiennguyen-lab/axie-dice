@@ -491,9 +491,10 @@ func stack_height() -> float:
 	return size.y
 
 
-## Height the cluster would take, without touching it: the plate, the counter tab, and (not compact) the
-## BigHitStrip and the label. EnemyColumn uses it to decide whether the column must go compact.
-func cluster_height(compact: bool) -> float:
+## Height the cluster would take, without touching it: the plate, the counter tab, (not compact) the BigHitStrip,
+## and with `with_label` (not compact) the transient Target / reason / preview label. EnemyColumn decides compact
+## WITHOUT the label, so hovering a die never flips the column between compact and full.
+func cluster_height(compact: bool, with_label := false) -> float:
 	if _plate == null:
 		return 0.0
 	if _plate.size.y <= 0.0:
@@ -504,7 +505,7 @@ func cluster_height(compact: bool) -> float:
 		h += gap + _tab.get_combined_minimum_size().y
 	if _big_hit and not compact:
 		h += gap + _strip.get_combined_minimum_size().y
-	if not compact and _chip_text.text != "":
+	if with_label and not compact and _chip_text.text != "":
 		h += gap + _chip.get_combined_minimum_size().y
 	return h
 

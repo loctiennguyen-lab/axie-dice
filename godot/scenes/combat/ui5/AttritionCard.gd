@@ -2,7 +2,7 @@ extends PanelContainer
 class_name AttritionCard
 ## UI-05 b1 lane C: AttritionCard, the last item of the EnemyColumn (`.attrition`).
 ##
-## attrition_w x attrition_h pill on the plate family: plate fill, 2 px plate_rim edge, hard lip, padding 0 16, gap 12.
+## enemy_card_w x attrition_h pill (the frame: `.enemy-column .attrition{width: enemy-card-w}`, Liam/review 29/10) on the plate family: plate fill, 2 px plate_rim edge, hard lip, padding 0 16, gap 12.
 ## Attrition glyph icon_m · AttritionLabel (text_body Rowdies, one line, takes the free width) · 3 pips before start.
 ##   upcoming : "ATTRITION · TURN N", dashed edge, 14 px pips (2 px attrition ring, filled = turns gone)
 ##   active   : "ATTRITION +N%", solid edge
@@ -51,7 +51,7 @@ func _init() -> void:
 
 
 func apply_sizes() -> void:
-	custom_minimum_size = Vector2(UI3Theme.size_of("attrition_w"), UI3Theme.size_of("attrition_h"))
+	custom_minimum_size = Vector2(UI3Theme.size_of("enemy_card_w"), UI3Theme.size_of("attrition_h"))
 	_style.set_corner_radius_all(UI3Theme.radius("pill"))
 	_style.content_margin_left = UI3Theme.space("16")
 	_style.content_margin_right = UI3Theme.space("16")
