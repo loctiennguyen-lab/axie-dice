@@ -2575,6 +2575,8 @@ func _layout_unit_visuals() -> void:
 		var card := ep as UnitPortrait
 		card.position = Vector2(canvas_w - 24.0 - card.size.x, y)
 		y += card.stack_height() + 8.0
+	if _hud_frame != null:   # AttritionCard: last card of the enemy column
+		_hud_frame.place_attrition(Vector2(canvas_w - 24.0 - UnitPortrait.WIDTH, y))
 
 	for uid in _portraits.keys():
 		var p: UnitPortrait = _portraits[uid]

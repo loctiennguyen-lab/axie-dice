@@ -50,7 +50,7 @@ func _ready() -> void:
 	_check(hud.reroll_button.text == "Reroll %d MP" % c.reroll_mana_cost() and not hud.reroll_button.disabled, "paid reroll shows mana price")
 	c.mana = 0
 	v._rebuild_all()
-	_check(hud.reroll_button.disabled and hud.reroll_button.text.begins_with("Need"), "no mana: disabled with reason")
+	_check(hud.reroll_button.disabled and hud.reroll_button.text.contains("need"), "no mana: disabled with reason")
 	# Row strip + affix chip.
 	_check(v._row_strip != null and v._row_strip.get_child_count() >= 2, "FRONT/BACK strip exists")
 	_check(hud.get_node("FoeCard").visible and hud.get_node("FoeCard").find_child("AffixRow", true, false) != null, "affix chip on elite")
