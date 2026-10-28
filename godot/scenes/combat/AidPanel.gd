@@ -71,6 +71,7 @@ func _build_button() -> void:
 	_button.focus_mode = Control.FOCUS_ALL
 	_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_button.pressed.connect(toggle_tray)
+	_button.tooltip_text = "%s (%s)" % [TranslationServer.translate("Aid tray"), KeyBindings.text(KeyBindings.COMBAT_AID)]
 	Ui5HudStyle.plate_button(_button, UI3Theme.radius("pill"))
 	_zone.add_child(_button)
 	var row := HBoxContainer.new()
@@ -256,18 +257,6 @@ func _short(r: Dictionary) -> int:
 	if not r.has("gems"):
 		return 0
 	return maxi(int(r.get("price", 0)) - int(r.get("gems", 0)), 0)
-
-
-## Paid surface: the secondary button's own styles with a violet border (Gem violet = paid only).
-func _violet_border(b: Button) -> void:
-	var th := UI3Theme.get_theme()
-	for st in ["normal", "hover", "pressed", "disabled"]:
-		var sb := th.get_stylebox(st, "ButtonSecondary")
-		if sb is StyleBoxFlat:
-			var f := (sb as StyleBoxFlat).duplicate() as StyleBoxFlat
-			f.set_border_width_all(3)
-			f.border_color = UI3Theme.color("gem_border")
-			b.add_theme_stylebox_override(st, f)
 
 
 func _rebuild_offer() -> void:
@@ -532,4 +521,4 @@ func layout() -> void:
 	var th := _tray.get_combined_minimum_size().y
 	_tray.size = Vector2(TRAY_W, th)
 	var btn_top := h - edge - float(UI3Theme.size_of("btn_m"))
-	_tray.position = Vector2(edge, btn_top - 8.0 - th)
+	_tray.position = Vector2(edge, btn_top - UI3Theme.space("8") - th)

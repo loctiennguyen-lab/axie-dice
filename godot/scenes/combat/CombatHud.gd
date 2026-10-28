@@ -202,27 +202,24 @@ func _draw_attr_edge() -> void:
 		_attr_card.draw_dashed_line(seg[0], seg[1], col, 2.0, 8.0)
 
 
-# ── Foe card: boss rhythm (3 chips) and the Elite affix chip (depth v3 6.3 / 6.4, spec design/ux/depth-v3/combat-hud.md)
+# ── BossRhythm (UI-05 b1 lane A, 02-combat--boss: CSS .boss-rhythm): plate under RunInfo (top = screen margin +
+## run_pill_h + space_20), padding 12 16, gap 8: "BOSS RHYTHM" · the 3 steps · the tell line. Also hosts the Elite
+## affix chip and the plating coach line (depth v3 6.3 / 6.4), which have no UI-05 frame of their own.
 
 const _PHASES := ["prep", "strike", "hollow"]
 const _PHASE_WORD := {"prep": "Prep", "strike": "Strike", "hollow": "Hollow"}
 
 
 func _build_foe_card() -> void:
-	# Boss rhythm plate (UI-04): plate family, 400 wide, padding 16, 12 between rows.
-	_foe_card = UI3.plate(&"plate")
-	_foe_card.name = "FoeCard"
-	_foe_card.custom_minimum_size = Vector2(400, 0)
-	var fsb := (_foe_card.get_theme_stylebox("panel") as StyleBoxFlat).duplicate() as StyleBoxFlat
-	fsb.set_content_margin_all(16.0)
-	_foe_card.add_theme_stylebox_override("panel", fsb)
+	_foe_card = PanelContainer.new()
+	_foe_card.name = "BossRhythm"
+	_foe_card.theme = UI3Theme.get_theme()
 	_foe_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_foe_card.visible = false
 	_foe_card.add_to_group("ui3_tip_avoid")
 	add_child(_foe_card)
 	_foe_rows = VBoxContainer.new()
 	_foe_rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_foe_rows.add_theme_constant_override("separation", 12)
 	_foe_card.add_child(_foe_rows)
 
 
@@ -243,94 +240,95 @@ func update_foe(d: Dictionary) -> void:
 	for c in _foe_rows.get_children():
 		_foe_rows.remove_child(c)
 		c.queue_free()
+	_foe_card.add_theme_stylebox_override("panel", Ui5HudStyle.plate_box(UI3Theme.radius("l"),
+		Vector4(UI3Theme.space("16"), UI3Theme.space("12"), UI3Theme.space("16"), UI3Theme.space("12"))))
+	_foe_rows.add_theme_constant_override("separation", UI3Theme.space("8"))
 	var r: Dictionary = d.get("rhythm", {})
 	var a: Dictionary = d.get("affix", {})
 	var coach := String(d.get("coach", ""))
 	_foe_card.visible = not r.is_empty() or not a.is_empty() or coach != ""
+	var wraps: Array[Label] = []
 	if coach != "":
 		var cl := UI3.label(coach, "LabelMuted")
 		cl.name = "CoachPlating"
-		cl.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		cl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		cl.custom_minimum_size.x = 368
 		cl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		wraps.append(cl)
 		_foe_rows.add_child(cl)
 	if not a.is_empty():
 		var row := HBoxContainer.new()
 		row.name = "AffixRow"
 		row.mouse_filter = Control.MOUSE_FILTER_PASS
-		row.add_theme_constant_override("separation", 8)
-		var ic := TextureRect.new()
-		ic.texture = UI3.icon("node_elite")
-		ic.custom_minimum_size = Vector2(28, 28)
-		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_theme_constant_override("separation", UI3Theme.space("8"))
+		var ic := Ui5HudStyle.icon_rect(UI3.icon("node_elite"), UI3Theme.size_of("icon_m"))
 		row.add_child(ic)
 		var l := UI3.label(String(a.get("name", "")), "LabelDisplay")
-		l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(l)
 		if String(a.get("note", "")) != "":
 			var n := UI3.label(String(a["note"]), "LabelMuted")
-			n.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 			n.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			row.add_child(n)
 		UI3Tooltip.bind(row, String(a.get("tip", "")))
 		_foe_rows.add_child(row)
 	if not r.is_empty():
 		var title := UI3.label("BOSS RHYTHM", "LabelDisplay")
-		title.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
+		title.name = "Title"
 		title.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
 		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_foe_rows.add_child(title)
 		var chips := HBoxContainer.new()
 		chips.name = "RhythmChips"
 		chips.mouse_filter = Control.MOUSE_FILTER_PASS
-		chips.add_theme_constant_override("separation", 8)
+		chips.add_theme_constant_override("separation", UI3Theme.space("8"))
 		for ph in _PHASES:
 			var is_now: bool = String(r.get("phase", "")) == ph
-			var is_next: bool = String(r.get("next", "")) == ph
-			# Step cell: 3 equal, 56 high, radius m. Current = plate_edge fill + 4 px cream outline; next = dashed accent.
+			var is_next: bool = String(r.get("next", "")) == ph and not is_now
+			# CSS .rhythm-step: btn_s high, 0 16 padding, radius m, plate_raised. Now = cream fill, ink text; next = 2 px
+			# dashed accent edge and a muted "next".
 			var p := PanelContainer.new()
 			p.name = "Phase_" + ph
 			p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			p.custom_minimum_size = Vector2(0, 56)
-			if is_now:
-				p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("plate_edge"), UI3Theme.radius("m"), 4, UI3Theme.color("selected_outline")))
-			else:
-				p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("m")))
-			if is_next and not is_now:
+			p.custom_minimum_size = Vector2(0, UI3Theme.size_of("btn_s"))
+			p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("text" if is_now else "plate_raised"),
+				UI3Theme.radius("m"), 0, Color.TRANSPARENT, Vector4(UI3Theme.space("16"), 0, UI3Theme.space("16"), 0)))
+			if is_next:
 				_dashed(p, UI3Theme.color("accent"))
-			var cc := VBoxContainer.new()
+			var cc := HBoxContainer.new()
 			cc.alignment = BoxContainer.ALIGNMENT_CENTER
-			cc.add_theme_constant_override("separation", 0)
+			cc.add_theme_constant_override("separation", UI3Theme.space("8"))
 			cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			p.add_child(cc)
-			var l2 := UI3.label(String(_PHASE_WORD[ph]), "LabelDisplay")
-			l2.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
-			l2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			if not is_now:
-				l2.add_theme_color_override("font_color", UI3Theme.color("text_muted") if not is_next else UI3Theme.color("text"))
+			var l2 := UI3.label(TranslationServer.translate(String(_PHASE_WORD[ph])), "LabelDisplay")
+			l2.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			if is_now:
+				l2.add_theme_color_override("font_color", UI3Theme.color("text_ink"))
 			l2.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			cc.add_child(l2)
-			if is_next and not is_now:
-				var nl := UI3.label("Next", "LabelMuted")
+			if is_next:
+				var nl := UI3.label(TranslationServer.translate("next"), "LabelMuted")
 				nl.name = "NextTag"
-				nl.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
-				nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				nl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 				nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				cc.add_child(nl)
 			chips.add_child(p)
 		UI3Tooltip.bind(chips, "Boss rhythm: 3-turn cycle. Prep, then Strike (its strongest face), then Hollow (it takes +30% from damage faces and deals -30%). The chip tagged Next is the phase that comes next.")
 		_foe_rows.add_child(chips)
 		var tell := UI3.label(String(r.get("tell", "")), "")
-		tell.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
+		tell.name = "Tell"
 		tell.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		tell.custom_minimum_size.x = 368
 		tell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		wraps.append(tell)
 		_foe_rows.add_child(tell)
+	# Wrapped lines take the width of the widest fixed row (the 3 steps, the affix row); alone, the attrition card's.
+	var wrap_w := 0.0
+	for c in _foe_rows.get_children():
+		if not (c is Label):
+			wrap_w = maxf(wrap_w, (c as Control).get_combined_minimum_size().x)
+	if wrap_w <= 0.0:
+		wrap_w = float(UI3Theme.size_of("attrition_w"))
+	for l3 in wraps:
+		l3.custom_minimum_size.x = wrap_w
 	layout()
 
 
@@ -701,7 +699,7 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary, hold: D
 		return
 	undo_button.disabled = not bool(undo.get("enabled", false))
 	undo_button.text = "Undo"   # not drawn: the key shows the Undo glyph and word
-	undo_button.tooltip_text = ("Undo the last die (%s)" % KeyBindings.text(KeyBindings.COMBAT_UNDO)) if not undo_button.disabled else "Nothing to undo this turn"
+	undo_button.tooltip_text = ("Undo the last die (%s)" % KeyBindings.text(KeyBindings.COMBAT_UNDO)) if not undo_button.disabled else ("Nothing to undo this turn (%s)" % KeyBindings.text(KeyBindings.COMBAT_UNDO))
 	var n := int(reroll.get("n", 0))
 	var mx := int(reroll.get("max", 0))
 	var cost := int(reroll.get("cost", 0))   # mana for the NEXT reroll once the free charges are gone (3.5)
@@ -898,8 +896,13 @@ func layout() -> void:
 		_apply_tokens()   # the window scale moved (1280 text floor): every token override is read again
 	_top_plate.size = Vector2.ZERO
 	_top_plate.position = Vector2(UI3Theme.space("screen"), UI3Theme.space("screen"))
-	# Left column, top to bottom: RunInfo (run_pill_h) · 16 · Anchor chip (48) · Cores plate · boss rhythm / affix · log.
+	# Left column, top to bottom: RunInfo (run_pill_h) · 20 · BossRhythm (boss / elite) · 16 · Anchor chip (48) · Cores plate
+	# · attrition (when not in the enemy column) · log.
 	var col_bottom := _top_plate.position.y + _top_plate.get_combined_minimum_size().y
+	_foe_card.size = Vector2.ZERO
+	_foe_card.position = Vector2(UI3Theme.space("screen"), col_bottom + UI3Theme.space("20"))   # CSS .boss-rhythm top
+	if _foe_card.visible:
+		col_bottom = _foe_card.position.y + _foe_card.get_combined_minimum_size().y
 	if _anchor_chip != null and is_instance_valid(_anchor_chip):
 		_anchor_chip.size = Vector2.ZERO
 		_anchor_chip.position = Vector2(EDGE, col_bottom + 16.0)
@@ -941,10 +944,6 @@ func layout() -> void:
 		var ltop := rel_bottom
 		if _attr_right_pos.x < 0.0 and _attr_card.visible:
 			ltop = _attr_card.position.y + _attr_card.get_combined_minimum_size().y
-		_foe_card.size = Vector2.ZERO
-		_foe_card.position = Vector2(EDGE, ltop + 8.0)
-		if _foe_card.visible:
-			ltop = _foe_card.position.y + _foe_card.get_combined_minimum_size().y
 		_log_plate.size = Vector2(INFO_W, LOG_H)
 		_log_plate.position = Vector2(EDGE, ltop + 8.0)
 	_info.size = Vector2.ZERO

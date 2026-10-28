@@ -99,6 +99,20 @@ func _ready() -> void:
 	_ok(r1.text == "Reroll" and hud._cost_chip.visible and (hud._cost_chip.find_child("Amount", true, false) as Label).text == "2" and hud._hint.text == CombatHud.PICK_TEXT,
 		"paid reroll: 'Reroll' + mana CostChip 2; a picked die says 'Pick a target'")
 
+	# BossRhythm (02-combat--boss): plate under RunInfo at x 24 / y 108 (screen + run_pill_h + 20), content wide (HTML 362).
+	hud.update_foe({"rhythm": {"phase": "prep", "next": "hollow", "tell": "Next turn: Hollow, hit it hard"}})
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var br := hud.get_node("BossRhythm") as Control
+	var want_y := float(UI3Theme.space("screen") + UI3Theme.size_of("run_pill_h") + UI3Theme.space("20"))
+	_ok(br.visible and br.position.is_equal_approx(Vector2(UI3Theme.space("screen"), want_y)), "BossRhythm at (24, %d): %s" % [int(want_y), br.position])
+	_ok(br.size.x > 300.0 and br.size.x < 400.0, "BossRhythm is content wide like the HTML 362 (%.0f)" % br.size.x)
+	var steps := br.find_child("RhythmChips", true, false) as Control
+	_ok(steps != null and absf(steps.get_child(0).size.y - UI3Theme.size_of("btn_s")) < 0.5, "rhythm steps are btn_s high")
+	_ok(br.find_child("NextTag", true, false) != null and (br.find_child("NextTag", true, false) as Label).text == "next", "the next step says 'next'")
+	var tell := br.find_child("Tell", true, false) as Label
+	_ok(tell != null and tell.get_line_count() == 1, "tell line fits one line")
+
 	print("t_combat_labels: %d checks, %d failure(s)" % [_checks, _fails.size()])
 	if _fails.is_empty():
 		print("t_combat_labels: PASS — %d checks OK" % _checks)

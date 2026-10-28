@@ -1177,6 +1177,7 @@ func _update_hud() -> void:
 		else:
 			hold_text = "Hold: not allowed"
 			hold_tip = "This die cannot be held (spent, frozen, a cantrip, or held last turn)."
+		hold_tip += " (%s)" % KeyBindings.text(KeyBindings.COMBAT_HOLD)   # UI-05: no key cap on screen, the key lives in the tooltip
 	_hud_frame.update_right(
 		{"enabled": executing and undo_n > 0, "sub": undo_sub},
 		{"n": _combat.rerolls, "max": _combat.max_rerolls, "cost": rr_cost, "tip": rr_tip, "stakes": stakes,

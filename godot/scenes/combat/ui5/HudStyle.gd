@@ -90,7 +90,7 @@ static func cost_chip(kind: StringName, amount: int) -> PanelContainer:
 	p.theme = UI3Theme.get_theme()
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("gem_bg" if gem else "chip"),
-		UI3Theme.radius("pill"), 2 if gem else 0, UI3Theme.color("gem_border"),
+		UI3Theme.radius("pill"), UI3Theme.stroke("hairline") if gem else 0, UI3Theme.color("gem_border"),
 		Vector4(UI3Theme.space("8"), 0, UI3Theme.space("8"), 0)))
 	p.custom_minimum_size = Vector2(0, UI3Theme.size_of("keycap_h"))
 	var row := HBoxContainer.new()

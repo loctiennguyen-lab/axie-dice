@@ -52,6 +52,10 @@ func _states(size: Vector2i) -> void:
 	scene._rebuild_all()
 	await _shot("idle", size)
 	await _shot("player-turn", size)
+	# BossRhythm alone (lane A part of 02-combat--boss; the boss plate itself is lane C), fed straight to the HUD.
+	scene._hud_frame.update_foe({"rhythm": {"phase": "prep", "next": "hollow", "tell": "Next turn: Hollow, hit it hard"}})
+	await _shot("boss-rhythm-only", size)
+	scene._hud_frame.update_foe({})
 	# aid-offer: free rerolls gone, no mana for a paid one -> "Reroll · need 1 MP" and the Aid offer card.
 	scene._combat.rerolls = 0
 	scene._combat.mana = 0

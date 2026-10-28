@@ -9,7 +9,7 @@ extends Node
 
 const NAMES := ["RunInfo", "MenuButton", "RunPill", "FightLabel", "AscensionChip", "TurnChip", "ShardChip",
 	"ActionDock", "ToolKeys", "UndoKey", "HoldKey", "WildKey", "OvercastKey", "RerollButton", "CostChip",
-	"EndTurnButton", "StatusLine", "AidZone", "AidButton", "AidOffer", "AidBuyButton", "AidNotNow", "WaitingPill"]
+	"EndTurnButton", "StatusLine", "BossRhythm", "AidZone", "AidButton", "AidOffer", "AidBuyButton", "AidNotNow", "WaitingPill"]
 
 var _guard := SaveGuard.new()
 var _fails: Array[String] = []
@@ -69,6 +69,27 @@ func _ready() -> void:
 	_check(caps.size() == 1 and texts[0] == KeyBindings.text(KeyBindings.COMBAT_END_TURN),
 		"exactly one key cap in the combat scene, Space on End turn (found %d: %s)" % [caps.size(), ", ".join(texts)])
 	_check(caps.size() >= 1 and (caps[0] as Control).get_parent() == hud.end_turn_button, "the Space cap sits on End turn")
+
+	# 2b. the keys that lost their cap are named in the tooltips CombatView really builds (Hold in every state)
+	var aid_btn := view.find_child("AidButton", true, false) as Control
+	_check(aid_btn.tooltip_text.contains("(%s)" % KeyBindings.text(KeyBindings.COMBAT_AID)), "AidButton tooltip names the Aid key: %s" % aid_btn.tooltip_text)
+	_check(hud.undo_button.tooltip_text.contains("(%s)" % KeyBindings.text(KeyBindings.COMBAT_UNDO)), "Undo tooltip names its key: %s" % hud.undo_button.tooltip_text)
+	_check(hud.reroll_button.tooltip_text != "", "Reroll has a tooltip")
+	view._combat.depth_stage = maxi(int(view._combat.depth_stage), 3)
+	view._selected_die_uid = -1
+	view._rebuild_all()
+	_check(not hud.hold_button.visible or hud.hold_button.tooltip_text.contains("(%s)" % KeyBindings.text(KeyBindings.COMBAT_HOLD)),
+		"Hold tooltip names its key with no die picked: %s" % hud.hold_button.tooltip_text)
+	for u in view._party_dice_units():
+		if u.has_rolled():
+			view._selected_die_uid = u.uid
+			break
+	view._rebuild_all()
+	_check(not hud.hold_button.visible or hud.hold_button.tooltip_text.contains("(%s)" % KeyBindings.text(KeyBindings.COMBAT_HOLD)),
+		"Hold tooltip names its key with a die picked: %s" % hud.hold_button.tooltip_text)
+	_check(hud.get("_hint").text == CombatHud.PICK_TEXT, "a picked die: StatusLine 'Pick a target' (%s)" % hud.get("_hint").text)
+	view._selected_die_uid = -1
+	view._rebuild_all()
 
 	# 3. token sizes, then a 1920 -> 1280 -> 1920 scale change
 	_sizes(view, "1920")

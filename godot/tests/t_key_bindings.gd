@@ -126,9 +126,11 @@ func _combat_hud_keys() -> void:
 	hud.update_right({"enabled": true}, {"n": 1, "max": 3, "enabled": true}, {"sub": "5 dice unused", "enabled": true}, on, {}, {})
 	await get_tree().process_frame
 	_check(hud.undo_button.tooltip_text.contains("(Z)") and hud.reroll_button.tooltip_text.contains("(R)")
-		and hud.end_turn_button.tooltip_text.contains("(Space)") and hud.hold_button.tooltip_text.contains("(H)"),
-		"combat tooltips name the keys: %s / %s / %s / %s" % [hud.undo_button.tooltip_text, hud.reroll_button.tooltip_text,
-		hud.end_turn_button.tooltip_text, hud.hold_button.tooltip_text])
+		and hud.end_turn_button.tooltip_text.contains("(Space)"),
+		"combat tooltips name the keys: %s / %s / %s" % [hud.undo_button.tooltip_text, hud.reroll_button.tooltip_text,
+		hud.end_turn_button.tooltip_text])
+	hud.update_right({"enabled": false}, {"n": 1, "max": 3, "enabled": true}, {"sub": "5 dice unused", "enabled": true}, on, {}, {})
+	_check(hud.undo_button.tooltip_text.contains("(Z)"), "disabled Undo still names its key: %s" % hud.undo_button.tooltip_text)
 	var caps := Ui5Keycap.all_under(hud)
 	_check(caps.size() == 1 and Ui5Keycap.text_of(caps[0] as PanelContainer) == "Space", "combat HUD shows one key cap, Space (%d)" % caps.size())
 	KeyBindings.set_keys(&"combat_reroll", [KEY_T])
