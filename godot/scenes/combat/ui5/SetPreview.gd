@@ -70,9 +70,9 @@ static func overcast_estimate(combat: CombatEngine, g: Dictionary, before: int) 
 	return CombatEngine._mul_up(maxi(before, 0), overcast_m100(combat, g))
 
 
-## "4 → 6" (the full preview). Narrow no-break spaces (U+202F) around the arrow, as the HTML: with plain spaces "ATTACK 2 → 5"
-## is 2 px wider than the 1920 card's FaceRow in Rowdies.
-const ARROW := "\u202f→\u202f"
+## "4 → 6" (the full preview). No-break spaces (U+00A0, in Rowdies and Work Sans) around the arrow; the arrow itself comes from
+## the Work Sans Bold fallback chained to Rowdies (UI3Theme.font_display). The HTML's U+202F is in neither font (web = empty box).
+const ARROW := "\u00a0→\u00a0"
 
 
 static func delta_text(before: int, after: int) -> String:

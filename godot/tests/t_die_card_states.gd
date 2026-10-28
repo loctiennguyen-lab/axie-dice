@@ -162,10 +162,33 @@ func _dock(v: Node, tag: String) -> void:
 			_row_fits(card, "%s dock card %d" % [tag, i])
 
 
+## Every character SetDelta prints is in the font it is drawn with (Rowdies or its chained fallback): the web export has no
+## system fonts, so a missing glyph is an empty box there.
+func _glyphs() -> void:
+	var made := _make()
+	var card: DieCard = (made[1] as Dictionary)["card"]
+	var f: Font = card.set_delta.get_theme_font("font")
+	_check(f == UI3Theme.font_display(), "SetDelta draws with the display font")
+	var fonts: Array = [f] + Array(f.fallbacks)
+	var text := SetPreview.delta_text(12, 27) + SetPreview.compact_text(3, 9) + "0123456789"
+	for i in text.length():
+		var ch := text.unicode_at(i)
+		var ok := false
+		for ff in fonts:
+			if (ff as Font).has_char(ch):
+				ok = true
+		_check(ok, "U+%04X '%s' has a glyph in Rowdies or its fallback" % [ch, text[i]])
+	var wsb := load(UI3Theme.DISPLAY_GLYPH_FALLBACK) as Font
+	_check(fonts.has(wsb), "Work Sans Bold is chained as Rowdies' fallback")
+	_check(wsb.has_char(0x2192) and wsb.has_char(0x00a0), "the fallback itself has → and the no-break space")
+	(made[0] as Node).queue_free()
+
+
 func _ready() -> void:
 	CombatView.disable_juice_for_tests = true
 	_guard.capture()
 	UI3Theme.set_scale_override(1.0)
+	_glyphs()
 	await _states("1920")
 	UI3Theme.set_scale_override(2.0 / 3.0)
 	_check(UI3Theme.size_of("die_card_w") == 174 and UI3Theme.size_of("text_body") == 21, "1280 tokens in effect")

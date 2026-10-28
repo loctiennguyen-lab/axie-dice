@@ -34,6 +34,7 @@ func _setup(layout: Array) -> void:
 		u.overcast = false
 		u.held = false
 		u.wild_slot = -1
+		u.stash_carry = false
 		u.status.erase("weaken")
 	c.overcast_used = 0
 	c.anchor_turn["oc2"] = []
@@ -51,7 +52,7 @@ func _expect(i: int, before: int, after: int, tag: String) -> void:
 	var u: Unit = units[i]
 	var fi := u.roll_face_index()
 	var eb := maxi(0, int(c._face_base(u, fi)))
-	var ea: int = c._face_value(u, fi)
+	var ea := FaceAmount.display_value(u.die[fi] as Dictionary, c._face_value(u, fi))   # what the die deals, as shown
 	_check(eb == before, "%s: die %d engine before %d, expected %d" % [tag, i, eb, before])
 	_check(ea == after and v._live_face_value(u, fi) == after, "%s: die %d engine after %d, expected %d" % [tag, i, ea, after])
 	var card := _card(i)
@@ -204,6 +205,51 @@ func _ready() -> void:
 	_check(est == 12, "double beat: 4 at ×3.0 (capped) = 12, got %d" % est)
 	c.anchor_id = ""
 	c.anchor_awakened = false
+
+	# J. Wild / Temp Face: a die on another part joins the Horn SET (3 -> 4); its card reads Horn, TEMP, and the SET of 4 value.
+	await _setup([[1, "dmg", 4], [1, "dmg", 2], [1, "dmg", 3], [4, "dmg", 3], [3, "shield", 2]])
+	(units[3] as Unit).wild_slot = 1
+	c._snap_bo()
+	v._rebuild_all()
+	await get_tree().process_frame
+	_expect_banner(4, 220, "wild")
+	_expect(3, 3, 7, "wild")
+	_expect(0, 4, 9, "wild (other member)")
+	_check(_card(3).part_word.text == SetBanner.part_word(1) and _card(3).mark(&"temp") != null and _card(3).mark(&"temp").visible,
+		"wild: the Temp Face reads Horn and shows TEMP")
+	(units[3] as Unit).wild_slot = -1
+
+	# K. Embers: a carried Held die adds anchor.embers_add to ITS own M (per die, not the banner); the others stay 4 -> 6.
+	await _setup([[1, "dmg", 4], [1, "dmg", 4], [1, "dmg", 4]] + others)
+	c.anchor_id = "a_embers"
+	(units[0] as Unit).stash_carry = true
+	v._rebuild_all()
+	await get_tree().process_frame
+	_expect_banner(3, 130, "embers")
+	var em := c.m100_for(units[0])
+	_check(em > c.bo_group_m100(c.bo[0]), "embers: the carried die's own M (%d) is above the banner's" % em)
+	_expect(0, 4, CombatEngine._mul_up(4, em), "embers (carried)")
+	_expect(1, 4, 6, "embers (not carried)")
+	(units[0] as Unit).stash_carry = false
+	c.anchor_id = ""
+
+	# L. Not rolled and owner knocked out: no preview, no ring, the die says "-" / "KO", SetPreview says no.
+	await _setup([[1, "dmg", 4], [1, "dmg", 2], [1, "dmg", 3], [1, "dmg", 2]] + [[4, "shield", 3]])
+	var nr: Unit = units[3]
+	nr.clear_roll()
+	var ko: Unit = units[2]
+	var ko_hp := ko.hp
+	ko.hp = 0
+	c._snap_bo()
+	v._rebuild_all()
+	await get_tree().process_frame
+	_check(not bool(SetPreview.for_die(v, nr)["show"]) and String(SetPreview.for_die(v, nr)["key"]) == "", "not rolled: no SET preview")
+	_check(_card(3).face_value.text == "-" and _card(3).set_delta.text == "" and not _card(3).set_ring.visible, "not rolled: '-' and no ring")
+	_check(not bool(SetPreview.for_die(v, ko)["show"]) and String(SetPreview.for_die(v, ko)["key"]) == "", "owner KO: no SET preview")
+	_check(_card(2).face_value.text == "KO" and _card(2).set_delta.text == "" and not _card(2).set_ring.visible, "owner KO: 'KO' and no ring")
+	_check(c.bo.is_empty(), "two Horn dice left: no SET (KO and unrolled dice never count)")
+	ko.hp = ko_hp
+	nr.set_roll(1, false)
 
 	# One banner system: no node named SetLabel, one SetBanner per SET.
 	_check(v.find_children("SetLabel*", "", true, false).is_empty(), "no old SetLabel nodes")
