@@ -171,6 +171,7 @@ func _discard_scenes() -> void:
 ## loopback callback and leaves device_tokens.dat in the tool's user dir; the wrapper stores it for later runs.
 ## This creates its own device_sessions row, so smoke runs never touch the desktop app's refresh-token chain.
 func _login_once() -> void:
+	DesktopAuth.label_override = "Smoke"
 	AccountService.desktop_test_mode = true   # headless build, but allow the desktop flow
 	AccountService.ask = func(_k: String, _i: Dictionary, done: Callable) -> void: done.call("cloud")
 	AccountService.toast = func(code: String) -> void: print("  (toast: %s)" % code)

@@ -23,6 +23,8 @@ const PEER_TIMEOUT_S := 20.0
 
 var server_url := "https://axiedice.fun"
 ## Seam for tests: replaces OS.shell_open so a test can play the browser.
+## Device name shown in /auth/devices; empty = OS name. Only live_smoke --login sets it ("Smoke").
+static var label_override := ""
 var open_url: Callable = func(u: String) -> void: OS.shell_open(u)
 ## Seam for the token request: exchange.call(url, json_body, done(code:int, text:String)).
 var exchange: Callable
@@ -205,7 +207,7 @@ func _handle_request(entry: Dictionary, line: String) -> void:
 	raise_window.call()
 	callback_received.emit()
 	exchange.call(server_url + "/auth/desktop/token",
-		JSON.stringify({"code": code, "verifier": _verifier, "label": OS.get_name()}),
+		JSON.stringify({"code": code, "verifier": _verifier, "label": label_override if label_override != "" else OS.get_name()}),
 		func(http: int, text: String) -> void:
 			var parsed: Variant = JSON.parse_string(text)
 			if http == 200 and typeof(parsed) == TYPE_DICTIONARY and (parsed as Dictionary).has("refresh"):

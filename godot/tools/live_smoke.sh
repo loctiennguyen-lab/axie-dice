@@ -25,6 +25,7 @@
 # If Godot dies / is killed / exits non-zero AFTER preflight proved the account clean, a second pass
 # (`live_smoke.tscn -- --cleanup-only`, 60 s kill timer) abandons whatever run is still open.
 set -uo pipefail
+umask 077   # token files and dirs: owner only
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJ="$(cd "$HERE/.." && pwd -P)"
 SRC="$HOME/Library/Application Support/Godot/app_userdata/Axie Dice"   # the app's dir: only used to REFUSE, never read
@@ -76,7 +77,12 @@ if [[ "$TOK_DIR" == "$SRC" || "$TOK_DIR" == "$SRC"/* ]]; then
 fi
 
 UD="$AXIE_USERDIR"
-mkdir -p "$UD" "$TOK_DIR"
+mkdir -p "$UD" "$TOK_DIR" && chmod 700 "$TOK_DIR" || { echo "live_smoke: cannot prepare $TOK_DIR" >&2; exit 2; }
+REPO_ROOT="$(cd "$PROJ/.." && pwd -P)"
+TOK_REAL="$(cd "$TOK_DIR" && pwd -P)"
+case "$TOK_REAL" in
+  "$REPO_ROOT"|"$REPO_ROOT"/*) echo "live_smoke: LIVE_SMOKE_TOKENS_DIR must not be inside the repo" >&2; exit 2 ;;
+esac
 rm -rf "$UD/acct" "$UD/account.json" "$UD/account_prefs.json" "$UD/device_tokens.dat" "$UD/account_sync.json" "$UD/meta_save.json" "$UD/run_save.json" "$UD/live_smoke_preflight_ok"
 if [[ "$LOGIN" == 0 ]]; then
   [[ -f "$TOK" ]] || { echo "live_smoke: no smoke session yet. One-time: godot/tools/live_smoke.sh --login" >&2; exit 2; }
@@ -87,16 +93,36 @@ if [[ "$LOGIN" == 0 ]]; then
   cp -p "$TOK" "$UD/device_tokens.dat"
 fi
 COPIED_SUM="$(shasum "$UD/device_tokens.dat" 2>/dev/null | cut -d' ' -f1)"
+code=0
+
+# Atomic store of the (possibly rotated) smoke token file: 600, tmp removed on failure.
+store_tokens() {
+  local tmp="$TOK.tmp.$$"
+  if cp "$UD/device_tokens.dat" "$tmp" && chmod 600 "$tmp" && mv "$tmp" "$TOK"; then
+    return 0
+  fi
+  rm -f "$tmp"; echo "live_smoke: WARNING could not store the smoke token file" >&2; return 1
+}
+# Runs on normal exit, Ctrl-C and kill: write back a rotated token, then leave no session copy behind.
+finish() {
+  local rc=$?
+  trap - EXIT INT TERM
+  if [[ -f "$UD/device_tokens.dat" ]]; then
+    if [[ "$(shasum "$UD/device_tokens.dat" | cut -d' ' -f1)" != "$COPIED_SUM" ]]; then
+      store_tokens && echo "live_smoke: smoke token stored"
+    fi
+  fi
+  rm -rf "$UD/acct" "$UD/account.json" "$UD/account_prefs.json" "$UD/device_tokens.dat" "$UD/account_sync.json" "$UD/meta_save.json" "$UD/run_save.json" "$UD/live_smoke_preflight_ok"
+  exit "$rc"
+}
+trap finish EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 if [[ "$LOGIN" == 1 ]]; then
   unset AXIE_TEST_NO_NET
   "$GODOT" --path "$PROJ" res://tools/live_smoke.tscn -- --login
-  code=$?
-  if [[ "$code" -eq 0 && -f "$UD/device_tokens.dat" ]]; then
-    cp -p "$UD/device_tokens.dat" "$TOK.tmp.$$" && mv "$TOK.tmp.$$" "$TOK" && echo "live_smoke: smoke session saved to $TOK"
-  fi
-  rm -rf "$UD/acct" "$UD/account.json" "$UD/account_prefs.json" "$UD/device_tokens.dat" "$UD/account_sync.json" "$UD/meta_save.json" "$UD/run_save.json"
-  exit "$code"
+  exit $?   # finish() stores the new tokens (only exist if the sign-in succeeded)
 fi
 
 unset AXIE_TEST_NO_NET
@@ -118,13 +144,5 @@ if [[ "$code" -ne 0 && "$code" -ne 2 && -f "$UD/live_smoke_preflight_ok" ]]; the
   [[ "$code2" -ne 0 ]] && echo "live_smoke: WARNING cleanup-only pass exited $code2; check the account for an open run" >&2
 fi
 
-# Token write-back: only into the smoke session's own file (atomic). The desktop app is never involved.
-if [[ -f "$UD/device_tokens.dat" ]]; then
-  NEW_SUM="$(shasum "$UD/device_tokens.dat" | cut -d' ' -f1)"
-  if [[ "$NEW_SUM" != "$COPIED_SUM" ]]; then
-    cp -p "$UD/device_tokens.dat" "$TOK.tmp.$$" && mv "$TOK.tmp.$$" "$TOK" && echo "live_smoke: rotated smoke token stored"
-  fi
-fi
-# Leave no session copy behind.
-rm -rf "$UD/acct" "$UD/account.json" "$UD/account_prefs.json" "$UD/device_tokens.dat" "$UD/account_sync.json" "$UD/meta_save.json" "$UD/run_save.json" "$UD/live_smoke_preflight_ok"
+# Token write-back and cleanup happen in finish() (trap EXIT).
 exit "$code"
