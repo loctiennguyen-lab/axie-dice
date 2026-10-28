@@ -28,4 +28,4 @@
 
 ## Khi polish
 - Mỗi chỗ khựng lại, ghi một dòng vào `production/qa/bugs/liam-notes.md` (màn, thấy gì). Mình biến thành bug.
-- Đừng chạy `godot/tools/live_smoke.sh` trên phiên desktop của Liam (lần trước làm phải đăng nhập lại).
+- `live_smoke.sh` dùng phiên thiết bị riêng (28/10), không đụng token của app desktop. Lần đầu chạy `godot/tools/live_smoke.sh --login` một lần (đăng nhập Google trong trình duyệt). Lỗi cũ: nó mượn refresh token của app, mất một lần ghi lại là server thu hồi thiết bị của app.
