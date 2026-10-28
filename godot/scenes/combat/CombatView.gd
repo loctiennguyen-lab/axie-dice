@@ -1468,11 +1468,17 @@ func _on_menu_pressed() -> void:
 var _menu_panel: PanelContainer = null
 
 
-## Dice tray: five 272 x 176 columns, gap 16, bottom 16, centred (x0 = 248 at 1920).
-## UI-05 b1: the window crossed the 1280 line (or came back). The shared Theme was rebuilt in place by
-## UI3Theme.sync_scale(); layouts that read size tokens at build time are rebuilt here.
+## UI-05 b1: the window scale changed by 2% or more (UI3Theme.sync_scale rebuilt the shared Theme in place).
+## Layouts that read size tokens at build time are rebuilt here, once the drag has settled for 150 ms.
+var _resize_pending := false
+
 func _on_window_resized() -> void:
-	if UI3Theme.sync_scale() and _combat != null:
+	if _resize_pending or not is_inside_tree():
+		return
+	_resize_pending = true
+	await get_tree().create_timer(0.15).timeout
+	_resize_pending = false
+	if is_inside_tree() and UI3Theme.sync_scale() and _combat != null:
 		_rebuild_all()
 
 
@@ -1489,6 +1495,7 @@ func _ec() -> EnemyColumn:
 	return _enemy_column
 
 
+## Dice tray: five 272 x 176 columns, gap 16, bottom 16, centred (x0 = 248 at 1920).
 func _layout_tray() -> void:
 	_dd()._layout_tray()
 

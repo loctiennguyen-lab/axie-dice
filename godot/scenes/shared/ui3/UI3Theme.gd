@@ -96,7 +96,11 @@ static func size_of(token: String, fallback := -1) -> int:
 		return int(v)
 	var ov: Dictionary = _overrides_logical()
 	if ov.has(token):
-		return int(round(float(ov[token]) / sc))   # override is a REAL px number at 1280; the canvas is logical 1920
+		# The override is a REAL px number at 1280 (scale 0.667); the canvas is logical 1920. Between 1.0 and 0.667 the
+		# real size is interpolated, so it is continuous and monotonic (no jump 116 -> 152 px at 1920).
+		var t := clampf((1.0 - sc) / (1.0 - 2.0 / 3.0), 0.0, 1.0)
+		var real := lerpf(float(v) * sc, float(ov[token]), t)
+		return int(round(real / sc))
 	if token.begins_with("text_") or token == "num_die_egg":
 		return _text_px(int(v))
 	return int(v)
@@ -141,6 +145,8 @@ static func set_scale_override(sc: float) -> void:
 ## Re-reads the window scale. True when it changed (theme already rebuilt; the caller rebuilds its layout).
 static func sync_scale() -> bool:
 	var sc := current_scale()
+	if absf(sc - _scale_cached) < 0.02 and (sc >= 1.0) == (_scale_cached >= 1.0):
+		return false   # dragging the window edge: ignore sub-2% steps so the theme is not rebuilt every pixel
 	if is_equal_approx(sc, _scale_cached):
 		return false
 	_scale_cached = sc

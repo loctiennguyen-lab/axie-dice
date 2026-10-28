@@ -37,6 +37,18 @@ func _ready() -> void:
 	_ok(UI3Theme.size_of("text_title") == 24 and UI3Theme.size_of("text_banner") == 36, "1280: 24 / 36 already >= 14 real, unchanged")
 	_ok(UI3Theme.get_theme() == th and th.default_font_size == 21 and th.get_font_size("body", "Label") == 21, "1280: SAME Theme object rebuilt in place (default 21)")
 	_ok(UI3Theme.is_small(), "1280 is small")
+	# in between: continuous and monotonic in REAL px (size * scale), exact at both ends
+	var last_real := 0.0
+	for sc: float in [1.0, 0.977, 0.9, 0.8, 0.7, 2.0 / 3.0]:
+		UI3Theme.set_scale_override(sc)
+		var real := float(UI3Theme.size_of("die_card_w")) * sc
+		_ok(real <= 152.0 * sc + 1.0 and (last_real == 0.0 or real <= last_real + 1.0), "die card real px non-increasing at scale %.3f (%.1f)" % [sc, real])
+		last_real = real
+	UI3Theme.set_scale_override(0.977)
+	_ok(UI3Theme.size_of("die_card_w") >= 150 and UI3Theme.size_of("die_card_w") <= 152, "scale 0.977 is nearly the 1920 size, not 116 real px (%d)" % UI3Theme.size_of("die_card_w"))
+	UI3Theme.set_scale_override(0.8)
+	var mid := float(UI3Theme.size_of("die_card_w")) * 0.8
+	_ok(mid > 116.0 and mid < 152.0 * 0.8, "scale 0.8 lies between the two ends (%.1f real)" % mid)
 	UI3Theme.set_scale_override(1.0)
 	_ok(UI3Theme.get_theme() == th and th.default_font_size == 18 and UI3Theme.size_of("die_card_w") == 152, "back to 1920: theme and sizes restored")
 	_ok(not UI3Theme.sync_scale(), "sync_scale reports no change when nothing moved")
