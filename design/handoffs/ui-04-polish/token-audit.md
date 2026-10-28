@@ -67,7 +67,7 @@ New tokens needed (no equivalent today):
 ## 2. Motion hook: `UI3Motion`
 
 - Code: `godot/scenes/shared/ui3/UI3Motion.gd`; data: `godot/assets/data/ui/motion_ui3.json`; test: `t_ui3_motion` (20 checks).
-- API: `UI3Motion.play(moment_id, node, opts) -> Tween` (null when skipped), plus `has_moment`, `moment_ids`, `duration_sec`, `validate_moment`, `reload`.
+- API: `UI3Motion.play(moment_id, node, opts) -> Tween` (null when skipped), plus `has_moment`, `moment_ids`, `duration_sec`, `validate_moment`, `reset_table`.
 - Moment shape: `in` / `out` phases (`ms`, `trans`, `ease`, `delay_ms`, `props{scale, alpha, offset, rotation_deg}` each with `from`/`to`/own trans/ease), `hold_ms`, `shake{px,ms}`, `particles{texture,amount,lifetime_ms,spread_deg,speed,color_token}`, `sfx` (event name from `gacha_timing.json` `sfx`, goes through `UI3Gacha.play_sfx`, so silent in tests), `skippable`, `hide_on_done`, `free_on_done`.
 - opts: `hold_ms`, `skip`/`instant`, `reduced` (jumps to end state when `skippable`), `scale_ms` (duration multiplier), `on_done`.
 - Seeded moments (same timings as before): `turn_banner` (390/750/360), `combo_banner` (180/1550/250).

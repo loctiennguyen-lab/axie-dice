@@ -26,6 +26,8 @@ const TABLE_PATH := "res://assets/data/ui/motion_ui3.json"
 
 ## Moments played so far, newest last. Tests read UI3Motion.played instead of waiting for pixels.
 static var played: Array[String] = []
+## Tests set this to true to fill `played` (capped at 64 entries). Off in the game so it never grows.
+static var record := false
 static var _table: Dictionary = {}
 static var _loaded := false
 
@@ -58,9 +60,14 @@ static func table() -> Dictionary:
 
 
 ## Test hook: forget the cache so the next call re-reads the file (or `override`).
-static func reload(override: Dictionary = {}) -> void:
-	_table = override
-	_loaded = not override.is_empty()
+## `override` null = re-read the file; any Dictionary (even empty, to simulate a failed load) is used as is.
+static func reset_table(override: Variant = null) -> void:
+	if override is Dictionary:
+		_table = override
+		_loaded = true
+	else:
+		_table = {}
+		_loaded = false
 	played.clear()
 
 
@@ -146,12 +153,22 @@ static func duration_sec(id: String, opts: Dictionary = {}) -> float:
 
 ## Play moment `id` on `node`. See the header for opts. Returns the Tween, or null (skipped / nothing to run).
 static func play(id: String, node: CanvasItem, opts: Dictionary = {}) -> Tween:
-	if not has_moment(id):
-		push_error("UI3Motion: unknown moment '%s'" % id)
-		return null
 	if node == null or not is_instance_valid(node):
 		return null
-	played.append(id)
+	if not has_moment(id):
+		# Missing table or unknown id: never leave a banner up or a chip stacked. Honour the caller's
+		# end-state flags, then call on_done (deferred, so callers see the same ordering as a real tween).
+		push_error("UI3Motion: unknown moment '%s'" % id)
+		if bool(opts.get("hide_on_done", false)):
+			node.visible = false
+		var cb0: Variant = opts.get("on_done")
+		if cb0 is Callable and (cb0 as Callable).is_valid():
+			(cb0 as Callable).call_deferred()
+		if bool(opts.get("free_on_done", false)):
+			node.queue_free()
+		return null
+	if record and played.size() < 64:
+		played.append(id)
 	var m: Dictionary = table()[id]
 	var skip := bool(opts.get("skip", false)) or bool(opts.get("instant", false)) \
 		or (bool(opts.get("reduced", false)) and bool(m.get("skippable", true)))

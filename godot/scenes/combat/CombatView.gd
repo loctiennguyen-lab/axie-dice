@@ -1649,7 +1649,7 @@ func _show_turn_banner(eyebrow: String, phase_text: String) -> void:
 		return
 	banner.pivot_offset = banner.get_combined_minimum_size() * 0.5
 	# Timings live in assets/data/ui/motion_ui3.json ("turn_banner").
-	UI3Motion.play("turn_banner", banner)
+	UI3Motion.play("turn_banner", banner, {"hide_on_done": true})   # opts only matter if the table failed to load
 
 
 func _connect_event_bus() -> void:
@@ -3388,7 +3388,7 @@ func _spawn_combo_name(nm: String, full := false) -> void:
 	chip.global_position = Vector2((vs.x - sz.x) / 2.0, 120.0 + float(slot) * (sz.y + 12.0))
 	chip.pivot_offset = sz / 2.0
 	# Timings live in assets/data/ui/motion_ui3.json ("combo_banner"); the chip lives COMBO_FLOAT_SEC in total.
-	UI3Motion.play("combo_banner", chip, {"hold_ms": (COMBO_FLOAT_SEC - 0.25) * 1000.0,
+	UI3Motion.play("combo_banner", chip, {"hold_ms": (COMBO_FLOAT_SEC - 0.25) * 1000.0, "free_on_done": true,
 		"on_done": func(): _combo_banners_live = maxi(_combo_banners_live - 1, 0)})
 
 

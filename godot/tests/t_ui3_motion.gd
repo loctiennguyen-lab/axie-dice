@@ -10,10 +10,14 @@ var _done_calls := 0
 
 func _ready() -> void:
 	print("=== t_ui3_motion: start ===")
-	UI3Motion.reload()
+	UI3Motion.reset_table()
+	UI3Motion.record = true
 	_test_loader()
 	_test_validation()
 	await _test_play()
+	await _test_failed_load()
+	UI3Motion.record = false
+	UI3Motion.reset_table()
 	if _fails.is_empty():
 		print("t_ui3_motion: PASS — %d checks OK" % _checks)
 	else:
@@ -49,6 +53,36 @@ func _test_validation() -> void:
 	_ok(not UI3Motion.validate_moment("x", {"in": {"ms": 10}, "particles": {"texture": "res://nope.png"}}).is_empty(), "missing particle texture accepted")
 	_ok(UI3Motion.validate_moment("x", {"in": {"ms": 10, "trans": "BACK", "ease": "OUT", "props": {"alpha": {"to": 1}}}}).is_empty(), "valid moment rejected")
 	_ok(not UI3Motion.has_moment("does_not_exist") and not UI3Motion.has_moment("_note"), "unknown / note key counted as a moment")
+
+
+## A table that failed to load must not leave a banner up or a chip stacked.
+func _test_failed_load() -> void:
+	UI3Motion.reset_table({})
+	var banner := Control.new()
+	add_child(banner)
+	banner.visible = true
+	var chip := Control.new()
+	add_child(chip)
+	var before := _done_calls
+	_ok(UI3Motion.play("turn_banner", banner, {"hide_on_done": true}) == null, "failed load returned a tween")
+	_ok(not banner.visible, "banner left visible after failed load")
+	_ok(UI3Motion.play("combo_banner", chip, {"free_on_done": true, "on_done": func(): _done_calls += 1}) == null, "chip tween on failed load")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(_done_calls == before + 1, "on_done not called after failed load")
+	_ok(not is_instance_valid(chip), "chip not freed after failed load")
+	banner.queue_free()
+	# Record cap: never more than 64 entries.
+	UI3Motion.reset_table()
+	UI3Motion.record = true
+	var n := Control.new()
+	add_child(n)
+	for i in 80:
+		UI3Motion.play("turn_banner", n, {"skip": true})
+	_ok(UI3Motion.played.size() == 64, "played not capped: %d" % UI3Motion.played.size())
+	n.queue_free()
+	# size_of fallback: text tokens never 0, explicit fallback wins.
+	_ok(UI3Theme.size_of("text_nope") == 18 and UI3Theme.size_of("nope_x", 7) == 7, "size_of fallback wrong")
 
 
 func _test_play() -> void:
