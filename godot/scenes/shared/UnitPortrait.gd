@@ -1,39 +1,31 @@
 extends Control
 class_name UnitPortrait
-## Per-unit combat overlay — Dice UI R1 (design/handoffs/ui-02-round1b README §3).
+## Per-unit combat overlay. ENEMY: one EnemyCluster of the UI-05 EnemyColumn (lane C, UI-05 batch 1,
+## design/handoffs/ui-05-figma/round-1 frames 02-combat--bighit / --boss / --ab-names / --attrition-*).
 ##
-## ENEMY: the nameplate. 320 wide (boss 640), r16, border 3 (4 when lit), built in code:
-##   left  : name (Baloo 18, + ELITE/BOSS tag) · HP bar (h24, boss h30 with phase marks) ·
-##           chips row (h26: shield, statuses, "+N") with "-> target" right-aligned
-##   right : INTENT block 88 wide (boss 128): "NEXT" 12 · icon 26 + number Baloo 30 (boss 44) ·
-##           action label 12. `#DDBF8C`, gold `#FFC445` when enrage is active.
-##   under : counter TAB (spike or boss clock) overlapping the plate by 4, h32, side inset 14.
-##   below : one transient chip (illegal-target reason / damage preview / lethal).
-## The intent number is the ONLY number the player needs: base x (1+enrage%+attrition%) x spike,
-## computed by the engine (`hud_state().enemy_next`), never summed here.
+## ENEMY cluster, top to bottom, right-aligned, 8 apart (`.enemy-cluster`):
+##   EnemyPlate (scenes/combat/ui5/EnemyPlate.gd, BossPlate.gd for a boss): name row, HP bar, intent column.
+##   counter tab   : spike "BIG HIT IN n" (non-boss). A boss shows its clock as the EnrageRow inside the plate.
+##   BigHitStrip   : "Can knock out an Axie" (ui5/BigHitStrip.gd) while the intent can knock out an Axie.
+##   label         : "Target · Name" (cream), illegal-target reason, or the damage preview.
+## Lit (legal target / selected): TargetRing, a 4 px `selected` outline 4 px outside the plate.
+## Widths are tokens (enemy_card_w, boss_plate_w, enemy_intent_w); nothing here is a hardcoded px width.
+## The intent number is the ONLY number the player needs, computed by the engine (`hud_state().enemy_next`).
 ##
-## PARTY: no UI above heads (README §3 "Party"). A party UnitPortrait still exists because the
-## damage numbers rise from it and CombatView positions it at the Axie, but it draws nothing and
-## takes no mouse; party HP lives only in the dice tray.
+## PARTY: no UI above heads. A party UnitPortrait still exists because the damage numbers rise from it and
+## CombatView positions it at the Axie, but it draws nothing and takes no mouse; party HP lives in the dice tray.
 ##
-## Public API kept from the pre-R1 file so CombatView keeps compiling: setup, set_incoming,
-## update_stats, set_selected, set_targetable, set_preview_damage, clear_preview_damage,
-## spawn_float_text, flash_resonance, play_death_fade, signals clicked / inspect_requested.
+## Public API kept so CombatView / EnemyColumn keep compiling: setup, set_incoming, update_stats, set_selected,
+## set_targetable, set_preview_damage, clear_preview_damage, spawn_float_text, flash_resonance, play_death_fade,
+## set_intent, set_tab, set_phase, set_leader, set_shell, set_nick, intent_block, stack_height, signals.
 
 signal clicked(uid: int)
 signal inspect_requested(uid: int)
 ## Pointer entered/left the plate (`on_intent` = the intent block specifically): drives the damage preview.
 signal hover_changed(uid: int, hovering: bool, on_intent: bool)
 
-const WIDTH := 416.0          ## tokens size.enemy_plate_w
-const BOSS_WIDTH := 520.0     ## tokens size.boss_plate_w
-const ENEMY_HEIGHT := 104.0   ## plate only (IntentBlock 88 + 2 x 8); tab + chip hang below it
-const BOSS_HEIGHT := 150.0
-const INTENT_W := 112.0       ## tokens size.intent_block.w
-const BOSS_INTENT_W := 120.0
-const TAB_H := 32.0
-## The vertical slot an enemy column reserves (plate + tab overlap + chip row).
-const SLOT_HEIGHT := ENEMY_HEIGHT + TAB_H - 4.0 + 6.0 + 40.0
+## Name keeps at least this many px in its row; past that the tags move to their own row under it.
+const MIN_NAME_W := 72.0
 
 
 const _STATUS_ICON := {
@@ -73,26 +65,23 @@ var _incoming := 0
 var _hp := 0
 var _max_hp := 1
 
-var _plate: PanelContainer
-var _plate_style: StyleBoxFlat
-var _name_label: Label
+var _plate: EnemyPlate              ## EnemyPlate / BossPlate
+var _ring: Panel                    ## TargetRing (lit)
+var _name_label: Label              ## = _plate.name_label (tests read it)
 var _suffix_chip: PanelContainer
-var _bang: PanelContainer           ## red "!" badge after the name (big hit)
+var _bang: PanelContainer           ## BigHitBadge
 var _tag_chip: PanelContainer       ## ELITE / BOSS EnemyTag
 var _tag_kind := ""                 ## "ELITE" | "BOSS" | "" (the word the tag shows)
-var _tags_row: HBoxContainer
 var _hp_bar: HPBar
 var _hp_label: Label
 var _phase_label: Label
-var _target_label: Label
-var _intent_panel: PanelContainer
-var _intent_style: StyleBoxFlat
+var _intent_panel: IntentBlock      ## the plate's IntentBlock
 var _intent_next: Label
 var _intent_icon: TextureRect
 var _intent_num: Label
 var _intent_action: Label
-var _strip: PanelContainer          ## "Can knock out an Axie" strip inside the plate
-var _tab: PanelContainer
+var _strip: BigHitStrip
+var _tab: PanelContainer            ## spike tab (non-boss) / EnrageRow (boss)
 var _tab_style: StyleBoxFlat
 var _tab_icon: TextureRect
 var _tab_text: Label
@@ -118,6 +107,17 @@ var _illegal_reason := ""
 var _boosted := false
 var _preview := 0
 var _fit_queued := false
+var _compact := false      ## tall column: the BigHitStrip folds away (plate edge + "!" badge still say it)
+var _built_scale := 1.0
+
+
+## Plate width tokens (were the WIDTH 416 / BOSS_WIDTH 520 constants).
+static func card_w() -> float:
+	return float(EnemyPlate.card_width(false))
+
+
+static func boss_w() -> float:
+	return float(EnemyPlate.card_width(true))
 
 
 ## Lane GM (Name Tag meme Core): a nickname (custom_state.nick) replaces the nameplate text; the original name moves
@@ -134,8 +134,9 @@ func full_name() -> String:
 
 
 ## Name text: the nickname if any. "Elite X" drops its "Elite " (the ELITE tag says it) while that tag shows.
-## A repeated name's trailing " A" / " B" becomes a NameSuffix square (max one letter). Then 24 -> 18 px
-## (boss 32 -> 18) when the text does not fit the 232 px budget; the full name is always in the tooltip.
+## A repeated name's trailing " A" / " B" becomes a NameSuffix disc (max one letter). The tags stay in the name
+## row while the name keeps MIN_NAME_W, else they get their own row. Boss name text_title, text_body when it does
+## not fit. The name ellipsizes; the full name is always in the tooltip.
 func _refresh_name() -> void:
 	if _name_label == null:
 		return
@@ -154,41 +155,48 @@ func _refresh_name() -> void:
 	if _suffix_chip != null:
 		_suffix_chip.visible = suffix != ""
 		if suffix != "":
-			(_suffix_chip.get_child(0) as Label).text = suffix
-	var base := 32 if _is_boss else 24
-	var avail := 232.0
-	if not _is_boss:
-		if suffix != "":
-			avail -= 36.0
-		if _bang != null and _bang.visible:
-			avail -= 36.0
-	else:
-		avail = BOSS_WIDTH - 20.0 - 16.0 - BOSS_INTENT_W - 16.0 - 130.0
-	var f := _name_label.get_theme_font("font")
-	var fs := base
-	if f != null and f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > avail:
-		fs = 18
-	_name_label.add_theme_font_size_override("font_size", fs)
+			(_suffix_chip.get_node("Text") as Label).text = suffix
+	_plate.place_tags(MIN_NAME_W)
+	var key := "text_title" if _is_boss else "text_body"
+	var avail := _name_avail()
+	var f := UI3Theme.font_display()
+	if _is_boss and f != null and f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, UI3Theme.size_of(key)).x > avail:
+		key = "text_body"
+	EnemyPlate.set_text_size(_name_label, key, true, 1.2 if key == "text_title" else 1.3)
+	var fs := UI3Theme.size_of(key)
+	var cut := f != null and f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > avail + 0.5
 	if _click_catcher != null:
-		UI3Tooltip.bind(_click_catcher, full if (_nick != "" or txt != full) else "")
 		if _nick != "":
 			UI3Tooltip.bind(_click_catcher, "%s (%s)" % [_nick, _orig_name])
+		else:
+			UI3Tooltip.bind(_click_catcher, full if (cut or txt != full) else "")
+	_queue_fit()
+
+
+## Width the name label gets in its row: EnemyMain's inner width minus everything else visible in the row.
+func _name_avail() -> float:
+	var row := _plate.name_row
+	var sep := float(row.get_theme_constant("separation"))
+	var w := _plate.main_inner_width()
+	var hp_min := -1.0
+	for c in row.get_children():
+		if c == _name_label or not (c as Control).visible:
+			continue
+		if c == _hp_label and (c as Control).size_flags_horizontal & Control.SIZE_EXPAND:
+			hp_min = (c as Control).get_combined_minimum_size().x
+			w -= sep
+			continue
+		w -= (c as Control).get_combined_minimum_size().x + sep
+	if hp_min >= 0.0:   # name and HPValue both expand: halves, unless the HP text needs more than its half
+		w = w - hp_min if hp_min > w * 0.5 else w * 0.5
+	return maxf(w, 0.0)
 
 
 func _ready() -> void:
 	pass
 
 
-func _mk_label(text: String, variation: String, size_px: int, color_token := "") -> Label:
-	var l := UI3.label(text, variation)
-	l.add_theme_font_size_override("font_size", size_px)
-	if color_token != "":
-		l.add_theme_color_override("font_color", UI3Theme.color(color_token))
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return l
-
-
-## Called once per unit when a combat starts (CombatView._spawn_portrait).
+## Called once per unit when a combat starts (EnemyColumn._spawn_portrait).
 func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_boss: bool = false,
 		tag: String = "") -> void:
 	uid = p_uid
@@ -200,316 +208,208 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 		custom_minimum_size = Vector2(1, 1)
 		size = Vector2(1, 1)
 		return
-	var w := BOSS_WIDTH if is_boss else WIDTH
-	var plate_h := BOSS_HEIGHT if is_boss else ENEMY_HEIGHT
+	_built_scale = UI3Theme.current_scale()
 	theme = UI3Theme.get_theme()
-	custom_minimum_size = Vector2(w, plate_h + SLOT_HEIGHT - ENEMY_HEIGHT)
-	size = custom_minimum_size
+	var w := boss_w() if is_boss else card_w()
+	custom_minimum_size = Vector2(w, 0)
+	size = Vector2(w, 0)
 
-	# --- click catcher goes FIRST (behind chips so chip tooltips still pick) ---
+	# --- click catcher goes FIRST (behind the plate, so the intent / tags / shell row still pick) ---
 	_click_catcher = Button.new()
+	_click_catcher.name = "ClickCatcher"
 	_click_catcher.flat = true
 	_click_catcher.focus_mode = Control.FOCUS_NONE
 	_click_catcher.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_click_catcher.position = Vector2.ZERO
-	_click_catcher.custom_minimum_size = Vector2(w, plate_h)
-	_click_catcher.size = Vector2(w, plate_h)
 	_click_catcher.pressed.connect(func(): clicked.emit(uid))
 	_click_catcher.gui_input.connect(_on_click_catcher_gui_input)
 	_click_catcher.mouse_entered.connect(func(): hover_changed.emit(uid, true, false))
 	_click_catcher.mouse_exited.connect(func(): hover_changed.emit(uid, false, false))
 	add_child(_click_catcher)
 
-	# --- EnemyPlate (UI-04): plate family (wood-1 94%, 2 px plate_edge, radius l 16, hard 4 px shadow) ---
-	_plate = PanelContainer.new()
-	_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# --- TargetRing: 4 px `selected` outline, 4 px outside the plate (`.target-ring`) ---
+	_ring = Panel.new()
+	_ring.name = "TargetRing"
+	_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ring.visible = false
+	_ring.z_index = 2
+	add_child(_ring)
+
+	# --- EnemyPlate / BossPlate ---
+	_plate = BossPlate.new() if is_boss else EnemyPlate.new()
 	_plate.position = Vector2.ZERO
-	_plate.custom_minimum_size = Vector2(w, plate_h)
-	_plate.size = Vector2(w, plate_h)
-	_plate_style = _make_plate_style(2)
-	_plate.add_theme_stylebox_override("panel", _plate_style)
 	_plate.z_index = 2
 	add_child(_plate)
+	_name_label = _plate.name_label
+	_name_label.text = display_name
+	_suffix_chip = _plate.suffix
+	_bang = _plate.badge
+	_hp_bar = _plate.hp_bar
+	_hp_label = _plate.hp_label
+	_intent_panel = _plate.intent
+	_intent_next = _intent_panel.next_label
+	_intent_icon = _intent_panel.glyph
+	_intent_num = _intent_panel.value_label
+	_intent_action = _intent_panel.verb_label
+	_intent_panel.gui_input.connect(_on_forward_gui_input)
+	_intent_panel.mouse_entered.connect(func(): hover_changed.emit(uid, true, true))
+	_intent_panel.mouse_exited.connect(func(): hover_changed.emit(uid, false, true))
 
-	var vbox := VBoxContainer.new()
-	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vbox.add_theme_constant_override("separation", 0)
-	_plate.add_child(vbox)
-	var row := HBoxContainer.new()
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("separation", 0)
-	vbox.add_child(row)
-
-	var left := VBoxContainer.new()
-	left.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.add_theme_constant_override("separation", 12 if is_boss else 10)
-	var lm := MarginContainer.new()
-	lm.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	lm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	lm.clip_contents = true
-	lm.add_theme_constant_override("margin_left", 18 if is_boss else 14)
-	lm.add_theme_constant_override("margin_right", 14 if is_boss else 10)
-	lm.add_theme_constant_override("margin_top", 14 if is_boss else 10)
-	lm.add_theme_constant_override("margin_bottom", 14 if is_boss else 10)
-	lm.add_child(left)
-	row.add_child(lm)
-
-	var name_row := HBoxContainer.new()
-	name_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	name_row.add_theme_constant_override("separation", 10 if is_boss else 8)
-	left.add_child(name_row)
-	_name_label = UI3.label(display_name, "LabelDisplay")
-	_name_label.add_theme_font_size_override("font_size", 32 if is_boss else 24)
-	_name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_name_label.clip_text = true
-	_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	name_row.add_child(_name_label)
-	_suffix_chip = UI3.name_suffix("A")
-	_suffix_chip.visible = false
-	name_row.add_child(_suffix_chip)
-	_bang = PanelContainer.new()
-	_bang.name = "BigHitBadge"
-	_bang.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_bang.custom_minimum_size = Vector2(28, 28)
-	_bang.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("danger"), 14))
-	var bl := _mk_label("!", "LabelDisplay", 18)
-	bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	bl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_bang.add_child(bl)
-	_bang.visible = false
-	name_row.add_child(_bang)
-
-	# Tags row (ELITE / LEADER): only takes height while one shows. The BOSS tag sits in the name row.
+	# EnemyTag(s): ELITE / BOSS from the fight, LEADER from the Pack Alpha rule (it replaces ELITE).
 	_tag_kind = tag
 	if tag != "":
-		_tag_chip = UI3.enemy_tag(&"boss" if tag == "BOSS" else &"elite", tag, not is_boss)
-		_tag_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_tags_row = HBoxContainer.new()
-	_tags_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_tags_row.add_theme_constant_override("separation", 8)
-	_leader_badge = UI3.enemy_tag(&"leader", "LEADER", true)
+		_tag_chip = EnemyPlate.tag(&"boss" if tag == "BOSS" else &"elite", tag)
+		_plate.tag_box.add_child(_tag_chip)
+	_leader_badge = EnemyPlate.tag(&"leader", "LEADER")
 	_leader_badge.name = "LeaderBadge"
 	_leader_badge.mouse_filter = Control.MOUSE_FILTER_STOP
 	_leader_badge.gui_input.connect(_on_forward_gui_input)
 	_leader_badge.visible = false
 	UI3Tooltip.bind(_leader_badge, TranslationServer.translate("Pack Alpha: while it lives, single-target hits on other enemies deal 50%. Kill it first."))
-	if is_boss:
-		if _tag_chip != null:
-			name_row.add_child(_tag_chip)
-		_tags_row.add_child(_leader_badge)
-	else:
-		if _tag_chip != null:
-			_tags_row.add_child(_tag_chip)
-		_tags_row.add_child(_leader_badge)
-	_target_label = UI3.label("", "LabelMuted")
-	_target_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_target_label.clip_text = true   # min width 0: a long "-> Name" never widens the plate (the intent column stays on screen)
-	_target_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_target_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_target_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_tags_row.add_child(_target_label)
-	_tags_row.visible = false
-	left.add_child(_tags_row)
-
-	var hp_row := HBoxContainer.new()
-	hp_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hp_row.add_theme_constant_override("separation", 10)
-	left.add_child(hp_row)
-	_hp_bar = HPBar.new()
-	_hp_bar.ui3_look = true
-	_hp_bar.set_kind(HPBar.Kind.ENEMY, 16 if is_boss else 12, 8 if is_boss else 6, 16)
-	_hp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_hp_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	if is_boss:
-		_hp_bar.set_marks([0.66, 0.33])
-	hp_row.add_child(_hp_bar)
-	_hp_label = _mk_label("", "LabelDisplay", 24 if is_boss else 18)
-	hp_row.add_child(_hp_label)
+	_plate.tag_box.add_child(_leader_badge)
 
 	# --- Resonance Shell (anti-spam B): SHELL tag + bar + n/m, hidden until the engine reports a Shell ---
-	_shell_row = HBoxContainer.new()
-	_shell_row.name = "ShellRow"
-	_shell_row.add_theme_constant_override("separation", 10)
-	_shell_row.mouse_filter = Control.MOUSE_FILTER_STOP
+	_shell_row = _plate.shell_row
+	_shell_bar = _plate.shell_bar
+	_shell_label = _plate.shell_label
 	_shell_row.gui_input.connect(_on_forward_gui_input)
-	_shell_row.visible = false
-	var stag := UI3.enemy_tag(&"shell", "SHELL", true)
-	stag.custom_minimum_size.y = 28
-	_shell_row.add_child(stag)
-	_shell_bar = HPBar.new()
-	_shell_bar.name = "ShellBar"
-	_shell_bar.use_fixed_fill(UI3Theme.color("shell"))
-	_shell_bar.set_kind(HPBar.Kind.SHIELD, 10, 5, 16)
-	_shell_bar.use_fixed_fill(UI3Theme.color("shell"))
-	_shell_bar.custom_minimum_size.x = 0.0   # HPBar defaults to 96 wide
-	_shell_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_shell_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_shell_row.add_child(_shell_bar)
-	_shell_label = _mk_label("", "LabelDisplay", 18, "shell")
-	_shell_label.name = "ShellText"
-	_shell_row.add_child(_shell_label)
 	UI3Tooltip.bind(_shell_row, TranslationServer.translate("Shell: dice outside a SET deal 50% to Shell. Break it to reach the HP."))
-	left.add_child(_shell_row)
 
 	if is_boss:
 		_phase_label = UI3.label("Phase 1 of 2", "LabelMuted")
+		_phase_label.name = "PhaseLine"
 		_phase_label.visible = false   # set_phase() shows it for multi-phase bosses
 		_phase_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		left.add_child(_phase_label)
 
-	# --- IntentBlock: 112 x 88 (boss 120), radius m 12, 8 px margin inside the plate ---
-	var iw := BOSS_INTENT_W if is_boss else INTENT_W
-	var im := MarginContainer.new()
-	im.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for side in ["left", "top", "right", "bottom"]:
-		im.add_theme_constant_override("margin_" + side, 8)
-	im.size_flags_vertical = Control.SIZE_SHRINK_CENTER if not is_boss else Control.SIZE_EXPAND_FILL
-	row.add_child(im)
-	_intent_panel = PanelContainer.new()
-	_intent_panel.mouse_filter = Control.MOUSE_FILTER_STOP   # hover = preview + tooltip; clicks are forwarded
-	_intent_panel.gui_input.connect(_on_forward_gui_input)
-	_intent_panel.custom_minimum_size = Vector2(iw, 88)
-	_intent_style = UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("m"))
-	_intent_panel.add_theme_stylebox_override("panel", _intent_style)
-	_intent_panel.mouse_entered.connect(func(): hover_changed.emit(uid, true, true))
-	_intent_panel.mouse_exited.connect(func(): hover_changed.emit(uid, false, true))
-	im.add_child(_intent_panel)
-	var ic := VBoxContainer.new()
-	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ic.alignment = BoxContainer.ALIGNMENT_CENTER
-	ic.add_theme_constant_override("separation", 2)
-	_intent_panel.add_child(ic)
-	_intent_next = _mk_label("Next", "LabelMuted", 18)
-	_intent_next.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_intent_next.visible = is_boss   # the boss block says "Next"; a normal block is already the next move
-	ic.add_child(_intent_next)
-	var num_row := HBoxContainer.new()
-	num_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	num_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	num_row.add_theme_constant_override("separation", 6)
-	ic.add_child(num_row)
-	_intent_icon = HudKit.tex_rect(null, 28)
-	num_row.add_child(_intent_icon)
-	_intent_num = _mk_label("", "LabelDisplay", 32)
-	num_row.add_child(_intent_num)
-	_intent_action = _mk_label("", "LabelDisplay", 18, "text_muted")
-	_intent_action.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ic.add_child(_intent_action)
-
-	# --- big-hit strip, 40 high, inside the plate under the row ---
-	_strip = PanelContainer.new()
-	_strip.name = "BigHitStrip"
-	_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_strip.custom_minimum_size = Vector2(0, UI3Theme.size_of("bighit_strip_h"))
-	var ssb := UI3Theme.flat(UI3Theme.color("intent_bighit_bg"), 0, 0, Color.TRANSPARENT, Vector4(16, 0, 16, 0))
-	ssb.corner_radius_bottom_left = 12
-	ssb.corner_radius_bottom_right = 12
-	_strip.add_theme_stylebox_override("panel", ssb)
-	var srow := HBoxContainer.new()
-	srow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	srow.add_theme_constant_override("separation", 8)
-	_strip.add_child(srow)
-	srow.add_child(HudKit.tex_rect(HudKit.icon("lethal"), 24))
-	var sl := _mk_label(TranslationServer.translate("Can knock out an Axie"), "LabelMuted", 18, "bighit_text")
-	sl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	srow.add_child(sl)
-	_strip.visible = false
-	vbox.add_child(_strip)
-
-	# --- counter tab: non-boss = spike tab hanging under the plate; boss = the Enrage row inside the plate ---
-	_tab = PanelContainer.new()
-	_tab.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_tab.position = Vector2(14, plate_h - 4)
-	_tab.custom_minimum_size = Vector2(w - 28, TAB_H)
-	_tab.size = Vector2(w - 28, TAB_H)
-	_tab.z_index = 1
+	# --- counter tab: non-boss = spike tab under the plate; boss = the EnrageRow inside the plate ---
+	_build_tab()
 	if is_boss:
-		_tab.custom_minimum_size = Vector2(0, 0)
-	_tab_style = UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("m"))
-	if not is_boss:
-		_tab_style.corner_radius_top_left = 0
-		_tab_style.corner_radius_top_right = 0
-	_tab_style.content_margin_left = 10.0
-	_tab_style.content_margin_right = 10.0
-	_tab_style.content_margin_top = 4.0
-	_tab_style.content_margin_bottom = 2.0
+		_plate.extra_box.add_child(_tab)
+		_plate.extra_box.add_child(_phase_label)
+	else:
+		add_child(_tab)
+
+	# --- BigHitStrip: under the plate, right-aligned ---
+	_strip = BigHitStrip.new()
+	_strip.visible = false
+	_strip.z_index = 1
+	add_child(_strip)
+
+	# --- transient label: "Target · Name" (cream), reason (danger), damage preview ---
+	_chip = PanelContainer.new()
+	_chip.name = "PlateLabel"
+	_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_chip.z_index = 3   # over the next plate when the column is compact
+	_chip_style = UI3Theme.flat(UI3Theme.color("text"), UI3Theme.radius("pill"))
+	_chip.add_theme_stylebox_override("panel", _chip_style)
+	var crow := HBoxContainer.new()
+	crow.name = "Row"
+	crow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_chip.add_child(crow)
+	_chip_icon = TextureRect.new()
+	_chip_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_chip_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_chip_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_chip_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	crow.add_child(_chip_icon)
+	_chip_text = UI3.label("")
+	_chip_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_chip_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	crow.add_child(_chip_text)
+	_chip.visible = false
+	add_child(_chip)
+	_apply_own_sizes()
+	_refresh_name()
+	_refresh_plate()
+
+
+func _build_tab() -> void:
+	_tab = PanelContainer.new()
+	_tab.name = "EnrageRow" if _is_boss else "CounterTab"
+	_tab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tab.z_index = 1
+	_tab_style = UI3Theme.flat(UI3Theme.color("plate_raised"), UI3Theme.radius("pill"))
+	if _is_boss:   # EnrageRow: a plain row in the plate, no fill
+		_tab_style.bg_color = Color.TRANSPARENT
 	_tab.add_theme_stylebox_override("panel", _tab_style)
 	var trow := HBoxContainer.new()
+	trow.name = "Row"
 	trow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	trow.add_theme_constant_override("separation", 8)
 	_tab.add_child(trow)
-	_tab_icon = HudKit.tex_rect(null, 24)
+	_tab_icon = TextureRect.new()
+	_tab_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_tab_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_tab_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_tab_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	trow.add_child(_tab_icon)
 	_tab_text = UI3.label("", "LabelDisplay")
+	_tab_text.name = "Text"
+	_tab_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_tab_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	trow.add_child(_tab_text)
-	var tsp := Control.new()
-	tsp.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tsp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	trow.add_child(tsp)
 	_tab_pips = HBoxContainer.new()
 	_tab_pips.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_tab_pips.add_theme_constant_override("separation", 3)
 	_tab_pips.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	trow.add_child(_tab_pips)
 	_tab_right = UI3.label("", "LabelMuted")
+	_tab_right.name = "Right"
+	_tab_right.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_tab_right.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	trow.add_child(_tab_right)
 	_tab.visible = false
-	if is_boss:
-		# Enrage row: under a 2 px divider (panel_raised), no fill of its own.
-		_tab_style.bg_color = Color.TRANSPARENT
-		_tab_style.set_corner_radius_all(0)
-		_tab_style.border_width_top = 2
-		_tab_style.border_color = UI3Theme.color("panel_raised")
-		_tab_style.content_margin_left = 0.0
-		_tab_style.content_margin_right = 0.0
-		_tab_style.content_margin_top = 10.0
-		_tab_style.content_margin_bottom = 0.0
-		left.add_child(_tab)
-	else:
-		add_child(_tab)
 
-	# --- transient label under the tab: "Target · Name" (cream), reason (red-2), damage preview ---
-	_chip = PanelContainer.new()
-	_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_chip.z_index = 1
-	_chip_style = UI3Theme.flat(UI3Theme.color("text"), UI3Theme.radius("m"))
-	_chip_style.content_margin_left = 10.0
-	_chip_style.content_margin_right = 12.0
-	_chip_style.content_margin_top = 2.0
-	_chip_style.content_margin_bottom = 2.0
-	_chip.add_theme_stylebox_override("panel", _chip_style)
-	var crow := HBoxContainer.new()
-	crow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	crow.add_theme_constant_override("separation", 6)
-	_chip.add_child(crow)
-	_chip_icon = HudKit.tex_rect(null, 20)
-	crow.add_child(_chip_icon)
-	_chip_text = UI3.label("")
-	_chip_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	crow.add_child(_chip_text)
-	_chip.visible = false
-	add_child(_chip)
+
+## Token sizes of what UnitPortrait builds itself (the plate and strip size themselves).
+func _apply_own_sizes() -> void:
+	var sp8 := float(UI3Theme.space("8"))
+	var sp12 := float(UI3Theme.space("12"))
+	(_tab.get_node("Row") as HBoxContainer).add_theme_constant_override("separation", int(sp8))
+	_tab_style.content_margin_left = 0.0 if _is_boss else sp12
+	_tab_style.content_margin_right = 0.0 if _is_boss else sp12
+	_tab.custom_minimum_size = Vector2(0, UI3Theme.size_of("keycap_h") if _is_boss else UI3Theme.size_of("status_chip_h"))
+	var ic := UI3Theme.size_of("icon_m")
+	_tab_icon.custom_minimum_size = Vector2(ic, ic)
+	_tab_text.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
+	_tab_right.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
+	if _phase_label != null:
+		_phase_label.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
+	_chip_style.content_margin_left = sp12
+	_chip_style.content_margin_right = sp12
+	_chip.custom_minimum_size = Vector2(0, UI3Theme.size_of("keycap_h"))
+	(_chip.get_node("Row") as HBoxContainer).add_theme_constant_override("separation", UI3Theme.space("4"))
+	var cs := UI3Theme.size_of("icon_s")
+	_chip_icon.custom_minimum_size = Vector2(cs, cs)
+	_chip_text.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
+	var w := boss_w() if _is_boss else card_w()
+	custom_minimum_size.x = w
+	size.x = w
+	var ring := UI3Theme.selected_style(UI3Theme.radius("l") + 2 * UI3Theme.stroke("selected"), UI3Theme.stroke("selected"),
+		UI3Theme.space("4") + UI3Theme.stroke("selected"))
+	_ring.add_theme_stylebox_override("panel", ring)
+
+
+## The window scale changed (1920 <-> 1280): re-read every size token. Cheap no-op otherwise; EnemyColumn calls it
+## once per layout pass.
+func sync_scale() -> void:
+	if not _is_enemy or _plate == null:
+		return
+	var sc := UI3Theme.current_scale()
+	if is_equal_approx(sc, _built_scale):
+		return
+	_built_scale = sc
+	_plate.apply_sizes()
+	_strip.apply_sizes()
+	for t in [_tag_chip, _leader_badge]:
+		if t != null:
+			EnemyPlate.size_tag(t)
+	_apply_own_sizes()
 	_refresh_name()
 	_refresh_plate()
-	_sync_tags_row()
 
 
-## Plate style: the plate family from the theme (token colour, 2 px plate_edge, radius l, hard 4 px shadow) with a
-## fixed 4 px content margin, so a 4 px lit / big-hit border never moves the content. `border_w` 2 normal.
-func _make_plate_style(border_w: int) -> StyleBoxFlat:
-	var sb := (UI3Theme.get_theme().get_stylebox("panel", "PanelPlate") as StyleBoxFlat).duplicate() as StyleBoxFlat
-	sb.set_corner_radius_all(UI3Theme.radius("l"))
-	sb.set_border_width_all(border_w)
-	sb.border_color = UI3Theme.color("plate_edge")
-	sb.set_content_margin_all(4.0)
-	return sb
-
-
-## Plate, click area and this slot follow the content (tags row, big-hit strip, boss rows). Deferred once per
-## frame so several state pushes cost one pass.
+## Plate, click area, ring and this cluster follow the content. Deferred once per frame so several state pushes
+## cost one pass.
 func _queue_fit() -> void:
 	if _fit_queued or not _is_enemy or _plate == null:
 		return
@@ -521,16 +421,14 @@ func _fit_plate() -> void:
 	_fit_queued = false
 	if _plate == null or not is_instance_valid(_plate):
 		return
+	var w := boss_w() if _is_boss else card_w()
 	_plate.reset_size()
-	var w := BOSS_WIDTH if _is_boss else WIDTH
-	var ph := maxf(_plate.get_combined_minimum_size().y, ENEMY_HEIGHT if not _is_boss else BOSS_HEIGHT)
+	var ph := _plate.get_combined_minimum_size().y
 	_plate.size = Vector2(w, ph)
 	_click_catcher.size = Vector2(w, ph)
-	if not _is_boss:
-		_tab.position = Vector2(14, ph - 4)
-	custom_minimum_size.y = ph + 6.0 + 40.0
-	size = Vector2(size.x, custom_minimum_size.y)
-	_place_chip()
+	_ring.position = Vector2.ZERO
+	_ring.size = Vector2(w, ph)
+	_place_hangers()
 
 
 ## Kept for callers/tests that fit the boss plate by name.
@@ -538,46 +436,97 @@ func _fit_boss() -> void:
 	_fit_plate()
 
 
-## Height this card takes in the enemy column, including whatever hangs under the plate right now
-## (counter tab for non-bosses, Target / reason / preview label).
+## Tall column: fold the BigHitStrip away (the plate edge and the "!" badge still mark the big hit). EnemyColumn.
+func set_compact(on: bool) -> void:
+	if _compact == on:
+		return
+	_compact = on
+	_strip.visible = _big_hit and not on
+	_place_hangers()
+
+
+## Stacks the hanging items under the plate, right-aligned, 8 apart: counter tab, BigHitStrip, then the label.
+## The label is transient (hover / target): in a compact column it floats over what is below instead of taking room.
+func _place_hangers() -> void:
+	if _plate == null or _chip == null:
+		return
+	var w := _plate.size.x if _plate.size.x > 0.0 else (boss_w() if _is_boss else card_w())
+	var gap := float(UI3Theme.space("8"))
+	var y := _plate.size.y
+	var items: Array[Control] = []
+	if not _is_boss:
+		items.append(_tab)
+	items.append(_strip)
+	for c in items:
+		if not c.visible:
+			continue
+		c.size = Vector2.ZERO
+		var m := c.get_combined_minimum_size()
+		c.size = Vector2(minf(m.x, w), m.y)
+		c.position = Vector2(w - c.size.x, y + gap)
+		y = c.position.y + c.size.y
+	var body := y
+	_chip.visible = _chip_text.text != ""
+	if _chip.visible:
+		_chip.size = Vector2.ZERO
+		var cm := _chip.get_combined_minimum_size()
+		_chip.size = Vector2(minf(cm.x, w), cm.y)
+		_chip.position = Vector2(w - _chip.size.x, y + gap)
+		if not _compact:
+			y = _chip.position.y + _chip.size.y
+	custom_minimum_size.y = y
+	size = Vector2(w, y)
+	if _compact:
+		custom_minimum_size.y = body
+		size = Vector2(w, body)
+
+
+## Height this cluster takes in the enemy column: the plate and whatever hangs under it right now (the label only
+## when not compact).
 func stack_height() -> float:
 	if _plate == null:
 		return 0.0
+	if _plate.size.y <= 0.0:
+		_fit_plate()
+	return size.y
+
+
+## Height the cluster would take, without touching it: the plate, the counter tab, and (not compact) the
+## BigHitStrip and the label. EnemyColumn uses it to decide whether the column must go compact.
+func cluster_height(compact: bool) -> float:
+	if _plate == null:
+		return 0.0
+	if _plate.size.y <= 0.0:
+		_fit_plate()
+	var gap := float(UI3Theme.space("8"))
 	var h := _plate.size.y
-	if not _is_boss and _tab != null and _tab.visible:
-		h += TAB_H - 4.0
-	if _chip != null and _chip.visible:
-		h += 6.0 + _chip.get_combined_minimum_size().y
+	if not _is_boss and _tab.visible:
+		h += gap + _tab.get_combined_minimum_size().y
+	if _big_hit and not compact:
+		h += gap + _strip.get_combined_minimum_size().y
+	if not compact and _chip_text.text != "":
+		h += gap + _chip.get_combined_minimum_size().y
 	return h
 
 
+## Plate edge: 4 px when acting / lethal preview / big hit, else the 2 px plate_rim bevel. Lit = the TargetRing.
 func _refresh_plate() -> void:
-	if _plate_style == null:
+	if _plate == null:
 		return
-	var bw := 4 if (_lit or _acting or _lethal or _big_hit) else 2
-	_plate_style.set_border_width_all(bw)
+	var thick := _acting or _lethal or _big_hit
+	var col := UI3Theme.color("plate_rim")
 	if _lethal:
-		_plate_style.border_color = UI3Theme.color("danger_text")
-	elif _lit or _acting:
-		_plate_style.border_color = UI3Theme.color("selected_outline")
+		col = UI3Theme.color("danger_text")
+	elif _acting:
+		col = UI3Theme.color("selected_outline")
 	elif _big_hit:
-		_plate_style.border_color = UI3Theme.color("intent_bighit_border")
-	else:
-		_plate_style.border_color = UI3Theme.color("plate_edge")
+		col = UI3Theme.color("intent_bighit_border")
+	_plate.set_border(UI3Theme.stroke("selected") if thick else UI3Theme.stroke("rim"), col)
+	_ring.visible = _lit
 	if not _dying:
 		modulate.a = 0.6 if _illegal_reason != "" else 1.0
-	_place_chip()
-
-
-func _place_chip() -> void:
-	if _chip == null:
-		return
-	var txt := _chip_text.text
-	_chip.visible = txt != ""
-	var top := (_tab.position.y + TAB_H + 6.0) if (_tab.visible and not _is_boss) \
-		else (_plate.size.y + 6.0)
-	_chip.size = Vector2.ZERO
-	_chip.position = Vector2((size.x - _chip.get_combined_minimum_size().x) * 0.5, top)
+	_queue_fit()
+	_place_hangers()
 
 
 # ── State pushed by CombatView ───────────────────────────────────────────────────────────────
@@ -587,18 +536,17 @@ func set_incoming(amount: int) -> void:
 	_incoming = maxi(amount, 0)
 
 
-## Pack Alpha: shows the LEADER badge (glyph + word) under the name.
+## Pack Alpha: shows the LEADER tag (glyph + word) in the name row.
 func set_leader(on: bool) -> void:
 	if _leader_badge != null:
 		_leader_badge.visible = on
-		# LEADER replaces the ELITE tag (the fight already says Elite): ELITE + LEADER + "-> name" does not fit the plate.
+		# LEADER replaces the ELITE tag (the fight already says Elite): ELITE + LEADER does not fit the plate.
 		if _tag_chip != null and not _is_boss:
 			_tag_chip.visible = (not on) and _tag_kind != ""
-		_sync_tags_row()
 		_refresh_name()
 
 
-## Resonance Shell: bar + "cur / max"; hidden when max <= 0 (feature off, or no Shell on this unit).
+## Resonance Shell: bar + "cur/max"; hidden when max <= 0 (feature off, or no Shell on this unit).
 func set_shell(cur: int, max_v: int) -> void:
 	if _shell_row == null:
 		return
@@ -609,7 +557,6 @@ func set_shell(cur: int, max_v: int) -> void:
 	_shell_bar.set_stats(maxi(cur, 0), max_v)
 	_shell_label.text = "%d/%d" % [maxi(cur, 0), max_v]   # the SHELL word is the tag on the left of the row
 	_shell_row.set_meta("shell_text", "SHELL " + _shell_label.text)
-	_queue_fit()
 
 
 func has_shell() -> bool:
@@ -620,6 +567,13 @@ func is_leader() -> bool:
 	return _leader_badge != null and _leader_badge.visible
 
 
+## HPValue text: "19 / 19" on an enemy, "167/167" on the boss line (as the frames).
+func _hp_text() -> String:
+	if _hp_bar != null and _lethal:
+		return _hp_bar.shown_text()
+	return ("%d/%d" if _is_boss else "%d / %d") % [maxi(_hp, 0), _max_hp]
+
+
 ## The "single read-model entry point": HP, shield, statuses.
 func update_stats(hp: int, max_hp: int, shield: int, status: Dictionary) -> void:
 	_hp = hp
@@ -627,7 +581,10 @@ func update_stats(hp: int, max_hp: int, shield: int, status: Dictionary) -> void
 	if not _is_enemy or _hp_bar == null:
 		return
 	_hp_bar.set_stats(hp, _max_hp)
-	_hp_label.text = "%d / %d" % [maxi(hp, 0), _max_hp]
+	var prev_len := _hp_label.text.length()
+	_hp_label.text = _hp_text()
+	if _hp_label.text.length() != prev_len:
+		_refresh_name()   # the name's share of the row depends on the HP text width
 	if hp > 0:
 		_dying = false
 		visible = true
@@ -635,64 +592,42 @@ func update_stats(hp: int, max_hp: int, shield: int, status: Dictionary) -> void
 	elif not _dying:
 		modulate.a = 0.0
 		visible = false
+	_queue_fit()
 
 
-## Name + intent block + target. `intent` = {show:bool, type:String, num:int, label:String,
-## target:String, boosted:bool}. `show=false` renders "NO MOVE".
+## Intent column. `intent` = {show:bool, type:String, num:int, label:String, target:String, boosted:bool,
+## big_hit:bool}. `show=false` renders "NO MOVE"; a blank face renders IDLE.
 func set_intent(intent: Dictionary) -> void:
 	if not _is_enemy or _intent_panel == null:
 		return
 	_boosted = bool(intent.get("boosted", false))
-	var big := bool(intent.get("big_hit", false)) and bool(intent.get("show", false)) \
-		and not CombatLabels.is_blank_intent(String(intent.get("type", "")))
+	var show := bool(intent.get("show", false))
+	var ftype := String(intent.get("type", "blank"))
+	var big := bool(intent.get("big_hit", false)) and show and not CombatLabels.is_blank_intent(ftype)
+	_intent_panel.set_intent(show, ftype, int(intent.get("num", 0)), String(intent.get("label", "")), big,
+		_boosted, _acting)
 	_set_big_hit(big)
-	var face := TrayColumn.ui3_face(String(intent.get("type", "blank")))
-	_intent_next.text = TranslationServer.translate("Next")
-	_intent_icon.modulate.a = 1.0
-	_intent_num.add_theme_color_override("font_color", UI3Theme.color("accent") if _boosted else UI3Theme.color("text"))
-	_intent_action.add_theme_color_override("font_color", UI3Theme.color(String(UI3.FACE_WORD_COLOR.get(face, "text_muted"))))
-	_intent_style.bg_color = UI3Theme.color("intent_bighit_bg") if big else UI3Theme.color("panel_raised")
-	if not bool(intent.get("show", false)) or CombatLabels.is_blank_intent(String(intent.get("type", ""))):
-		# IDLE: intent_idle_bg, face_blank at 70 %, "–" in neutral-7, the word IDLE in text_muted.
-		_intent_style.bg_color = UI3Theme.color("intent_idle_bg")
-		_intent_icon.texture = UI3.icon("face_blank")
-		_intent_icon.modulate.a = 0.7
-		_intent_num.text = "–"
-		_intent_num.add_theme_color_override("font_color", UI3Theme.color("category_chip"))
-		_intent_action.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
-		_target_label.text = ""
-		if not bool(intent.get("show", false)):
-			_intent_action.text = "NO MOVE"
-			_sync_tags_row()
-			return
-		_intent_action.text = "IDLE"
-		_intent_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-		UI3Tooltip.bind(_intent_panel, "Does nothing this turn.")
-		_sync_tags_row()
+	if not show:
+		UI3Tooltip.bind(_intent_panel, "")
 		return
-	_intent_icon.texture = UI3.icon(String(UI3.FACE_ICON.get(face, "face_blank")))
-	_intent_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	if CombatLabels.is_blank_intent(ftype):
+		UI3Tooltip.bind(_intent_panel, "Does nothing this turn.")
+		return
 	# UI3 plate, not the native tooltip: a native one is an OS-level popup that no overlay can cover (BUG-0005).
-	UI3Tooltip.bind(_intent_panel, ("Can knock out an Axie.\n" if big else "") + "Next: %s %d%s\nEnemy intent is public: this is the number that lands, with enrage, attrition and big hits already included." % [
-		String(intent.get("label", "")), int(intent.get("num", 0)),
-		(" on " + String(intent.get("target", ""))) if String(intent.get("target", "")) != "" else ""])
-	_intent_num.text = str(int(intent.get("num", 0)))
-	_intent_action.text = "ACTING" if _acting else String(intent.get("label", ""))
 	var tgt := String(intent.get("target", ""))
-	_target_label.text = "%s %s" % [HudKit.arrow(), tgt] if tgt != "" else ""
-	_sync_tags_row()
+	UI3Tooltip.bind(_intent_panel, ("Can knock out an Axie.\n" if big else "") + "Next: %s %d%s\nEnemy intent is public: this is the number that lands, with enrage, attrition and big hits already included." % [
+		String(intent.get("label", "")), int(intent.get("num", 0)), (" on " + tgt) if tgt != "" else ""])
 
 
-## Big hit: red "!" badge after the name, 4 px intent_bighit_border on the plate, 40 px strip inside the plate.
+## Big hit: "!" badge in the name row, 4 px intent_bighit_border plate edge, BigHitStrip under the plate.
 func _set_big_hit(on: bool) -> void:
 	_big_hit = on
 	if _bang != null:
 		_bang.visible = on
 	if _strip != null:
-		_strip.visible = on
+		_strip.visible = on and not _compact
 	_refresh_name()
 	_refresh_plate()
-	_queue_fit()
 
 
 ## True while the strip / badge show (tests, motion).
@@ -700,17 +635,7 @@ func is_big_hit() -> bool:
 	return _big_hit
 
 
-## The tags row takes height only while it has something to show (ELITE / LEADER tag or a "-> target" line).
-func _sync_tags_row() -> void:
-	if _tags_row == null:
-		return
-	var any := _leader_badge.visible or (_tag_chip != null and _tag_chip.visible and not _is_boss) \
-		or (_target_label != null and _target_label.text != "")
-	_tags_row.visible = any
-	_queue_fit()
-
-
-## Boss phase line (e.g. "Phase 1 of 2"). One-phase bosses hide it (Liam 20/10); the 66/33 HP bar
+## Boss phase line (e.g. "Phase 1 of 2"). One-phase bosses hide it (Liam 20/10); the 1/3 and 2/3 HP bar
 ## marks are ticks, not phases.
 func set_phase(phase: int, total: int = 1) -> void:
 	if _phase_label != null:
@@ -719,23 +644,27 @@ func set_phase(phase: int, total: int = 1) -> void:
 		_queue_fit()
 
 
-## The counter tab. spec: {} hides it. Else {kind:"spike"|"clock", bg, ink, text, right, pips:[Color],
-## icon}. Built by HudKit.clock_tab() / CombatView for spikes.
+## The counter tab. spec: {} hides it. Else {kind:"spike"|"clock", bg, ink, text, right, pips:[Color], icon, maxed}.
+## Built by HudKit.clock_tab() / EnemyColumn for spikes. Boss: the EnrageRow (no fill, attrition word, red at the cap).
 func set_tab(spec: Dictionary) -> void:
 	if _tab == null:
 		return
 	if spec.is_empty():
 		_tab.visible = false
 		_queue_fit()
-		_place_chip()
+		_place_hangers()
 		return
 	_tab.visible = true
-	_queue_fit()
 	_tab_icon.texture = spec.get("icon", null)
+	_tab_icon.visible = _tab_icon.texture != null
 	_tab_text.text = String(spec.get("text", ""))
-	if _is_boss:   # Enrage row: amber word, red at the cap, no fill (the divider above it is the row)
+	if _is_boss:
 		_tab_text.add_theme_color_override("font_color",
-			UI3Theme.color("danger_text") if bool(spec.get("maxed", false)) else UI3Theme.color("accent"))
+			UI3Theme.color("attrition_max") if bool(spec.get("maxed", false)) else UI3Theme.color("attrition"))
+	else:
+		_tab_style.bg_color = spec.get("bg", UI3Theme.color("plate_raised"))
+		_tab_text.add_theme_color_override("font_color", spec.get("ink", UI3Theme.color("text")))
+		_tab_right.add_theme_color_override("font_color", spec.get("ink", UI3Theme.color("text")))
 	_tab_right.text = String(spec.get("right", ""))
 	for c in _tab_pips.get_children():
 		_tab_pips.remove_child(c)
@@ -746,7 +675,8 @@ func set_tab(spec: Dictionary) -> void:
 		pip.custom_minimum_size = Vector2(9, 14)
 		pip.add_theme_stylebox_override("panel", HudKit.box(col, 3, 2))
 		_tab_pips.add_child(pip)
-	_place_chip()
+	_queue_fit()
+	_place_hangers()
 
 
 ## Plate lit (legal target / selected).
@@ -755,26 +685,26 @@ func set_selected(v: bool) -> void:
 	_refresh_plate()
 
 
-## View-only "legal target" affordance (gold plate border; the ground ring is Stage3D's).
+## View-only "legal target" affordance (TargetRing around the plate; the ground ring is Stage3D's).
 func set_targetable(v: bool) -> void:
 	_lit = v
 	_restore_chip()
 	_refresh_plate()
 
 
-## The resting label under a legal target: "Target · Name" (cream fill, wood-1 text). A reason or a damage
+## The resting label under a legal target: "Target · Name" (cream fill, ink text). A reason or a damage
 ## preview replaces it while they last.
 func _restore_chip() -> void:
 	if _chip_text == null or _preview > 0 or _illegal_reason != "":
 		return
 	if _lit and _name_label != null:
 		_show_chip("%s %s %s" % [TranslationServer.translate("Target"), HudKit.dot(), full_name()],
-			UI3Theme.color("text"), UI3Theme.color("die_ink"), null)
+			UI3Theme.color("text"), UI3Theme.color("text_ink"), null)
 	else:
 		_hide_chip()
 
 
-## Illegal target: plate at 60% + reason chip (dusk + lock). "" clears.
+## Illegal target: plate at 60% + reason label (danger_bg + lock). "" clears.
 ## `show_chip` false: still dimmed + untargetable, but the reason line is left to ONE sibling (CombatView shows it on
 ## the first living unit of the side), so four foes do not repeat the same strip.
 func set_illegal(reason: String, show_chip := true) -> void:
@@ -796,9 +726,8 @@ func set_acting(v: bool) -> void:
 	_refresh_plate()
 
 
-## Damage preview from a hovered/selected die: gold hatched HP segment + chip "-12 | 38 > 26",
-## or, if it kills, THREAT border, HP text "11 / 70 > 0" and the gold WILL DIE chip (the big-hit
-## tab stays visible).
+## Damage preview from a hovered/selected die: gold hatched HP segment + label "-12 · 38 > 26",
+## or, if it kills, the danger plate edge, HP text "11 / 70 > 0" and the "Will die" label.
 func set_preview_damage(dmg: int) -> void:
 	_preview = dmg
 	if _hp_bar == null:
@@ -816,8 +745,8 @@ func set_preview_damage(dmg: int) -> void:
 	else:
 		_hp_bar.set_lethal_text("")
 		_show_chip("%s%d %s %d %s %d" % [HudKit.minus(), dmg, HudKit.dot(), _hp, HudKit.arrow(),
-			after], UI3Theme.color("text"), UI3Theme.color("die_ink"), UI3.icon("face_dmg"))
-	_hp_label.text = _hp_bar.shown_text()
+			after], UI3Theme.color("text"), UI3Theme.color("text_ink"), UI3.icon("face_dmg"))
+	_hp_label.text = _hp_text()
 	_refresh_plate()
 
 
@@ -826,7 +755,7 @@ func clear_preview_damage() -> void:
 	_lethal = false
 	if _hp_bar != null:
 		_hp_bar.clear_preview()
-		_hp_label.text = _hp_bar.shown_text()
+		_hp_label.text = _hp_text()
 	if _illegal_reason == "":
 		_hide_chip()
 		_restore_chip()
@@ -839,13 +768,13 @@ func _show_chip(text: String, fill: Color, ink: Color, icon_tex: Texture2D) -> v
 	_chip_text.add_theme_color_override("font_color", ink)
 	_chip_icon.texture = icon_tex
 	_chip_icon.visible = icon_tex != null
-	_place_chip()
+	_place_hangers()
 
 
 func _hide_chip() -> void:
 	if _chip_text != null:
 		_chip_text.text = ""
-		_place_chip()
+		_place_hangers()
 
 
 ## Shown HP text, for tests ("34 / 52").

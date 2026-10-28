@@ -83,7 +83,7 @@ func _run(sz: Vector2) -> void:
 	# Tall enemy column: the Attrition card is placed far down; it must be clamped above the ActionDock top.
 	var attr: Control = hud.get("_attr_card")
 	attr.visible = true
-	hud.place_attrition(Vector2(sz.x - MARGIN - UnitPortrait.WIDTH, sz.y - 40.0))
+	hud.place_attrition(Vector2(sz.x - MARGIN - UnitPortrait.card_w(), sz.y - 40.0))
 	await get_tree().process_frame
 	var dock: Control = hud.get("_dock")
 	var attr_r := Rect2(attr.global_position - host.global_position, attr.size)
