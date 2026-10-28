@@ -81,7 +81,7 @@ static func show(host: Node, code := "version", on_close: Callable = Callable())
 const BAR_NAME := "UpdateRequiredBar"
 
 
-## "Update required" bar: thin, top-centre, on its own layer on the tree root so it outlives the scene
+## "Update required" bar (UI-04 M6): full width, 56 high, top edge, on its own layer on the tree root so it outlives the scene
 ## change that follows Close. One at a time. Its button does the same as the modal's primary button.
 static func show_bar(tree: SceneTree) -> Node:
 	if tree == null or tree.root == null:
@@ -92,25 +92,17 @@ static func show_bar(tree: SceneTree) -> Node:
 	var layer := CanvasLayer.new()
 	layer.name = BAR_NAME
 	layer.layer = 110
-	var top := CenterContainer.new()
-	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	top.offset_top = 0   # top edge: the bottom holds the dice tray and run controls
-	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.add_child(top)
-	var panel := UI3.plate(&"notice")
-	panel.name = "Panel"
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE   # only the button takes clicks
-	top.add_child(panel)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
-	panel.add_child(row)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var msg := UI3.label("Update required. New runs are blocked on this version.")
-	msg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(msg)
-	var b := UI3.button("Reload the page" if is_web() else "Download", &"secondary", &"S")
-	b.name = "BarButton"
-	b.pressed.connect(open_download)
-	row.add_child(b)
-	tree.root.add_child(layer)
+	# UI-04 M6: UI3.update_bar, full width on the top edge, 56 high, no close button.
+	var how := "Reload the page" if is_web() else "Download the new version"
+	var bar := UI3.update_bar("This version is out of date",
+		"It can't start new runs. %s to get the update. Nothing was spent." % how,
+		"Reload the page" if is_web() else "Download", open_download)
+	bar.name = "Panel"
+	bar.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	bar.offset_bottom = 56
+	var rb := bar.find_child("Reload", true, false) as Button
+	rb.name = "BarButton"
+	rb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	layer.add_child(bar)
+	tree.root.add_child.call_deferred(layer)
 	return layer
