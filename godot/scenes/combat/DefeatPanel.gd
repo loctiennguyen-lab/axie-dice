@@ -225,10 +225,6 @@ func _continue_block(d: Dictionary) -> Control:
 	# The price appears once, inside the primary button.
 	_continue_button = UI3.button_with_cost("Continue", &"free" if variant == "gift" else &"gem", price, not enabled, &"L")
 	_continue_button.name = "Continue"
-	# UI3.button_with_cost reads the state styleboxes before the button is in the tree, where the type variation is not
-	# resolved yet: it bakes in the grey engine default (dark fill, dark text on the violet card). Re-take them once
-	# the button is in the tree, keeping the room it reserves for the chip. (UI3.gd is off limits for this lane.)
-	_continue_button.ready.connect(_restyle_continue, CONNECT_ONE_SHOT)
 	_continue_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_continue_button.pressed.connect(func(): continue_pressed.emit())
 	_continue_button.visible = shown
@@ -243,16 +239,6 @@ func _continue_block(d: Dictionary) -> Control:
 		box.visible = false
 	v.add_child(_continue_button)
 	return box
-
-
-func _restyle_continue() -> void:
-	if _continue_button == null or not is_instance_valid(_continue_button):
-		return
-	for st in ["normal", "hover", "pressed", "disabled"]:
-		_continue_button.remove_theme_stylebox_override(st)
-		var sb := _continue_button.get_theme_stylebox(st).duplicate() as StyleBoxFlat
-		sb.content_margin_right += 96 + UI3Theme.space("8")
-		_continue_button.add_theme_stylebox_override(st, sb)
 
 
 func _effect_line(d: Dictionary) -> String:

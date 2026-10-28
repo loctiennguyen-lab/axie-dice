@@ -1562,7 +1562,6 @@ func _layout_row_strip(x0: float, col_w: float, gap: float, top: float) -> void:
 		var word := "FRONT" if r == 0 else "BACK"
 		var l := UI3.label(word, "LabelDisplay")
 		l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
-		l.add_theme_color_override("font_color", UI3Theme.color("text" if r == 0 else "text_muted"))
 		l.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		l.position = Vector2(x, top - 8.0 - TrayColumn.DOCK_LABEL_H)

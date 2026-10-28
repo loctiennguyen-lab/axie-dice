@@ -2009,10 +2009,21 @@ func _apply_and_finish(reward: Dictionary) -> void:
 		var ban := _combo_banner(formed)
 		if ban != null and ban.running:
 			await ban.finished
-	if take_tw != null and take_tw.is_valid() and take_tw.is_running():
-		await take_tw.finished
+	await _wait_tween_bounded(take_tw, TAKE_TWEEN_CAP_MS)
 	_taking = false
 	_finish_node()
+
+
+const TAKE_TWEEN_CAP_MS := 1000   ## longest core_take / reward_take beat is ~400 ms; this is the hard stop
+
+## Waits for `tw` but never forever: if the card the tween is bound to is freed mid-take the tween dies without
+## emitting `finished`, so a plain `await tw.finished` would leave `_taking` true and the node unfinished.
+func _wait_tween_bounded(tw: Tween, cap_ms: int) -> void:
+	if tw == null:
+		return
+	var deadline := Time.get_ticks_msec() + cap_ms
+	while tw.is_valid() and tw.is_running() and Time.get_ticks_msec() < deadline and is_inside_tree():
+		await get_tree().process_frame
 
 
 ## Plays the awaken moment when one is pending and this run has not seen it yet. null = nothing to play.

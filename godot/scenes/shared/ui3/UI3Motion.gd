@@ -417,7 +417,7 @@ static func _after(node: CanvasItem, m: Dictionary, opts: Dictionary) -> void:
 ## Hit-stop: Engine.time_scale 0.05 for `ms` of real time, then back to 1. UI-04 Big hit / boss phase / victory.
 ## Call sites never need to reset it; a second call while one runs is ignored.
 static func hitstop(node: Node, ms: float) -> void:
-	if reduced() or Engine.time_scale < 0.5 or not node.is_inside_tree():
+	if reduced() or MetaState.reduce_flash or Engine.time_scale < 0.5 or not node.is_inside_tree():
 		return
 	Engine.time_scale = 0.05
 	var t := node.get_tree().create_timer(ms / 1000.0, true, false, true)   # ignore_time_scale

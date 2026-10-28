@@ -74,6 +74,8 @@ var _dock: PanelContainer         ## ActionDock plate (352 wide), behind the but
 var _reroll_cap: PanelContainer
 signal wait_dim_changed(on: bool)
 var _wait_dim := false
+var _dim_tweens: Array[Tween] = []
+var _dim_timer_gen := 0   ## bumps on every set_seed_wait: a stale 300 ms dim timer checks it and does nothing
 var undo_button: Button
 var reroll_button: Button
 var end_turn_button: Button
@@ -872,13 +874,15 @@ func set_seed_wait(on: bool) -> void:
 		_seed_wait = on
 		return
 	_seed_wait = on
+	_dim_timer_gen += 1
 	if on:
 		_apply_seed_wait()
 		layout()
 		# Waiting state (motion `waiting_server`): the actions dim only after 300 ms, so a quick answer never flickers.
 		if is_inside_tree():
+			var gen := _dim_timer_gen
 			get_tree().create_timer(0.3).timeout.connect(func() -> void:
-				if _seed_wait:
+				if _seed_wait and gen == _dim_timer_gen:
 					_set_dim(true))
 	else:
 		_hint.text = _hint_before_wait   # the next update_right() refreshes everything else
@@ -891,6 +895,10 @@ func _set_dim(on: bool) -> void:
 		return
 	_wait_dim = on
 	wait_dim_changed.emit(on)
+	for old in _dim_tweens:   # a flip within the 120 ms fade must not leave two tweens fighting over alpha
+		if old != null and old.is_valid():
+			old.kill()
+	_dim_tweens.clear()
 	var a := 0.4 if on else 1.0
 	for b in [undo_button, hold_button, wild_button, overcast_button, reroll_button, end_turn_button]:
 		if b == null:
@@ -902,7 +910,9 @@ func _set_dim(on: bool) -> void:
 			if UI3Motion.reduced() or not is_inside_tree():
 				(it as CanvasItem).modulate.a = a
 			else:
-				create_tween().tween_property(it, "modulate:a", a, 0.12)
+				var tw := create_tween()
+				tw.tween_property(it, "modulate:a", a, 0.12)
+				_dim_tweens.append(tw)
 
 
 func _apply_seed_wait() -> void:
@@ -1057,6 +1067,11 @@ func layout() -> void:
 		_tray_top = top - DOCK_PAD
 		_dock.size = Vector2(DOCK_W, h - EDGE - _tray_top)
 		_dock.position = Vector2(w - EDGE - DOCK_W, _tray_top)
+		# A tall enemy column (boss + 4-5 enemies) pushes the Attrition card down behind the ActionDock: keep it above.
+		if _attr_right_pos.x >= 0.0 and _attr_card.visible:
+			var max_y := _tray_top - 8.0 - UI3Theme.size_of("attrition_h")
+			if _attr_card.position.y > max_y:
+				_attr_card.position.y = max_y
 		_speed.position = reroll_button.position
 		_speed.size = Vector2(RIGHT_W, SMALL_H)
 	if _log_plate != null:

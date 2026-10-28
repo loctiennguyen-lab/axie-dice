@@ -80,6 +80,16 @@ func _run(sz: Vector2) -> void:
 				_assert(not vis_rects[i].grow(-1.0).intersects(vis_rects[j].grow(-1.0)),
 					"%s: right-block controls overlap (%s / %s)" % [tag, vis_rects[i], vis_rects[j]])
 		_assert(end.text == ("Enemy turn" if st["res"] else "End turn"), "%s: End turn label is '%s'" % [tag, end.text])
+	# Tall enemy column: the Attrition card is placed far down; it must be clamped above the ActionDock top.
+	var attr: Control = hud.get("_attr_card")
+	attr.visible = true
+	hud.place_attrition(Vector2(sz.x - MARGIN - UnitPortrait.WIDTH, sz.y - 40.0))
+	await get_tree().process_frame
+	var dock: Control = hud.get("_dock")
+	var attr_r := Rect2(attr.global_position - host.global_position, attr.size)
+	var dock_r := Rect2(dock.global_position - host.global_position, dock.size)
+	_assert(not attr_r.intersects(dock_r), "%dx%d: Attrition card %s overlaps the ActionDock %s" % [int(sz.x), int(sz.y), attr_r, dock_r])
+	_assert(attr_r.position.y >= 0.0, "%dx%d: clamped Attrition card went off the top" % [int(sz.x), int(sz.y)])
 	host.queue_free()
 
 
