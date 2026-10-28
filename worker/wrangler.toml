@@ -26,6 +26,9 @@ GOOGLE_CLIENT_ID = "597753927078-rn7b186qo0obgalq3hgpiv6k7g0mk7dl.apps.googleuse
 # R3 (beta SR1): Mission stake/payout move on the server Shard wallet (worker/src/missions.js). Ship together with
 # the client `[axie] econ="remote"` and after D1 0011_economy.
 ECON_SHARD_WALLET = "1"
+# SR-V (27/10, Liam): shadow verifier queue. Records only, never changes rewards/outcome/leaderboard.
+# Needs D1 0012_verify and the VERIFY_HMAC_KEY secret (runner: verifier/runner.sh on Liam's Mac).
+VERIFY_SHADOW = "1"
 
 # Player profiles, saves and sessions (design: claude/ACCOUNT_SYSTEM_v1.md §4).
 [[d1_databases]]
