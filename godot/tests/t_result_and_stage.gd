@@ -44,8 +44,9 @@ const RESULT_SCENE := "res://scenes/result/Result.tscn"
 ## ("where the spec and a mockup disagree, the mockup is right") that literal order is what
 ## ResultView.gd now builds — see that file's `_build_card_row()` comment. So this file no
 ## longer asserts relics-before-currency; it only checks that all three cards are still present.
-const EXPECTED_BAND_ORDER: Array[String] = ["PartyRow", "StatRibbon", "CardRow", "Footer"]
-const EXPECTED_CARD_ROW_CAPTIONS: Array[String] = ["GENE SHARD", "SEASON PASS", "CORES"]
+## UI-04 10-result order: header (PartyRow sits under it), Shards, Pass, Stats, Cores, Footer.
+const EXPECTED_BAND_ORDER: Array[String] = ["PartyRow", "ShardCard", "PassCard", "StatRibbon", "RelicsCard", "Footer"]
+const EXPECTED_CARD_ROW_CAPTIONS: Array[String] = ["SHARDS NOW", "SEASON PASS", "CORES"]
 
 const EXPECTED_TESTS: Array[String] = [
 	"test_every_spawned_unit_gets_a_ground_shadow",

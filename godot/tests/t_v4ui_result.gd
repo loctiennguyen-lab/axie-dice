@@ -33,11 +33,9 @@ func _ready() -> void:
 	var crow := view.find_child("CoreRow_%s" % core, true, false)
 	_check(prow != null and crow != null, "both core rows exist")
 	if prow != null and crow != null:
-		var pt: Array = []
-		_texts(prow, pt)
-		var ct: Array = []
-		_texts(crow, ct)
-		var ptxt := " ".join(pt)
+		# UI-04: chips carry the name (+ "x n"); the detail text lives in the chip tooltip.
+		var ptxt := String(prow.get_meta("ui3_tip", ""))
+		var ct: Array = [String(crow.get_meta("ui3_tip", ""))]
 		_check(ptxt.contains("Pact · passive"), "pact label: %s" % ptxt)
 		_check(not ptxt.contains("never fired") and not ptxt.contains("Most impact"), "pact has no never-fired / Most impact")
 		_check(" ".join(ct).contains("Most impact"), "the real core is the top: %s" % " ".join(ct))
