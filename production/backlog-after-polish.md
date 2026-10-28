@@ -34,6 +34,11 @@ Liam: "những việc còn đang dở, note lại để làm sau, sau khi xong p
   - Tutorial, giới thiệu boss.
 - Khung cosmetics round 6: chờ zip Claude Design (`design/handoffs/cosmetics-3d/PROMPT-ROUND-6.md`).
 - S4-7: icon riêng cho từng nhóm Lõi (cần art).
+- **Art (Liam 28/10):** Anchor art hiện rất xấu, và còn nhiều art khác cần làm ngoài UI-05.
+  - Nguồn art: Claude Design vẽ + thư viện HomeLand/Atia (`asset-library/`).
+  - Anchor: mỗi Anchor có một tranh minh hoạ cảnh như lá bài (Axie + cảnh Lunacia thể hiện luật), đặt trên đầu thẻ.
+  - Thời điểm: SAU khi UI-05 đợt 1 (trận đấu) chốt phong cách.
+  - Danh sách chỗ thiếu art: `design/art/art-gap-audit-2026-10-28.md` (art-director đang viết).
 - Liam quyết: N6 có cần thêm "thắng một run Full" như kế hoạch beta không (phải đổi luật + Worker).
 
 ### Phát hành / vận hành
