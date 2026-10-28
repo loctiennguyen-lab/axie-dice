@@ -1774,6 +1774,11 @@ func _play_action_motion(uid: int, entry: Dictionary, face_type: String,
 	var rest: Vector3 = entry.get("rest_pos", slot.position)
 	slot.position = rest
 	slot.scale = Vector3.ONE
+	# Reduce motion: no lunge, no cast dip. The attack still reads through the clip, VFX and the
+	# damage number; CombatView's impact/enemy-step timing is timer-based so nothing waits on this.
+	if UI3Motion.reduced():
+		entry["action_tween"] = null
+		return
 
 	var tw := create_tween()
 	tw.set_parallel(true)
@@ -2043,6 +2048,9 @@ func _atia_flinch(entry: Dictionary) -> void:
 	var base_s: Vector3 = entry["flinch_base"]["scale"]
 	var base_p: Vector3 = entry["flinch_base"]["pos"]
 	visual.scale = base_s
+	if UI3Motion.reduced():
+		visual.position = base_p
+		return
 	var tw := create_tween()
 	entry["flinch_tween"] = tw
 	tw.set_parallel(true)
@@ -2150,7 +2158,11 @@ func _start_death_fade(uid: int, entry: Dictionary) -> void:
 		var lt := create_tween()
 		lt.tween_property(eye_light, "light_energy", 0.0, _DEATH_FADE_DURATION).set_ease(Tween.EASE_IN)
 	var tw := create_tween()
-	tw.tween_property(slot, "scale", Vector3.ZERO, _DEATH_FADE_DURATION)
+	if UI3Motion.reduced():
+		# No shrink: hold the pose for one short beat, then drop out.
+		tw.tween_interval(UI3Motion.REDUCED_MAX_SEC)
+	else:
+		tw.tween_property(slot, "scale", Vector3.ZERO, _DEATH_FADE_DURATION)
 	tw.finished.connect(func():
 		if is_instance_valid(slot):
 			slot.visible = false)
@@ -2187,6 +2199,7 @@ func play_victory_march(uids: Array, distance: float, duration: float) -> void:
 	tw.set_parallel(true)
 	_exit_tween = tw
 	var moved := false
+	var reduced := UI3Motion.reduced()
 	for uid in uids:
 		var entry: Dictionary = _units.get(uid, {})
 		if entry.is_empty() or bool(entry.get("dying", false)):
@@ -2214,14 +2227,18 @@ func play_victory_march(uids: Array, distance: float, duration: float) -> void:
 			# unit is actually facing right now, regardless of row/rotation convention.
 			var world_dir: Vector3 = slot.transform.basis * Vector3(0.0, 0.0, 1.0)
 			target = slot.position + world_dir * distance
-		tw.tween_property(slot, "position", target, duration) \
-			.set_trans(Tween.TRANS_SINE if not to_gate else Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		if reduced:
+			# No slide: units stay put; the scene change after the await is the cut.
+			tw.tween_interval(UI3Motion.REDUCED_MAX_SEC)
+		else:
+			tw.tween_property(slot, "position", target, duration) \
+				.set_trans(Tween.TRANS_SINE if not to_gate else Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		moved = true
 	if not moved:
 		tw.kill()
 		_exit_tween = null
 		return
-	if to_gate and not CombatView.flashes_suppressed():
+	if to_gate and not CombatView.flashes_suppressed() and not reduced:
 		# Same white flash as transition_to_arena(), but it only rises (the scene changes under it).
 		_ensure_flash()
 		_flash.color.a = 0.0
@@ -2281,6 +2298,8 @@ func _start_idle_bob(uid: int) -> void:
 	var visual: Node3D = entry.get("visual")
 	if entry.is_empty() or not is_instance_valid(visual):
 		return
+	if UI3Motion.reduced():
+		return   # ambient bob is motion too
 	var base_y := visual.position.y
 	var amp := randf_range(_IDLE_BOB_AMP_MIN, _IDLE_BOB_AMP_MAX)
 	var half_period := randf_range(_IDLE_BOB_PERIOD_MIN, _IDLE_BOB_PERIOD_MAX) * 0.5

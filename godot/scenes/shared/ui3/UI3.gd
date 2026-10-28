@@ -1238,7 +1238,12 @@ class Spinner extends Control:
 		size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 	func _process(delta: float) -> void:
-		if not MetaState.reduce_flash:
+		if UI3Motion.reduced():
+			# Reduce motion: no rotation. Slow alpha pulse so "busy" is still readable.
+			rotation = 0.0
+			modulate.a = 0.65 + 0.35 * sin(Time.get_ticks_msec() * 0.006)
+		elif not MetaState.reduce_flash:
+			modulate.a = 1.0
 			rotation += delta * TAU * 0.75
 
 	func _ready() -> void:

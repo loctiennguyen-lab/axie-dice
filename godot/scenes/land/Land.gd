@@ -1166,6 +1166,8 @@ func _hover(id: String, on: bool) -> void:
 		return
 	var n: Node3D = _nodes3d[id]["node"]
 	var s := float(_nodes3d[id]["scale"])
+	if UI3Motion.reduced():
+		return   # no hover scale; the sign highlight above already shows it
 	var t := create_tween()
 	t.tween_property(n, "scale", Vector3.ONE * s * (1.05 if on else 1.0), 0.12)
 
