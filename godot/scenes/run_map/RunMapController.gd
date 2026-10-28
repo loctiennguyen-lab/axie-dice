@@ -50,7 +50,8 @@ const _MAP_PAD_X := 96.0
 const _LANE_Y: Array[float] = [150.0, 300.0, 450.0]
 const _NODE_SIZE := {"battle": 56.0, "event": 56.0, "shop": 56.0, "treasure": 56.0, "elite": 72.0, "boss": 96.0}
 const _NODE_ICON_PX := {"battle": 32.0, "event": 32.0, "shop": 32.0, "treasure": 32.0, "elite": 40.0, "boss": 56.0}
-const _PLATE_LEFT_W := 384.0
+const _PLATE_LEFT_W := 400.0   # UI-04 03-run-map: party plate 400
+const _PLATE_CORES_W := 460.0  # UI-04 03-run-map: Cores plate 460
 const _PLATE_RIGHT_W := 416.0
 const _SCREEN_MARGIN := 24.0
 const _RELIC_ROW_H := 44.0
@@ -167,7 +168,7 @@ func _ready() -> void:
 	_detail_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_board.add_child(_detail_root)
 
-	var hint := UI3.key_hint(tr("Arrows pick · Enter or double-click travels · Esc menu"))
+	var hint := _key_hints()
 	hint.name = "KeyHint"
 	hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
@@ -182,6 +183,38 @@ func _ready() -> void:
 
 
 ## Single "read RunState, redraw" entry point. Everything is rebuilt on each call (a handful of nodes).
+## UI-04 03-run-map key hint pill (bottom-right): key caps + words. Keeps every key the old line named
+## (arrows pick, Enter travels, Esc menu; double-click still travels).
+func _key_hints() -> PanelContainer:
+	var pill := UI3.plate(&"plate")
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UI3Theme.space("8"))
+	pill.add_child(row)
+	for pair in [["\u2190 \u2192", "pick"], ["Enter", "travel"], ["Esc", "menu"]]:
+		var cap := UI3.keycap(String(pair[0]))
+		cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(cap)
+		var l := UI3.label(tr(String(pair[1])), "LabelMuted")
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		row.add_child(l)
+	return pill
+
+
+## Primary button with a small key cap on its right ("Travel [Enter]").
+static func _add_keycap_to_button(b: Button, key: String) -> void:
+	var cap := UI3.keycap(key, true)
+	cap.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+	cap.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	cap.grow_vertical = Control.GROW_DIRECTION_BOTH
+	cap.offset_right = -UI3Theme.space("16")
+	b.add_child(cap)
+	for st in ["normal", "hover", "pressed", "disabled"]:
+		var sb := b.theme.get_stylebox(st, b.theme_type_variation).duplicate() as StyleBoxFlat
+		sb.content_margin_right += 72
+		sb.content_margin_left += 72   # keeps the label centred
+		b.add_theme_stylebox_override(st, sb)
+
+
 func _refresh(animate: bool = true) -> void:
 	var current_row := _current_row()
 	var reachable := _reachable_now_ids()
@@ -779,6 +812,7 @@ func _rebuild_left() -> void:
 	var top := UI3.plate(&"plate")
 	top.name = "PartyPlate"
 	top.custom_minimum_size.x = _PLATE_LEFT_W
+	_ui4_plate(top)
 	top.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	top.offset_left = _SCREEN_MARGIN
 	top.offset_top = _SCREEN_MARGIN
@@ -802,7 +836,26 @@ func _rebuild_left() -> void:
 	# S4-4: floor numbers match the side card (node.row, 1-based); before the first node it says Start, not "Floor 0".
 	var cur_row := _current_row()
 	titles.add_child(UI3.label(tr("Floor %d of %d") % [cur_row, total_rows] if cur_row > 0 else tr("Start · %d floors") % total_rows, "LabelTitle"))
-	titles.add_child(UI3.label(tr("Ascension %d · Shards %d") % [RunState.ascension, RunState.shards_this_run]))
+	# UI-04: the second line becomes two chips on the head row: ascension pill + Shard chip.
+	var a_pill := UI3.chip("A%d" % RunState.ascension)
+	a_pill.name = "AscensionPill"
+	a_pill.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	UI3Tooltip.bind(a_pill, tr("Ascension %d") % RunState.ascension)
+	head.add_child(a_pill)
+	var sh := HBoxContainer.new()
+	sh.name = "ShardChip"
+	sh.add_theme_constant_override("separation", 4)
+	sh.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var shi := TextureRect.new()
+	shi.texture = UI3.currency_icon("cur_shard", UI3Theme.size_of("icon_m"))
+	shi.custom_minimum_size = Vector2.ONE * UI3Theme.size_of("icon_m")
+	shi.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	shi.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	sh.add_child(shi)
+	sh.add_child(UI3.label("%d" % RunState.shards_this_run, "LabelTitle"))
+	UI3Tooltip.bind(sh, tr("Shards %d") % RunState.shards_this_run)
+	sh.mouse_filter = Control.MOUSE_FILTER_STOP
+	head.add_child(sh)
 
 	for entry in RunState.roster:
 		col.add_child(_build_party_row(entry))
@@ -810,7 +863,8 @@ func _rebuild_left() -> void:
 	# BottomLeft: relics.
 	var bottom := UI3.plate(&"plate")
 	bottom.name = "RelicPlate"
-	bottom.custom_minimum_size.x = _PLATE_LEFT_W
+	bottom.custom_minimum_size.x = _PLATE_CORES_W
+	_ui4_plate(bottom)
 	bottom.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	bottom.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	bottom.offset_left = _SCREEN_MARGIN
@@ -821,7 +875,16 @@ func _rebuild_left() -> void:
 	bottom.add_child(rcol)
 	# S3-10: count only the Cores in the Core slots (Anchor and Run rule are shown beside them, not in the count).
 	var n_cores := RelicSlots.owned_cores(RunState.owned_relic_ids).size()
-	rcol.add_child(UI3.label(tr("Cores · %d") % n_cores, "LabelTitle"))
+	var title_row := HBoxContainer.new()
+	title_row.add_theme_constant_override("separation", UI3Theme.space("8"))
+	var t1 := UI3.label(tr("Cores"), "LabelTitle")
+	t1.name = "CoresTitle"
+	title_row.add_child(t1)
+	var t2 := UI3.label(tr("%d of %d") % [n_cores, RelicSlots.tuning().core_slots], "LabelMuted")
+	t2.name = "CoresCount"
+	t2.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	title_row.add_child(t2)
+	rcol.add_child(title_row)
 	var core_panel := CorePanel.new()
 	core_panel.slot_px = 40
 	_core_panel = core_panel
@@ -830,10 +893,18 @@ func _rebuild_left() -> void:
 	if RunState.run_rule != "":
 		var rr = RelicRegistry.get_def(RunState.run_rule)
 		if rr != null:
-			var rl := UI3.label(tr("Run rule: %s") % String(rr.name), "LabelMuted")
-			rl.name = "RunRuleLine"
-			rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			rcol.add_child(rl)
+			# UI-04: the rule is shown once, as a RunRuleChip (rect, never a pill), not as a muted line + a list row.
+			var chip := UI3.run_rule_chip(String(rr.name), tr("Run rule"))
+			chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var nm := chip.find_child("Text", true, false) as Label
+			if nm != null:
+				nm.clip_text = true
+				nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+				nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				nm.custom_minimum_size.x = 0
+			UI3Tooltip.bind(chip, UI3.player_text(String(rr.description)))
+			chip.mouse_filter = Control.MOUSE_FILTER_STOP
+			rcol.add_child(chip)
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.get_v_scroll_bar().custom_minimum_size.x = UI3Theme.SCROLL_W
@@ -841,12 +912,31 @@ func _rebuild_left() -> void:
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	list.add_theme_constant_override("separation", 8)
 	scroll.add_child(list)
+	var listed := 0
 	for relic_id in RunState.owned_relic_ids:
+		var rd = RelicRegistry.get_def(relic_id)
+		if rd != null and RelicSlots.is_core(rd) and String(rd.core_axis) == "run_rule":
+			continue   # shown as the RunRuleChip above
 		list.add_child(_build_relic_row(relic_id))
-	var list_h := float(RunState.owned_relic_ids.size()) * (_RELIC_ROW_H + 8.0)
+		listed += 1
+	var list_h := float(listed) * (_RELIC_ROW_H + 8.0)
 	scroll.custom_minimum_size.y = minf(list_h, 5.0 * (_RELIC_ROW_H + 8.0))
-	scroll.visible = not RunState.owned_relic_ids.is_empty()
+	scroll.visible = listed > 0
 	rcol.add_child(scroll)
+
+
+## UI-04 plate shape for the two left plates: radius 20 (xl), padding 16, rest of the plate style unchanged.
+func _ui4_plate(p: PanelContainer) -> void:
+	var sb := p.get_theme_stylebox("panel", p.theme_type_variation if p.theme_type_variation != &"" else &"PanelContainer")
+	if sb is StyleBoxFlat:
+		var d := (sb as StyleBoxFlat).duplicate() as StyleBoxFlat
+		d.set_corner_radius_all(UI3Theme.radius("xl"))
+		var m := UI3Theme.space("16")
+		d.content_margin_left = m
+		d.content_margin_right = m
+		d.content_margin_top = m
+		d.content_margin_bottom = m
+		p.add_theme_stylebox_override("panel", d)
 
 
 func _build_party_row(entry: Dictionary) -> Control:
@@ -885,8 +975,13 @@ func _build_relic_row(relic_id: String) -> Control:
 	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	line.add_child(name_lbl)
 	var is_core: bool = RelicSlots.is_core(def)
-	var rar_lbl := UI3.label(tr(CorePanel.TIER_NAME[clampi(rarity, 0, 2)]) if is_core and String(def.core_axis) != "run_rule" \
-		else (tr("Run rule") if is_core else _rarity_name(rarity)))
+	if is_core and String(def.core_axis) != "run_rule":
+		var tier_key: StringName = UI3.TIERS[clampi(rarity, 0, 2)]
+		var tc := UI3.tier_chip(tier_key, tr(CorePanel.TIER_NAME[clampi(rarity, 0, 2)]))
+		tc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		line.add_child(tc)
+		return row
+	var rar_lbl := UI3.label(tr("Run rule") if is_core else _rarity_name(rarity))
 	rar_lbl.add_theme_color_override("font_color", UI3Theme.color(CorePanel.TIER_TOKEN[clampi(rarity, 0, 2)]) if is_core else _rarity_color(rarity))
 	line.add_child(rar_lbl)
 	return row
@@ -955,7 +1050,10 @@ func _rebuild_detail() -> void:
 	desc.custom_minimum_size.x = 368
 	col.add_child(desc)
 
-	col.add_child(UI3.label(tr("If you win"), "LabelMuted"))
+	var win_lbl := UI3.label(tr("If you win").to_upper(), "LabelDisplay")
+	win_lbl.name = "IfYouWin"
+	win_lbl.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
+	col.add_child(win_lbl)
 	for line in info["win"]:
 		var row := UI3.plate(&"row")
 		row.add_child(UI3.label(String(line)))
@@ -995,7 +1093,10 @@ func _rebuild_detail() -> void:
 		note = UI3.label(tr("Not on your path"))
 		note.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
 	note.name = "PathNote"
-	col.add_child(note)
+	if not reachable or node.visited or node.id == RunState.current_node_id:
+		col.add_child(note)   # UI-04: "On your path" is implied by the enabled Travel button, so it is not drawn
+	else:
+		note.free()
 	if reachable and _graph != null and not _graph.boss_rows.is_empty():
 		var boss_row := int(_graph.boss_rows[_graph.boss_rows.size() - 1])
 		var path_note := UI3.label(tr("Floor %d of %d · %d floors to the boss") % [node.row, _graph.rows.size(), maxi(boss_row - node.row, 0)], "LabelMuted")
@@ -1011,6 +1112,8 @@ func _rebuild_detail() -> void:
 		_travel_btn.pressed.connect(_on_node_pressed.bind(node.id))
 	else:
 		UI3.set_disabled_reason(_travel_btn, tr("Already passed") if (node.visited or node.id == RunState.current_node_id) else tr("Not on your path"))
+	if reachable:
+		_add_keycap_to_button(_travel_btn, "Enter")
 	col.add_child(_travel_btn)
 	if reachable:
 		# Focus order: reachable nodes -> Travel -> relics.
