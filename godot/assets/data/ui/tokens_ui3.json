@@ -1091,6 +1091,8 @@
       "blur": 0,
       "color": "#1a120d"
     },
+    "btn_secondary_pressed": {"x": 0, "y": 2, "blur": 0, "color": "#1a120d", "note": "local addition (not in the UI-04 drop): pressed state of btn_secondary_raised, same lip colour, y 2 like btn_primary_pressed"},
+    "keycap_pressed": {"x": 0, "y": 1, "blur": 0, "color": "#000000a0", "note": "local addition: KeyCap pressed (components.md: shadow 3 -> 1)"},
     "keycap": {
       "x": 0,
       "y": 3,

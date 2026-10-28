@@ -1283,6 +1283,11 @@ const HOUSES: Array[StringName] = [&"kin", &"volley", &"gambler", &"mana_mine", 
 const RISK_BAR_H := [8.4, 10.8, 13.2, 15.6, 18.0, 20.4]   # MissionRow: 6 bars, 8 px wide, heights 8.4 -> 20.4
 
 
+## Alias kept for lanes that already call it.
+static func _pips(count: int, px: int, tint: Color) -> HBoxContainer:
+	return pips(count, px, tint)
+
+
 static func _tex(icon_name: String, px: int) -> TextureRect:
 	var ic := TextureRect.new()
 	ic.texture = icon(icon_name)
@@ -1294,7 +1299,8 @@ static func _tex(icon_name: String, px: int) -> TextureRect:
 	return ic
 
 
-static func _pips(count: int, px: int, tint: Color) -> HBoxContainer:
+## Row of `count` cur_fragment pips of `px` px tinted `tint` (named "Pips"). Used by tier chips; reusable by screens.
+static func pips(count: int, px: int, tint: Color) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.name = "Pips"
 	row.add_theme_constant_override("separation", 2)
@@ -1354,7 +1360,7 @@ static func tier_chip(tier: StringName, word: String, current := true, band := f
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", UI3Theme.space("8"))
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(_pips(int(TIER_PIPS.get(tier, 1)), 24 if band else 20, tc))
+	row.add_child(pips(int(TIER_PIPS.get(tier, 1)), 24 if band else 20, tc))
 	var l := label(word, "LabelDisplay")
 	l.name = "Word"
 	l.add_theme_color_override("font_color", tc if current else UI3Theme.color("text_muted"))
