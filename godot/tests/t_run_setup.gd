@@ -305,7 +305,7 @@ func _kind_tests() -> void:
 	_ok(s4.kind_block_reason("daily") == "Needs a connection" and s4.begin_block_reason() == "", "local build: Daily/Ranked locked, Normal fine")
 	s4.account_status_hook = func() -> int: return AccountService.Status.GUEST
 	_ok(s4.kind_block_reason("ranked") == "Sign in to play Ranked", "local build, signed out: says sign in")
-	_ok(s4.find_child("AnchorLine", true, false) != null and (s4.find_child("AnchorLine", true, false) as Label).text.begins_with("Anchor:"), "S3-3: Anchor line under Mode")
+	_ok(s4.find_child("AnchorLine", true, false) != null and (s4.find_child("AnchorLine", true, false) as Label).text.begins_with("you pick one") and s4.find_child("AnchorName", true, false) != null, "S3-3: Anchor line under Mode")
 	_ok(s4.find_child("AscLockLine", true, false) != null, "S3-6: ascension lock line")
 	s4.queue_free()
 	# Daily-run reward: once per UTC day, ledgered, survives reload

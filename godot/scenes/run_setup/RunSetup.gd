@@ -19,6 +19,9 @@ const COMBAT := "res://scenes/combat/Combat.tscn"
 const ASC_MAX := 10
 const PARTY_SIZE := 5
 const NEWCOMER_RUNS := 5
+const PANEL_W := 456   ## UI-04 left panel; 408 px of content inside 24 px padding
+const INNER_W := 408
+const PARTY_X := 512
 
 # TODO lane U token: darker wood for small-caps section labels on cream.
 const WOOD_DARK := Color("6E2F18")
@@ -93,6 +96,9 @@ var _full_btn: Button
 var _mode_detail: Label
 var _anchor_lbl: Label
 var _asc_lock: Label
+var _summary_v: VBoxContainer
+var _kind_rows: Dictionary = {}
+var _anchor_icon: TextureRect
 const ANCHOR_STAGE := 2   ## mirrors RunState.anchor_gate_reason (depth_stage >= 2)
 var _banner_host: VBoxContainer
 var _modal_layer: Control
@@ -314,14 +320,14 @@ func _signed_out() -> bool:
 	return st == AccountService.Status.GUEST or st == AccountService.Status.EXPIRED
 
 
-## One line under Mode: Anchors exist, when they unlock, and whether they are open now.
+## Muted half of the Anchor row ("Anchor" is the name beside it): whether Anchors are open for this run.
 func anchor_line() -> String:
 	var open := MetaState.depth_stage() >= ANCHOR_STAGE
 	if kind != "normal":
-		return tr("Anchor: only in Normal runs.")
+		return tr("only in Normal runs")
 	if open:
-		return tr("Anchor: unlocked. You pick one at the start of the run.")
-	return tr("Anchor: locked. You pick one at the start of the run once you reach stage %d.") % ANCHOR_STAGE
+		return tr("you pick one at the start")
+	return tr("opens at stage %d") % ANCHOR_STAGE
 
 
 ## Why `k` ("daily" | "ranked") cannot be picked right now, or "" when it can.
@@ -380,11 +386,34 @@ func _refresh_kind() -> void:
 		var why := kind_block_reason(k)
 		b.disabled = why != ""
 		b.tooltip_text = why
+		# `text` stays "Daily · 2 of 3 left" (tests, screen readers); the overlay below is what is drawn.
 		b.text = "%s · %s" % [String(k).capitalize(), _kind_sub(k)]
 		b.set_pressed_no_signal(kind == k)
 		_mark_selected(b, kind == k)
+		var row: Dictionary = _kind_rows.get(k, {})
+		if not row.is_empty():
+			var locked := why != ""
+			(row["lock"] as Control).visible = locked
+			(row["box"] as BoxContainer).vertical = locked
+			(row["box"] as BoxContainer).add_theme_constant_override("separation", 0 if locked else 10)
+			(row["name"] as Label).text = tr(String(k).capitalize())
+			(row["name"] as Label).add_theme_color_override("font_color",
+				UI3Theme.color("text_on_viewport" if locked else "text"))
+			(row["sub"] as Label).text = tr(_kind_sub(k))
+			(row["sub"] as Label).add_theme_color_override("font_color",
+				UI3Theme.color("text_muted" if locked else "text"))
+			b.custom_minimum_size.y = 64 if locked else 56
 	if _anchor_lbl != null:
-		_anchor_lbl.text = anchor_line()
+		_refresh_anchor()
+
+
+## Anchor row: check glyph + "Anchor" + muted line; lock glyph when it is not open for this run.
+func _refresh_anchor() -> void:
+	_anchor_lbl.text = anchor_line()
+	var open := kind == "normal" and MetaState.depth_stage() >= ANCHOR_STAGE
+	if _anchor_icon != null:
+		_anchor_icon.texture = UI3.icon("ui_check" if open else "ui_lock")
+		_anchor_icon.modulate.a = 1.0 if open else 0.8
 
 
 ## Why Begin is disabled, or "" when it is allowed.
@@ -734,6 +763,7 @@ func _tight(b: Button) -> void:
 		b.add_theme_stylebox_override(k, sb)
 		if k != "disabled":
 			b.set_meta("base_" + k, sb)
+			b.set_meta("open_" + k, sb)
 
 
 ## Full-rect scrim + centred dialog plate. Returns the VBox inside the plate (dim -> Center -> plate -> v).
@@ -892,28 +922,60 @@ func _build() -> void:
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
 
-	# Left plate 432 w: header, banners, mode, length, difficulty.
+	# Left plate 456 w, full height (UI-04): header, banners, groups (mode, length, anchor,
+	# difficulty), summary card pinned to the bottom. 24 px between groups.
 	_panel = UI3.plate(&"plate")
 	_panel.name = "Panel"
-	_panel.custom_minimum_size.x = 432
-	_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_panel.anchor_left = 0.0
+	_panel.anchor_right = 0.0
+	_panel.anchor_top = 0.0
+	_panel.anchor_bottom = 1.0
 	_panel.offset_left = 24
+	_panel.offset_right = 24 + PANEL_W
 	_panel.offset_top = 24
+	_panel.offset_bottom = -24
+	var psb := _panel.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+	if psb != null:
+		psb.content_margin_left = 24
+		psb.content_margin_right = 24
+		psb.content_margin_top = 24
+		psb.content_margin_bottom = 24
+		_panel.add_theme_stylebox_override("panel", psb)
 	add_child(_panel)
 	var col := VBoxContainer.new()
 	col.name = "Col"
-	col.add_theme_constant_override("separation", 16)
+	col.add_theme_constant_override("separation", 24)
 	_panel.add_child(col)
 	col.add_child(_build_header())
 	_banner_host = VBoxContainer.new()
 	_banner_host.add_theme_constant_override("separation", 8)
 	col.add_child(_banner_host)
-	_body = VBoxContainer.new()
+	_banner_host.visible = false   # an empty host would still add a 24 px gap
+	_banner_host.child_order_changed.connect(func() -> void:
+		_banner_host.visible = _banner_host.get_child_count() > 0)
+	_body =VBoxContainer.new()
 	_body.name = "Body"
-	_body.add_theme_constant_override("separation", 16)
+	_body.add_theme_constant_override("separation", 24)
 	col.add_child(_body)
+	var summary_card := UI3.plate(&"row")
+	summary_card.name = "SummaryCard"
+	var sm := summary_card.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+	if sm != null:
+		sm.content_margin_top = 12
+		sm.content_margin_bottom = 12
+		sm.content_margin_left = 16
+		sm.content_margin_right = 16
+		summary_card.add_theme_stylebox_override("panel", sm)
+	_summary_v = VBoxContainer.new()
+	_summary_v.add_theme_constant_override("separation", 4)
+	summary_card.add_child(_summary_v)
 	_build_mode_col()
 	_build_asc_col()
+	var spacer := Control.new()
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(spacer)
+	col.add_child(summary_card)
 
 	# Party over the 3D safe area (480,200 -> 1896,840).
 	_stage = Control.new()
@@ -924,68 +986,66 @@ func _build() -> void:
 	var area := VBoxContainer.new()
 	area.name = "PartyArea"
 	area.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	area.offset_left = 480
+	area.offset_left = PARTY_X
 	area.offset_top = 40
 	area.offset_right = 1896
-	area.add_theme_constant_override("separation", 16)
+	area.add_theme_constant_override("separation", 24)
 	_stage.add_child(area)
 	_party_label = _lbl("", "LabelTitle")
 	area.add_child(_party_label)
 	_party_row = HBoxContainer.new()
 	_party_row.name = "PartyRow"
-	_party_row.add_theme_constant_override("separation", 88)
+	_party_row.add_theme_constant_override("separation", 24)
+	_party_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	area.add_child(_party_row)
 
 	if not is_newcomer() and setup_aid_enabled():
 		var kit := _build_kit_col()
 		kit.set_anchors_preset(Control.PRESET_TOP_LEFT)   # under the party block, same left edge
-		kit.offset_left = 480
+		kit.offset_left = PARTY_X
 		kit.offset_top = 520
 		_stage.add_child(kit)
 
-	# Bottom right: reason line above, actions below.
-	var br := VBoxContainer.new()
-	br.name = "Actions"
-	br.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	br.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	br.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	br.offset_right = -24
-	br.offset_bottom = -24
-	br.add_theme_constant_override("separation", 12)
-	_stage.add_child(br)
-	_footer_msg = _lbl("")
-	_footer_msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_footer_msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_footer_msg.custom_minimum_size.x = 560
-	br.add_child(_footer_msg)
+	# Bottom right: Leaderboard B, Save preset S, Team presets, then summary line above Start run.
 	var acts := HBoxContainer.new()
+	acts.name = "Actions"
+	acts.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	acts.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	acts.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	acts.offset_right = -24
+	acts.offset_bottom = -24
 	acts.alignment = BoxContainer.ALIGNMENT_END
-	acts.add_theme_constant_override("separation", 16)
-	br.add_child(acts)
+	acts.add_theme_constant_override("separation", 24)
+	_stage.add_child(acts)
 	var lb := UI3.button(tr("Leaderboard"), &"quiet")
 	lb.name = "LeaderboardBtn"
 	lb.disabled = is_newcomer()
 	lb.tooltip_text = tr("Opens after %d runs") % NEWCOMER_RUNS if is_newcomer() else ""
 	lb.pressed.connect(open_leaderboard)
-	acts.add_child(lb)
-	var khB := UI3.key_hint("B")
-	khB.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	acts.add_child(khB)
+	acts.add_child(_with_cap(lb, "B"))
 	var save_b := UI3.button(tr("Save preset"), &"quiet")
 	save_b.name = "SavePreset"
 	save_b.pressed.connect(open_save_preset)
-	acts.add_child(save_b)
-	var khS := UI3.key_hint("S")
-	khS.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	acts.add_child(khS)
+	acts.add_child(_with_cap(save_b, "S"))
 	var load_b := UI3.button(tr("Team presets"), &"secondary", &"M")
 	load_b.name = "LoadPreset"
 	load_b.pressed.connect(open_load_presets)
+	load_b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	acts.add_child(load_b)
+	var start_col := VBoxContainer.new()
+	start_col.name = "StartCol"
+	start_col.add_theme_constant_override("separation", 6)
+	acts.add_child(start_col)
+	_footer_msg = _lbl("", "LabelMuted")
+	_footer_msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_footer_msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_footer_msg.custom_minimum_size.x = 320
+	start_col.add_child(_footer_msg)
 	_begin_btn = UI3.button(tr("Start run"), &"primary", &"L")
 	_begin_btn.name = "Begin"
+	_begin_btn.custom_minimum_size.x = 320
 	_begin_btn.pressed.connect(func() -> void: begin())
-	acts.add_child(_begin_btn)
+	start_col.add_child(_begin_btn)
 
 	_modal_layer = Control.new()
 	_modal_layer.name = "Modals"
@@ -1001,14 +1061,43 @@ func _build() -> void:
 func _build_header() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
-	var back := UI3.button(tr("← Back  Esc"), &"quiet")
+	var back := UI3.button(tr("← Back"), &"secondary", &"S")
 	back.name = "Back"
 	back.pressed.connect(_on_back)
+	# Esc key cap sits inside the pill, right of the label.
+	for k in ["normal", "hover", "pressed", "disabled"]:
+		var sb := back.get_theme_stylebox(k).duplicate() as StyleBoxFlat
+		if sb != null:
+			sb.content_margin_right = 64
+			back.add_theme_stylebox_override(k, sb)
+	var cap := UI3.keycap("Esc", true)
+	cap.anchor_left = 1.0
+	cap.anchor_right = 1.0
+	cap.anchor_top = 0.5
+	cap.anchor_bottom = 0.5
+	cap.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	cap.grow_vertical = Control.GROW_DIRECTION_BOTH
+	cap.offset_right = -12
+	cap.offset_left = -12
+	cap.offset_top = 0
+	cap.offset_bottom = 0
+	back.add_child(cap)
 	row.add_child(back)
 	var title := _lbl(tr("Run setup"), "LabelScreenTitle")
 	title.name = "Title"
 	row.add_child(title)
 	return row
+
+
+## A quiet button followed by its 28 px key cap, 8 px apart.
+func _with_cap(btn: Button, key: String) -> HBoxContainer:
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 8)
+	h.add_child(btn)
+	var cap := UI3.keycap(key, true)
+	cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(cap)
+	return h
 
 
 func _refresh_party() -> void:
@@ -1023,22 +1112,20 @@ func _refresh_party() -> void:
 	_refresh_kind()
 
 
-## One party seat: 168 square preview (class colour stand-in until the 3D view lands) + a 200 w plate.
+## One party seat (UI-04): a plate with a 200 high portrait well (portrait 168, bottom centre), then
+## name 24, class, Max HP and Swap (secondary) + Clear (quiet). Empty seat: dashed-style well + Add.
 func _build_slot(i: int) -> Control:
 	var key := party[i] if i < party.size() else ""
 	var card := VBoxContainer.new()
 	card.name = "Slot%d" % i
-	card.custom_minimum_size.x = 200
-	card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	card.add_theme_constant_override("separation", 8)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.add_theme_constant_override("separation", 0)
 	var preview := Panel.new()
 	preview.name = "Preview"
-	preview.custom_minimum_size = Vector2(168, 168)
-	preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	preview.custom_minimum_size = Vector2(0, 200)
 	var psb := StyleBoxFlat.new()
 	psb.set_corner_radius_all(UI3Theme.radius("m"))
 	preview.add_theme_stylebox_override("panel", psb)
-	card.add_child(preview)
 	if key == "":
 		psb.draw_center = false
 		psb.border_color = UI3Theme.color("disabled_border")
@@ -1051,16 +1138,40 @@ func _build_slot(i: int) -> Control:
 		for k in ["normal", "hover", "pressed"]:
 			pick.add_theme_stylebox_override(k, flat)
 		preview.add_child(pick)
+		card.add_child(preview)
 		return card
 	var def: Dictionary = ContentDB.heroes.get(key, {})
 	var cls := String(def.get("cls", ""))
 	psb.bg_color = UI3Theme.color("viewport")
+	psb.corner_radius_bottom_left = 0
+	psb.corner_radius_bottom_right = 0
+	var plate := UI3.plate(&"plate")
+	plate.name = "Card"
+	var csb := plate.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+	if csb != null:
+		csb.content_margin_left = 2
+		csb.content_margin_right = 2
+		csb.content_margin_top = 2
+		csb.content_margin_bottom = 2
+		plate.add_theme_stylebox_override("panel", csb)
+	card.add_child(plate)
+	var inner := VBoxContainer.new()
+	inner.add_theme_constant_override("separation", 0)
+	plate.add_child(inner)
+	inner.add_child(preview)
 	var port_path := "res://assets/portraits/%s.png" % cls
 	if ResourceLoader.exists(port_path):
 		var pic := TextureRect.new()
 		pic.name = "Portrait"
 		pic.texture = load(port_path)
-		pic.set_anchors_preset(Control.PRESET_FULL_RECT)
+		pic.anchor_left = 0.5
+		pic.anchor_right = 0.5
+		pic.anchor_top = 1.0
+		pic.anchor_bottom = 1.0
+		pic.offset_left = -84
+		pic.offset_right = 84
+		pic.offset_top = -168
+		pic.offset_bottom = 0
 		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1071,53 +1182,120 @@ func _build_slot(i: int) -> Control:
 		initial.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		initial.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		preview.add_child(initial)
-	var plate := UI3.plate(&"plate")
-	card.add_child(plate)
+	var pad := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		pad.add_theme_constant_override("margin_" + side, 16)
+	inner.add_child(pad)
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 4)
-	plate.add_child(v)
+	v.add_theme_constant_override("separation", 6)
+	pad.add_child(v)
 	var nm := _lbl(String(def.get("n", key)), "LabelTitle")
 	nm.clip_text = true
-	nm.custom_minimum_size.x = 150
 	v.add_child(nm)
 	var vault := MetaState.is_vault_key(key)
 	var meta := _lbl("%s · %s" % [cls.capitalize(), tr("Vault") if vault else tr("Starter")], "LabelMuted")
 	meta.clip_text = true
 	v.add_child(meta)
-	v.add_child(_lbl(tr("Max HP %d") % int(def.get("max_hp", 0)), "LabelMuted"))
+	v.add_child(_lbl(tr("Max HP %d") % int(def.get("max_hp", 0)), "LabelDisplay"))
 	var acts := HBoxContainer.new()
-	acts.add_theme_constant_override("separation", 8)
+	acts.add_theme_constant_override("separation", 12)
 	v.add_child(acts)
 	var swap := UI3.button(tr("Swap"), &"secondary", &"S")
 	swap.name = "Swap"
+	swap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	swap.custom_minimum_size.x = 0
 	swap.pressed.connect(open_picker.bind(i))
 	acts.add_child(swap)
-	var clr := UI3.button(tr("Clear"), &"secondary", &"S")
+	var clr := UI3.button(tr("Clear"), &"quiet")
 	clr.name = "Clear"
 	clr.pressed.connect(clear_slot.bind(i))
 	acts.add_child(clr)
 	return card
 
 
+func _group(title: String) -> VBoxContainer:
+	var g := VBoxContainer.new()
+	g.name = "Group" + title.capitalize()
+	g.add_theme_constant_override("separation", 8)
+	var h := UI3.label(tr(title).to_upper(), "LabelDisplay")
+	h.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
+	g.add_child(h)
+	_body.add_child(g)
+	return g
+
+
+## A locked cell: neutral-2 fill, radius 12, no outline.
+func _locked_box(pad_x := 0.0) -> StyleBoxFlat:
+	var sb := UI3Theme.flat(UI3Theme.color("locked_cell"), 12)
+	sb.content_margin_left = pad_x
+	sb.content_margin_right = pad_x
+	return sb
+
+
 func _build_mode_col() -> void:
-	_body.add_child(_lbl(tr("Mode"), "LabelMuted"))
+	var g := _group("Mode")
 	for k in ["normal", "daily", "ranked"]:
 		var b := UI3.button(String(k).capitalize(), &"secondary", &"M")
 		b.name = "Mode" + String(k).capitalize()
 		b.toggle_mode = true
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.pressed.connect(select_kind.bind(k))
+		# Own text stays for tests and screen readers but is not drawn: the overlay below is.
+		for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color",
+				"font_hover_pressed_color", "font_disabled_color"]:
+			b.add_theme_color_override(c, Color(0, 0, 0, 0))
+		b.add_theme_stylebox_override("disabled", _locked_box())
+		var pad := MarginContainer.new()
+		pad.set_anchors_preset(Control.PRESET_FULL_RECT)
+		pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pad.add_theme_constant_override("margin_left", 16)
+		pad.add_theme_constant_override("margin_right", 16)
+		b.add_child(pad)
+		var h := HBoxContainer.new()
+		h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		h.add_theme_constant_override("separation", 12)
+		pad.add_child(h)
+		var lock := TextureRect.new()
+		lock.name = "Lock"
+		lock.texture = UI3.icon("ui_lock")
+		lock.custom_minimum_size = Vector2(22, 22)
+		lock.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		lock.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		lock.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		lock.modulate.a = 0.8
+		lock.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		h.add_child(lock)
+		var box := BoxContainer.new()
+		box.alignment = BoxContainer.ALIGNMENT_CENTER
+		box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		h.add_child(box)
+		var nm := UI3.label("", "LabelDisplay")
+		nm.name = "RowName"
+		nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(nm)
+		var sub := UI3.label("", "LabelMuted")
+		sub.name = "RowSub"
+		sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		sub.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(sub)
+		_kind_rows[k] = {"lock": lock, "box": box, "name": nm, "sub": sub}
 		_kind_btns[k] = b
-		_body.add_child(b)
+		g.add_child(b)
 	_refresh_kind()
+
+	var lg := _group("Length")
 	var grp := ButtonGroup.new()
 	var lrow := HBoxContainer.new()
 	lrow.add_theme_constant_override("separation", 8)
-	_body.add_child(lrow)
+	lg.add_child(lrow)
 	_short_btn = UI3.button(tr("Short"), &"secondary", &"M")
 	_short_btn.name = "LenShort"
 	_short_btn.toggle_mode = true
 	_short_btn.button_group = grp
 	_short_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_short_btn.custom_minimum_size.x = 0
 	_short_btn.pressed.connect(select_length.bind("short"))
 	lrow.add_child(_short_btn)
 	_full_btn = UI3.button(tr("Full"), &"secondary", &"M")
@@ -1125,6 +1303,9 @@ func _build_mode_col() -> void:
 	_full_btn.toggle_mode = true
 	_full_btn.button_group = grp
 	_full_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_full_btn.custom_minimum_size.x = 0
+	_full_btn.add_theme_constant_override("icon_max_width", 20)
+	_full_btn.add_theme_constant_override("h_separation", 8)
 	_full_btn.pressed.connect(func() -> void:
 		if not select_length("full"):
 			_refresh_mode())
@@ -1132,15 +1313,36 @@ func _build_mode_col() -> void:
 		_full_btn.tooltip_text = tr("Win a Short run to unlock Full")
 	lrow.add_child(_full_btn)
 	_mode_detail = _lbl("", "LabelMuted")
+	_mode_detail.name = "ModeDetail"
 	_mode_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_mode_detail.custom_minimum_size.x = 384
-	_body.add_child(_mode_detail)
+	_mode_detail.custom_minimum_size.x = INNER_W
+	lg.add_child(_mode_detail)
+
+	# Anchor row: glyph + name + muted line, wood-2.
+	var arow := UI3.plate(&"row")
+	arow.name = "AnchorRow"
+	arow.custom_minimum_size.y = 56
+	var ah := HBoxContainer.new()
+	ah.add_theme_constant_override("separation", 12)
+	arow.add_child(ah)
+	_anchor_icon = TextureRect.new()
+	_anchor_icon.name = "AnchorIcon"
+	_anchor_icon.custom_minimum_size = Vector2(22, 22)
+	_anchor_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_anchor_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_anchor_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	ah.add_child(_anchor_icon)
+	var an := UI3.label(tr("Anchor"), "LabelDisplay")
+	an.name = "AnchorName"
+	ah.add_child(an)
 	_anchor_lbl = _lbl("", "LabelMuted")
 	_anchor_lbl.name = "AnchorLine"
 	_anchor_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_anchor_lbl.custom_minimum_size.x = 384
-	_body.add_child(_anchor_lbl)
-	_anchor_lbl.text = anchor_line()
+	_anchor_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_anchor_lbl.custom_minimum_size.x = 160
+	ah.add_child(_anchor_lbl)
+	_body.add_child(arow)
+	_refresh_anchor()
 
 
 func _refresh_mode() -> void:
@@ -1151,30 +1353,37 @@ func _refresh_mode() -> void:
 	_full_btn.set_pressed_no_signal(mode == "full")
 	_mark_selected(_short_btn, mode == "short")
 	_mark_selected(_full_btn, mode == "full" and full_ok)
-	_full_btn.text = tr("Full") if full_ok else tr("Full · locked")
+	_full_btn.text = tr("Full")
+	if full_ok:
+		_full_btn.icon = null
+	else:
+		_full_btn.icon = UI3.icon("ui_lock")
+		for k in ["normal", "hover", "pressed"]:
+			_full_btn.add_theme_stylebox_override(k, _locked_box())
+		for c in ["font_color", "font_hover_color", "font_pressed_color"]:
+			_full_btn.add_theme_color_override(c, UI3Theme.color("text_on_viewport"))
 	var cfg: Dictionary = RunMapGenerator.MODE_CONFIG.get(mode, {})
-	var txt := "%s · %d rows · %d bosses" % [mode.capitalize(), int(cfg.get("total_rows", 0)),
-		(cfg.get("boss_rows", []) as Array).size()]
+	var txt := "%d rows · %d bosses" % [int(cfg.get("total_rows", 0)), (cfg.get("boss_rows", []) as Array).size()]
 	if not full_ok:
-		txt += "\n" + tr("Full is locked. Win a Short run to unlock Full.")
+		txt += " · " + tr("Win Short to unlock Full")
 	_mode_detail.text = txt
 
 
 func _build_asc_col() -> void:
-	_body.add_child(_lbl(tr("Difficulty"), "LabelMuted"))
+	var g := _group("Difficulty")
 	_asc_chips.clear()
 	if is_newcomer():
 		var one := _lbl(tr("Difficulty opens after %d runs. You play A0 · Normal.") % NEWCOMER_RUNS)
 		one.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		one.custom_minimum_size.x = 384
-		_body.add_child(one)
+		one.custom_minimum_size.x = INNER_W
+		g.add_child(one)
 	else:
 		var grid := GridContainer.new()
 		grid.name = "AscGrid"
 		grid.columns = 6
 		grid.add_theme_constant_override("h_separation", 8)
 		grid.add_theme_constant_override("v_separation", 8)
-		_body.add_child(grid)
+		g.add_child(grid)
 		for n in ASC_MAX + 1:
 			var b := UI3.button("A%d" % n, &"secondary", &"S")
 			b.name = "Asc%d" % n
@@ -1182,7 +1391,7 @@ func _build_asc_col() -> void:
 			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			b.add_theme_constant_override("icon_max_width", 14)
 			b.add_theme_constant_override("h_separation", 2)
-			b.custom_minimum_size.x = 0
+			b.custom_minimum_size = Vector2(0, 52)
 			b.pressed.connect(_on_asc_pressed.bind(n))
 			grid.add_child(b)
 			_tight(b)
@@ -1190,31 +1399,34 @@ func _build_asc_col() -> void:
 	_asc_lock = _lbl("", "LabelMuted")
 	_asc_lock.name = "AscLockLine"
 	_asc_lock.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_asc_lock.custom_minimum_size.x = 384
+	_asc_lock.custom_minimum_size.x = INNER_W
 	_asc_lock.visible = false
 	if not is_newcomer():
-		_body.add_child(_asc_lock)
+		g.add_child(_asc_lock)
+	_asc_tip = _lbl("")
+	_asc_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_asc_tip.custom_minimum_size.x = INNER_W
+	_asc_tip.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
+	_asc_tip.visible = false
+	g.add_child(_asc_tip)
+	# Summary card (pinned to the bottom of the plate by _build): title 24, then the rule lines.
 	_asc_title = _lbl("", "LabelTitle")
-	_body.add_child(_asc_title)
+	_summary_v.add_child(_asc_title)
 	_asc_mult = _lbl("", "LabelMuted")
 	_asc_mult.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_asc_mult.custom_minimum_size.x = 384
-	_body.add_child(_asc_mult)
+	_asc_mult.custom_minimum_size.x = INNER_W - 32
+	_summary_v.add_child(_asc_mult)
 	_asc_rule = _lbl("")
 	_asc_rule.name = "AscRule"
 	_asc_rule.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_asc_rule.custom_minimum_size.x = 384
-	_body.add_child(_asc_rule)
-	_asc_tip = _lbl("")
-	_asc_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_asc_tip.custom_minimum_size.x = 384
-	_asc_tip.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
-	_body.add_child(_asc_tip)
+	_asc_rule.custom_minimum_size.x = INNER_W - 32
+	_summary_v.add_child(_asc_rule)
 
 
 func _on_asc_pressed(n: int) -> void:
 	if not select_ascension(n):
 		_asc_tip.text = tr("Win a run at A%d to unlock A%d") % [n - 1, n]
+		_asc_tip.visible = true
 
 
 func _refresh_asc() -> void:
@@ -1222,16 +1434,22 @@ func _refresh_asc() -> void:
 		return
 	var ceil := ascension_ceiling()
 	_asc_tip.text = ""
+	_asc_tip.visible = false
 	if _asc_lock != null:
 		_asc_lock.text = tr("A%d unlocks after you win A%d.") % [ceil + 1, ceil] if ceil < ASC_MAX else ""
 		_asc_lock.visible = _asc_lock.text != ""
 	for n in _asc_chips.size():
 		var b := _asc_chips[n]
 		var locked := n > ceil
-		_mark_selected(b, n == ascension)
 		b.icon = UI3.icon("ui_lock") if locked else null
-		b.modulate.a = 0.6 if locked else 1.0
+		for k in ["normal", "hover", "pressed"]:
+			var base: StyleBox = _locked_box(4) if locked else (b.get_meta("open_" + k) as StyleBox)
+			b.set_meta("base_" + k, base)
+			b.add_theme_stylebox_override(k, base)
+			b.add_theme_color_override("font_color" if k == "normal" else "font_%s_color" % k,
+				UI3Theme.color("text_muted") if locked else UI3Theme.color("text"))
 		b.tooltip_text = tr("Win a run at A%d to unlock A%d") % [n - 1, n] if locked else ""
+		_mark_selected(b, n == ascension)
 	var m: Dictionary = ContentDB.ascension_mods(ascension)
 	if ascension == 0:
 		_asc_title.text = "A0 · Normal"
