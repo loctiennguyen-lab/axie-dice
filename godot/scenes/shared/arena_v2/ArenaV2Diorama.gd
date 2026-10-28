@@ -191,7 +191,7 @@ func build(id: String, boss: bool = false) -> bool:
 func set_boss(boss: bool) -> void:
 	for m in _ground_mats:
 		var tint := BOSS_GROUND_TINT_COOL if COOL_BIOMES.has(biome_id) else BOSS_GROUND_TINT
-		m.albedo_color = tint if boss else Color.WHITE
+		m.albedo_color = tint if boss else _compat_ground_tint()
 
 
 ## Number of triangles in the diorama as drawn (instances counted), for the budget check.
@@ -207,3 +207,12 @@ func triangle_count() -> int:
 			var idx: PackedInt32Array = a[Mesh.ARRAY_INDEX]
 			tris += (idx.size() if not idx.is_empty() else (a[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()) / 3
 	return tris
+
+
+## Web (gl_compatibility) only: a biome may tone its textured ground down ("compat_ground_tint"), because that
+## renderer burns bright grounds (Savannah) to flat yellow (Liam 28/10). White = untouched.
+func _compat_ground_tint() -> Color:
+	if RenderingServer.get_current_rendering_method() != "gl_compatibility":
+		return Color.WHITE
+	var b: Dictionary = (CombatArena3D.registry().get("biomes", {}) as Dictionary).get(biome_id, {})
+	return Color(String(b.get("compat_ground_tint", "#ffffff")))
