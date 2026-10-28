@@ -2406,25 +2406,9 @@ func _layout_unit_visuals() -> void:
 	if _combat == null:
 		return
 	var stage_offset: Vector2 = _stage3d.position   # Stage3D no longer fills the whole Root
-	# R1 anchors: the enemy plates hang from the TOP edge (y 96) and are placed left to right
-	# around the centre of the canvas, so they do not move with the 3D projection. README 3:
-	# plates 320 wide (boss 640) on a 360 pitch; the 3D boxes sit under them (lane C: slot pitch).
-	var canvas_w: float = get_viewport_rect().size.x
-	var enemy_ps: Array = []
-	for e in _combat.enemies:
-		var ep: UnitPortrait = _portraits.get(e.uid)
-		if ep != null and ep.visible:
-			enemy_ps.append(ep)
-	# UI-03 round 2: ONE enemy column, top-right, margin 24, 8 px between cards. Each card is as tall as
-	# what hangs under it (counter tab, Target / reason label). The boss card is wider but sits in the
-	# same column, right-aligned, at the very top so the boss head keeps clear air.
-	var y := _ENEMY_COLUMN_TOP_UI3
-	for ep in enemy_ps:
-		var card := ep as UnitPortrait
-		card.position = Vector2(canvas_w - 24.0 - card.size.x, y)
-		y += card.stack_height() + 8.0
-	if _hud_frame != null:   # AttritionCard: last card of the enemy column
-		_hud_frame.place_attrition(Vector2(canvas_w - 24.0 - UnitPortrait.WIDTH, y))
+	# UI-05 lane C: ONE enemy column, top-right, clusters 12 apart, AttritionCard last, never on the docks
+	# (EnemyColumn.layout_column).
+	_ec().layout_column()
 
 	for uid in _portraits.keys():
 		var p: UnitPortrait = _portraits[uid]
