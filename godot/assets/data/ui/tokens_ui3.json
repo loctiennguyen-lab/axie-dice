@@ -1156,7 +1156,10 @@
     "reward_card_w": 400,
     "reward_card_h": 620,
     "reward_art_h": 176,
-    "banner_h": 112
+    "banner_h": 112,
+    "d_reward_icon": 112,
+    "d_take_min_w": 240,
+    "d_reward_top": 80
   },
   "radius": {
     "s": 8,

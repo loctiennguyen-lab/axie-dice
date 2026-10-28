@@ -59,14 +59,14 @@ func _keys(keys: Array) -> Array:
 
 func _sample(label: String) -> void:
 	await _frames(3)
-	var t: Control = rm._overlay_root.find_child("RewardTitle", true, false)
+	var t: Control = rm._overlay_root.find_child("Title", true, false)
 	var b: Control = rm._overlay_root.find_child("TakeButton", true, false)
 	_check(t != null and b != null, "%s: title + Take exist" % label)
 	if t == null or b == null:
 		return
 	_samples.append([label, t.get_global_rect().position, b.get_global_rect().position])
 	for c in rm._reward_cards:
-		_check((c as Control).size.y <= 600.0 + 1.0, "%s: card fits the fixed band (%s)" % [label, (c as Control).size.y])
+		_check((c as Control).size.y <= UI3Theme.size_of("reward_card_h") + 1.0, "%s: card fits the fixed band (%s)" % [label, (c as Control).size.y])
 
 
 func _ready() -> void:

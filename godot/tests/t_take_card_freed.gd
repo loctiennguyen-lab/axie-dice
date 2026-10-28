@@ -32,6 +32,9 @@ func _ready() -> void:
 	rm._select_reward(0)
 	await _frames(2)
 	var card: Node = rm._reward_cards[0]
+	# UI-05 b1: the picked card is the fixed-size RewardCard, selected (cream ring + 12 px lift) before the take.
+	_check(card.has_method("set_selected") and bool(card.get("selected")), "picked card is a selected UI-05 RewardCard")
+	_check((card as Control).size == Vector2(UI3Theme.size_of("reward_card_w"), UI3Theme.size_of("reward_card_h")), "card is reward_card_w x reward_card_h")
 	rm._take_selected_reward()
 	await _frames(1)
 	_check(rm._taking, "take is in progress")
