@@ -40,10 +40,7 @@ var _relic_plate: PanelContainer
 var _divider: Control
 var _mana_box: HBoxContainer
 var _mana_holder: Control
-var _attr_card: PanelContainer
-var _attr_title: Label
-var _attr_pips: HBoxContainer
-var _attr_dashed := false
+var _attr_card: AttritionCard     ## UI-05 lane C component (scenes/combat/ui5/AttritionCard.gd); EnemyColumn places it
 var _attr_right_pos := Vector2(-1.0, -1.0)
 var _info: PanelContainer           ## die info panel (288 w, wood-2), only while a die is picked
 var _info_title: Label
@@ -154,52 +151,8 @@ func _build_top() -> void:
 
 
 func _build_attrition() -> void:
-	# AttritionCard (UI-04): 416 x 56 plate, attrition glyph 28, ONE Rowdies 18 line in the attrition colour, 3 pips
-	# before it starts. Dashed edge before start, solid while running, red edge + red text at MAX.
-	_attr_card = UI3.plate(&"plate")
-	_attr_card.custom_minimum_size = Vector2(UI3Theme.size_of("attrition_w"), UI3Theme.size_of("attrition_h"))
-	_attr_card.mouse_filter = Control.MOUSE_FILTER_STOP   # hover = attrition tooltip
+	_attr_card = AttritionCard.new()
 	add_child(_attr_card)
-	_attr_card.draw.connect(_draw_attr_edge)
-	var row := HBoxContainer.new()
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("separation", 10)
-	_attr_card.add_child(row)
-	var ic := TextureRect.new()
-	ic.texture = HudKit.icon("attrition")
-	ic.custom_minimum_size = Vector2(28, 28)
-	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(ic)
-	_attr_title = UI3.label("", "LabelDisplay")
-	_attr_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_attr_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_attr_title.add_theme_color_override("font_color", UI3Theme.color("attrition"))
-	_ignore(_attr_title)
-	row.add_child(_attr_title)
-	_attr_pips = HBoxContainer.new()
-	_attr_pips.name = "Pips"
-	_attr_pips.add_theme_constant_override("separation", 4)
-	_attr_pips.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_ignore(_attr_pips)
-	row.add_child(_attr_pips)
-
-
-## Dashed edge while the attrition has not started (a StyleBox cannot dash).
-func _draw_attr_edge() -> void:
-	if not _attr_dashed:
-		return
-	var r := Rect2(Vector2.ZERO, _attr_card.size).grow(-1.0)
-	var col := UI3Theme.color("attrition")
-	var tl := r.position
-	var tr := Vector2(r.end.x, r.position.y)
-	var br := r.end
-	var bl := Vector2(r.position.x, r.end.y)
-	for seg in [[tl + Vector2(12, 0), tr - Vector2(12, 0)], [tr + Vector2(0, 12), br - Vector2(0, 12)],
-			[bl + Vector2(12, 0), br - Vector2(12, 0)], [tl + Vector2(0, 12), bl - Vector2(0, 12)]]:
-		_attr_card.draw_dashed_line(seg[0], seg[1], col, 2.0, 8.0)
 
 
 # ── BossRhythm (UI-05 b1 lane A, 02-combat--boss: CSS .boss-rhythm): plate under RunInfo (top = screen margin +
@@ -640,48 +593,10 @@ func _active_slot(a: Dictionary) -> Control:
 	return b
 
 
-## Attrition card. state = hud_state().attrition; turn; hidden for newcomers. Build strings only:
-## "ATTRITION · TURN N" (before), "ATTRITION +N%" (running), "ATTRITION +N% · MAX" (cap).
+## Attrition card (UI-05 AttritionCard): state = hud_state().attrition; turn; hidden for newcomers.
 func update_attrition(state: Dictionary, turn: int, newcomer: bool) -> void:
 	_newcomer = newcomer
-	_attr_card.visible = (not newcomer) and CombatLabels.attrition_visible(state, turn)   # only a few turns before it starts
-	_attr_card.add_to_group("ui3_tip_avoid")
-	UI3Tooltip.bind(_attr_card, "Attrition: from turn %d every enemy hits 5%% harder each turn, up to +25%%. Long fights get dangerous, so finish them. It resets every fight." % int(state.get("start_turn", 6)))
-	if newcomer:
-		return
-	var pct := int(state.get("pct", 0))
-	var start := int(state.get("start_turn", 6))
-	var maxed := pct >= 25
-	var running := pct > 0
-	var col := UI3Theme.color("danger_text" if maxed else "attrition")
-	if not running:
-		_attr_title.text = "ATTRITION %s TURN %d" % [HudKit.dot(), start]
-	elif maxed:
-		_attr_title.text = "ATTRITION +%d%% %s MAX" % [pct, HudKit.dot()]
-	else:
-		_attr_title.text = "ATTRITION +%d%%" % pct
-	_attr_title.add_theme_color_override("font_color", col)
-	_attr_dashed = not running
-	var sb := (_attr_card.get_theme_stylebox("panel") as StyleBoxFlat).duplicate() as StyleBoxFlat
-	sb.content_margin_left = 16.0
-	sb.content_margin_right = 16.0
-	sb.content_margin_top = 0.0
-	sb.content_margin_bottom = 0.0
-	sb.set_border_width_all(0 if _attr_dashed else 2)
-	sb.border_color = col
-	_attr_card.add_theme_stylebox_override("panel", sb)
-	for c in _attr_pips.get_children():
-		_attr_pips.remove_child(c)
-		c.queue_free()
-	if not running:   # 3 pips only before start: 4 - N turns to go filled
-		var filled := clampi(4 - (start - turn), 0, 3)
-		for i in 3:
-			var d := Panel.new()
-			d.custom_minimum_size = Vector2(14, 14)
-			d.add_theme_stylebox_override("panel", UI3Theme.flat(col if i < filled else Color.TRANSPARENT, 7, 2, col))
-			d.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			_attr_pips.add_child(d)
-	_attr_card.queue_redraw()
+	_attr_card.apply(state, turn, newcomer)
 
 
 ## CombatView puts the card under the enemy plates (right column); Vector2(-1, -1) = default left column.
