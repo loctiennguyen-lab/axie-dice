@@ -10,6 +10,11 @@ extends RefCounted
 ##   "out": same shape as "in"
 ##   "shake": { "px", "ms" }          position jitter, runs next to the "in" phase
 ##   "particles": { "texture", "amount", "lifetime_ms", "spread_deg", "color_token", "speed" }  one-shot burst
+##   "particles2": same shape as "particles", a second emitter (e.g. crit = face_dmg burst + fragments)
+##   particles extras: "gravity" (px/s^2 down), "direction_deg" (0 = right, -90 = up), "ring" (true = radial 360)
+##   "hitstop_ms": Engine.time_scale 0.05 for that long (UI-04 Big hit / boss phase / victory). Off when reduced.
+##   "sweep": { "delay_ms" }          light sweep across the node (text colour @ 8%, 120 px wide, rotated 18 deg,
+##                                    parent clip). Off when reduced or MetaState.reduce_flash.
 ##   "sfx": event name in gacha_timing.json "sfx" (played through UI3Gacha.play_sfx, so tests stay silent)
 ##   "skippable": true -> opts.skip jumps straight to the final state
 ## Reduce motion (opts.reduced, or MetaState.reduce_motion via UI3Motion.reduced(), applied automatically):
@@ -121,17 +126,19 @@ static func validate_moment(id: String, m: Dictionary) -> Array[String]:
 				_check_curve("%s.%s.%s" % [id, ph, prop], (pd["props"] as Dictionary)[prop], errs)
 	if m.has("hold_ms") and float(m["hold_ms"]) < 0.0:
 		errs.append("%s: hold_ms negative" % id)
-	var pt: Variant = m.get("particles")
-	if pt != null:
+	for pk in ["particles", "particles2"]:
+		var pt: Variant = m.get(pk)
+		if pt == null:
+			continue
 		if typeof(pt) != TYPE_DICTIONARY:
-			errs.append("%s.particles: not an object" % id)
+			errs.append("%s.%s: not an object" % [id, pk])
 		else:
 			var tex := String((pt as Dictionary).get("texture", ""))
 			if tex == "" or not ResourceLoader.exists(tex):
-				errs.append("%s.particles.texture '%s' not found" % [id, tex])
+				errs.append("%s.%s.texture '%s' not found" % [id, pk, tex])
 			var ct := String((pt as Dictionary).get("color_token", ""))
 			if ct != "" and not ((UI3Theme.tokens().get("color", {}) as Dictionary).has(ct)):
-				errs.append("%s.particles.color_token '%s' is not a colour token" % [id, ct])
+				errs.append("%s.%s.color_token '%s' is not a colour token" % [id, pk, ct])
 	var sfx := String(m.get("sfx", ""))
 	if sfx != "" and not ((UI3Gacha.timing().get("sfx", {}) as Dictionary).has(sfx)):
 		errs.append("%s.sfx '%s' not in gacha_timing.json sfx" % [id, sfx])
@@ -199,6 +206,11 @@ static func play(id: String, node: CanvasItem, opts: Dictionary = {}) -> Tween:
 	var sfx := String(m.get("sfx", ""))
 	if sfx != "":
 		UI3Gacha.play_sfx(node, sfx)
+	if not red and m.has("hitstop_ms") and node.is_inside_tree() and not bool(opts.get("skip", false)):
+		hitstop(node, float(m["hitstop_ms"]))
+	if not red and not MetaState.reduce_flash and m.has("sweep") and node is Control and node.is_inside_tree() \
+			and not bool(opts.get("skip", false)):
+		sweep(node as Control, float((m["sweep"] as Dictionary).get("delay_ms", 0.0)) * float(opts.get("scale_ms", 1.0)))
 	# Start state of the first phase that names a "from".
 	for ph in ["in", "out"]:
 		if m.has(ph):
@@ -229,8 +241,10 @@ static func play(id: String, node: CanvasItem, opts: Dictionary = {}) -> Tween:
 		if first and m.has("shake"):
 			_shake(tw, node, m["shake"] as Dictionary, k, base_pos)
 		first = false
-		if ph == "in" and m.has("particles"):
-			tw.parallel().tween_callback(_burst.bind(node, m["particles"] as Dictionary))
+		if ph == "in":
+			for pk in ["particles", "particles2"]:
+				if m.has(pk):
+					tw.parallel().tween_callback(_burst.bind(node, m[pk] as Dictionary))
 	tw.set_parallel(false)
 	if red and m.has("out"):
 		tw.tween_callback(_settle.bind(node, m["out"] as Dictionary, base_pos))
@@ -286,7 +300,11 @@ static func _burst(node: CanvasItem, pt: Dictionary) -> void:
 	cp.spread = float(pt.get("spread_deg", 180.0))
 	cp.initial_velocity_min = float(pt.get("speed", 120.0)) * 0.6
 	cp.initial_velocity_max = float(pt.get("speed", 120.0))
-	cp.gravity = Vector2.ZERO
+	cp.gravity = Vector2(0.0, float(pt.get("gravity", 0.0)))
+	if pt.has("direction_deg"):
+		cp.direction = Vector2.RIGHT.rotated(deg_to_rad(float(pt["direction_deg"])))
+	if bool(pt.get("ring", false)):
+		cp.spread = 180.0
 	var ct := String(pt.get("color_token", ""))
 	if ct != "":
 		cp.color = UI3Theme.color(ct)
@@ -394,3 +412,34 @@ static func _after(node: CanvasItem, m: Dictionary, opts: Dictionary) -> void:
 		(cb as Callable).call()
 	if bool(m.get("free_on_done", false)):
 		node.queue_free()
+
+
+## Hit-stop: Engine.time_scale 0.05 for `ms` of real time, then back to 1. UI-04 Big hit / boss phase / victory.
+## Call sites never need to reset it; a second call while one runs is ignored.
+static func hitstop(node: Node, ms: float) -> void:
+	if reduced() or Engine.time_scale < 0.5 or not node.is_inside_tree():
+		return
+	Engine.time_scale = 0.05
+	var t := node.get_tree().create_timer(ms / 1000.0, true, false, true)   # ignore_time_scale
+	t.timeout.connect(func() -> void: Engine.time_scale = 1.0)
+
+
+## Light sweep (motion.md): one translucent plate (text colour at 8%, 120 px wide, rotated 18 deg) tweened across
+## `parent` with clip_contents on. No shader. Skipped when Reduce motion or reduce_flash is on.
+static func sweep(parent: Control, delay_ms := 0.0, ms := 400.0) -> void:
+	if reduced() or MetaState.reduce_flash or not parent.is_inside_tree():
+		return
+	parent.clip_contents = true
+	var bar := ColorRect.new()
+	bar.name = "LightSweep"
+	bar.color = Color(UI3Theme.color("text"), 0.08)
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.size = Vector2(120, maxf(parent.size.y * 1.6, 120.0))
+	bar.rotation = deg_to_rad(18.0)
+	bar.position = Vector2(-160.0, -parent.size.y * 0.3)
+	parent.add_child(bar)
+	var tw := bar.create_tween()
+	if delay_ms > 0.0:
+		tw.tween_interval(delay_ms / 1000.0)
+	tw.tween_property(bar, "position:x", parent.size.x + 160.0, ms / 1000.0).set_trans(Tween.TRANS_SINE)
+	tw.tween_callback(bar.queue_free)
