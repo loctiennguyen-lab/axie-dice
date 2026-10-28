@@ -4341,6 +4341,9 @@ func _show_defeat_panel() -> void:
 		"continue_reason": AidPurchase.reason_text(String(co["reason"])),
 		"mission": String(co["reason"]) == "mission_run",
 		"need_more": maxi(price - MetaState.gem_wallet().balance(), 0) if String(co["reason"]) == "no_gems" else 0,
+		# UI-05 30-defeat normal: Get Gem. No in-run Gem shop exists and USD buying is off in the playtest, so the
+		# button is drawn disabled and says why (open question for Liam: where Get Gem should lead).
+		"get_gem_reason": StoreScreen.USD_REASON,
 		"foot": "Continue is offered once per run." if not gift else "This gift is offered once per account and is used as the run's Continue."})
 
 
