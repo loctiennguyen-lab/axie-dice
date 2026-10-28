@@ -29,14 +29,9 @@ func _ready() -> void:
 	rm = load("res://scenes/run_map/RunMap.tscn").instantiate()
 	add_child(rm)
 	await _wait(1.2)
-	var pk := rm.find_child("AnchorPick", true, false)
-	_snap("anchorpick_none")
-	pk.select(0)
-	await _wait(0.4)
-	_snap("anchorpick_picked")
-	var id := String(pk.cards[0].get_meta("anchor_id"))
-	pk.take_button.pressed.emit()
-	await _wait(0.8)
+	var id := "a_kin"
+	RunState.anchor_id = id
+	RunState.anchor_offer = []
 	# Core offer: Moss + Amber + Crystal, the Anchor's house Cores.
 	var hc: Array = AnchorAdapter.house_cores(id)
 	var cards: Array = []
@@ -46,6 +41,14 @@ func _ready() -> void:
 		cards.append({"t": "relic", "key": String(hc[i]), "rar": i, "title": "CORE", "desc": String(d.name),
 			"sub": String(d.description), "core": true, "axis": axes[i], "tier": i, "slot": i})
 	RunState.pending_rewards.assign(cards)
+	UI3Gacha.instant_override = -1
+	rm.call("_show_reward_overlay", "x")
+	await _wait(0.35)
+	_snap("coreoffer_facedown")
+	await _wait(3.5)
+	_snap("coreoffer_revealed_motion")
+	UI3Gacha.instant_override = 1
+	rm._close_overlay()
 	rm.call("_show_reward_overlay", "x")
 	await _wait(0.8)
 	_snap("coreoffer")

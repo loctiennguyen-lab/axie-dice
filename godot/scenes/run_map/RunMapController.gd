@@ -1727,6 +1727,12 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 		band_row.add_child(band)
 		var cat := UI3.category_chip(tr(String(CorePanel.AXIS_NAME.get(String(r.get("axis", "")), "Core"))))
 		cat.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var cat_sb := cat.get_theme_stylebox("panel") as StyleBoxFlat   # the tag has no side padding: give the word room
+		if cat_sb != null:
+			cat_sb = cat_sb.duplicate() as StyleBoxFlat
+			cat_sb.content_margin_left = 12
+			cat_sb.content_margin_right = 12
+			cat.add_theme_stylebox_override("panel", cat_sb)
 		band_row.add_child(cat)
 		col.add_child(band_row)
 	if crystal:
