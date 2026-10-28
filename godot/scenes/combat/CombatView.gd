@@ -3525,10 +3525,11 @@ func _reveal_intents() -> void:
 		var blk: Control = p.intent_block() if p != null and is_instance_valid(p) else null
 		if blk != null and blk.is_visible_in_tree():
 			blk.pivot_offset = blk.size * 0.5
-			var node := blk
+			var node_ref: WeakRef = weakref(blk)   # the tree timer can outlive the scene: never capture the node
 			U5Moments.intent_bighit(self, p, U5Moments.intent_stagger_sec() * i)   # UI-05 lane E: border flash, strip, badge
 			get_tree().create_timer(U5Moments.intent_stagger_sec() * i).timeout.connect(func() -> void:
-				if is_instance_valid(node):
+				var node: Control = node_ref.get_ref()
+				if node != null:
 					UI3Motion.play("intent_reveal", node))
 			i += 1
 
