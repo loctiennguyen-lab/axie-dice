@@ -1093,7 +1093,7 @@ func _build_hud_r1() -> void:
 	_dock_plate.add_to_group("ui3_tip_avoid")
 	_shell_root.add_child(_dock_plate)
 	_shell_root.add_child(_tray_root)
-	_dock_pill = UI3.waiting_pill(TranslationServer.translate("Waiting for server…"))
+	_dock_pill = Ui5WaitingPill.make()   # UI-05 b1 lane A look; placed by DiceDock
 	_dock_pill.visible = false
 	_dock_pill.z_index = 8
 	_shell_root.add_child(_dock_pill)
@@ -1185,6 +1185,7 @@ func _update_hud() -> void:
 		{"sub": "%d dice unused" % unused,
 		 "warn": has_unused and executing,
 		 "resolving": _combat.phase != CombatPhase.EXECUTE,
+		 "picked": executing and _selected_die_uid != -1,
 		 "enabled": not (_combat.won or _combat.lost) and _combat.phase != CombatPhase.END_TURN},
 		{"show": _combat.stash_cap() > 0, "enabled": can_hold, "text": hold_text, "tip": hold_tip,
 		 "on": _combat.stash_count() >= _combat.stash_cap() and _combat.stash_cap() > 0},
@@ -1391,7 +1392,7 @@ func _update_aid(hs: Dictionary, executing: bool) -> void:
 		r["gems"] = gems
 	var mission := String(o2["reason"]) == "mission_run"   # Mission runs have no Aid zone at all
 	_aid.set_state({"enabled": not newcomer and not _tutorial and not mission, "used": used, "cap": cap,
-		"rows": rows, "offer": offer})
+		"rows": rows, "offer": offer, "dim": _combat.phase == CombatPhase.END_TURN and not (_combat.won or _combat.lost)})
 
 
 func _on_aid_purchase(aid_id: String) -> void:

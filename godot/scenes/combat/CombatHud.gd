@@ -1,13 +1,17 @@
 extends Control
 class_name CombatHud
-## Dice UI R1 combat HUD frame (design/handoffs/ui-02-round1b README §3): the top HUD, the
-## attrition card, the right zone (Undo / Reroll / END TURN / speed control) and the left zone
-## (Aid). Pure view: it is told what to show (`update_*`) and reports clicks (signals). It never
-## reads or writes game state; CombatView owns that.
+## Combat HUD shell (UI-05 batch 1, lane A; design/handoffs/ui-05-figma/round-1/ui05-combat-screens.html, style A):
+## RunInfo top-left, the ActionDock bottom-right (ToolKeys · Reroll · End turn · StatusLine), plus the left column
+## kept from UI-04 (Anchor chip, Core plate, attrition card, boss rhythm, battle log, die info panel). Pure view: it
+## is told what to show (`update_*`) and reports clicks (signals). It never reads or writes game state; CombatView
+## owns that.
 ##
-## Layout is relationships, not mockup y values (godot/CLAUDE.md rule 2): the top HUD hangs from
-## y 0, everything in the bottom half hangs from y H, and extra window height opens up between
-## the monsters and the party. `layout()` runs on every resize.
+## Only one key is drawn on screen: Space on End turn (Liam 28/10). Every other shortcut still works (CombatView
+## reads KeyBindings) and is named in its button's tooltip.
+##
+## Layout is relationships, not mockup y values (godot/CLAUDE.md rule 2): the top HUD hangs from y 0, the docks hang
+## from the bottom edge. Every size is a token read through UI3Theme (1280 text floor included); `layout()` runs on
+## every resize and re-reads the tokens when the window scale changed.
 
 signal menu_pressed
 signal ascension_pressed
@@ -18,37 +22,20 @@ signal hold_pressed   ## depth v3 3.2: the Hold button (CombatView turns it into
 
 const TOP := 24.0
 const EDGE := 24.0
-const RIGHT_W := 320.0   ## ActionDock content width (352 dock - 2 x 16)
-const DOCK_W := 352.0     ## tokens size.action_dock_w
-const DOCK_PAD := 16.0
-const DOCK_GAP := 12.0
-const TOOL_W := 74.0      ## (320 - 3 x 8) / 4
-const TOOL_GAP := 8.0
-const GAP := 12.0
-const END_H := 72.0
-const SMALL_H := 56.0
-const HINT_H := 24.0
-const TILE := 56.0   ## ToolKey height (tokens size.tool_key_h)
-const TILE_LABEL_W := 80.0
-const TILE_LABEL_H := 24.0
-const UNDO_W := 88.0
-const ROW_GAP := 12.0   # Undo | Reroll: a clear gap, the two must not read as one button
 const INFO_W := 288.0
+
+const WAITING_TEXT := "Waiting for the server"   ## StatusLine while a seed request is in flight (approved string)
+const WAITING_END := "Waiting…"                  ## End turn label meanwhile
+const ENEMY_TEXT := "Enemies are acting"         ## StatusLine during the enemy turn
+const PICK_TEXT := "Pick a target"               ## StatusLine while a die is picked
 
 var core_panel: CorePanel            ## depth v3: 6 Core slots + Run rule slot + quest chips
 var relic_strip: HBoxContainer      ## kept as a public name: tests hover relic chips here
 var actives_row: HBoxContainer
 
-var _top_plate: PanelContainer
-var _fight_label: Label
-var _fight_sub: Label
-var _asc_pill: PanelContainer
-var _asc_label: Label
+var _run_info: Ui5RunInfo           ## RunInfo (MenuButton + RunPill)
+var _top_plate: Control             ## = _run_info (left-column layout and tests read its rect)
 var _anchor_chip: PanelContainer
-var _turn_label: Label
-var _shard_box: HBoxContainer
-var _shard_label: Label
-var _menu_button: Button
 var _relic_plate: PanelContainer
 var _divider: Control
 var _mana_box: HBoxContainer
@@ -58,36 +45,38 @@ var _attr_title: Label
 var _attr_pips: HBoxContainer
 var _attr_dashed := false
 var _attr_right_pos := Vector2(-1.0, -1.0)
-var _speed: HBoxContainer          ## 1x / 2x / Skip, takes the Undo+Reroll row while a resolve plays
 var _info: PanelContainer           ## die info panel (288 w, wood-2), only while a die is picked
 var _info_title: Label
 var _info_body: Label
 var _info_bottom := -1.0
 var _log_plate: PanelContainer      ## battle log, top-left column under the attrition card
 const LOG_H := 176.0
-var _speed_buttons: Array[Button] = []
-var _skip_button: Button
 
-## Right-zone buttons are owned by the scene (%UndoButton etc. keep their names for the tests);
-## CombatView hands them over via `adopt_right_zone()`.
-var _dock: PanelContainer         ## ActionDock plate (352 wide), behind the buttons
-var _reroll_cap: PanelContainer
+## ActionDock (bottom-right, no plate behind it in style A): VBox(ToolKeys, RerollButton, EndTurnButton, StatusLine).
+## The Undo / Reroll / End turn buttons are owned by the scene (%UndoButton etc. keep their names for the tests and
+## the tutorial); CombatView hands them over via `adopt_right_zone()`.
+var _dock: VBoxContainer
+var _tools: HBoxContainer           ## ToolKeys
+var _tool_keys: Array[Ui5ToolKey] = []
+var _cost_chip: PanelContainer      ## CostChip inside Reroll (paid reroll price)
 signal wait_dim_changed(on: bool)
 var _wait_dim := false
+var _resolving := false
 var _dim_tweens: Array[Tween] = []
 var _dim_timer_gen := 0   ## bumps on every set_seed_wait: a stale 300 ms dim timer checks it and does nothing
 var undo_button: Button
 var reroll_button: Button
 var end_turn_button: Button
-var overcast_button: Button        ## Overcast (lane OC), owned here, sits above Hold
+var overcast_button: Button        ## Overcast (lane OC), owned here
 var _overcast_wanted := true
 var wild_button: Button             ## depth v4 Wild face (stage >= 2)
 var _wild_wanted := false
 var _seed_wait := false
 var _hint_before_wait := ""
+var _end_before_wait := ""
 var hold_button: Button             ## depth v3 Hold, owned here (no scene node)
-var _hint: Label
-var _end_cap: PanelContainer      # key cap on the End turn button
+var _hint: Label                    ## StatusLine
+var _end_cap: PanelContainer      # the one key cap on screen: Space on End turn
 var _end_cap_label: Label
 var _hold_wanted := true
 var _foe_card: PanelContainer       ## boss rhythm (3 chips) and / or the Elite affix chip, left column
@@ -95,6 +84,7 @@ var _foe_rows: VBoxContainer
 
 var _newcomer := false
 var _tray_top := 0.0
+var _scale_seen := -1.0
 
 
 func _init() -> void:
@@ -104,12 +94,11 @@ func _init() -> void:
 	_build_top()
 	_build_attrition()
 	_build_foe_card()
-	_build_speed()
 	_build_info()
 	resized.connect(layout)
 
 
-# ── Top HUD (UI-03 spec: TopLeft plate, relic plate under it) ───────────────────────────────
+# ── Top HUD: RunInfo, Anchor chip and the Core plate under it ───────────────────────────────
 
 func _ignore(c: Control) -> Control:
 	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -117,78 +106,11 @@ func _ignore(c: Control) -> Control:
 
 
 func _build_top() -> void:
-	# UI-04 run plate (80 high, padding 0 20 0 12): menu 56 · "Fight 4" 32 + "of 18" 24 muted · divider ·
-	# A-level pill · Turn · Shard chip.
-	_top_plate = UI3.plate(&"plate")
-	_top_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_top_plate.custom_minimum_size = Vector2(0, 80)
-	var tsb := (_top_plate.get_theme_stylebox("panel") as StyleBoxFlat).duplicate() as StyleBoxFlat
-	tsb.content_margin_left = 12.0
-	tsb.content_margin_right = 20.0
-	tsb.content_margin_top = 0.0
-	tsb.content_margin_bottom = 0.0
-	_top_plate.add_theme_stylebox_override("panel", tsb)
-	add_child(_top_plate)
-	var row := HBoxContainer.new()
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("separation", UI3Theme.space("16"))
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	_top_plate.add_child(row)
-	_menu_button = UI3.icon_button("ui_menu", "Menu")
-	_menu_button.custom_minimum_size = Vector2(56, 56)
-	_menu_button.pressed.connect(func(): menu_pressed.emit())
-	row.add_child(_menu_button)
-	var title_row := HBoxContainer.new()
-	title_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title_row.add_theme_constant_override("separation", 8)
-	title_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(title_row)
-	_fight_label = UI3.label("", "LabelDisplay")
-	_fight_label.add_theme_font_size_override("font_size", UI3Theme.size_of("text_screen_title"))   # 32
-	_ignore(_fight_label)
-	title_row.add_child(_fight_label)
-	_fight_sub = UI3.label("", "LabelDisplay")
-	_fight_sub.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))   # 24
-	_fight_sub.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
-	_ignore(_fight_sub)
-	title_row.add_child(_fight_sub)
-	var rule := ColorRect.new()
-	rule.color = UI3Theme.color("plate_edge")
-	rule.custom_minimum_size = Vector2(2, 40)
-	rule.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(rule)
-	_asc_pill = PanelContainer.new()
-	_asc_pill.custom_minimum_size = Vector2(0, 40)
-	_asc_pill.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_asc_pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_asc_pill.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("pill"), 0,
-		Color.TRANSPARENT, Vector4(14, 0, 14, 0)))
-	_asc_label = UI3.label("", "LabelDisplay")
-	_asc_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_ignore(_asc_label)
-	_asc_pill.add_child(_asc_label)
-	row.add_child(_asc_pill)
-	_turn_label = UI3.label("", "LabelMuted")
-	_ignore(_turn_label)
-	row.add_child(_turn_label)
-	_shard_box = HBoxContainer.new()
-	_shard_box.mouse_filter = Control.MOUSE_FILTER_STOP
-	_shard_box.tooltip_text = "Gene Shards earned this run"
-	_shard_box.add_theme_constant_override("separation", 6)
-	var ic := TextureRect.new()
-	ic.texture = UI3.icon("cur_shard")
-	ic.custom_minimum_size = Vector2.ONE * 28
-	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_shard_box.add_child(ic)
-	_shard_label = UI3.label("0", "LabelDisplay")
-	_shard_label.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
-	_ignore(_shard_label)
-	_shard_box.add_child(_shard_label)
-	row.add_child(_shard_box)
+	_run_info = Ui5RunInfo.new()
+	_top_plate = _run_info
+	_run_info.menu_button.tooltip_text = "%s (%s)" % [TranslationServer.translate("Menu"), KeyBindings.text(KeyBindings.MENU_BACK)]
+	_run_info.menu_button.pressed.connect(func(): menu_pressed.emit())
+	add_child(_run_info)
 
 	# Relic plate under it: passive relics, divider, actives, Mana.
 	_relic_plate = UI3.plate(&"plate")
@@ -456,29 +378,6 @@ func info_panel() -> Control:
 	return _info
 
 
-func _build_speed() -> void:
-	# Speed control 1x / 2x / Skip (Space), shown only while a resolve is playing.
-	# No plate of its own: the buttons are already opaque, and the row sits in the 240 px right column
-	# (same slot as Undo / Reroll, which are hidden meanwhile), so it can never leave the screen.
-	_speed = HBoxContainer.new()
-	_speed.visible = false
-	_speed.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_speed.add_theme_constant_override("separation", 8)
-	add_child(_speed)
-	for t in ["1x", "2x"]:
-		var b := UI3.button(t, &"secondary", &"S")
-		b.custom_minimum_size = Vector2(56.0, SMALL_H)
-		b.clip_text = true
-		_speed.add_child(b)
-		_speed_buttons.append(b)
-	_skip_button = UI3.button("Skip", &"secondary", &"S")
-	_skip_button.custom_minimum_size = Vector2(0.0, SMALL_H)
-	_skip_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_skip_button.clip_text = true
-	_skip_button.tooltip_text = "Skip the animation (%s)" % KeyBindings.text(KeyBindings.COMBAT_END_TURN)
-	_speed.add_child(_skip_button)
-
-
 # ── Right zone: adopt the scene's buttons, UI3 variants ─────────────────────────────────────
 
 ## The battle log lives in the left column, between the attrition card and the info panel, clear of
@@ -502,78 +401,19 @@ func adopt_log(text: RichTextLabel) -> PanelContainer:
 	return _log_plate
 
 
-## ToolKey (UI-04): 74 x 56 tile, glyph 28 centred, Work Sans 18 word under it. `button.text` keeps the full state words
-## ("Hold: pick a die", "Wild: need 2 mana") for tooltips, tests and screen readers but is not drawn on the tile.
-func _make_tile(b: Button, glyph: StringName, word: String) -> void:
-	b.custom_minimum_size = Vector2(TOOL_W, TILE)
-	b.clip_text = true
-	b.icon = null
-	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_disabled_color", "font_focus_color", "font_hover_pressed_color"]:
-		b.add_theme_color_override(c, Color(0, 0, 0, 0))
-	var g := ActionGlyph.new(glyph)
-	g.offset_left = (TOOL_W - 28.0) * 0.5
-	g.offset_top = (TILE - 28.0) * 0.5
-	g.offset_right = -(TOOL_W - 28.0) * 0.5
-	g.offset_bottom = -(TILE - 28.0) * 0.5
-	b.add_child(g)
-	var l := UI3.label(word, "")
-	l.name = "TileLabel_%s" % b.name
-	l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
-	l.add_theme_color_override("font_color", UI3Theme.color("text"))
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	l.clip_text = false
-	add_child(l)
-	b.visibility_changed.connect(func(): l.visible = b.visible)   # a mode that hides the tile hides its word too
-	b.set_meta("tile_label", l)
-	b.set_meta("tile_glyph", g)
-	_tile_style(b)
-
-
-## ToolKey look: panel_raised fill, 2 px plate_edge, radius m (12); hover = plate_edge fill. Usable and unusable look the
-## same apart from the dimmed glyph; the tooltip says why a tile is off.
-func _tile_style(b: Button) -> void:
-	for st in ["normal", "hover", "pressed", "disabled", "hover_pressed"]:
-		var bg := UI3Theme.color("panel_raised")
-		if st == "hover" or st == "hover_pressed":
-			bg = UI3Theme.color("plate_edge")
-		b.add_theme_stylebox_override(st, UI3Theme.flat(bg, UI3Theme.radius("m"), 2, UI3Theme.color("plate_edge")))
-
-
-func _sync_tile(b: Button) -> void:
-	if b.has_meta("tile_glyph"):
-		(b.get_meta("tile_glyph") as ActionGlyph).dim = b.disabled and not b.has_meta("tile_on")
-
-
-## Tools in a row: only the unlocked ones take a slot, TOOL_W wide with an 8 px gap (the dock grid). Returns how many.
-func _place_tiles(x: float, y: float, tiles: Array) -> int:
-	var vis: Array = []
-	for b in tiles:
-		if b != null and b.visible:
-			vis.append(b)
-	for i in vis.size():
-		var b: Button = vis[i]
-		b.position = Vector2(x + (TOOL_W + TOOL_GAP) * i, y)
-		b.size = Vector2(TOOL_W, TILE)
-		var l: Label = b.get_meta("tile_label")
-		l.visible = true
-		l.size = Vector2(TOOL_W + 12.0, TILE_LABEL_H)
-		l.position = Vector2(b.position.x - 6.0, y + TILE + 4.0)
-	for b in tiles:
-		if b != null and b.has_meta("tile_label") and not b.visible:
-			(b.get_meta("tile_label") as Label).visible = false
-	return vis.size()
-
-
 func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 	undo_button = undo
 	reroll_button = reroll
 	end_turn_button = end_turn
-	_dock = UI3.dock(int(DOCK_W))
+	_dock = VBoxContainer.new()
+	_dock.name = "ActionDock"
 	_dock.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_dock.add_to_group("ui3_tip_avoid")
 	add_child(_dock)
+	_tools = HBoxContainer.new()
+	_tools.name = "ToolKeys"
+	_tools.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dock.add_child(_tools)
 	for b in [undo, reroll, end_turn]:
 		if b.get_parent() != null:
 			b.get_parent().remove_child(b)
@@ -584,54 +424,102 @@ func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 		b.theme = UI3Theme.get_theme()
 		b.focus_mode = Control.FOCUS_ALL
 		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		add_child(b)
-	reroll.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
-	undo.theme_type_variation = "ButtonSecondaryS"
+	# ToolKeys, in the HTML order: Undo · Hold · Wild · Overcast.
+	undo.text = "Undo"
+	hold_button = Button.new()
+	hold_button.name = "HoldButton"
+	hold_button.text = "Hold"
+	hold_button.pressed.connect(func(): hold_pressed.emit())
+	wild_button = Button.new()
+	wild_button.name = "WildButton"
+	wild_button.text = "Wild"
+	wild_button.pressed.connect(func(): wild_pressed.emit())
+	overcast_button = Button.new()
+	overcast_button.name = "OvercastButton"
+	overcast_button.text = "Overcast"
+	overcast_button.pressed.connect(func(): overcast_pressed.emit())
+	for spec in [["UndoKey", undo, &"undo", "Undo"], ["HoldKey", hold_button, &"hold", "Hold"],
+			["WildKey", wild_button, &"wild", "Wild"], ["OvercastKey", overcast_button, &"overcast", "Overcast"]]:
+		var k := Ui5ToolKey.new(spec[0], spec[1], spec[2], TranslationServer.translate(spec[3]))
+		_tools.add_child(k)
+		_tool_keys.append(k)
+	# RerollButton: secondary M, Rowdies title, reroll glyph, CostChip (mana) when the next reroll is paid.
 	reroll.theme_type_variation = "ButtonSecondary"
 	reroll.text = "Reroll"
+	reroll.icon = UI3.cream_icon("ui_reroll")
+	reroll.expand_icon = false
+	reroll.clip_text = true
 	reroll.tooltip_text = "Reroll unused dice (%s)" % KeyBindings.text(KeyBindings.COMBAT_REROLL)
+	_cost_chip = Ui5HudStyle.cost_chip(&"mana", 1)
+	_cost_chip.visible = false
+	reroll.add_child(_cost_chip)
+	_dock.add_child(reroll)
+	# EndTurnButton: the one amber primary, Rowdies screen title, the one key cap on screen (Space).
 	end_turn.theme_type_variation = "ButtonPrimaryL"
 	end_turn.text = "End turn"
-	end_turn.add_theme_font_size_override("font_size", UI3Theme.size_of("text_screen_title"))   # 32; "Enemy turn" must fit the 320 px dock
-	_end_cap = UI3.keycap(KeyBindings.text(KeyBindings.COMBAT_END_TURN))
+	end_turn.clip_text = true
+	end_turn.tooltip_text = "End turn (%s)" % KeyBindings.text(KeyBindings.COMBAT_END_TURN)
+	_end_cap = Ui5Keycap.make(KeyBindings.text(KeyBindings.COMBAT_END_TURN), &"primary")
 	_end_cap.name = "EndKeyCap"
-	_end_cap_label = _end_cap.find_child("Key", true, false) as Label
+	_end_cap_label = _end_cap.get_node("Key") as Label
 	end_turn.add_child(_end_cap)
-	_reroll_cap = UI3.keycap(KeyBindings.text(KeyBindings.COMBAT_REROLL), true)
-	_reroll_cap.name = "RerollKeyCap"
-	reroll.add_child(_reroll_cap)
-	reroll.custom_minimum_size = Vector2(RIGHT_W, SMALL_H)
-	end_turn.custom_minimum_size = Vector2(RIGHT_W, END_H)
-	# Backstop: a label can never grow its button past the 240 px column (test: t_combat_right_block).
-	for b in [undo, reroll, end_turn]:
-		b.clip_text = true
-	_make_tile(undo, &"undo", "Undo")
-	var ucap := UI3.keycap(KeyBindings.text(KeyBindings.COMBAT_UNDO), true)
-	ucap.name = "UndoKeyCap"
-	ucap.position = Vector2(TOOL_W - 22.0, -14.0)
-	undo.add_child(ucap)
-	overcast_button = UI3.button("Overcast", &"secondary", &"S")
-	overcast_button.name = "OvercastButton"
-	overcast_button.pressed.connect(func(): overcast_pressed.emit())
-	add_child(overcast_button)
-	_make_tile(overcast_button, &"overcast", "Overcast")
-	wild_button = UI3.button("Wild", &"secondary", &"S")
-	wild_button.name = "WildButton"
-	wild_button.pressed.connect(func(): wild_pressed.emit())
-	add_child(wild_button)
-	_make_tile(wild_button, &"wild", "Wild")
-	hold_button = UI3.button("Hold", &"secondary", &"S")
-	hold_button.name = "HoldButton"
-	hold_button.pressed.connect(func(): hold_pressed.emit())
-	add_child(hold_button)
-	_make_tile(hold_button, &"hold", "Hold")
-	_hint = UI3.label("", "LabelMuted")   # status line inside the ActionDock: one Work Sans 18 line, muted, centred
+	_dock.add_child(end_turn)
+	# StatusLine: one Work Sans body line on the 3D view, centred.
+	_hint = UI3.label("", "")
+	_hint.name = "StatusLine"
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_hint.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
-	_hint.clip_text = true
+	_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_hint)
+	Ui5HudStyle.on_view(_hint)
+	_dock.add_child(_hint)
+	_apply_tokens()
 	layout()
+
+
+## Every size / font token of the HUD shell, re-read after a window-scale change (UI3Theme rebuilds the shared
+## Theme in place; overrides set here have to be set again).
+func _apply_tokens() -> void:
+	_scale_seen = UI3Theme.current_scale()
+	if _run_info != null:
+		_run_info.refresh_tokens()
+	if _dock == null:
+		return
+	var dock_w := float(UI3Theme.size_of("action_dock_w"))
+	_dock.custom_minimum_size = Vector2(dock_w, 0)
+	_dock.add_theme_constant_override("separation", UI3Theme.space("16"))
+	var key_w := floorf((dock_w - 3.0 * UI3Theme.space("16")) / 4.0)   # CSS .tool-key width 76 at 1920
+	for k in _tool_keys:
+		k.refresh_tokens(key_w)
+	reroll_button.custom_minimum_size = Vector2(dock_w, UI3Theme.size_of("btn_m"))
+	reroll_button.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
+	reroll_button.add_theme_constant_override("icon_max_width", UI3Theme.size_of("icon_m"))
+	reroll_button.add_theme_constant_override("h_separation", UI3Theme.space("12"))
+	end_turn_button.custom_minimum_size = Vector2(dock_w, UI3Theme.size_of("btn_l"))
+	end_turn_button.add_theme_font_size_override("font_size", UI3Theme.size_of("text_screen_title"))
+	Ui5Keycap.refresh(_end_cap)
+	_cost_chip.custom_minimum_size = Vector2(0, UI3Theme.size_of("keycap_h"))
+	(_cost_chip.find_child("Icon", true, false) as Control).custom_minimum_size = Vector2.ONE * UI3Theme.size_of("icon_s")
+	_hint.custom_minimum_size = Vector2(dock_w, 0)
+
+
+## ToolKeys row: only the unlocked tools take a slot. Each key is (dock - 3 gaps) / 4 wide unless its word needs
+## more (Overcast at the 1280 text floor); the gap shrinks from space_16 to fit, keys pack from the left.
+func _layout_tools() -> void:
+	var dock_w := float(UI3Theme.size_of("action_dock_w"))
+	var key_w := floorf((dock_w - 3.0 * UI3Theme.space("16")) / 4.0)
+	var vis: Array[Ui5ToolKey] = []
+	var total := 0.0
+	for k in _tool_keys:
+		if k.button.visible:
+			vis.append(k)
+			var kw := maxf(key_w, k.natural_width())
+			k.custom_minimum_size.x = kw
+			total += kw
+	var gap := float(UI3Theme.space("16"))
+	if vis.size() > 1:
+		gap = clampf(floorf((dock_w - total) / float(vis.size() - 1)), 0.0, gap)
+	_tools.add_theme_constant_override("separation", int(gap))
+	_tools.visible = not vis.is_empty()
 
 
 # ── Update API (called from CombatView._rebuild_all) ─────────────────────────────────────────
@@ -668,16 +556,8 @@ func update_top(d: Dictionary) -> void:
 	_divider.visible = (d.get("actives", []) as Array).size() > 0 and (relics.size() > 0 or has_cores)
 	relic_strip.visible = relics.size() > 0
 	_relic_plate.visible = has_cores or relics.size() > 0 or (d.get("actives", []) as Array).size() > 0
-	var title := String(d.get("title", ""))
-	var of_at := title.find(" " + TranslationServer.translate("of") + " ")
-	_fight_label.text = title.substr(0, of_at) if of_at > 0 else title
-	_fight_sub.text = title.substr(of_at + 1) if of_at > 0 else ""
-	var asc := int(d.get("ascension", 0))
-	_asc_pill.visible = asc > 0
-	_asc_label.text = "A%d" % asc
-	_turn_label.text = TranslationServer.translate("Turn") + " %d" % int(d.get("turn", 1))
+	_run_info.set_info(String(d.get("title", "")), int(d.get("ascension", 0)), int(d.get("turn", 1)), int(d.get("shards", 0)))
 	_refresh_anchor_chip()
-	_shard_label.text = str(int(d.get("shards", 0)))
 	layout()
 
 
@@ -812,30 +692,39 @@ func place_attrition(pos: Vector2) -> void:
 	layout()
 
 
-## Right zone texts + enabled states. Disabled buttons say why (UI3 rule).
-## undo: {enabled, sub}  reroll: {n, enabled}  end: {sub, warn, enabled, resolving}
+## ActionDock texts + enabled states. Disabled buttons say why (UI3 rule).
+## undo: {enabled, sub}  reroll: {n, max, cost, tip, stakes, capped, enabled}
+## end: {sub, warn, enabled, resolving, picked}  hold / overcast / wild: {show, enabled, text, tip[, on]}
+## StatusLine (HTML frames): Waiting for the server > Enemies are acting > Pick a target > Reroll: need N MP > sub.
 func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary, hold: Dictionary = {}, overcast: Dictionary = {}, wild: Dictionary = {}) -> void:
 	if undo_button == null:
 		return
 	undo_button.disabled = not bool(undo.get("enabled", false))
-	undo_button.text = "Z"   # key hint; the tile shows the Undo glyph and word
+	undo_button.text = "Undo"   # not drawn: the key shows the Undo glyph and word
 	undo_button.tooltip_text = ("Undo the last die (%s)" % KeyBindings.text(KeyBindings.COMBAT_UNDO)) if not undo_button.disabled else "Nothing to undo this turn"
 	var n := int(reroll.get("n", 0))
 	var mx := int(reroll.get("max", 0))
 	var cost := int(reroll.get("cost", 0))   # mana for the NEXT reroll once the free charges are gone (3.5)
+	var capped := bool(reroll.get("capped", false))
 	var nm := "%d/%d" % [n, mx] if mx > 0 else str(n)
 	reroll_button.disabled = not bool(reroll.get("enabled", false))
+	var need_mp := n <= 0 and cost > 0 and not capped and reroll_button.disabled and not bool(end.get("resolving", false))
+	var show_cost := false
 	if n > 0:
 		reroll_button.text = "Reroll %s" % nm
-	elif cost > 0 and not bool(reroll.get("capped", false)):
-		reroll_button.text = "Reroll %d MP" % cost if not reroll_button.disabled else "Reroll · need %d MP" % cost
+	elif cost > 0 and not capped:
+		# Paid reroll: "Reroll" + the mana CostChip; short of mana: the reason, no glyph, no chip (aid-offer frame).
+		reroll_button.text = "Reroll · need %d MP" % cost if need_mp else "Reroll"
+		show_cost = not need_mp
 	else:
 		reroll_button.text = "No rerolls"
 	var stakes := int(reroll.get("stakes", 0))
-	if stakes > 0 and n <= 0 and cost <= 0 and not bool(reroll.get("capped", false)):
+	if stakes > 0 and n <= 0 and cost <= 0 and not capped:
 		reroll_button.text = "Gamble · Crack %d%%" % stakes   # High Stakes forces every paid reroll to be a Gamble
+	reroll_button.icon = null if need_mp else UI3.cream_icon("ui_reroll")
+	_cost_chip.visible = show_cost
+	Ui5HudStyle.set_cost(_cost_chip, cost)
 	reroll_button.tooltip_text = String(reroll.get("tip", "Reroll unused dice (%s)" % KeyBindings.text(KeyBindings.COMBAT_REROLL)))
-	var need_mp := n <= 0 and cost > 0 and not bool(reroll.get("capped", false)) and reroll_button.disabled
 	_overcast_wanted = bool(overcast.get("show", false))
 	overcast_button.disabled = not bool(overcast.get("enabled", false))
 	overcast_button.text = String(overcast.get("text", "Overcast"))
@@ -848,27 +737,47 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary, hold: D
 	var hold_on := bool(hold.get("on", false))
 	hold_button.disabled = not bool(hold.get("enabled", false)) and not hold_on   # "on" = a pressed-in toggle, not disabled
 	hold_button.text = String(hold.get("text", "Hold"))
-	_style_hold_on(hold_on)
+	_tool_key_of(hold_button).set_on(hold_on)
 	hold_button.tooltip_text = String(hold.get("tip", ""))
 	end_turn_button.disabled = not bool(end.get("enabled", true))
 	var resolving := end_turn_button.disabled and bool(end.get("resolving", false))
 	end_turn_button.text = "Enemy turn" if resolving else "End turn"
-	for tb in [undo_button, hold_button, wild_button, overcast_button]:
-		_sync_tile(tb)
-	_hint.text = ("%s · skip" % KeyBindings.text(KeyBindings.COMBAT_END_TURN)) if resolving else String(end.get("sub", ""))
-	if _end_cap != null:
-		_end_cap_label.text = KeyBindings.text(KeyBindings.COMBAT_END_TURN)
-		_end_cap.visible = not resolving
-		# text goes left while the cap sits on the right ("Space" is wide), centred again for "Enemy turn"
-		end_turn_button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_pad_end_for_cap(not resolving)
-		_reroll_cap.visible = reroll_button.visible and not reroll_button.disabled
+	end_turn_button.tooltip_text = ("Skip the animation (%s)" if resolving else "End turn (%s)") % KeyBindings.text(KeyBindings.COMBAT_END_TURN)
+	for k in _tool_keys:
+		k.ensure_style()
+		k.sync_dim()
+	if resolving:
+		_hint.text = TranslationServer.translate(ENEMY_TEXT)
+	elif bool(end.get("picked", false)):
+		_hint.text = TranslationServer.translate(PICK_TEXT)
+	elif need_mp:
+		_hint.text = TranslationServer.translate("Reroll: need %d MP") % cost
+	else:
+		_hint.text = String(end.get("sub", ""))
+	_end_cap_label.text = KeyBindings.text(KeyBindings.COMBAT_END_TURN)
 	_apply_seed_wait()
+	_sync_end_cap()
 	layout()
 
 
-## A seed request is in flight: grey every dice action and say why in the hint under End turn, so the HUD
-## does not look hung. The real guard stays `_combat.epoch_pending` in CombatView.
+func _tool_key_of(b: Button) -> Ui5ToolKey:
+	for k in _tool_keys:
+		if k.button == b:
+			return k
+	return null
+
+
+## Space stays on End turn in every state (Space also skips the enemy turn); its look follows the button.
+func _sync_end_cap() -> void:
+	if _end_cap == null:
+		return
+	var v: StringName = &"disabled" if end_turn_button.disabled else &"primary"
+	if _end_cap.get_meta("variant", &"") != v:
+		Ui5Keycap.set_variant(_end_cap, v)
+
+
+## A seed request is in flight: grey every dice action and say why on the StatusLine, so the HUD does not look hung.
+## The real guard stays `_combat.epoch_pending` in CombatView.
 func set_seed_wait(on: bool) -> void:
 	if on == _seed_wait or undo_button == null:
 		_seed_wait = on
@@ -877,8 +786,9 @@ func set_seed_wait(on: bool) -> void:
 	_dim_timer_gen += 1
 	if on:
 		_apply_seed_wait()
+		_sync_end_cap()
 		layout()
-		# Waiting state (motion `waiting_server`): the actions dim only after 300 ms, so a quick answer never flickers.
+		# Waiting state (motion `waiting_server`): the tools dim only after 300 ms, so a quick answer never flickers.
 		if is_inside_tree():
 			var gen := _dim_timer_gen
 			get_tree().create_timer(0.3).timeout.connect(func() -> void:
@@ -886,89 +796,58 @@ func set_seed_wait(on: bool) -> void:
 					_set_dim(true))
 	else:
 		_hint.text = _hint_before_wait   # the next update_right() refreshes everything else
+		end_turn_button.text = _end_before_wait if _end_before_wait != "" else end_turn_button.text
 		_set_dim(false)
 
 
-## Waiting: every dock action at 0.4 (tools with their words, Reroll, End turn). 120 ms fade, instant when reduced.
+## Waiting (02-combat--waiting): the ToolKeys row drops to 0.4; Reroll and End turn are disabled-styled, not faded.
+## 120 ms fade, instant when reduced.
 func _set_dim(on: bool) -> void:
 	if on == _wait_dim or undo_button == null:
 		return
 	_wait_dim = on
 	wait_dim_changed.emit(on)
+	_fade_tools(true)
+
+
+## ToolKeys alpha: 0.4 while waiting or during the enemy turn (HTML .dim), else 1.
+func _fade_tools(animate: bool) -> void:
+	if _tools == null:
+		return
 	for old in _dim_tweens:   # a flip within the 120 ms fade must not leave two tweens fighting over alpha
 		if old != null and old.is_valid():
 			old.kill()
 	_dim_tweens.clear()
-	var a := 0.4 if on else 1.0
-	for b in [undo_button, hold_button, wild_button, overcast_button, reroll_button, end_turn_button]:
-		if b == null:
-			continue
-		var items: Array = [b]
-		if b.has_meta("tile_label"):
-			items.append(b.get_meta("tile_label"))
-		for it in items:
-			if UI3Motion.reduced() or not is_inside_tree():
-				(it as CanvasItem).modulate.a = a
-			else:
-				var tw := create_tween()
-				tw.tween_property(it, "modulate:a", a, 0.12)
-				_dim_tweens.append(tw)
+	var a := 0.4 if (_wait_dim or _resolving) else 1.0
+	if not animate or UI3Motion.reduced() or not is_inside_tree():
+		_tools.modulate.a = a
+		return
+	var tw := create_tween()
+	tw.tween_property(_tools, "modulate:a", a, 0.12)
+	_dim_tweens.append(tw)
 
 
 func _apply_seed_wait() -> void:
 	if not _seed_wait:
 		return
-	if _hint.text != "Waiting for server…":
+	if _hint.text != TranslationServer.translate(WAITING_TEXT):
 		_hint_before_wait = _hint.text
+	if end_turn_button.text != TranslationServer.translate(WAITING_END):
+		_end_before_wait = end_turn_button.text
 	for b in [undo_button, reroll_button, end_turn_button, hold_button, overcast_button, wild_button]:
 		if b != null:
 			b.disabled = true
-	_hint.text = "Waiting for server…"
+	_hint.text = TranslationServer.translate(WAITING_TEXT)
+	end_turn_button.text = TranslationServer.translate(WAITING_END)
 
 
-## Hold already used (Holding n/n): the button reads as a switched-on toggle (wood-3 fill, 4 px cream outline,
-## check glyph), not as a greyed-out one. Pressing it again does nothing (CombatView gates it).
-## Keeps the End turn label centred in the width left of the key cap, with at least 8 px between label and cap:
-## the button's right content margin is widened by cap width + 12 px edge + 8 px gap (centred text then sits in the rest).
-func _pad_end_for_cap(on: bool) -> void:
-	for st in ["normal", "hover", "pressed", "disabled", "focus", "hover_pressed"]:
-		if not on:
-			end_turn_button.remove_theme_stylebox_override(st)
-			continue
-		var base: StyleBox = end_turn_button.get_theme_stylebox(st)
-		if base == null:
-			continue
-		var sb: StyleBox = base.duplicate()
-		sb.content_margin_left = 8.0   # base padding is wide; the label still has to fit left of the cap
-		sb.content_margin_right = _end_cap.get_combined_minimum_size().x + 12.0 + 8.0
-		end_turn_button.add_theme_stylebox_override(st, sb)
-
-
-func _style_hold_on(on: bool) -> void:
-	for st in ["normal", "hover", "pressed", "disabled", "hover_pressed"]:
-		if on:
-			hold_button.add_theme_stylebox_override(st, UI3Theme.flat(UI3Theme.color("btn_secondary"), UI3Theme.radius("s"), 4,
-				UI3Theme.color("selected_outline"), Vector4(12, 0, 12, 0)))
-	if not on:
-		_tile_style(hold_button)
-	if on:
-		hold_button.set_meta("tile_on", true)
-	else:
-		hold_button.remove_meta("tile_on")
-
-
-## Show the 1x / 2x / Skip control while a resolve plays.
+## The enemy turn is playing (02-combat--enemy-turn): ToolKeys at 0.4. Space on End turn skips it.
 func set_resolving(v: bool) -> void:
-	_speed.visible = v
+	if v == _resolving:
+		return
+	_resolving = v
+	_fade_tools(false)
 	layout()
-
-
-func speed_buttons() -> Array[Button]:
-	return _speed_buttons
-
-
-func skip_button() -> Button:
-	return _skip_button
 
 
 ## Bottom of the screen the tray/right zone hang from.
@@ -1015,10 +894,12 @@ func layout() -> void:
 		var vs := get_viewport_rect().size
 		w = vs.x
 		h = vs.y
+	if not is_equal_approx(UI3Theme.current_scale(), _scale_seen):
+		_apply_tokens()   # the window scale moved (1280 text floor): every token override is read again
 	_top_plate.size = Vector2.ZERO
-	_top_plate.position = Vector2(EDGE, TOP)
-	# Left column, top to bottom: run plate (80) · 16 · Anchor chip (48) · Cores plate · boss rhythm / affix · log.
-	var col_bottom := TOP + maxf(_top_plate.get_combined_minimum_size().y, 80.0)
+	_top_plate.position = Vector2(UI3Theme.space("screen"), UI3Theme.space("screen"))
+	# Left column, top to bottom: RunInfo (run_pill_h) · 16 · Anchor chip (48) · Cores plate · boss rhythm / affix · log.
+	var col_bottom := _top_plate.position.y + _top_plate.get_combined_minimum_size().y
 	if _anchor_chip != null and is_instance_valid(_anchor_chip):
 		_anchor_chip.size = Vector2.ZERO
 		_anchor_chip.position = Vector2(EDGE, col_bottom + 16.0)
@@ -1033,47 +914,29 @@ func layout() -> void:
 		_attr_card.size = Vector2(UI3Theme.size_of("attrition_w"), UI3Theme.size_of("attrition_h"))
 	else:
 		_attr_card.position = Vector2(EDGE, rel_bottom + 8.0)
-	if undo_button != null:
-		# ActionDock: plate 352 wide, bottom right, 16 padding, 12 between rows:
-		# ToolKeys (56 + word) · Reroll 56 · End turn 72 · status line.
-		var x := w - EDGE - DOCK_W + DOCK_PAD
-		var y := h - EDGE - DOCK_PAD
-		y -= HINT_H
-		_hint.position = Vector2(x, y)
-		_hint.size = Vector2(RIGHT_W, HINT_H)
-		_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		y -= DOCK_GAP + END_H
-		end_turn_button.position = Vector2(x, y)
-		end_turn_button.size = Vector2(RIGHT_W, END_H)
-		if _end_cap != null:
-			_end_cap.size = Vector2.ZERO
-			_end_cap.position = Vector2(RIGHT_W - 16.0 - _end_cap.get_combined_minimum_size().x, (END_H - _end_cap.get_combined_minimum_size().y) * 0.5)
-		y -= DOCK_GAP + SMALL_H
-		reroll_button.position = Vector2(x, y)
-		reroll_button.size = Vector2(RIGHT_W, SMALL_H)
-		if _reroll_cap != null:
-			_reroll_cap.size = Vector2.ZERO
-			_reroll_cap.position = Vector2(RIGHT_W - 12.0 - 28.0, (SMALL_H - 28.0) * 0.5)
-		overcast_button.visible = _overcast_wanted and not _speed.visible
-		wild_button.visible = _wild_wanted and not _speed.visible
-		hold_button.visible = _hold_wanted and not _speed.visible
-		undo_button.visible = not _speed.visible
-		reroll_button.visible = not _speed.visible
-		var top := y
-		# Tool row above the Reroll row: only the unlocked tools take a slot (no gaps).
-		var ty := y - DOCK_GAP - TILE - 4.0 - TILE_LABEL_H
-		if _place_tiles(x, ty, [undo_button, hold_button, wild_button, overcast_button]) > 0:
-			top = ty
-		_tray_top = top - DOCK_PAD
-		_dock.size = Vector2(DOCK_W, h - EDGE - _tray_top)
-		_dock.position = Vector2(w - EDGE - DOCK_W, _tray_top)
+	if _dock != null:
+		# ActionDock (02-combat frames): bottom-right at the screen margin, action_dock_w wide, gap space_16:
+		# ToolKeys (tool_key + word) · Reroll btn_m · End turn btn_l · StatusLine. No plate behind it (style A).
+		var edge := float(UI3Theme.space("screen"))
+		var dock_w := float(UI3Theme.size_of("action_dock_w"))
+		overcast_button.visible = _overcast_wanted
+		wild_button.visible = _wild_wanted
+		hold_button.visible = _hold_wanted
+		_layout_tools()
+		reroll_button.size = Vector2(dock_w, UI3Theme.size_of("btn_m"))
+		end_turn_button.size = Vector2(dock_w, UI3Theme.size_of("btn_l"))
+		Ui5HudStyle.place_trailing(reroll_button, _cost_chip, UI3Theme.space("24"))
+		Ui5HudStyle.place_trailing(end_turn_button, _end_cap, UI3Theme.space("32"))
+		_dock.size = Vector2.ZERO
+		var dm := _dock.get_combined_minimum_size()
+		_dock.size = Vector2(dock_w, dm.y)
+		_dock.position = Vector2(w - edge - dock_w, h - edge - dm.y)
+		_tray_top = _dock.position.y
 		# A tall enemy column (boss + 4-5 enemies) pushes the Attrition card down behind the ActionDock: keep it above.
 		if _attr_right_pos.x >= 0.0 and _attr_card.visible:
 			var max_y := _tray_top - 8.0 - UI3Theme.size_of("attrition_h")
 			if _attr_card.position.y > max_y:
 				_attr_card.position.y = max_y
-		_speed.position = reroll_button.position
-		_speed.size = Vector2(RIGHT_W, SMALL_H)
 	if _log_plate != null:
 		var ltop := rel_bottom
 		if _attr_right_pos.x < 0.0 and _attr_card.visible:
