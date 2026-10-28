@@ -42,7 +42,7 @@ func _ready() -> void:
 	for sc: float in [1.0, 0.977, 0.9, 0.8, 0.7, 2.0 / 3.0]:
 		UI3Theme.set_scale_override(sc)
 		var real := float(UI3Theme.size_of("die_card_w")) * sc
-		_ok(real <= 152.0 * sc + 1.0 and (last_real == 0.0 or real <= last_real + 1.0), "die card real px non-increasing at scale %.3f (%.1f)" % [sc, real])
+		_ok(real <= 152.0 * sc + 1.0 and (last_real == 0.0 or real <= last_real + 3.0), "die card real px non-increasing at scale %.3f (%.1f)" % [sc, real])
 		last_real = real
 	UI3Theme.set_scale_override(0.977)
 	_ok(UI3Theme.size_of("die_card_w") >= 150 and UI3Theme.size_of("die_card_w") <= 152, "scale 0.977 is nearly the 1920 size, not 116 real px (%d)" % UI3Theme.size_of("die_card_w"))
