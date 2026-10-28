@@ -375,8 +375,15 @@ func _is_ui3_shadow(f: StyleBoxFlat) -> bool:
 	if f.shadow_offset.x == 0.0 and f.shadow_offset.y == 6.0 and f.shadow_color.a > 0.98:
 		return true
 	for e in (UI3Theme.tokens().get("shadow", {}) as Dictionary).values():
-		if e is Dictionary and e.has("y") and e.has("color") \
-				and is_equal_approx(f.shadow_offset.y, float(e["y"])) \
+		if not (e is Dictionary and e.has("y") and e.has("color")):
+			continue
+		var col := String(e["color"])
+		if not col.begins_with("#") and not col.begins_with("color."):
+			# UI-05 die lip (shadow.die_side / die_side_selected): colour "face colour" = the face's own colour, so match by shape.
+			if is_equal_approx(f.shadow_offset.y, float(e["y"])) and f.shadow_offset.x == 0.0 and f.shadow_color.a > 0.98:
+				return true
+			continue
+		if is_equal_approx(f.shadow_offset.y, float(e["y"])) \
 				and is_equal_approx(f.shadow_offset.x, float(e.get("x", 0))) \
 				and f.shadow_color.is_equal_approx(UI3Theme.hex(String(e["color"]))):
 			return true
