@@ -4,7 +4,7 @@ extends Control
 ## Season 1 = free track only; the Season 2 premium row is a muted note, nothing to buy.
 ## Data and every claim go through MetaState -> PassV2 (pass_claim_free, pass_claim_weekly); this
 ## screen only draws state and calls the API, so a double claim is refused by PassV2 itself.
-## Drawn: level badge + XP bar, Claim all, 3 weekly cards, 30-node track (horizontal scroll),
+## Drawn: level badge + XP bar, Claim all, 3 weekly cards, 30-node track (one row of 8 per page, UI-04),
 ## premium row (locked, "Season 2", no purchase), post-30 loop row, reward detail card, banners for
 ## offline/guest, before-season and season-over. Rewards already reached stay claimable after the
 ## season ends; only XP and weekly claims stop (PassV2). Not drawn: loading skeleton (no async data).
@@ -44,6 +44,13 @@ var _modal_layer: Control
 var _left: VBoxContainer
 var _detail: PanelContainer
 var _tiles := {}   # lv -> PanelContainer (grid tile)
+var _page := -1   # track page 0..3; -1 = open on the page of the default level
+var _prev_level := -1   # level at the last refresh, to play pass_level_up when XP crosses one
+var _page_label: Label
+var _prev_btn: Button
+var _next_btn: Button
+var _badge: Control
+var _xp_bar: ProgressBar
 
 
 func _ready() -> void:
@@ -268,9 +275,9 @@ static func _thousands(n: int) -> String:
 
 # ---------------------------------------------------------------- build
 
-const DETAIL_W := 440
-const COLS := 6
-const TILE_H := 132
+const DETAIL_W := 456
+const PER_PAGE := 8   # UI-04 M4: one row of 8 level cards, ‹ 1-8 of 30 › pages, no vertical scroll
+const TILE_H := 220   # tokens size.pass_level_card_h
 
 
 func _build() -> void:
@@ -328,6 +335,20 @@ func refresh() -> void:
 	if selected_lv == 0 or _def(selected_lv).is_empty():
 		selected_lv = _default_level()
 	select_level(selected_lv)
+	_level_up_check()
+
+
+## UI-04 motion pass_level_up: when XP crossed a level since the last draw, the bar counts up and the badge pops.
+func _level_up_check() -> void:
+	var lv := level()
+	if _prev_level >= 0 and lv > _prev_level and _badge != null and is_instance_valid(_badge):
+		if _xp_bar != null:
+			var target := _xp_bar.value
+			_xp_bar.value = 0
+			var tw := _xp_bar.create_tween()
+			tw.tween_property(_xp_bar, "value", target, 0.0 if UI3Motion.reduced() else 0.6)
+		UI3Motion.play("pass_level_up", _badge)
+	_prev_level = lv
 
 
 func _def(lv: int) -> Dictionary:
@@ -427,6 +448,7 @@ func _draw_detail() -> void:
 	if node_state(lv) == "claimable":
 		b.pressed.connect(claim_level.bind(lv))
 	else:
+		b.text = "Claimed" if node_state(lv) == "claimed" else "Reach level %d to claim" % lv
 		UI3.set_disabled_reason(b, "Already claimed" if node_state(lv) == "claimed" else "Not reached yet")
 	v.add_child(b)
 
@@ -469,6 +491,8 @@ func _build_level_card() -> void:
 	bcol.add_child(bl)
 	badge.add_child(bcol)
 	row.add_child(badge)
+	_badge = badge
+	badge.pivot_offset = Vector2(48, 48)
 	var mid := VBoxContainer.new()
 	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mid.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -494,13 +518,16 @@ func _build_level_card() -> void:
 	il.name = "XpInfo"
 	mid.add_child(il)
 	mid.add_child(bar)
+	_xp_bar = bar
 	mid.add_child(UI3.label("Level L needs 500 + 40 × (L − 1) XP", "LabelMuted"))
 	row.add_child(mid)
 	var all := UI3.button("Claim all", &"secondary", &"M")
 	all.name = "ClaimAll"
-	all.custom_minimum_size.x = 200
+	all.custom_minimum_size.x = 240
 	all.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	all.disabled = PassV2.claimable_levels(MetaState).is_empty() if _same_season() else true
+	if all.disabled:
+		all.text = "Nothing to claim"
 	all.pressed.connect(claim_all)
 	row.add_child(all)
 	_left.add_child(card)
@@ -531,6 +558,14 @@ func _build_weekly() -> void:
 		var pl := UI3.label("%d / %d · +%d XP" % [int(st["progress"]), int(st["target"]), xp_each], "LabelMuted")
 		pl.name = "Progress"
 		v.add_child(pl)
+		var pb := ProgressBar.new()
+		pb.name = "ProgressBar"
+		pb.theme = UI3Theme.get_theme()
+		pb.custom_minimum_size = Vector2(0, 12)
+		pb.show_percentage = false
+		pb.max_value = maxi(int(st["target"]), 1)
+		pb.value = mini(int(st["progress"]), int(st["target"]))
+		v.add_child(pb)
 		hb.add_child(v)
 		var b := UI3.button("Claimed" if st["claimed"] else "Claim", &"secondary", &"S")
 		b.name = "WeeklyClaim_" + id
@@ -545,21 +580,55 @@ func _build_weekly() -> void:
 
 func _build_track() -> void:
 	_tiles.clear()
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", UI3Theme.space("16"))
 	var h := UI3.label("Free track", "LabelTitle")
-	_left.add_child(h)
-	var grid := GridContainer.new()
-	grid.name = "TrackGrid"
-	grid.columns = COLS
-	grid.add_theme_constant_override("h_separation", UI3Theme.space("16"))
-	grid.add_theme_constant_override("v_separation", UI3Theme.space("16"))
+	h.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(h)
+	_prev_btn = UI3.button("‹", &"secondary", &"S")
+	_prev_btn.name = "PagePrev"
+	_prev_btn.custom_minimum_size.x = UI3Theme.size_of("hit_min")
+	_prev_btn.pressed.connect(set_page.bind(-1, true))
+	head.add_child(_prev_btn)
+	_page_label = UI3.label("", "LabelTitle")
+	_page_label.name = "PageLabel"
+	_page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_page_label.custom_minimum_size.x = 120
+	head.add_child(_page_label)
+	_next_btn = UI3.button("›", &"secondary", &"S")
+	_next_btn.name = "PageNext"
+	_next_btn.custom_minimum_size.x = UI3Theme.size_of("hit_min")
+	_next_btn.pressed.connect(set_page.bind(1, true))
+	head.add_child(_next_btn)
+	_left.add_child(head)
+	var row := HBoxContainer.new()
+	row.name = "TrackRow"
+	row.add_theme_constant_override("separation", UI3Theme.space("8"))
 	for def in cfg().get("levels", []):
 		var tile := _tile(def)
 		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		grid.add_child(tile)
-	var sc := UI3Meta.scroll(grid)
-	sc.name = "TrackScroll"
-	sc.custom_minimum_size.y = TILE_H * 2 + UI3Theme.space("16")   # two full rows
-	_left.add_child(sc)
+		row.add_child(tile)
+	_left.add_child(row)
+	if _page < 0:
+		_page = (_default_level() - 1) / PER_PAGE
+	set_page(0, true)
+
+
+func page_count() -> int:
+	return maxi(ceili(float(cfg().get("levels", []).size()) / PER_PAGE), 1)
+
+
+## Shows page `_page + delta` (delta 0 = redraw). Cards of other pages stay built but hidden, so every
+## NodeBtn_* exists; no scroll, no re-layout of the rest of the screen.
+func set_page(delta: int, _ignored := true) -> void:
+	_page = clampi(_page + delta, 0, page_count() - 1)
+	var n: int = cfg().get("levels", []).size()
+	for lv in _tiles:
+		(_tiles[lv] as Control).visible = (int(lv) - 1) / PER_PAGE == _page
+	if _page_label != null:
+		_page_label.text = "%d–%d of %d" % [_page * PER_PAGE + 1, mini((_page + 1) * PER_PAGE, n), n]
+		_prev_btn.disabled = _page == 0
+		_next_btn.disabled = _page >= page_count() - 1
 
 
 func _tile(def: Dictionary) -> Control:
@@ -567,7 +636,7 @@ func _tile(def: Dictionary) -> Control:
 	var st := node_state(lv)
 	var p := UI3.plate(&"card")
 	p.name = "Node_%d" % lv
-	p.custom_minimum_size = Vector2(0, TILE_H)
+	p.custom_minimum_size = Vector2(158, TILE_H)
 	_tiles[lv] = p
 	if st == "locked":
 		p.modulate.a = 0.75
@@ -621,7 +690,9 @@ func _tile(def: Dictionary) -> Control:
 			b.text = "CLAIM"
 			b.pressed.connect(claim_level.bind(lv))
 		"next":
-			b.text = next_text(lv)
+			b.text = "Next"
+			b.clip_text = true
+			b.tooltip_text = next_text(lv)
 			b.disabled = true
 		_:
 			b.text = "Reach LV %d" % lv if season_phase() != "over" else "Not claimed"
@@ -658,12 +729,12 @@ func _cosmetic_reward_block(v: VBoxContainer, cos_id: String, st: String) -> voi
 	# taller than a normal one and its button stays visible whenever the row's top is.
 	var box := Panel.new()
 	box.name = "ArtBox"
-	box.custom_minimum_size = Vector2(0, 64)
+	box.custom_minimum_size = Vector2(0, 48)
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.clip_contents = true
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s")))
-	var art := CosmeticTile.art(cos_id, 56.0)
+	var art := CosmeticTile.art(cos_id, 44.0)
 	if art != null:
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		art.modulate.a = 0.4 if st == "locked" or st == "next" else (0.5 if st == "claimed" else 1.0)

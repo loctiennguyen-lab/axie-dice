@@ -43,3 +43,21 @@ func _make(screen: String) -> void:
 			add_child(ms)
 			await get_tree().process_frame
 			ms.select_tier("N3")
+		"pass":
+			MetaState.pass_season = PassV2.new_state("s1")
+			MetaState.pass_season["xp"] = 4300
+			MetaState.pass_season["level"] = 7
+			MetaState.pass_season["claimed_free"] = [1, 2, 3]
+			var pv: PassView = load("res://scenes/pass/Pass.tscn").instantiate()
+			pv.use_account = false
+			pv.no_scene_change = true
+			pv.today_override = "2026-11-10"
+			add_child(pv)
+			await get_tree().process_frame
+		"netnotice":
+			var host := Control.new()
+			add_child(host)
+			NetNotice.show(host, "offline", func() -> void: pass, "Could not send your turn")
+		"updatebar":
+			UpdateRequired.web_override = 1
+			UpdateRequired.show_bar(get_tree())
