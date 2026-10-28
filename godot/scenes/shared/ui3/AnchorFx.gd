@@ -1,8 +1,9 @@
 class_name AnchorFx
 extends Control
 ## Lane AU2 job 4: the Anchor AWAKENING moment (design/ux/anchor-mvp.md section 4). Blocks input, scrim 80%, the Anchor card
-## big in the middle, frame turns to the double `anchor_awake` frame, two house-coloured waves, shake. At most 2.5 s
-## (1.6 s with Reduce flashing: no shake, no waves, fades only). Click / Space / Enter / A / Esc jump to the end.
+## big in the middle, frame turns to the double `anchor_awake` frame, 8 slow rays (anchor_awake 7%), title letters pop.
+## UI-04: UI3Motion "anchor_awaken" drives scale + particles; rays / scrim / letters are drawn here (the engine does not run them).
+## With Reduce flashing or Reduce motion: fades only, rays static, no particles. Click / Space / Enter / A / Esc jump to the end.
 ## The animation only SHOWS what RunState already did: it never changes a result.
 
 signal finished
@@ -18,10 +19,17 @@ var skipped := false
 var anchor_id := ""
 var card_frame: PanelContainer = null
 var _card: Control = null
-var _waves: Control = null
+var _rays: Control = null
 var _tw: Tween = null
-var _wave_r := [-1.0, -1.0]
+var _ray_rot := 0.0                    ## radians; advances 12 deg/s (UI-04 motion table) unless motion is reduced
+var _rays_static := false
+var _letters: Array[Label] = []
 var _fly_to := Rect2()
+
+
+const CARD_PX := 320.0   ## double-frame card (UI-04 R4)
+const GLYPH_PX := 140.0
+const PARTICLE_PX := 24.0
 
 
 static func run_key() -> String:
@@ -99,17 +107,13 @@ func _build(extra_line: String) -> void:
 	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(scrim)
-	_waves = Control.new()
-	_waves.name = "AwakenWaves"
-	_waves.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_waves.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_waves.draw.connect(func() -> void:
-		var c := _waves.size * 0.5
-		if float(_wave_r[0]) > 0.0:
-			_waves.draw_arc(c, float(_wave_r[0]), 0.0, TAU, 96, hcol, 4.0)
-		if float(_wave_r[1]) > 0.0:
-			_waves.draw_arc(c, float(_wave_r[1]), 0.0, TAU, 96, gold, 4.0))
-	add_child(_waves)
+	_rays = Control.new()
+	_rays.name = "AwakenRays"
+	_rays.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_rays.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_rays.modulate.a = 0.0
+	_rays.draw.connect(_draw_rays)
+	add_child(_rays)
 	var cc := CenterContainer.new()
 	cc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -119,19 +123,26 @@ func _build(extra_line: String) -> void:
 	_card.add_theme_constant_override("separation", 12)
 	_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cc.add_child(_card)
-	var tag := UI3.label(TranslationServer.translate("ANCHOR AWAKENED"), "LabelDisplay")
+	_card.child_entered_tree.connect(_fit_particles)
+	var tag := HBoxContainer.new()   # one Label per letter so the title can pop letter by letter
 	tag.name = "AwakenTag"
-	tag.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
-	tag.add_theme_color_override("font_color", gold)
-	tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tag.alignment = BoxContainer.ALIGNMENT_CENTER
+	tag.add_theme_constant_override("separation", 0)
 	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for ch in String(TranslationServer.translate("ANCHOR AWAKENED")):
+		var lt := UI3.label(ch, "LabelDisplay")
+		lt.add_theme_font_size_override("font_size", UI3Theme.size_of("text_banner"))
+		lt.add_theme_color_override("font_color", gold)
+		lt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tag.add_child(lt)
+		_letters.append(lt)
 	_card.add_child(tag)
 	var row := CenterContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card.add_child(row)
 	card_frame = PanelContainer.new()
 	card_frame.name = "AnchorCard"
-	card_frame.custom_minimum_size = Vector2(280, 280)
+	card_frame.custom_minimum_size = Vector2(CARD_PX, CARD_PX)
 	card_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card_frame.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("l"), 4, hcol, Vector4(16, 16, 16, 16)))
 	row.add_child(card_frame)
@@ -143,12 +154,14 @@ func _build(extra_line: String) -> void:
 	var ic := TextureRect.new()
 	ic.name = "HouseGlyph"
 	ic.texture = UI3.icon(AnchorAdapter.house_icon(house))
-	ic.custom_minimum_size = Vector2(120, 120)
+	ic.custom_minimum_size = Vector2(GLYPH_PX, GLYPH_PX)
+	ic.modulate = hcol
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cv.add_child(ic)
 	var nm := UI3.label(AnchorAdapter.name_of(anchor_id), "LabelScreenTitle")
+	nm.name = "AnchorName"
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cv.add_child(nm)
@@ -157,7 +170,7 @@ func _build(extra_line: String) -> void:
 	aw.texture = UI3.icon(CorePanel.AWAKEN_ICON)
 	aw.custom_minimum_size = Vector2(56, 56)
 	aw.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	aw.position = Vector2(280 - 16 - 56 - 4, 4)   # top-right corner; a plain Control holder so the PanelContainer does not stretch it over the name
+	aw.position = Vector2(CARD_PX - 16 - 56 - 4, 4)   # top-right corner; a plain Control holder so the PanelContainer does not stretch it over the name
 	aw.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	aw.visible = false
 	var holder := Control.new()
@@ -173,7 +186,7 @@ func _build(extra_line: String) -> void:
 	_card.add_child(an)
 	var ar := UI3.label(AnchorAdapter.awaken_rule(anchor_id), "LabelMuted")
 	ar.name = "AwakenRule"
-	ar.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
+	ar.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))   # 24, wrap 2 at 760
 	ar.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ar.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	ar.custom_minimum_size.x = 760
@@ -187,10 +200,13 @@ func _build(extra_line: String) -> void:
 	strip.custom_minimum_size.x = 760
 	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card.add_child(strip)
-	var hint := UI3.label(TranslationServer.translate("Click to continue"), "LabelKeyHint")
+	var hint := HBoxContainer.new()
 	hint.name = "AwakenHint"
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.alignment = BoxContainer.ALIGNMENT_CENTER
+	hint.add_theme_constant_override("separation", 8)
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for part in [UI3.label(TranslationServer.translate("Click or"), "LabelKeyHint"), UI3.keycap("Space", true), UI3.label(TranslationServer.translate("to continue"), "LabelKeyHint")]:
+		hint.add_child(part)
 	_card.add_child(hint)
 	for n in ["AwakenTag", "AwakenName", "AwakenRule", "AwakenStrip", "AwakenHint"]:
 		(_card.get_node(n) as Control).modulate.a = 0.0
@@ -216,59 +232,99 @@ func _swap_frame() -> void:
 	(card_frame.find_child("AwakenGlyph", true, false) as Control).visible = true
 
 
+## The engine burst uses the sprite at native size (a fragment is ~100 px): shrink it to PARTICLE_PX so it reads as sparks.
+func _fit_particles(n: Node) -> void:
+	if n is CPUParticles2D and (n as CPUParticles2D).texture != null:
+		var cp := n as CPUParticles2D
+		var k := PARTICLE_PX / maxf(float(cp.texture.get_width()), 1.0)
+		cp.scale_amount_min = k
+		cp.scale_amount_max = k
+
+
 func _show_final() -> void:
 	card_frame.modulate.a = 1.0
 	for n in ["AwakenTag", "AwakenName", "AwakenRule", "AwakenStrip", "AwakenHint"]:
 		(_card.get_node(n) as Control).modulate.a = 1.0
 	_swap_frame()
 	_card.scale = Vector2.ONE
+	_rays.modulate.a = 1.0
+	_rays_static = true
+	_rays.queue_redraw()
+
+
+## 8 plates (wedges) in `anchor_awake` at 7%, one every 45 degrees, hard edges (no gradient). Slow rotation set in _process.
+func _draw_rays() -> void:
+	var c := _rays.size * 0.5
+	var col := UI3Theme.color("anchor_awake")
+	col.a = 0.07
+	var reach := _rays.size.length()
+	var half := deg_to_rad(11.0)
+	var count := int(UI3Motion.table().get("anchor_awaken", {}).get("rays", {}).get("count", 8))
+	for i in count:
+		var a := _ray_rot + TAU * float(i) / float(count)
+		_rays.draw_colored_polygon(PackedVector2Array([c, c + Vector2.RIGHT.rotated(a - half) * reach, c + Vector2.RIGHT.rotated(a + half) * reach]), col)
+
+
+func _process(dt: float) -> void:
+	if not running or _rays_static or not is_inside_tree():
+		return
+	var dps := float(UI3Motion.table().get("anchor_awaken", {}).get("rays", {}).get("deg_per_sec", 12))
+	_ray_rot += deg_to_rad(dps) * dt
+	_rays.queue_redraw()
 
 
 func _animate() -> void:
-	var reduced := CombatView.motion_suppressed()
+	var reduced := CombatView.motion_suppressed()   # Reduce flashing OR Reduce motion: fades only, rays static, no particles
 	var total := duration()
 	await get_tree().process_frame   # CenterContainer has not sorted yet: size is 0 until the next frame
 	if not running or not is_inside_tree():
 		return   # skipped / freed during that one frame
 	_card.pivot_offset = _card.size * 0.5
+	for lt in _letters:
+		lt.pivot_offset = lt.size * 0.5
 	_tw = create_tween()
+	var m: Dictionary = UI3Motion.table().get("anchor_awaken", {})
+	var scrim_s := float(m.get("scrim_ms", 160)) / 1000.0
+	var title_at := float(m.get("title_delay_ms", 200)) / 1000.0
+	var text_at := float(m.get("text_delay_ms", 500)) / 1000.0
+	var in_s := float((m.get("in", {}) as Dictionary).get("ms", 360)) / 1000.0
+	var hold_s := float(m.get("hold_ms", 900)) / 1000.0
+	var scrim := get_node("AwakenScrim") as CanvasItem
 	if reduced:
+		_rays_static = true
+		_rays.modulate.a = 1.0
+		_rays.queue_redraw()
 		_tw.tween_property(card_frame, "modulate:a", 1.0, 0.3)
 		_tw.tween_callback(_swap_frame)
-		_tw.tween_property(card_frame, "modulate:a", 1.0, 0.3)
 		for n in ["AwakenTag", "AwakenName", "AwakenRule", "AwakenStrip", "AwakenHint"]:
 			_tw.parallel().tween_property(_card.get_node(n), "modulate:a", 1.0, 0.3)
-		_tw.tween_interval(maxf(total - 0.9, 0.1))
+		_tw.tween_interval(maxf(total - 0.6, 0.1))
 		_tw.tween_callback(_end)
 		return
-	var shake := float(UI3Gacha.timing().get("shake_px", 10))
-	_card.scale = Vector2(0.6, 0.6)
+	scrim.modulate.a = 0.0
 	_tw.set_parallel(true)
-	_tw.tween_property(card_frame, "modulate:a", 1.0, 0.2).set_delay(0.1)
-	_tw.tween_property(_card, "scale", Vector2(1.1, 1.1), 0.3).set_delay(0.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_tw.tween_property(_card, "scale", Vector2.ONE, 0.1).set_delay(0.4)
-	_tw.tween_callback(_swap_frame).set_delay(0.5)
-	var reach := maxf(size.x, 900.0)
-	_tw.tween_method(func(r: float) -> void:
-		_wave_r[0] = r
-		_waves.queue_redraw(), 1.0, reach, 0.6).set_delay(0.5)
-	_tw.tween_method(func(r: float) -> void:
-		_wave_r[1] = r
-		_waves.queue_redraw(), 1.0, reach, 0.6).set_delay(0.6)
-	_tw.tween_callback(func() -> void: _shake(shake)).set_delay(0.5)
-	var at := {"AwakenTag": 0.6, "AwakenName": 0.9, "AwakenRule": 1.1, "AwakenStrip": 1.3, "AwakenHint": 1.6}
+	_tw.tween_property(scrim, "modulate:a", 1.0, scrim_s)
+	_tw.tween_property(_rays, "modulate:a", 1.0, scrim_s)
+	_tw.tween_property(card_frame, "modulate:a", 1.0, 0.2).set_delay(scrim_s)
+	_tw.tween_callback(_swap_frame).set_delay(scrim_s + in_s)
+	# Title letters pop one by one from +title_delay; the rest of the text from +text_delay.
+	for i in _letters.size():
+		var lt := _letters[i]
+		lt.modulate.a = 0.0
+		lt.scale = Vector2(0.2, 0.2)
+		var d := scrim_s + title_at + 0.04 * float(i)
+		_tw.tween_property(lt, "modulate:a", 1.0, 0.08).set_delay(d)
+		_tw.tween_property(lt, "scale", Vector2.ONE, 0.2).set_delay(d).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_tw.tween_property(_card.get_node("AwakenTag"), "modulate:a", 1.0, 0.01).set_delay(scrim_s + title_at)
+	var at := {"AwakenName": 0.0, "AwakenRule": 0.1, "AwakenStrip": 0.2, "AwakenHint": 0.3}
 	for n in at.keys():
-		_tw.tween_property(_card.get_node(n), "modulate:a", 1.0, 0.2).set_delay(float(at[n]))
-	_tw.chain().tween_interval(maxf(total - 0.5 - 1.5, 0.0))   # hold up to ~2.2 s
-	_tw.chain().tween_callback(_end)
-
-
-func _shake(px: float) -> void:
-	var tw := create_tween()
-	var base := position
-	for i in 5:
-		tw.tween_property(self, "position", base + Vector2(randf_range(-px, px), randf_range(-px, px)), 0.05)
-	tw.tween_property(self, "position", base, 0.0)
+		_tw.tween_property(_card.get_node(n), "modulate:a", 1.0, 0.2).set_delay(scrim_s + text_at + float(at[n]))
+	# Scale-in, burst and hold come from the motion table: moment "anchor_awaken" on the column. Its on_done ends the moment.
+	var hold_ms := maxf(total - scrim_s - in_s - 0.16, hold_s) * 1000.0
+	var opts := {"hold_ms": hold_ms, "on_done": Callable(self, "_end")}
+	get_tree().create_timer(scrim_s).timeout.connect(func() -> void:
+		if running and is_inside_tree():
+			UI3Motion.play("anchor_awaken", _card, opts))
 
 
 func skip() -> void:
