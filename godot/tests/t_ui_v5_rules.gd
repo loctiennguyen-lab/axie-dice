@@ -69,7 +69,7 @@ func _test_alpha() -> void:
 	_check(pa._plate.get_combined_minimum_size().x <= UnitPortrait.WIDTH + 0.5, "Leader plate min width %.0f stays <= %.0f" % [pa._plate.get_combined_minimum_size().x, UnitPortrait.WIDTH])
 	_check(pa._intent_panel.get_global_rect().end.x <= pa._plate.get_global_rect().end.x + 0.5, "intent column inside the plate")
 	var badge := pa.find_child("LeaderBadge", true, false) as Control
-	_check(badge != null and (badge.find_child("Text", true, false) as Label).text == "LEADER" \
+	_check(badge != null and (badge.find_child("Word", true, false) as Label).text == "LEADER" \
 		and badge.find_child("Icon", true, false) != null, "badge has glyph + the word LEADER")
 	for e in c.enemies:
 		if e != alpha:
@@ -144,10 +144,10 @@ func _test_shell() -> void:
 	var p: UnitPortrait = v._portraits[boss.uid]
 	_check(p.has_shell(), "shell on: bar shown on the Elite")
 	var txt := p.find_child("ShellText", true, false) as Label
-	_check(txt != null and txt.text == "SHELL %d/%d" % [sh, sh], "shell label+number '%s'" % (txt.text if txt != null else "?"))
+	_check(txt != null and txt.text == "%d/%d" % [sh, sh], "shell label+number '%s'" % (txt.text if txt != null else "?"))
 	_check(UI3Tooltip.text_of(p.find_child("ShellRow", true, false)).contains("50%"), "tooltip says outside a SET deals 50%")
 	EventBus.shell_changed.emit(boss.uid, sh - 5, sh, 5)
-	_check(txt.text == "SHELL %d/%d" % [sh - 5, sh], "shell_changed updates the number")
+	_check(txt.text == "%d/%d" % [sh - 5, sh], "shell_changed updates the number")
 	# off-set hit: one float per turn
 	var hitter: Unit = v._party_dice_units()[0]
 	EventBus.face_used.emit(hitter.uid, "p", boss.uid, false, "", "", "dmg")
