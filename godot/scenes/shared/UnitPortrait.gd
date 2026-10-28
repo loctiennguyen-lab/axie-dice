@@ -887,6 +887,11 @@ func _on_click_catcher_gui_input(ev: InputEvent) -> void:
 
 # ═══ Juice ═══════════════════════════════════════════════════════════════════════════════════
 
+## The intent block (UI-04 intent-reveal motion target); null on a player portrait.
+func intent_block() -> Control:
+	return _intent_panel
+
+
 func spawn_float_text(text: String, css_class: String, big: int) -> void:
 	if CombatView.disable_juice_for_tests or not is_inside_tree():
 		return
