@@ -950,7 +950,10 @@ func _build() -> void:
 	_banner_host = VBoxContainer.new()
 	_banner_host.add_theme_constant_override("separation", 8)
 	col.add_child(_banner_host)
-	_body = VBoxContainer.new()
+	_banner_host.visible = false   # an empty host would still add a 24 px gap
+	_banner_host.child_order_changed.connect(func() -> void:
+		_banner_host.visible = _banner_host.get_child_count() > 0)
+	_body =VBoxContainer.new()
 	_body.name = "Body"
 	_body.add_theme_constant_override("separation", 24)
 	col.add_child(_body)
@@ -958,8 +961,8 @@ func _build() -> void:
 	summary_card.name = "SummaryCard"
 	var sm := summary_card.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
 	if sm != null:
-		sm.content_margin_top = 16
-		sm.content_margin_bottom = 16
+		sm.content_margin_top = 12
+		sm.content_margin_bottom = 12
 		sm.content_margin_left = 16
 		sm.content_margin_right = 16
 		summary_card.add_theme_stylebox_override("panel", sm)
@@ -1027,6 +1030,7 @@ func _build() -> void:
 	var load_b := UI3.button(tr("Team presets"), &"secondary", &"M")
 	load_b.name = "LoadPreset"
 	load_b.pressed.connect(open_load_presets)
+	load_b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	acts.add_child(load_b)
 	var start_col := VBoxContainer.new()
 	start_col.name = "StartCol"
@@ -1361,7 +1365,7 @@ func _refresh_mode() -> void:
 	var cfg: Dictionary = RunMapGenerator.MODE_CONFIG.get(mode, {})
 	var txt := "%d rows · %d bosses" % [int(cfg.get("total_rows", 0)), (cfg.get("boss_rows", []) as Array).size()]
 	if not full_ok:
-		txt += ". " + tr("Win a Short run to unlock Full.")
+		txt += " · " + tr("Win Short to unlock Full")
 	_mode_detail.text = txt
 
 
@@ -1403,6 +1407,7 @@ func _build_asc_col() -> void:
 	_asc_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_asc_tip.custom_minimum_size.x = INNER_W
 	_asc_tip.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
+	_asc_tip.visible = false
 	g.add_child(_asc_tip)
 	# Summary card (pinned to the bottom of the plate by _build): title 24, then the rule lines.
 	_asc_title = _lbl("", "LabelTitle")
@@ -1421,6 +1426,7 @@ func _build_asc_col() -> void:
 func _on_asc_pressed(n: int) -> void:
 	if not select_ascension(n):
 		_asc_tip.text = tr("Win a run at A%d to unlock A%d") % [n - 1, n]
+		_asc_tip.visible = true
 
 
 func _refresh_asc() -> void:
@@ -1428,6 +1434,7 @@ func _refresh_asc() -> void:
 		return
 	var ceil := ascension_ceiling()
 	_asc_tip.text = ""
+	_asc_tip.visible = false
 	if _asc_lock != null:
 		_asc_lock.text = tr("A%d unlocks after you win A%d.") % [ceil + 1, ceil] if ceil < ASC_MAX else ""
 		_asc_lock.visible = _asc_lock.text != ""
