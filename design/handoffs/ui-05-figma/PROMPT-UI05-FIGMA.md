@@ -1,4 +1,4 @@
-# UI-05 prompt for Claude Design: redo the UI in Figma
+# UI-05 prompt for Claude Design: redo the UI (HTML → Figma)
 
 **Tóm tắt cho Liam (theo câu trả lời 28/10):**
 1. **Lý do làm lại:** Liam chưa ưng UI-04 ở ba chỗ.
@@ -11,7 +11,11 @@
    - Nhìn như game mobile thương mại.
    - Đúng chất Axie / Lunacia.
    - Ít plate hơn, để cảnh 3D và nhân vật nổi lên. HUD mỏng.
-3. **Quy trình:** Claude Design dựng thiết kế trong **Figma**, theo luật đặt tên và auto-layout để mình đọc thẳng số đo, màu, ảnh qua MCP (Framelink + Figma chính thức) rồi code đúng từng px. Hiệu ứng lớn thì giao **prototype HTML chạy được** kèm bảng thông số.
+3. **Quy trình (Liam chốt 28/10):** Claude Design không vào được Figma, nên vẫn vẽ bằng HTML. Nhưng mỗi màn phải là một khối HTML sạch: flex, tên phần tử bằng tên node Godot, màu và kích thước bằng biến CSS.
+   - Claude Code đưa từng màn vào **Figma của Liam** (connector Figma chính thức, đã đăng nhập).
+   - Liam chỉnh trực tiếp trong Figma tới khi ưng.
+   - Claude Code đọc lại số đo từ Figma rồi code. **Figma là bản chuẩn cuối.**
+   - Hiệu ứng lớn vẫn giao dạng prototype HTML chạy được, kèm bảng thông số.
 4. **Phạm vi:** toàn bộ UI, chia 4 đợt.
    1. Trận đấu.
    2. Run.
@@ -33,7 +37,7 @@ You designed UI-03 (A4 Blend on Terrariums) and the UI-04 polish. We built UI-04
 3. **The big moments are not exciting.** Winning, opening a box, revealing a Core, an Anchor awakening: they look correct but don't feel great.
 
 This round fixes all three:
-- The design lives in **Figma**, built so we can read it straight into code.
+- Your HTML goes into **Figma**. The owner polishes it there, and we read exact numbers back from Figma.
 - The direction moves (section 2).
 - Big moments come as **runnable prototypes**, not only tables.
 
@@ -58,55 +62,48 @@ Keep from before: Rowdies + Work Sans, cream text (never pure white), one primar
 
 You may change: palette, plate shapes, button style, iconography usage, layout and density inside each screen, which info is always visible and which sits behind a tap.
 
-## 3. Deliverable 1: the Figma file (most important)
+## 3. Deliverable 1: screen HTML built to become Figma (most important)
 
-We read your Figma file with an MCP that extracts layout, styles, variables and images. Build it so the extraction maps 1:1 to Godot.
+You cannot reach Figma, so you deliver HTML as before. We then convert each screen into the owner's Figma file with Figma's HTML-to-Figma import. The owner polishes it there, and we read the final numbers back from Figma to code it. **Figma becomes the source of truth.** So build the HTML so the import is clean and the numbers survive:
 
-**File structure**
-- Page `00 Foundations`: variables, text styles, effect styles, the component library.
-- Page `01 Combat`, `02 Run`, `03 Land & Setup`, `04 Meta`: one per batch (section 5).
-- Page `99 Archive`: explorations. We ignore it.
+**One file per batch, one element per screen state**
+- `ui05-<batch>-screens.html`, self-contained: all CSS in `<style>`.
+- Images either as base64 data URIs or as relative paths to `assets/`; we inline them before import.
+- Each screen state is one `<section class="frame" id="<screen-id>--<state>">` at exactly **1920×1080** (e.g. `02-combat--player-turn`, `30-defeat--paid`). The import turns each `.frame` into its own Figma frame, with at most 20 per call, so keep a batch around that.
+- For every screen, also one **1280×720** frame of the same state (`...--player-turn--1280`). Not a scaled copy: check that it reads well at that size.
+- The 3D area is a plain placeholder block (`class="safe-area"`) with a label. No screenshots under the UI unless the frame is a "before" reference.
 
-**Frames**
-- One top-level frame per screen state, at **1920×1080**, named `<screen-id>/<state>`, e.g. `02-combat/player-turn`, `02-combat/waiting`, `30-defeat/paid`. Screen ids follow `screens-current/INDEX.md` and the UI-04 ids.
-- For every screen, also one **1280×720** frame of the same state. Not a scaled copy: check that it reads well at that size, and use the same components.
-- Mark the 3D safe areas as a locked layer named `safe-area` (party, enemies, boss, dice in use, Land centre).
-
-**Auto-layout = Godot containers**
-- Use auto-layout everywhere: vertical → VBox, horizontal → HBox, wrap → Grid.
-- Fixed vs fill vs hug sizing must be set on purpose. We copy it as is.
-- Absolute positioning only for the floating HUD clusters at screen edges, and only with constraints set: left/right/top/bottom/center. We copy them as anchors.
-- No groups for layout, only frames with auto-layout.
+**Layout = Godot containers**
+- Use only flexbox (row → HBox, column → VBox) and CSS grid (→ GridContainer). No floats, no transforms for layout, no absolute positioning, except the floating HUD clusters at the screen edges (→ Godot anchors). For those, use `position:absolute` with top/left/right/bottom in px.
+- Fixed sizes in px. Use `flex:1` only where a Godot node should expand.
 
 **Names = node names**
-- Layer names are PascalCase, the name we will give the Godot node, e.g. `EndTurnButton`, `IntentBlock`, `TierBand`, `ShardHero`.
-- No "Frame 123", "Group 4", "Rectangle".
-- Text layers are named for what they hold, e.g. `Title`, `Value`, `Reason`.
+- Every meaningful element has an `id` or `data-name` in PascalCase: the Godot node name, e.g. `EndTurnButton`, `IntentBlock`, `TierBand`, `ShardHero`.
+- These become the Figma layer names, and we keep them in code.
 
-**Variables = tokens**
-- Every colour, radius, spacing, stroke and text size is a Figma **variable**, never a raw value on a layer.
-- Collections: `color`, `radius`, `space`, `size`, `stroke`.
-- Variable names use the same snake_case as our `tokens_ui3.json`: keep existing names where the meaning is the same, add new ones with a short description.
-- Shadows are effect styles named like our shadow tokens.
+**Tokens = CSS variables**
+- Every colour, radius, spacing, stroke, text size and shadow is a CSS custom property, named exactly like our `tokens_ui3.json` keys (`--color-plate`, `--radius-l`, `--size-dock-w`…). Keep existing names where the meaning is the same; add new ones with a comment.
+- **One source for layout numbers:** dock widths, card sizes, panel widths and column widths are `--size-*` variables, never repeated literals.
 - **Two shadows our build already needs:** `btn_secondary_pressed` (y 2, `#1a120d`) and `keycap_pressed` (y 1, `#000000a0`). Keep them, or replace them with your own pressed-state shadows for those two cases.
-- **One source for layout numbers:** dock widths, card sizes, panel widths, column widths. Make them `size` variables, so changing one number in Figma changes it everywhere in our code.
+- Also send the full token list as `tokens.json` (same schema as `tokens_ui3.json`).
 
-**Components**
-- Every repeated element is a component with **variants for every state**: default, hover, pressed, focus, disabled-with-reason, selected, locked, waiting.
+**Components and states**
+- Repeated pieces get one CSS class and appear in a `components` frame showing every state: default, hover, pressed, focus, disabled-with-reason, selected, locked, waiting.
 - Same names as our component list where it applies: KeyCap, TierChip, CategoryChip, HouseChip, RunRuleChip, EnemyTag, NameSuffix, IntentBlock, AttritionCard, ActionDock, DiceDock, NetNotice, UpdateBar, button variants.
-- New components get a one-line description in Figma.
 
 **Assets**
-- Only existing art: `icons/` (ui3, game, chests) and the captures. Same icon files as UI-04.
-- Mark every image layer with **Export** settings: PNG at 1x and 2x, or SVG for flat icons. Name it like the file it comes from, so we can match it.
-- If something needs new art, put a labelled placeholder and list it under "Art requests" on the Foundations page.
+- Only existing art: `icons/` (ui3, game, chests) and the captures.
+- Keep each icon's file name in `data-src` so we can match it.
+- If something needs new art, put a labelled placeholder and list it under "Art requests".
 
 **Godot limits (same as before)**
 - Text sizes only 16 / 18 / 24 / 32 / 36, plus 28/20 for numbers on dice. Ask if you truly need another; one larger "hero" size for big numbers is negotiable.
 - Hit areas ≥ 44.
-- Flat fills plus hard shadows, bevels made from strokes and offset layers. No blur, no gradient fills on UI panels, no masks.
+- Flat fills plus hard shadows (`box-shadow` with 0 blur). Bevels from borders and offset layers.
+- No blur, no `filter`, no gradient fills on UI panels, no masks or `clip-path`.
 - One translucent background per panel.
 - If you want a gradient or glow, say where; we may do it with a texture.
+- If something can't be shown in HTML (a stretch rule, 9-slice margins, focus order, Esc behaviour), write it in a `<!-- godot: ... -->` comment inside the element.
 
 ## 4. Deliverable 2: runnable prototypes of the big moments
 
@@ -209,8 +206,8 @@ Everyday transitions stay ≤ 200 ms. Big moments must be skippable and should f
 
 ## 7. What to send back per batch
 
-- The Figma link with view access, plus the frame names in the batch.
-- The HTML prototypes plus the motion table for that batch.
+- `ui05-<batch>-screens.html` (section 3), `tokens.json`, `assets/`.
+- The HTML prototypes plus the motion table for that batch (section 4).
 - A short README:
   - What changed vs UI-04 and why.
   - New variables and components.
@@ -223,4 +220,4 @@ Everyday transitions stay ≤ 200 ms. Big moments must be skippable and should f
 - Do not invent mechanics, prices, rewards or copy meaning. If an idea needs a rule change, write it as a proposal and don't draw it as if it exists.
 - At most 7 information groups per screen, one primary action.
 - Never cover the party, the enemies, the boss or the dice in use.
-- If Figma can't express something Godot needs (a stretch rule, a 9-slice margin, a focus order, Esc behaviour), write it as a sticky note next to the frame.
+- Anything Godot needs that HTML can't show goes in a `<!-- godot: ... -->` comment (section 3).
