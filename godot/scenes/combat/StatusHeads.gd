@@ -1,7 +1,7 @@
 class_name StatusHeads
 extends Control
-## Status icons above the head of every Axie, enemy and boss (UI-03 round 2, screens/02-combat/spec.md:
-## "status chip centred above each Axie head": icon 22 + Rowdies 20 count, wood-2, radius 8).
+## Status icons above the head of every Axie, enemy and boss. The chip is the UI-05 b1 StatusChip
+## (scenes/combat/ui5/StatusChip.gd: status_chip_h pill, icon_m glyph + Rowdies body count).
 ## One chip row per unit. CombatView calls sync() every frame with the head point it got from
 ## CombatStage3D.get_unit_screen_pos(); a unit with no point (dead, hidden, behind the camera) or with
 ## `hidden` set (victory march) gets its row hidden at once, so nothing is left floating.
@@ -18,7 +18,6 @@ const MAX_SHOWN := 4
 const GAP := 8.0
 const _ARMOR_ICON := preload("res://assets/icons/web/armor.png")
 const _SHIELD_ICON := preload("res://assets/icons/web/shield.png")
-const _BUFFS := ["shield", "regen", "thorns", "undying", "enrage"]
 
 var _rows: Dictionary = {}   # uid -> {"row": HBoxContainer, "sig": String}
 
@@ -172,9 +171,7 @@ func _chip(key: String, n: int) -> Control:
 	var tex := icon_for(key)
 	if tex == null:
 		return UI3.status_label_chip(key, n)
-	var tint := UI3Theme.color("shield") if key == "shield" else \
-		UI3Theme.color("success_text" if _BUFFS.has(key) else "danger_text")
-	return UI3.status_tex_chip(tex, n, tint)
+	return Ui5StatusChip.make(tex, n)   # UI-05 b1 lane A: style A StatusChip, cream count (the icon carries the meaning)
 
 
 func _on_chip_input(ev: InputEvent, uid: int) -> void:

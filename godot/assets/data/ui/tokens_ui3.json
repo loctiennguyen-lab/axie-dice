@@ -1283,6 +1283,13 @@
       "blur": 0,
       "color": "#1a0f09",
       "note": "Godot Label font_shadow_color + shadow_offset_y 2"
+    },
+    "a_chip_lip": {
+      "x": 0,
+      "y": 3,
+      "blur": 0,
+      "color": "#1a0f09",
+      "note": "UI-05 b1 lane A · README style A: the StatusChip and the WaitingPill keep a 3 px plate_ink lip (the HTML writes 0 3px 0 inline)"
     }
   },
   "motion": {

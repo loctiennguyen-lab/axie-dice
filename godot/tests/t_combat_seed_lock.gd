@@ -76,10 +76,10 @@ func _ready() -> void:
 	hud.set_seed_wait(true)
 	_check(hud.undo_button.disabled and hud.reroll_button.disabled and hud.end_turn_button.disabled and hud.hold_button.disabled,
 		"waiting: Undo / Reroll / Hold / End turn greyed")
-	_check(hud._hint.text == "Waiting for server…" and not hud._hint.text.contains("\n"), "waiting: one-line hint")
+	_check(hud._hint.text == CombatHud.WAITING_TEXT and not hud._hint.text.contains("\n"), "waiting: one-line StatusLine")
 	hud.set_seed_wait(false)
 	view._update_hud()
-	_check(hud._hint.text != "Waiting for server…", "released: hint gone")
+	_check(hud._hint.text != CombatHud.WAITING_TEXT, "released: waiting line gone")
 
 	# 4. The six guards are really in the source.
 	var src := FileAccess.get_file_as_string("res://scenes/combat/CombatView.gd")
