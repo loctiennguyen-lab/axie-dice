@@ -44,12 +44,12 @@ func _test_tokens_load() -> void:
 	for group in ["color", "contrast", "font", "size", "radius", "space", "stroke", "shadow", "motion", "z", "theme"]:
 		_ok(t.has(group), "tokens missing group '%s'" % group)
 	_ok(UI3Theme.color("accent") == Color.html("#ffb444"), "accent colour")
-	_ok(UI3Theme.color("plate").a < 1.0 and absf(UI3Theme.color("plate").a - 0xE6 / 255.0) < 0.01, "plate alpha is 90%")
+	_ok(UI3Theme.color("plate").a < 1.0 and absf(UI3Theme.color("plate").a - 0xF0 / 255.0) < 0.01, "plate alpha is 94%")
 	_ok(UI3Theme.color("scrim").a > 0.79 and UI3Theme.color("scrim").a < 0.81, "scrim alpha is 80%")
 	_ok(UI3Theme.size_of("btn_l") == 72 and UI3Theme.size_of("btn_m") == 56 and UI3Theme.size_of("btn_s") == 48, "button heights")
 	_ok(UI3Theme.size_of("hit_min") == 44, "hit_min is 44")
 	_ok(UI3Theme.size_dict("axie_combat") == Vector2(163, 214), "axie_combat size pair")
-	_ok(UI3Theme.radius("l") == 12 and UI3Theme.radius("die") == 20, "radius tokens")
+	_ok(UI3Theme.radius("l") == 16 and UI3Theme.radius("m") == 12 and UI3Theme.radius("xl") == 20 and UI3Theme.radius("die") == 20, "radius tokens")
 	_ok(UI3Theme.space("screen_margin") == 24, "screen margin")
 	_ok(UI3Theme.stroke("selected") == 4 and UI3Theme.stroke("focus") == 2 and UI3Theme.stroke("focus_offset") == 4, "stroke tokens")
 	_ok(is_equal_approx(UI3Theme.motion_sec("base"), 0.2), "motion base 200 ms")
@@ -91,7 +91,7 @@ func _test_theme_items() -> void:
 	_ok(theme.has_stylebox("panel", "TooltipPanel") and theme.has_font_size("font_size", "TooltipLabel"), "tooltip items")
 	# Spot values straight from the tokens.
 	var prim := theme.get_stylebox("normal", "ButtonPrimaryL") as StyleBoxFlat
-	_ok(prim.bg_color == Color.html("#ffb444") and prim.get_corner_radius(CORNER_TOP_LEFT) == 8, "primary normal fill + radius")
+	_ok(prim.bg_color == Color.html("#ffb444") and prim.get_corner_radius(CORNER_TOP_LEFT) == 12, "primary normal fill + radius")
 	_ok(prim.shadow_offset == Vector2(0, 4), "primary raised shadow 0 4")
 	var prs := theme.get_stylebox("pressed", "ButtonPrimaryL") as StyleBoxFlat
 	_ok(prs.shadow_offset == Vector2(0, 2), "primary pressed shadow 0 2")

@@ -15,10 +15,11 @@ extends RefCounted
 ## into assets/fonts/ (and running --import) needs no code change.
 ##
 ## THEME TYPE VARIATIONS (set `theme_type_variation` on the node):
-##   Button:         ButtonPrimaryL, ButtonPrimaryM, ButtonSecondary (M 56), ButtonSecondaryS (48),
+##   Button:         ButtonPrimaryL, ButtonPrimaryM, ButtonPrimaryS (48, UI-04 small), ButtonSecondary (M 56), ButtonSecondaryS (48),
 ##                   ButtonDanger, ButtonQuiet, IconButton
 ##   PanelContainer: PanelPlate, PanelCard, PanelCardSelected, PanelDialog, PanelRow, PanelNotice,
-##                   PanelChip, PanelKeyHint, PanelInfo, PanelToast
+##                   PanelChip, PanelKeyHint, PanelInfo, PanelToast,
+##                   PanelDock, PanelKeycap, PanelKeycapS (28 in chips), PanelTagSquare  (UI-04)
 ##   ProgressBar:    ProgressBarHP, ProgressBarEnemy, ProgressBarBoss
 ##   Label:          LabelTitle (24), LabelScreenTitle (32), LabelKeyHint (16), LabelMuted, LabelDisplay (18)
 ## Plus plain defaults for TabBar/TabContainer, LineEdit, H/VScrollBar, TooltipPanel/TooltipLabel.
@@ -211,6 +212,8 @@ static func theme_item_for(key: String) -> Dictionary:
 		"Button":
 			var variant := {"primary": "ButtonPrimaryL", "secondary": "ButtonSecondary",
 				"danger": "ButtonDanger", "quiet": "ButtonQuiet"}
+			if p.size() == 4 and p[1] == "primary" and p[3] == "small":
+				return {"type": "ButtonPrimaryS", "kind": "stylebox", "name": "normal"}
 			if p.size() == 4 and p[2] == "styles" and variant.has(p[1]):
 				return {"type": variant[p[1]], "kind": "stylebox", "name": p[3]}
 		"Tab":
@@ -219,7 +222,8 @@ static func theme_item_for(key: String) -> Dictionary:
 					"name": "tab_selected" if p[2] == "selected" else "tab_unselected"}
 		"Panel":
 			var pv := {"plate": "PanelPlate", "card": "PanelCard", "card_selected": "PanelCardSelected",
-				"dialog": "PanelDialog", "row": "PanelRow", "notice": "PanelNotice"}
+				"dialog": "PanelDialog", "row": "PanelRow", "notice": "PanelNotice",
+				"dock": "PanelDock", "keycap": "PanelKeycap", "tag_square": "PanelTagSquare"}
 			if p.size() == 2 and pv.has(p[1]):
 				return {"type": pv[p[1]], "kind": "stylebox", "name": "panel"}
 		"ProgressBar":
@@ -376,6 +380,8 @@ static func _build_buttons(t: Theme, cream: Color) -> void:
 	var on_accent := color("accent_text")
 	_style_button_variant(t, "ButtonPrimaryL", "primary", size_of("text_screen_title"), size_of("btn_l"), space("48"), on_accent)
 	_style_button_variant(t, "ButtonPrimaryM", "primary", size_of("text_body"), size_of("btn_m"), space("32"), on_accent)
+	# UI-04 Button/primary/small: same colours/lip, 48 high, Rowdies 18 (RETRY, Reload the page).
+	_style_button_variant(t, "ButtonPrimaryS", "primary", size_of("text_body"), size_of("btn_s"), space("24"), on_accent)
 	_style_button_variant(t, "ButtonSecondary", "secondary", size_of("text_body"), size_of("btn_m"), space("24"), cream)
 	_style_button_variant(t, "ButtonSecondaryS", "secondary", size_of("text_body"), size_of("btn_s"), space("16"), cream)
 	_style_button_variant(t, "ButtonDanger", "danger", size_of("text_body"), size_of("btn_m"), space("24"), cream)
@@ -413,7 +419,8 @@ static func _build_buttons(t: Theme, cream: Color) -> void:
 static func _build_panels(t: Theme) -> void:
 	var map := {"PanelPlate": "Panel/plate", "PanelCard": "Panel/card",
 		"PanelCardSelected": "Panel/card_selected", "PanelDialog": "Panel/dialog",
-		"PanelRow": "Panel/row", "PanelNotice": "Panel/notice"}
+		"PanelRow": "Panel/row", "PanelNotice": "Panel/notice",
+		"PanelDock": "Panel/dock", "PanelKeycap": "Panel/keycap", "PanelTagSquare": "Panel/tag_square"}
 	var card_margins := _margins(_theme_entry("Panel/card"))
 	for type_name in map:
 		var e := _theme_entry(map[type_name])
@@ -422,12 +429,22 @@ static func _build_panels(t: Theme) -> void:
 		var m := _margins(e, card_margins if type_name == "PanelCardSelected" else Vector4(0, 0, 0, 0))
 		var sb := flat(hex(String(e["bg"])), int(e["radius"]), int(e.get("border", 0)),
 			hex(String(e.get("border_color", "#00000000"))), m, _shadow(e))
+		if type_name == "PanelCardSelected":
+			# UI-04: the 4 px cream outline is drawn 4 px outside the card (expand_margin 4).
+			sb.set_expand_margin_all(stroke("selected"))
+		if type_name == "PanelKeycap":
+			sb.content_margin_top = 0
+			sb.content_margin_bottom = 0
 		t.set_type_variation(type_name, "PanelContainer")
 		t.set_stylebox("panel", type_name, sb)
 	# Plain defaults: PanelContainer/Panel get the plate.
 	var plate := t.get_stylebox("panel", "PanelPlate")
 	t.set_stylebox("panel", "PanelContainer", plate)
 	t.set_stylebox("panel", "Panel", plate)
+	# KeyCap small (28 high inside chips/buttons): same box, min height set by the builder.
+	var kc := (t.get_stylebox("panel", "PanelKeycap") as StyleBoxFlat).duplicate() as StyleBoxFlat
+	t.set_type_variation("PanelKeycapS", "PanelContainer")
+	t.set_stylebox("panel", "PanelKeycapS", kc)
 	# Components without their own token entry.
 	var chip := flat(color("accent"), radius("s"), 0, Color.TRANSPARENT, Vector4(12, 0, 12, 0))
 	t.set_type_variation("PanelChip", "PanelContainer")
