@@ -78,7 +78,7 @@ def kind_of(v):
 def used_keys():
     pat = re.compile(r'UI3Theme\.(color|size_of|size_dict|radius|space|stroke|motion_sec)\(\s*"([A-Za-z0-9_]+)"')
     found = {}
-    for top in ("scenes", "scripts", "tests"):
+    for top in ("scenes", "scripts"):   # tests read made-up keys on purpose (fallback checks)
         for dp, _, fs in os.walk(os.path.join(GODOT, top)):
             for f in fs:
                 if not f.endswith(".gd"):
