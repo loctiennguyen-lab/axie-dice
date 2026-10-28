@@ -33,8 +33,9 @@ func _chip_text(rm: Node) -> String:
 	var c := _chip(rm)
 	if c == null:
 		return "<no chip>"
-	var l := c.find_child("Text", true, false) as Label
-	return l.text if l != null else "<no text>"
+	# UI-04 HouseChip: the count lives in its own "Count" label ("1/2"), no "House Cores" prefix any more.
+	var l := c.find_child("Count", true, false) as Label
+	return "House Cores " + l.text if l != null else "<no text>"
 
 
 ## Opens a real bonus Core offer, swaps its first card for `core_id`, takes it through the overlay.

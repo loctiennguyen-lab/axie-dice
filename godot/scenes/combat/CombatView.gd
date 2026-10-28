@@ -384,6 +384,7 @@ var _last_die_face: Dictionary = {}
 
 
 func _ready() -> void:
+	get_tree().root.size_changed.connect(_on_window_resized)
 	_setup = RunState.pending_combat
 	RunState.pending_combat = {}
 	_tutorial = bool(_setup.get("tutorial", false))
@@ -1468,6 +1469,13 @@ var _menu_panel: PanelContainer = null
 
 
 ## Dice tray: five 272 x 176 columns, gap 16, bottom 16, centred (x0 = 248 at 1920).
+## UI-05 b1: the window crossed the 1280 line (or came back). The shared Theme was rebuilt in place by
+## UI3Theme.sync_scale(); layouts that read size tokens at build time are rebuilt here.
+func _on_window_resized() -> void:
+	if UI3Theme.sync_scale() and _combat != null:
+		_rebuild_all()
+
+
 ## Lane 0 split: tray code lives in DiceDock.gd, enemy plates in EnemyColumn.gd. The functions below keep their names and forward.
 func _dd() -> DiceDock:
 	if _dice_dock == null:

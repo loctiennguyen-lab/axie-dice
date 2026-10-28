@@ -121,12 +121,14 @@ static func scale_for(win: Vector2, dpr := 1.0) -> float:
 static func current_scale() -> float:
 	if _scale_override > 0.0:
 		return _scale_override
+	if DisplayServer.get_name() == "headless":
+		return 1.0   # a headless window has no meaningful size; tests ask for a scale with set_scale_override()
 	var loop := Engine.get_main_loop() as SceneTree
 	if loop == null or loop.root == null:
 		return 1.0
 	var w := Vector2(loop.root.size)
-	if w.x <= 0.0 or w.y <= 0.0:
-		return 1.0
+	if w.x < 640.0 or w.y < 360.0:
+		return 1.0   # a degenerate window (minimised, not laid out yet) must not blow every size up
 	return scale_for(w, DisplayServer.screen_get_scale())
 
 
