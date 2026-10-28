@@ -3075,7 +3075,7 @@ func _clear_all_previews() -> void:
 
 func _on_hp_changed(uid: int, _hp: int, _max_hp: int, shield: int) -> void:
 	if shield > int(_last_shield.get(uid, 0)):
-		_fx_over(uid, "shield_gain")
+		U5Moments.shield_gain(self, uid)   # UI-05 lane E (motion row shield_gain)
 	_last_shield[uid] = shield
 	_rebuild_all()
 
@@ -3126,15 +3126,16 @@ func _on_hit_landed(src_uid: int, uid: int, value: int, crit: bool) -> void:
 		if is_instance_valid(_stage3d):
 			_stage3d.play_hit_reaction(uid)   # `uid` is whoever just TOOK this hit — see
 				# CombatStage3D.play_hit_reaction()'s own comment for the damage_pipeline.gd cross-check
-		_fx_over(uid, _hit_moment_id(uid, value, crit))
-		_play_hit_juice())
+		var mid := _hit_moment_id(uid, value, crit)
+		U5Moments.on_hit(self, uid, mid)   # UI-05 lane E: tag, flash, sweep, sparks, hit-stop (motion rows hit/crit/big_hit)
+		_play_hit_juice(mid))
 
 func _on_unit_died(uid: int) -> void:
 	_append_log("[death] %s" % _unit_name(uid))
 	var p: UnitPortrait = _portraits.get(uid)
 	var dead := _combat.by_uid(uid) if _combat != null else null
 	if dead != null and dead.side == "p":
-		_fx_over(uid, "axie_ko")
+		U5Moments.axie_ko(self, uid)   # UI-05 lane E (motion row axie_ko)
 	if p != null:
 		p.play_death_fade()
 	if is_instance_valid(_stage3d):
@@ -3474,12 +3475,14 @@ func _on_float_text(uid: int, text: String, css_class: String, big: int) -> void
 		return   # the parked die already carries a HOLD chip on its tray card and the Hold button says Holding n/n
 	_after_impact(func():
 		var p: UnitPortrait = _portraits.get(uid)
+		if U5Moments.float_text(self, uid, text, css_class, big):
+			return   # UI-05 lane E: damage / shield numbers pop on the unit; "PHASE 2" is the Phase band
 		if p != null and is_instance_valid(p):
 			p.spawn_float_text(text, css_class, big))
 
 func _on_boss_phase_changed(uid: int) -> void:
 	_append_log("[phase] boss %s changed phase" % _unit_name(uid))
-	_fx_over(uid, "boss_phase")
+	U5Moments.boss_phase(self, uid)   # UI-05 lane E (motion row boss_phase)
 	_rebuild_all()
 
 func _on_enemy_intent_executed(uid: int) -> void:
@@ -3501,10 +3504,14 @@ func _on_turn_phase_changed(old_phase: int, new_phase: int) -> void:
 			and not (_combat.won or _combat.lost):
 		var graph := RunMapGraph.from_data(RunState.map_graph)
 		var total := maxi(graph.rows.size(), 1)
-		_show_turn_banner(_first_enemy_action_line(), "ENEMY TURN")
+		U5Moments.turn_banner(self, false)   # UI-05 lane E: "Enemy turn" band (motion row turn_banner_enemy)
 	_rebuild_all()
-	if new_phase == CombatPhase.EXECUTE and old_phase == CombatPhase.END_TURN:
-		_reveal_intents.call_deferred()
+	if new_phase == CombatPhase.EXECUTE and old_phase == CombatPhase.ROLL and _combat != null \
+			and not (_combat.won or _combat.lost):
+		# UI-05 lane E: a turn starts with ROLL -> EXECUTE (END_TURN -> EXECUTE never happens). "Your turn" band,
+		# then the intent reveal; the blocks stay hidden until it pops them.
+		U5Moments.hide_intents(self, UI3Motion.timeline_sec("turn_banner_player", UI3Motion.reduced()))
+		U5Moments.turn_banner(self, true, func() -> void: _reveal_intents.call_deferred())
 
 ## Intent reveal (after the turn banner): each enemy's intent block pops in, 80 ms x enemy index.
 func _reveal_intents() -> void:
@@ -3519,7 +3526,8 @@ func _reveal_intents() -> void:
 		if blk != null and blk.is_visible_in_tree():
 			blk.pivot_offset = blk.size * 0.5
 			var node := blk
-			get_tree().create_timer(0.08 * i).timeout.connect(func() -> void:
+			U5Moments.intent_bighit(self, p, U5Moments.intent_stagger_sec() * i)   # UI-05 lane E: border flash, strip, badge
+			get_tree().create_timer(U5Moments.intent_stagger_sec() * i).timeout.connect(func() -> void:
 				if is_instance_valid(node):
 					UI3Motion.play("intent_reveal", node))
 			i += 1
@@ -3527,7 +3535,7 @@ func _reveal_intents() -> void:
 
 func _on_combat_finished(won: bool) -> void:
 	if won and not disable_juice_for_tests and is_inside_tree():
-		_fx_rect(Rect2(Vector2.ZERO, _unit_visuals_root.size), "victory")
+		U5Moments.victory(self)   # UI-05 lane E: Victory band (motion row victory)
 	_append_log("[combat_finished] won=%s" % won)
 	_audio.stop_music()   # fades; a hard cut lands on top of the win/loss beat and reads as a bug
 	_rebuild_all()
@@ -4026,14 +4034,15 @@ func _after_impact(fn: Callable) -> void:
 	get_tree().create_timer(d).timeout.connect(fn, CONNECT_ONE_SHOT)
 
 
-func _play_hit_juice() -> void:
+## UI-05 lane E: the shake is the moment's table row (motion_ui3.json hit 4/120, crit 6/160, big_hit 10/220). The
+## hit-stop is the real one U5Moments.on_hit plays (crit 40 ms, big hit 60 ms), so the old fixed wait is gone.
+func _play_hit_juice(mid := "hit") -> void:
 	if motion_suppressed():
 		return
 	var end_anim := _begin_hit_animation()
-	if is_inside_tree():
-		await get_tree().create_timer(_HITSTOP_DURATION).timeout
+	var sh := UI3Motion.screen_shake(mid)
 	if is_instance_valid(_stage3d):
-		await _stage3d.shake(_SHAKE_AMPLITUDE, _SHAKE_DURATION)
+		await _stage3d.shake(float(sh.get("px", _SHAKE_AMPLITUDE)), float(sh.get("ms", _SHAKE_DURATION * 1000.0)) / 1000.0)
 	end_anim.call()
 
 
@@ -4220,6 +4229,7 @@ func _finish(won: bool) -> void:
 		# R1: the defeat screen decides what happens next. The run result is applied only when
 		# the player picks End run, so a Continue (lane A) can still resume the same fight.
 		_show_defeat_panel()
+		U5Moments.defeat(self)   # UI-05 lane E: red tint pulse under the panel (motion row defeat)
 		return
 	var applied: Dictionary = await RunState.request_apply_combat_result(_combat.get_result())
 		# (was a sync apply_combat_result: the `reward` epoch may need a remote reply now)
@@ -4389,6 +4399,7 @@ func _play_victory_march() -> void:
 			(n as CanvasItem).visible = false
 			hidden.append(n)
 	var march_ui := _build_march_overlay()
+	U5Moments.adopt_march_overlay(self, march_ui)   # UI-05 lane E: the Victory band replaces the title plate + Skip
 	await _stage3d.play_victory_march(uids, _VICTORY_MARCH_DISTANCE,
 		_VICTORY_RUN_DURATION if _stage3d.has_gate() else _VICTORY_MARCH_DURATION)
 	_exit_running = false
@@ -4397,6 +4408,7 @@ func _play_victory_march() -> void:
 			n.visible = true
 	if is_instance_valid(march_ui):
 		march_ui.queue_free()
+	U5Moments.end_victory(self)
 
 
 ## UI-03 45: title plate (top centre) + Skip chip (bottom right, focused). Visual only: Esc / Space /
