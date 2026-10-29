@@ -4,12 +4,13 @@ extends Control
 ## stands in front of its plain Chimera painting for about 3.3 s, then hands off to combat.
 ## Always the full version (no seen flag). PRESENTATION ONLY: no RunState, no rules, no RNG.
 ##
-## UI-05 b1 (boss-intro--default, design/handoffs/ui-05-figma/round-1/ui05-combat-panels.html): the name plate is
-## the BossIntroBand pinned 24 px from the top (BOSS tag, name at text_hero, facts, rhythm) and the only control
-## shown is the SkipHint "Click or [Space] to skip" bottom right (no Fight button, only the Space key is shown).
+## UI-05 b1: this screen is the camera reveal only. The BossIntroBand (BOSS tag, name, HP / SHELL / ENRAGE, rhythm)
+## shows once, at the start of the fight over the arena (frame boss-intro--default, scenes/combat/ui5/U5BossBand.gd),
+## where the real numbers exist; showing it here too would put the same band on screen twice in a row (Liam 29/10).
+## The only control shown is the SkipHint "Click or [Space] to skip" bottom right (no Fight button).
 ## Motion: painting slow zoom, camera push-in, the boss roars (then idles), a rim light flash in time
-## with the roar, the band unfolds. With MetaState.reduce_flash on: no zoom, push-in, flash,
-## shake or slide; it cuts in and holds 2.0 s.
+## with the roar. With MetaState.reduce_flash on: no zoom, push-in, flash, shake or slide; it cuts in
+## and holds 2.0 s.
 ## Skip: click anywhere, KeyBindings `boss_intro_skip` (Space / Enter) or Esc, all only after 300 ms
 ## (so the click that pressed the map node cannot skip it). Esc is consumed here so the in-run menu
 ## does not open on top of this screen. The overlay joins `ui3_modal` so map tooltips stay quiet under it.
@@ -23,10 +24,7 @@ const OUT_SEC := 0.2
 const IN_SEC := 0.24
 const ROAR_AT := 0.45
 const FLASH_AT := 0.85         # about when the roar opens its mouth wide
-const PLATE_AT := 1.0
-const BAND_IN_SEC := 0.21      # band scaleY 0 -> 1, TRANS_BACK (same beat as the "Phase 2" band, motion-batch1.md)
 const BG_ASPECT := 1673.0 / 2048.0
-const _BandUi := preload("res://scenes/run_map/ui5/BossIntroBand.gd")
 const _PanelParts := preload("res://scenes/combat/ui5/PanelParts.gd")
 const MODEL_H := 4.0           # fitted model height in metres
 const CAM_CLOSE_DIST := 13.0   # end of the push-in (was 11.2 before the UI-05 top band)
@@ -36,7 +34,6 @@ var data: Dictionary = {}
 var elapsed_ms := 0
 var is_skipped := false
 var is_done := false
-var plate: PanelContainer = null   ## the BossIntroBand
 var skip_hint: HBoxContainer = null
 
 var _t0 := -1
@@ -73,7 +70,6 @@ func _ready() -> void:
 	focus_mode = Control.FOCUS_ALL
 	_build_bg()
 	_build_stage()
-	_build_plate()
 	_build_skip_hint()
 	_flash = ColorRect.new()
 	_flash.name = "RoarFlash"
@@ -90,7 +86,6 @@ func _ready() -> void:
 	resized.connect(_layout)
 	gui_input.connect(_on_gui_input)
 	_fade.color.a = 1.0   # black while the first frames (model + painting upload) hitch
-	plate.modulate.a = 0.0
 	_layout()
 	grab_focus.call_deferred()
 	_start_after_warmup()
@@ -246,36 +241,6 @@ func _setup_anims(model: Node3D, reg: Dictionary) -> void:
 		player.play(String(_clips["idle"]))
 
 
-## BossIntroBand: BOSS tag, name, facts known before the fight (Chimera title, class, phase count, the threat line), the rhythm cycle
-## (Prep / Strike / Hollow, Prep first) for bosses that have one. HP / Shell / Enrage numbers only exist once combat
-## is built (they depend on ascension, mission and run modifiers), so this pre-combat screen does not show them.
-func _build_plate() -> void:
-	var facts: Array = [{"text": String(data["title"]), "color": "text_muted", "node": "BossTitle"}]   # Chimera family (Liam kept it)
-	var cls := String(data["cls"])
-	var cls_path := "res://assets/portraits/%s.png" % cls.to_lower()
-	facts.append({"text": cls, "icon": load(cls_path) as Texture2D if ResourceLoader.exists(cls_path) else null, "node": "ClassChip"})
-	if int(data["phases"]) > 1:   # one-phase bosses show no chip (Liam 20/10)
-		facts.append({"text": tr("%d phases") % int(data["phases"]), "node": "PhaseChip", "color": "accent"})
-	facts.append({"text": String(data["threat"]), "node": "Threat"})
-	var band := _BandUi.new()
-	band.setup({"name": String(data["name"]), "tag_word": tr("BOSS"), "facts": facts,
-		"rhythm": [tr("Prep"), tr("Strike"), tr("Hollow")] if _has_rhythm() else [], "rhythm_now": 0})
-	band.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	band.offset_top = UI3Theme.space("screen")
-	band.grow_vertical = Control.GROW_DIRECTION_END
-	plate = band
-	add_child(band)
-
-
-## Rhythm bosses (combat_tune boss_rhythm.enabled, not the two-phase "phase" trait) open on Prep (engine: turn 1 =
-## prep). Data read only.
-func _has_rhythm() -> bool:
-	var tune: Dictionary = (ContentDB.combat_tune.get("boss_rhythm", {}) as Dictionary)
-	if float(tune.get("enabled", 1.0)) < 1.0:
-		return false
-	return String(ContentDB.bosses.get(String(data["key"]), {}).get("trait", "")) != "phase"
-
-
 ## SkipHint (bottom right, on the view): "Click or" [Space] "to skip". Only the Space key is shown (Liam 28/10).
 func _build_skip_hint() -> void:
 	skip_hint = HBoxContainer.new()
@@ -311,7 +276,6 @@ func _layout() -> void:
 	var top := clampf(h * 0.23, 0.0, maxf(h - size.y, 0.0))
 	_bg.position = Vector2((size.x - w) * 0.5, -top)
 	_bg.pivot_offset = Vector2(w * 0.5, top + size.y * 0.6)
-	plate.pivot_offset = Vector2(plate.size.x * 0.5, plate.size.y * 0.5)
 
 
 # ---------------------------------------------------------------- motion
@@ -332,7 +296,6 @@ func _play() -> void:
 		_cam_set(0.8)
 		_pivot.rotation_degrees.y = -8.0
 		_fade.color.a = 0.0
-		plate.modulate.a = 1.0
 		_start_roar()
 		_tw = create_tween()
 		_tw.tween_interval(HOLD_SEC_RM)
@@ -340,7 +303,6 @@ func _play() -> void:
 		return
 	_cam_set(0.0)
 	_fade.color.a = 1.0
-	plate.modulate.a = 0.0
 	_tw = create_tween().set_parallel(true)
 	_tw.tween_property(_fade, "color:a", 0.0, IN_SEC)
 	# Painting: slow zoom for the whole beat.
@@ -350,7 +312,6 @@ func _play() -> void:
 	_tw.tween_property(_pivot, "rotation_degrees:y", -8.0, 2.2).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	_tw.tween_callback(_start_roar).set_delay(ROAR_AT)
 	_tw.tween_callback(_roar_flash).set_delay(FLASH_AT)
-	_tw.tween_callback(_plate_slam).set_delay(PLATE_AT)
 	_tw.tween_callback(_finish).set_delay(HOLD_SEC)
 
 
@@ -379,17 +340,6 @@ func _roar_flash() -> void:
 		var a := 10.0 * (1.0 - float(i) / 4.0)
 		s.tween_property(_vp_box, "position", base + Vector2(a if i % 2 == 0 else -a, -a * 0.5), 0.04)
 	s.tween_property(_vp_box, "position", base, 0.04)
-
-
-## The band unfolds from its centre line: scaleY 0 -> 1 (TRANS_BACK) with a short fade.
-func _plate_slam() -> void:
-	if is_done:
-		return
-	plate.pivot_offset = Vector2(plate.size.x * 0.5, plate.size.y * 0.5)
-	plate.scale = Vector2(1.0, 0.0)
-	var t := create_tween().set_parallel(true)
-	t.tween_property(plate, "modulate:a", 1.0, 0.1)
-	t.tween_property(plate, "scale:y", 1.0, BAND_IN_SEC).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 # ---------------------------------------------------------------- skip / finish

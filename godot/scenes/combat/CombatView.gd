@@ -378,6 +378,8 @@ var _gate_allows: Callable = Callable()
 
 # --- Juice state (unchanged from the pre-review pass) ---
 var _is_animating: bool = false
+## UI-05: the boss band is still to show before the first Your turn (U5Moments.turn_banner clears it).
+var _boss_band_due := false
 var _hit_anim_count: int = 0
 var _last_die_face: Dictionary = {}
 
@@ -462,6 +464,9 @@ func _ready() -> void:
 	# screen='combat' with the saved `s`).
 	var resumed: Dictionary = RunState.resume_combat
 	RunState.resume_combat = {}
+	# UI-05: a new boss fight opens on the boss band over the arena (U5Moments, first Your turn). Not on a resumed
+	# fight, not in the tutorial.
+	_boss_band_due = resumed.is_empty() and not _tutorial and String(_setup.get("kind", "")) == "boss"
 	if not resumed.is_empty():
 		_combat.from_data(resumed)
 		_combat.set_epoch(RunState.epoch)   # a resumed fight keeps the run's epoch source

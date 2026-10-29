@@ -27,6 +27,7 @@ Gate: `t_reduce_motion_rest` checks every row against the tables.
 - `turn_banner_player`, `turn_banner_enemy` (the old `turn_banner` and `combo_banner` stay as they were)
 - `intent_reveal`, `attrition_card`
 - `boss_phase`, `waiting_server`
+- `boss_intro_band` (boss fight start, before Your turn; `U5BossBand`)
 - `victory`, `defeat`
 
 ## 03-run-map / 47-core-offer / 48-anchor-pick / 49-anchor-awaken (run)

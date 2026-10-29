@@ -1166,7 +1166,7 @@
    }
   ],
   "sfx_name": "turn_player",
-  "skip": "click / Space ends it; input is only held for the first 240 ms",
+  "skip": "click / Space ends it; a click is only held for the first 240 ms, Space (and the End turn key) never reaches the fight while the band shows (Liam 29/10)",
   "reduce_flash": "no change",
   "skippable": true,
   "star": true,
@@ -1265,6 +1265,89 @@
   "size_token": "text_hero",
   "block_input_ms": 240,
   "hold_ms": 500
+ },
+ "boss_intro_band": {
+  "trigger": "a boss fight starts (its first Your turn), shown before the Your turn band",
+  "_note": "BossIntroBand over the arena (boss-intro--default, design/handoffs/ui-05-figma/round-1/ui05-combat-panels.html): band unfolds scaleY 0 -> 1 (210 BACK OUT, the Phase 2 band beat), holds 1600 (frame label), out 210 QUAD IN; the SkipHint fades with it. Facts are the boss HUD numbers (HP, SHELL, ENRAGE). Played by scenes/combat/ui5/U5BossBand.gd with UI3Motion.play_timeline (UI-05 b1 integration, Liam 29/10).",
+  "in": {
+   "ms": 210
+  },
+  "layers": [
+   {
+    "name": "band_in",
+    "target": "band",
+    "delay_ms": 0,
+    "ms": 210,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "scale_y": 0.0
+     },
+     {
+      "t": 1,
+      "alpha": 1,
+      "scale_y": 1.0
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "band_out",
+    "target": "band",
+    "delay_ms": 1810,
+    "ms": 210,
+    "trans": "QUAD",
+    "ease": "IN",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1,
+      "scale_y": 1.0
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "scale_y": 0.6
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "hint",
+    "target": "hint",
+    "delay_ms": 0,
+    "ms": 2020,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 0.06,
+      "alpha": 1
+     },
+     {
+      "t": 0.94,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "fade"
+   }
+  ],
+  "skip": "click, Space or the End turn key ends the band; that press never reaches the fight",
+  "reduce_flash": "no change",
+  "skippable": true,
+  "star": true,
+  "hold_ms": 1600
  },
  "intent_reveal": {
   "trigger": "after the Your turn banner, one intent block per enemy",

@@ -427,7 +427,8 @@ static func boss_phase(v: CombatView, uid: int) -> void:
 
 
 ## "Your turn" / "Enemy turn" band (CombatView._on_turn_phase_changed). on_done runs when the band is gone
-## (at once when moments are off), e.g. the intent reveal after Your turn.
+## (at once when moments are off), e.g. the intent reveal after Your turn. A boss fight's first Your turn plays the
+## boss intro band first (CombatView._boss_band_due, set for a new boss fight only: not resumed, not the tutorial).
 static func turn_banner(v: CombatView, player: bool, on_done := Callable()) -> void:
 	if not on(v):
 		if on_done.is_valid():
@@ -436,6 +437,25 @@ static func turn_banner(v: CombatView, player: bool, on_done := Callable()) -> v
 	for old in root(v).get_children():
 		if old is U5TurnBanner:
 			(old as U5TurnBanner).finish(false)   # its reveal belongs to a turn that is already over
+		elif old is U5BossBand:
+			(old as U5BossBand).finish(false)
+	if player and v._boss_band_due:
+		# A boss fight's first turn: the boss intro band over the arena first, then the Your turn band (U5BossBand).
+		v._boss_band_due = false
+		var d := U5BossBand.data_for(v)
+		if not d.is_empty():
+			hide_intents(v, U5BossBand.duration_sec() + UI3Motion.timeline_sec("turn_banner_player", UI3Motion.reduced()))
+			var vw: WeakRef = weakref(v)
+			U5BossBand.show_on(root(v), d, func() -> void:
+				var cv: CombatView = vw.get_ref()
+				if cv == null or not on(cv):
+					return
+				if cv._combat == null or cv._combat.won or cv._combat.lost:
+					if on_done.is_valid():
+						on_done.call()
+					return
+				U5TurnBanner.show_on(root(cv), true, on_done))
+			return
 	U5TurnBanner.show_on(root(v), player, on_done)
 
 

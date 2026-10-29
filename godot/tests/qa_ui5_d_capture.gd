@@ -128,13 +128,27 @@ func _rewards() -> void:
 	await _frames(3)
 
 
-func _boss(key: String) -> void:
-	var intro := BossIntro.new()
-	if not intro.setup(key):
-		return
-	add_child(intro)
-	while intro.elapsed_ms < 2200:
+## boss-intro--default: the band at the start of a real boss fight, over the arena (U5BossBand), mid-hold.
+## The pre-combat camera reveal (BossIntro) carries no band since the UI-05 b1 integration.
+func _boss(_key: String) -> void:
+	MetaState.runs_with_battle = 99
+	RunState.start_new_run(424242, ["plant1", "beast1", "aqua1", "reptile1", "bug1"], "short", 6, false)
+	await get_tree().process_frame
+	RunState.power_level = 9
+	RunState.enter_node("r12_c0", "boss")
+	var scene: Node = (load("res://scenes/combat/Combat.tscn") as PackedScene).instantiate()
+	get_tree().root.add_child(scene)
+	var band: U5BossBand = null
+	for _i in 120:
 		await get_tree().process_frame
+		var r := scene.get_node_or_null("Ui5Moments/Root")
+		if r != null:
+			for c in r.get_children():
+				if c is U5BossBand:
+					band = c
+		if band != null and band.run != null:
+			break
+	await get_tree().create_timer(0.7).timeout
 	await _save("boss-intro--default")
-	intro.queue_free()
+	scene.queue_free()
 	await _frames(3)
