@@ -3573,7 +3573,21 @@ func _on_combat_finished(won: bool) -> void:
 	_append_log("[combat_finished] won=%s" % won)
 	_audio.stop_music()   # fades; a hard cut lands on top of the win/loss beat and reads as a bug
 	_rebuild_all()
-	_finish(won)
+	if not won:
+		# A lost fight draws no epoch here (Continue asks for its own when pressed, End run applies with none),
+		# so the defeat path stays synchronous, exactly as the continue-stuck hotfix left it.
+		_finish(false)
+		return
+	# B2 (29/10): this signal fires from INSIDE the move that ended the fight. use_die() and play_active() call
+	# _check_end() before they _log() themselves, so asking for the `reward` epoch now would hash a log that is one
+	# entry short; RunVerifier replays with that move included and rejects every UI run at its first won fight
+	# (a final-boss win closes the run, epoch.close(), with the same short log). So the win is handled once that
+	# call has returned. _result_shown goes up NOW so nothing slips in between (no save of a decided fight, no
+	# input, _still_running() false); the retry path (NetNotice) still enters through _finish().
+	if _result_shown:
+		return
+	_result_shown = true
+	_finish_after_move.call_deferred(true)
 
 
 ## Player-facing translation (review P0 #1: "Buba cắm sừng Gooey Slime · 5", NOT
@@ -4252,6 +4266,15 @@ func _finish(won: bool) -> void:
 	if _result_shown:
 		return
 	_result_shown = true
+	_finish_after_move(won)
+
+
+## The body of _finish(), with _result_shown already raised by the caller. Reached deferred from
+## _on_combat_finished() (B2: only after the engine has logged the move that ended the fight) or straight
+## from _finish() on a retry, when nothing is mid-move any more.
+func _finish_after_move(won: bool) -> void:
+	if _combat == null:
+		return
 	# Embedded in the tutorial: the fixture owns what happens next. Stop BEFORE
 	# apply_combat_result() and before any change_scene_to_file() — see `_tutorial`'s comment.
 	# The victory march still plays, because that beat is part of what the tutorial is showing.
