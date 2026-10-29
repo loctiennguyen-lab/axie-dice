@@ -39,19 +39,20 @@ func _ok(cond: bool, msg: String) -> void:
 
 
 func _test_tokens_load() -> void:
+	UI3Theme.set_scale_override(1.0)   # token values are measured at the 1920 canvas, whatever the headless window is
 	UI3Theme.reset_cache()
 	var t := UI3Theme.tokens()
 	for group in ["color", "contrast", "font", "size", "radius", "space", "stroke", "shadow", "motion", "z", "theme"]:
 		_ok(t.has(group), "tokens missing group '%s'" % group)
 	_ok(UI3Theme.color("accent") == Color.html("#ffb444"), "accent colour")
-	_ok(UI3Theme.color("plate").a < 1.0 and absf(UI3Theme.color("plate").a - 0xE6 / 255.0) < 0.01, "plate alpha is 90%")
+	_ok(UI3Theme.color("plate") == Color.html("#3b2416") and UI3Theme.color("plate").a == 1.0, "plate is opaque walnut (UI-05 style A)")
 	_ok(UI3Theme.color("scrim").a > 0.79 and UI3Theme.color("scrim").a < 0.81, "scrim alpha is 80%")
-	_ok(UI3Theme.size_of("btn_l") == 72 and UI3Theme.size_of("btn_m") == 56 and UI3Theme.size_of("btn_s") == 48, "button heights")
+	_ok(UI3Theme.size_of("btn_l") == 72 and UI3Theme.size_of("btn_m") == 56 and UI3Theme.size_of("btn_s") == 44, "button heights")
 	_ok(UI3Theme.size_of("hit_min") == 44, "hit_min is 44")
 	_ok(UI3Theme.size_dict("axie_combat") == Vector2(163, 214), "axie_combat size pair")
-	_ok(UI3Theme.radius("l") == 12 and UI3Theme.radius("die") == 20, "radius tokens")
+	_ok(UI3Theme.radius("s") == 8 and UI3Theme.radius("m") == 14 and UI3Theme.radius("l") == 20 and UI3Theme.radius("xl") == 28 and UI3Theme.radius("die") == 20, "radius tokens")
 	_ok(UI3Theme.space("screen_margin") == 24, "screen margin")
-	_ok(UI3Theme.stroke("selected") == 4 and UI3Theme.stroke("focus") == 2 and UI3Theme.stroke("focus_offset") == 4, "stroke tokens")
+	_ok(UI3Theme.stroke("selected") == 4 and UI3Theme.stroke("focus") == 3 and UI3Theme.stroke("focus_offset") == UI3Theme.stroke("focus_gap") and UI3Theme.stroke("rim") == 2 and UI3Theme.stroke("btn") == 3, "stroke tokens")
 	_ok(is_equal_approx(UI3Theme.motion_sec("base"), 0.2), "motion base 200 ms")
 	# All colour tokens parse (no magenta fallback from a bad value).
 	for k in (t["color"] as Dictionary).keys():
@@ -91,14 +92,14 @@ func _test_theme_items() -> void:
 	_ok(theme.has_stylebox("panel", "TooltipPanel") and theme.has_font_size("font_size", "TooltipLabel"), "tooltip items")
 	# Spot values straight from the tokens.
 	var prim := theme.get_stylebox("normal", "ButtonPrimaryL") as StyleBoxFlat
-	_ok(prim.bg_color == Color.html("#ffb444") and prim.get_corner_radius(CORNER_TOP_LEFT) == 8, "primary normal fill + radius")
-	_ok(prim.shadow_offset == Vector2(0, 4), "primary raised shadow 0 4")
+	_ok(prim.bg_color == UI3Theme.color("accent") and prim.get_corner_radius(CORNER_TOP_LEFT) == UI3Theme.radius("m") and prim.border_width_left == UI3Theme.stroke("btn") and prim.border_color == UI3Theme.color("accent_rim"), "primary normal fill + radius + 3 px bevel")
+	_ok(prim.shadow_offset == Vector2(0, float(UI3Theme.tokens()["shadow"]["lip_l"])) and prim.shadow_color == UI3Theme.color("btn_primary_lip"), "primary raised lip (0, lip_l)")
 	var prs := theme.get_stylebox("pressed", "ButtonPrimaryL") as StyleBoxFlat
 	_ok(prs.shadow_offset == Vector2(0, 2), "primary pressed shadow 0 2")
 	var dis := theme.get_stylebox("disabled", "ButtonPrimaryL") as StyleBoxFlat
-	_ok(dis.bg_color == Color.html("#3c424d") and dis.border_width_left == 2 and dis.border_color == Color.html("#5b6372"), "disabled: neutral-4 + 2 px neutral-5")
+	_ok(dis.bg_color == UI3Theme.color("disabled") and dis.border_width_left == UI3Theme.stroke("btn") and dis.border_color == UI3Theme.color("disabled_rim"), "disabled: neutral-4 + btn bevel in disabled_rim")
 	var foc := theme.get_stylebox("focus", "ButtonPrimaryL") as StyleBoxFlat
-	_ok(foc.border_width_left == 2 and foc.border_color == Color.html("#ffb444") and foc.expand_margin_left == 4 and not foc.draw_center, "focus ring 2 px amber, 4 px offset, no fill")
+	_ok(foc.border_width_left == UI3Theme.stroke("focus") and foc.border_color == UI3Theme.color("focus_ring") and foc.expand_margin_left == UI3Theme.stroke("focus_gap") and not foc.draw_center, "focus ring (sky, token width + gap), no fill")
 	var tab_sel := theme.get_stylebox("tab_selected", "TabBar") as StyleBoxFlat
 	_ok(tab_sel.border_width_top == 3 and tab_sel.border_color == Color.html("#ffe5b4"), "selected tab 3 px cream")
 	var card_sel := theme.get_stylebox("panel", "PanelCardSelected") as StyleBoxFlat
@@ -130,7 +131,7 @@ func _test_builders() -> void:
 	var hit := float(UI3Theme.size_of("hit_min"))
 
 	for spec in [[&"primary", &"L", 72], [&"primary", &"M", 56], [&"secondary", &"M", 56],
-			[&"secondary", &"S", 48], [&"danger", &"M", 56], [&"quiet", &"M", 44]]:
+			[&"secondary", &"S", 44], [&"danger", &"M", 56], [&"quiet", &"M", 44]]:
 		var b := UI3.button("Go", spec[0], spec[1])
 		host.add_child(b)
 		_ok(b.custom_minimum_size.y == float(spec[2]), "button %s %s min h %s, got %s" % [spec[0], spec[1], spec[2], b.custom_minimum_size.y])
@@ -167,7 +168,7 @@ func _test_builders() -> void:
 
 	var ib := UI3.icon_button("ui_settings", "Settings")
 	host.add_child(ib)
-	_ok(ib.custom_minimum_size == Vector2(48, 48) and ib.icon != null, "icon button 48x48 with icon")
+	_ok(ib.custom_minimum_size == Vector2(UI3Theme.size_of("btn_s"), UI3Theme.size_of("btn_s")) and ib.icon != null, "icon button btn_s square with icon")
 	var gimg := ib.icon.get_image()
 	var brightest := Color.BLACK
 	for gy in gimg.get_height():
@@ -286,7 +287,7 @@ func _test_builders() -> void:
 	var nn := UI3.net_notice("Offline", "Retry", func() -> void: pressed[0] = true)
 	host.add_child(nn)
 	var retry: Button = nn.find_child("Retry", true, false)
-	_ok(retry != null and retry.custom_minimum_size.y == 48 and retry.custom_minimum_size.x >= hit, "net notice has Retry (secondary S)")
+	_ok(retry != null and retry.custom_minimum_size.y == UI3Theme.size_of("btn_s") and retry.custom_minimum_size.x >= hit, "net notice has Retry (secondary S)")
 	if retry != null:
 		retry.pressed.emit()
 	_ok(pressed[0], "Retry fires the callback")
@@ -307,5 +308,5 @@ func _test_builders() -> void:
 	fr.focus_entered.emit()
 	_ok(ring.visible, "focus ring shows on focus")
 	var ring_sb := ring.get_theme_stylebox("panel") as StyleBoxFlat
-	_ok(ring_sb.border_width_left == 2 and ring_sb.expand_margin_left == 4, "focus ring is 2 px with a 4 px offset")
+	_ok(ring_sb.border_width_left == UI3Theme.stroke("focus") and ring_sb.expand_margin_left == UI3Theme.stroke("focus_gap"), "focus ring uses the focus / focus_gap tokens")
 	host.queue_free()

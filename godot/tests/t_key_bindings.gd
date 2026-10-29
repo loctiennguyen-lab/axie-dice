@@ -1,7 +1,7 @@
 extends Node
 ## Rebindable keys: defaults are InputMap actions, a rebind changes what a key does on the real Land hub,
 ## overrides survive a MetaState save/reload, hints read the binding, Settings > Controls captures a key,
-## warns on a conflict and resets. Run: godot --headless --path godot res://tests/t_key_bindings.tscn
+## warns on a conflict and resets; the combat HUD draws only the End turn key and names the others in tooltips. Run: godot --headless --path godot res://tests/t_key_bindings.tscn
 
 var _fails: Array[String] = []
 var _checks := 0
@@ -99,6 +99,10 @@ func _ready() -> void:
 	_check(KeyBindings.keys_of(&"combat_reroll") == [KEY_R] and MetaState.key_bindings.is_empty(), "Reset restores defaults and clears the save")
 	st.queue_free()
 
+	# Combat HUD (UI-05, Liam 28/10): only Space is drawn on screen; every other key lives in a tooltip and
+	# follows the binding.
+	await _combat_hud_keys()
+
 	KeyBindings.reset_all()
 	_save_guard.restore()
 	MetaState.reload_from_store()
@@ -108,3 +112,33 @@ func _ready() -> void:
 	else:
 		printerr("=== t_key_bindings: FAIL (%d/%d) ===" % [_fails.size(), _checks])
 		get_tree().quit(1)
+
+
+func _combat_hud_keys() -> void:
+	KeyBindings.reset_all()
+	var host := Control.new()
+	host.size = Vector2(1920, 1080)
+	add_child(host)
+	var hud := CombatHud.new()
+	host.add_child(hud)
+	hud.adopt_right_zone(Button.new(), Button.new(), Button.new())
+	var on := {"show": true, "enabled": true, "text": "Hold", "tip": "Hold the picked die (%s)." % KeyBindings.text(&"combat_hold")}
+	hud.update_right({"enabled": true}, {"n": 1, "max": 3, "enabled": true}, {"sub": "5 dice unused", "enabled": true}, on, {}, {})
+	await get_tree().process_frame
+	_check(hud.undo_button.tooltip_text.contains("(Z)") and hud.reroll_button.tooltip_text.contains("(R)")
+		and hud.end_turn_button.tooltip_text.contains("(Space)"),
+		"combat tooltips name the keys: %s / %s / %s" % [hud.undo_button.tooltip_text, hud.reroll_button.tooltip_text,
+		hud.end_turn_button.tooltip_text])
+	hud.update_right({"enabled": false}, {"n": 1, "max": 3, "enabled": true}, {"sub": "5 dice unused", "enabled": true}, on, {}, {})
+	_check(hud.undo_button.tooltip_text.contains("(Z)"), "disabled Undo still names its key: %s" % hud.undo_button.tooltip_text)
+	var caps := Ui5Keycap.all_under(hud)
+	_check(caps.size() == 1 and Ui5Keycap.text_of(caps[0] as PanelContainer) == "Space", "combat HUD shows one key cap, Space (%d)" % caps.size())
+	KeyBindings.set_keys(&"combat_reroll", [KEY_T])
+	KeyBindings.set_keys(&"combat_end_turn", [KEY_E])
+	hud.update_right({"enabled": true}, {"n": 1, "max": 3, "enabled": true}, {"sub": "5 dice unused", "enabled": true}, on, {}, {})
+	_check(hud.reroll_button.tooltip_text.contains("(T)") and hud.end_turn_button.tooltip_text.contains("(E)")
+		and Ui5Keycap.text_of(caps[0] as PanelContainer) == "E", "rebinds reach the tooltips and the End turn cap")
+	_check(_ev(KEY_T).is_action_pressed(&"combat_reroll") and _ev(KEY_E).is_action_pressed(&"combat_end_turn"), "the rebound keys still fire the actions")
+	KeyBindings.reset_all()
+	host.queue_free()
+	await get_tree().process_frame

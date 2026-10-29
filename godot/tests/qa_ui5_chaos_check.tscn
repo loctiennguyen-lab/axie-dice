@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tests/qa_ui5_chaos_check.gd" id="1"]
+
+[node name="QaUi5Chaos" type="Node"]
+script = ExtResource("1")

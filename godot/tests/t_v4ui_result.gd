@@ -45,6 +45,11 @@ func _ready() -> void:
 	_check(view.call("_best_set_line", {}) == null, "no best_bo field: line hidden")
 	var l: Label = view.call("_best_set_line", {"best_bo": {"part": 1, "size": 5, "m100": 260}})
 	_check(l != null and l.text.contains("HORN") and l.text.contains("×2.6") and l.text.contains("5"), "best set text: %s" % (l.text if l else "null"))
+	# B5 (QA 29/10): the line sits on the walnut plate; it was accent_text (ink for amber fills), ~1.2:1.
+	if l != null:
+		var plate := UI3Theme.color("plate")
+		var ratio := UI3Theme.contrast_ratio(l.get_theme_color("font_color"), plate, plate)
+		_check(ratio >= 4.5, "best set line readable on the plate: contrast %.2f:1 (>= 4.5)" % ratio)
 	var e: Label = view.call("_best_set_line", {"best_bo": {}})
 	_check(e != null and e.text.begins_with("No Set"), "empty best_bo: encouragement")
 	view.queue_free()

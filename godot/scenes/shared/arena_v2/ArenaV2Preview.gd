@@ -12,11 +12,12 @@ extends Node3D
 ##   PREVIEW_SHOT=1         save <ADT_EVIDENCE_DIR>/v-preview-<biome>-<v2|old>[-boss]-<w>x<h>.png at
 ##                          1920x1080 and 1280x720, then quit (godot/tools/shot.sh, not headless)
 
-## Camera as CombatStage3D sets it on a 1080 canvas after CombatView calls frame_band(1080, 140.4, 876):
-## _CAM_POS, _CAM_FOV 19 widened to the full canvas, pitch -30 tipped by the band offset.
+## Camera as CombatStage3D sets it on a 1080 canvas after CombatView calls frame_band(1080, 88.4, 812)
+## (CombatView.stage_band at scale 1.0, UI-05 DiceDock): _CAM_POS, _CAM_FOV 19 widened to the full canvas,
+## pitch -30 tipped by the band offset. Was 27.607 / -30.829 with the old (140.4, 876) band.
 const CAM_POS := Vector3(-0.2, 17.0, 28.0)
-const CAM_FOV := 27.607
-const CAM_PITCH_DEG := -30.829
+const CAM_FOV := 28.047
+const CAM_PITCH_DEG := -32.378
 
 var _env: Environment
 var _sun: DirectionalLight3D

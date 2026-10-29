@@ -80,10 +80,6 @@ const L_GOLD := Color("FFC445")
 const L_THREAT := Color("D9472B")
 const L_GEM_SHELF := Color("4E2E8A")
 const L_INK_3 := Color("9A7650")
-const L_CLASS_COLORS := {
-	"plant": Color("7DC943"), "beast": Color("FFB23F"), "aqua": Color("39C5F3"),
-	"reptile": Color("B679F7"), "bug": Color("F2624F"), "bird": Color("8BDCFF"),
-}
 
 var _fail: Array[String] = []
 var _scene := ""
@@ -367,7 +363,7 @@ func _nearest_fill(c: Control) -> Variant:
 ## drawn in its Axie's class colour — the one coloured border the design actually asks for.
 func _is_class_color(b: Color) -> bool:
 	for cls in ["plant", "beast", "aqua", "reptile", "bug", "bird"]:
-		if b.is_equal_approx(L_CLASS_COLORS[cls]):
+		if b.is_equal_approx(UI3Theme.color("class_" + cls)):
 			return true
 	return false
 
@@ -379,8 +375,15 @@ func _is_ui3_shadow(f: StyleBoxFlat) -> bool:
 	if f.shadow_offset.x == 0.0 and f.shadow_offset.y == 6.0 and f.shadow_color.a > 0.98:
 		return true
 	for e in (UI3Theme.tokens().get("shadow", {}) as Dictionary).values():
-		if e is Dictionary and e.has("y") and e.has("color") \
-				and is_equal_approx(f.shadow_offset.y, float(e["y"])) \
+		if not (e is Dictionary and e.has("y") and e.has("color")):
+			continue
+		var col := String(e["color"])
+		if not col.begins_with("#") and not col.begins_with("color."):
+			# UI-05 die lip (shadow.die_side / die_side_selected): colour "face colour" = the face's own colour, so match by shape.
+			if is_equal_approx(f.shadow_offset.y, float(e["y"])) and f.shadow_offset.x == 0.0 and f.shadow_color.a > 0.98:
+				return true
+			continue
+		if is_equal_approx(f.shadow_offset.y, float(e["y"])) \
 				and is_equal_approx(f.shadow_offset.x, float(e.get("x", 0))) \
 				and f.shadow_color.is_equal_approx(UI3Theme.hex(String(e["color"]))):
 			return true

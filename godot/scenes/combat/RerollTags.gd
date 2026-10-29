@@ -55,9 +55,12 @@ func show_for(card: Control, faces: Array, prev_index: int, new_index: int, anim
 	var top := r.position.y
 	var cx := r.get_center().x
 	var chip := chip_for(faces, prev_index, new_index)
-	if not chip.is_empty():
+	var max_face := is_max_face(faces, new_index)
+	# B11 (QA 29/10): on a best face the "MAX!" tag on the die already says it; the "MAX" chip above the card only sat
+	# on the dice header's FRONT / BACK words. The +n / -n / NEW chips stay.
+	if not chip.is_empty() and not max_face:
 		_spawn(String(chip["text"]), UI3Theme.color(String(chip["token"])), CHIP_SIZE, Vector2(cx, top + 12.0), 0.0, animate)
-	if is_max_face(faces, new_index):
+	if max_face:
 		_spawn("MAX!", UI3Theme.color("accent_text"), TAG_SIZE, Vector2(r.end.x - 36.0, top + 56.0), -8.0, animate, true)
 
 

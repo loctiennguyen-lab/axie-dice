@@ -1,5 +1,5 @@
 extends Node
-## Boss intro (52): data covers every boss, shows for the boss node only, skip by click / Fight / the
+## Boss intro (52, UI-05 band): data covers every boss, shows for the boss node only, skip by click / the
 ## boss_intro_skip key / Esc only after the 300 ms guard, purely presentational (RunState unchanged),
 ## never reachable from resume paths, Reduce flashing cuts instead of fading.
 var _guard := SaveGuard.new()
@@ -81,9 +81,10 @@ func _ready() -> void:
 	a._input(_key(KEY_ESCAPE))
 	_t(not a.is_skipped, "inside the 300 ms guard nothing skips")
 	await _warm(a)
-	_t(a.plate != null and a.fight_button != null and a.find_child("Painting", true, false) != null, "plate, Fight and painting exist")
+	_t(a.find_child("BossIntroBand", true, false) == null and a.skip_hint != null and a.find_child("Painting", true, false) != null,
+		"skip hint and painting exist; no band (it shows once, at the start of the fight)")
+	_t(a.find_child("FightButton", true, false) == null, "UI-05: no Fight button (Click or Space to skip)")
 	_t(a.find_child("BossPivot", true, false).get_child_count() > 0, "a model stands in front of the painting")
-	_t(a.find_child("PhaseChip", true, false) != null, "agony shows its phase chip")
 	a._on_gui_input(_click())
 	_t(a.is_skipped, "click skips after the guard")
 	await get_tree().create_timer(0.5).timeout
@@ -93,9 +94,8 @@ func _ready() -> void:
 	# Each other way of skipping.
 	var b := _make("gooey_king")   # sprite-only boss still works
 	await _warm(b)
-	_t(b.find_child("PhaseChip", true, false) == null, "one-phase boss shows no phase chip")
-	b.fight_button.pressed.emit()
-	_t(b.is_skipped, "Fight skips")
+	b._input(_key(KEY_ENTER))
+	_t(b.is_skipped, "Enter (boss_intro_skip) skips")
 	b.queue_free()
 	var c := _make("mecha")
 	await _warm(c)

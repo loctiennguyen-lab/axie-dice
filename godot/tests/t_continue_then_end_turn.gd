@@ -112,12 +112,15 @@ func _case(paid: bool) -> void:
 		await _tree.process_frame
 		return
 
-	var cont: Button = v._defeat.find_child("Continue", true, false)
+	# UI-05 DefeatPanel: ContinueButton = caption "Continue" + a CostChip (Gem price or "Free").
+	v._defeat.set("_armed_at", 0)   # UI-05: the primary arms 1000 ms after the panel shows (tests skip the wait)
+	var cont: Button = v._defeat.find_child("ContinueButton", true, false)
 	_check(cont != null and not cont.disabled, "%s: Continue offered and enabled" % tag)
+	var chip_txt: Array = _label_texts(cont.find_child("CostChip", true, false), []) if cont else []
 	if paid:
-		_check(cont != null and cont.text == "Continue · 90 Gem", "%s: label '%s'" % [tag, cont.text if cont else ""])
+		_check(cont != null and cont.get("caption") == "Continue" and chip_txt.has("90"), "%s: label %s" % [tag, str(chip_txt)])
 	else:
-		_check(cont != null and cont.text == "Continue · Free", "%s: label '%s'" % [tag, cont.text if cont else ""])
+		_check(cont != null and cont.get("caption") == "Continue" and chip_txt.has("Free"), "%s: label %s" % [tag, str(chip_txt)])
 	var turn_at_wipe := c.turn
 
 	# Continue, through the button.
@@ -205,7 +208,8 @@ func _case_stale() -> void:
 	if v._defeat == null:
 		v.queue_free()
 		return
-	var cont: Button = v._defeat.find_child("Continue", true, false)
+	v._defeat.set("_armed_at", 0)   # UI-05 1000 ms arm delay skipped for this guard test
+	var cont: Button = v._defeat.find_child("ContinueButton", true, false)
 	cont.pressed.emit()   # same frame
 	_check(not c.lost and c.phase == CombatEngine.CombatPhase.EXECUTE, "%s: Continue took" % tag)
 	var acted := _intents
@@ -234,3 +238,13 @@ func _settle(v: CombatView) -> void:
 		if v._dice_in_air():
 			v._land_dice_now()
 		await _tree.process_frame
+
+
+func _label_texts(n: Node, out: Array) -> Array:
+	if n == null:
+		return out
+	if n is Label and (n as Label).is_visible_in_tree():
+		out.append((n as Label).text)
+	for ch in n.get_children():
+		_label_texts(ch, out)
+	return out

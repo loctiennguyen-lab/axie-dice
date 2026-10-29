@@ -15,10 +15,11 @@ extends RefCounted
 ## into assets/fonts/ (and running --import) needs no code change.
 ##
 ## THEME TYPE VARIATIONS (set `theme_type_variation` on the node):
-##   Button:         ButtonPrimaryL, ButtonPrimaryM, ButtonSecondary (M 56), ButtonSecondaryS (48),
+##   Button:         ButtonPrimaryL, ButtonPrimaryM, ButtonPrimaryS (48, UI-04 small), ButtonSecondary (M 56), ButtonSecondaryS (48),
 ##                   ButtonDanger, ButtonQuiet, IconButton
 ##   PanelContainer: PanelPlate, PanelCard, PanelCardSelected, PanelDialog, PanelRow, PanelNotice,
-##                   PanelChip, PanelKeyHint, PanelInfo, PanelToast
+##                   PanelChip, PanelKeyHint, PanelInfo, PanelToast,
+##                   PanelDock, PanelKeycap, PanelKeycapS (28 in chips), PanelTagSquare  (UI-04)
 ##   ProgressBar:    ProgressBarHP, ProgressBarEnemy, ProgressBarBoss
 ##   Label:          LabelTitle (24), LabelScreenTitle (32), LabelKeyHint (16), LabelMuted, LabelDisplay (18)
 ## Plus plain defaults for TabBar/TabContainer, LineEdit, H/VScrollBar, TooltipPanel/TooltipLabel.
@@ -72,8 +73,11 @@ static func color(token: String) -> Color:
 	return Color.html(String((entry as Dictionary).get("value", "#ff00ff")))
 
 
-## Parses a "#rrggbb" / "#rrggbbaa" literal (theme items in the tokens carry raw hex).
+## Parses a "#rrggbb" / "#rrggbbaa" literal, or a "color.<token>" reference (the tokens.theme items use references
+## so the colour tokens stay the only place a hex lives).
 static func hex(value: String) -> Color:
+	if value.begins_with("color."):
+		return color(value.substr(6))
 	return Color.html(value)
 
 
@@ -87,7 +91,110 @@ static func size_of(token: String, fallback := -1) -> int:
 		if fallback >= 0:
 			return fallback
 		return 18 if token.begins_with("text_") else 0
+	var sc := layout_scale()
+	if sc >= 1.0:
+		return int(v)
+	var ov: Dictionary = _overrides_logical()
+	if ov.has(token):
+		# The override is a REAL px number at 1280 (scale 0.667); the canvas is logical 1920. Between 1.0 and 0.667 the
+		# real size is interpolated, so it is continuous and monotonic (no jump 116 -> 152 px at 1920).
+		var t := clampf((1.0 - sc) / (1.0 - 2.0 / 3.0), 0.0, 1.0)
+		var real := lerpf(float(v) * sc, float(ov[token]), t)
+		return int(round(real / sc))
+	if token.begins_with("text_") or token == "num_die_egg":
+		return _text_px(int(v))
 	return int(v)
+
+
+# ---------------------------------------------------------------- scale (1280 overrides)
+
+## Real px floor for text at a small window (tokens._size_1280_overrides.min_text, Liam 28/10: 14).
+const MIN_TEXT_FALLBACK := 14
+
+static var _scale_override := -1.0
+static var _scale_cached := 1.0
+
+
+## Window scale = min(w/1920, h/1080) / devicePixelRatio. Pure, so tests can feed any window and DPR.
+## On the web a 1280 CSS px window reports 1280*DPR physical px: dividing by DPR gives 0.667 on DPR 1 and 2.
+static func scale_for(win: Vector2, dpr := 1.0) -> float:
+	return minf(win.x / 1920.0, win.y / 1080.0) / maxf(dpr, 1.0)
+
+
+## Lowest scale the 1280 rules follow (B3, QA 29/10). Below it (a web window under 1280 CSS px, a small Retina
+## window) the 1280 sizes and the text floor are NOT pushed further: every size keeps its 1280 logical value and the
+## whole canvas just scales down with the window, so text never grows past its box.
+const MIN_LAYOUT_SCALE := 2.0 / 3.0
+
+
+## Scale the size tokens and the text floor follow: current_scale() clamped to MIN_LAYOUT_SCALE at the bottom.
+static func layout_scale() -> float:
+	var sc := current_scale()
+	return sc if sc >= 1.0 else maxf(sc, MIN_LAYOUT_SCALE)
+
+
+## Scale in effect now: the test override, else the root window. 1.0 when there is no tree (tools).
+static func current_scale() -> float:
+	if _scale_override > 0.0:
+		return _scale_override
+	if DisplayServer.get_name() == "headless":
+		return 1.0   # a headless window has no meaningful size; tests ask for a scale with set_scale_override()
+	var loop := Engine.get_main_loop() as SceneTree
+	if loop == null or loop.root == null:
+		return 1.0
+	var w := Vector2(loop.root.size)
+	if w.x < 640.0 or w.y < 360.0:
+		return 1.0   # a degenerate window (minimised, not laid out yet) must not blow every size up
+	return scale_for(w, DisplayServer.screen_get_scale())
+
+
+## Forces a scale (tests). Pass -1 to go back to the window. Rebuilds the theme in place if it changed.
+static func set_scale_override(sc: float) -> void:
+	_scale_override = sc
+	sync_scale()
+
+
+## Re-reads the window scale. True when it changed (theme already rebuilt; the caller rebuilds its layout).
+static func sync_scale() -> bool:
+	var sc := layout_scale()
+	if absf(sc - _scale_cached) < 0.02 and (sc >= 1.0) == (_scale_cached >= 1.0):
+		return false   # dragging the window edge: ignore sub-2% steps so the theme is not rebuilt every pixel
+	if is_equal_approx(sc, _scale_cached):
+		return false
+	_scale_cached = sc
+	if _theme != null:
+		_theme.clear()
+		_fill_theme(_theme)
+	return true
+
+
+## True at a small window (the 1280 overrides are on).
+static func is_small() -> bool:
+	return current_scale() < 1.0
+
+
+static func _min_text_real() -> int:
+	return int((tokens().get("_size_1280_overrides", {}) as Dictionary).get("min_text", MIN_TEXT_FALLBACK))
+
+
+## Logical text size that is not below the real px floor at the current scale (16 -> 21 at 0.667).
+static func _text_px(logical: int) -> int:
+	var sc := layout_scale()
+	if sc >= 1.0 or float(logical) * sc >= float(_min_text_real()) - 0.01:
+		return logical
+	return int(ceil(float(_min_text_real()) / sc - 0.01))
+
+
+## tokens._size_1280_overrides with kebab keys (die-card-w) mapped to the snake size tokens (die_card_w).
+static func _overrides_logical() -> Dictionary:
+	var out := {}
+	var raw: Dictionary = tokens().get("_size_1280_overrides", {})
+	for k in raw:
+		var key := String(k)
+		if key == "note" or key == "min_text":
+			continue
+		out[key.replace("-", "_")] = raw[k]
+	return out
 
 
 ## Size token that is a {w,h} pair (axie_combat, enemy_combat, ...) as a Vector2.
@@ -133,7 +240,24 @@ static func _int_token(group: String, token: String) -> int:
 static func font_display() -> Font:
 	if _font_display == null:
 		_font_display = _resolve_font("display", "700", FALLBACK_DISPLAY)
+		_add_display_fallback(_font_display)
 	return _font_display
+
+
+## Rowdies has no "→" (U+2192) and other symbols the UI prints. The web export has no system fonts, so a missing glyph
+## is an empty box there. Work Sans Bold (same weight, has →) is chained as the fallback. UI-05 b1 lane B.
+const DISPLAY_GLYPH_FALLBACK := "res://assets/fonts/WorkSans-Bold.ttf"
+
+
+static func _add_display_fallback(f: Font) -> void:
+	if f == null or not ResourceLoader.exists(DISPLAY_GLYPH_FALLBACK):
+		return
+	var fb := load(DISPLAY_GLYPH_FALLBACK) as Font
+	if fb == null or fb == f or f.fallbacks.has(fb):
+		return
+	var list := f.fallbacks.duplicate()
+	list.append(fb)
+	f.fallbacks = list
 
 
 ## Body face (everything the player reads): Work Sans Regular, or the Work Sans Medium fallback.
@@ -171,6 +295,7 @@ static func _resolve_font(family: String, weight: String, fallback: String) -> F
 
 ## The shared Theme (built once, cached). Safe to assign to any number of roots.
 static func get_theme() -> Theme:
+	sync_scale()
 	if _theme == null:
 		_theme = build_theme()
 	return _theme
@@ -180,6 +305,7 @@ static func get_theme() -> Theme:
 static func reset_cache() -> void:
 	_tokens = {}
 	_theme = null
+	_scale_cached = layout_scale()
 	_font_display = null
 	_font_body = null
 
@@ -187,6 +313,11 @@ static func reset_cache() -> void:
 ## Builds a fresh Theme from the tokens. Prefer `get_theme()`.
 static func build_theme() -> Theme:
 	var t := Theme.new()
+	_fill_theme(t)
+	return t
+
+
+static func _fill_theme(t: Theme) -> void:
 	t.default_font = font_body()
 	t.default_font_size = size_of("text_body")
 	var cream := color("text")
@@ -200,7 +331,6 @@ static func build_theme() -> Theme:
 	_build_scroll(t)
 	_build_slider_check(t, cream)
 	_build_tooltip(t, cream)
-	return t
 
 
 ## Maps a `tokens.theme` key to where the built Theme stores it: {type, kind, name} with kind one of
@@ -211,6 +341,8 @@ static func theme_item_for(key: String) -> Dictionary:
 		"Button":
 			var variant := {"primary": "ButtonPrimaryL", "secondary": "ButtonSecondary",
 				"danger": "ButtonDanger", "quiet": "ButtonQuiet"}
+			if p.size() == 4 and p[1] == "primary" and p[3] == "small":
+				return {"type": "ButtonPrimaryS", "kind": "stylebox", "name": "normal"}
 			if p.size() == 4 and p[2] == "styles" and variant.has(p[1]):
 				return {"type": variant[p[1]], "kind": "stylebox", "name": p[3]}
 		"Tab":
@@ -219,7 +351,8 @@ static func theme_item_for(key: String) -> Dictionary:
 					"name": "tab_selected" if p[2] == "selected" else "tab_unselected"}
 		"Panel":
 			var pv := {"plate": "PanelPlate", "card": "PanelCard", "card_selected": "PanelCardSelected",
-				"dialog": "PanelDialog", "row": "PanelRow", "notice": "PanelNotice"}
+				"dialog": "PanelDialog", "row": "PanelRow", "notice": "PanelNotice",
+				"dock": "PanelDock", "keycap": "PanelKeycap", "tag_square": "PanelTagSquare"}
 			if p.size() == 2 and pv.has(p[1]):
 				return {"type": pv[p[1]], "kind": "stylebox", "name": "panel"}
 		"ProgressBar":
@@ -250,7 +383,7 @@ static func flat(bg: Color, radius_px: int, border_px := 0, border_col := Color.
 	if not shadow.is_empty():
 		s.shadow_color = shadow["color"]
 		s.shadow_offset = Vector2(0, float(shadow["y"]))
-		s.shadow_size = int(shadow.get("size", 1))
+		s.shadow_size = maxi(1, int(shadow.get("size", 1)))   # Godot draws no shadow at size 0; 1 = a hard, unblurred lip
 	s.anti_aliasing = true
 	s.set_meta("ui3", true)   # lets t_ui_laws tell UI-03 boxes (token shadows/borders) from Dango ones
 	return s
@@ -309,24 +442,29 @@ static func _btn_style(state: String, entry_key: String, variant: String, extra_
 	var margins := _margins(base)
 	if extra_h != 0:
 		margins = Vector4(extra_h, 0, extra_h, 0)
-	var border := int(e.get("border", 0))
-	var bcol := hex(String(e.get("border_color", "#00000000")))
+	# normal / hover / pressed keep the base bevel unless they name their own; disabled brings its own.
+	var inherit := state != "disabled"
+	var border := int(e.get("border", base.get("border", 0) if inherit else 0))
+	var bcol := hex(String(e.get("border_color", base.get("border_color", "#00000000") if inherit else "#00000000")))
 	var shadow := {}
+	var lip := 0
 	match state:
 		"normal", "hover":
 			shadow = _shadow(base)
 		"pressed":
 			shadow = _shadow(base)
 			if not shadow.is_empty():
+				lip = int(shadow["y"])
 				shadow["y"] = 2
-			# Whole control moves down 2 px, label included: shift box via expand margins, label via margin.
+			# Whole control moves down (lip - 2) px, label included: shift box via expand margins, label via margin.
 		"disabled":
 			shadow = {}
 	var s := flat(bg, rad, border, bcol, margins, shadow)
 	if state == "pressed":
-		s.content_margin_top += 4
-		s.expand_margin_top = -2
-		s.expand_margin_bottom = 2
+		var shift := maxi(lip - 2, 0)
+		s.content_margin_top += 2 * shift   # text is centred, so a margin of 2x moves it x
+		s.expand_margin_top = -shift
+		s.expand_margin_bottom = shift
 	return s
 
 
@@ -359,7 +497,7 @@ static func _style_button_variant(t: Theme, type_name: String, variant: String, 
 	t.set_stylebox("focus", type_name, focus)
 	t.set_font("font", type_name, font_body() if quiet else font_display())
 	t.set_font_size("font_size", type_name, font_px)
-	var dis := color("text_on_viewport")
+	var dis := color("disabled_text")
 	t.set_color("font_color", type_name, fg)
 	t.set_color("font_hover_color", type_name, fg)
 	t.set_color("font_pressed_color", type_name, fg)
@@ -376,6 +514,8 @@ static func _build_buttons(t: Theme, cream: Color) -> void:
 	var on_accent := color("accent_text")
 	_style_button_variant(t, "ButtonPrimaryL", "primary", size_of("text_screen_title"), size_of("btn_l"), space("48"), on_accent)
 	_style_button_variant(t, "ButtonPrimaryM", "primary", size_of("text_body"), size_of("btn_m"), space("32"), on_accent)
+	# UI-04 Button/primary/small: same colours/lip, 48 high, Rowdies 18 (RETRY, Reload the page).
+	_style_button_variant(t, "ButtonPrimaryS", "primary", size_of("text_body"), size_of("btn_s"), space("24"), on_accent)
 	_style_button_variant(t, "ButtonSecondary", "secondary", size_of("text_body"), size_of("btn_m"), space("24"), cream)
 	_style_button_variant(t, "ButtonSecondaryS", "secondary", size_of("text_body"), size_of("btn_s"), space("16"), cream)
 	_style_button_variant(t, "ButtonDanger", "danger", size_of("text_body"), size_of("btn_m"), space("24"), cream)
@@ -388,13 +528,20 @@ static func _build_buttons(t: Theme, cream: Color) -> void:
 	t.set_type_variation("IconButton", "Button")
 	var sec := "Button/secondary/styles/"
 	var rad := radius("m")
-	var n := flat(hex(String(_theme_entry(sec + "normal")["bg"])), rad)
-	var h := flat(color("btn_secondary").lightened(0.15), rad)
-	var p := flat(hex(String(_theme_entry(sec + "pressed")["bg"])), rad)
-	p.content_margin_top = 4
-	p.expand_margin_top = -2
-	p.expand_margin_bottom = 2
-	var d := flat(color("disabled"), rad, stroke("hairline"), color("disabled_border"))
+	var sec_n := _theme_entry(sec + "normal")
+	var rim := hex(String(sec_n.get("border_color", "#00000000")))
+	var bw := int(sec_n.get("border", 0))
+	var lipsh := _shadow(sec_n)
+	var n := flat(hex(String(sec_n["bg"])), rad, bw, rim, Vector4(0, 0, 0, 0), lipsh)
+	var h := flat(hex(String(_theme_entry(sec + "hover")["bg"])), rad, bw, rim, Vector4(0, 0, 0, 0), lipsh)
+	var psh := lipsh.duplicate()
+	var shift := maxi(int(lipsh.get("y", 2)) - 2, 0)
+	psh["y"] = 2
+	var p := flat(hex(String(_theme_entry(sec + "pressed")["bg"])), rad, bw, rim, Vector4(0, 0, 0, 0), psh)
+	p.content_margin_top = 2 * shift
+	p.expand_margin_top = -shift
+	p.expand_margin_bottom = shift
+	var d := flat(color("disabled"), rad, bw, color("disabled_rim"))
 	t.set_stylebox("normal", "IconButton", n)
 	t.set_stylebox("hover", "IconButton", h)
 	t.set_stylebox("pressed", "IconButton", p)
@@ -413,7 +560,8 @@ static func _build_buttons(t: Theme, cream: Color) -> void:
 static func _build_panels(t: Theme) -> void:
 	var map := {"PanelPlate": "Panel/plate", "PanelCard": "Panel/card",
 		"PanelCardSelected": "Panel/card_selected", "PanelDialog": "Panel/dialog",
-		"PanelRow": "Panel/row", "PanelNotice": "Panel/notice"}
+		"PanelRow": "Panel/row", "PanelNotice": "Panel/notice",
+		"PanelDock": "Panel/dock", "PanelKeycap": "Panel/keycap", "PanelTagSquare": "Panel/tag_square"}
 	var card_margins := _margins(_theme_entry("Panel/card"))
 	for type_name in map:
 		var e := _theme_entry(map[type_name])
@@ -422,12 +570,22 @@ static func _build_panels(t: Theme) -> void:
 		var m := _margins(e, card_margins if type_name == "PanelCardSelected" else Vector4(0, 0, 0, 0))
 		var sb := flat(hex(String(e["bg"])), int(e["radius"]), int(e.get("border", 0)),
 			hex(String(e.get("border_color", "#00000000"))), m, _shadow(e))
+		if type_name == "PanelCardSelected":
+			# UI-04: the 4 px cream outline is drawn 4 px outside the card (expand_margin 4).
+			sb.set_expand_margin_all(stroke("selected"))
+		if type_name == "PanelKeycap":
+			sb.content_margin_top = 0
+			sb.content_margin_bottom = 0
 		t.set_type_variation(type_name, "PanelContainer")
 		t.set_stylebox("panel", type_name, sb)
 	# Plain defaults: PanelContainer/Panel get the plate.
 	var plate := t.get_stylebox("panel", "PanelPlate")
 	t.set_stylebox("panel", "PanelContainer", plate)
 	t.set_stylebox("panel", "Panel", plate)
+	# KeyCap small (28 high inside chips/buttons): same box, min height set by the builder.
+	var kc := (t.get_stylebox("panel", "PanelKeycap") as StyleBoxFlat).duplicate() as StyleBoxFlat
+	t.set_type_variation("PanelKeycapS", "PanelContainer")
+	t.set_stylebox("panel", "PanelKeycapS", kc)
 	# Components without their own token entry.
 	var chip := flat(color("accent"), radius("s"), 0, Color.TRANSPARENT, Vector4(12, 0, 12, 0))
 	t.set_type_variation("PanelChip", "PanelContainer")
@@ -466,7 +624,7 @@ static func _build_labels(t: Theme, cream: Color) -> void:
 
 
 static func _theme_font_size_raw(k: String) -> int:
-	return int((tokens().get("theme", {}) as Dictionary).get("Label/font_sizes/" + k, size_of("text_body")))
+	return _text_px(int((tokens().get("theme", {}) as Dictionary).get("Label/font_sizes/" + k, 18)))
 
 
 static func _build_tabs(t: Theme, cream: Color) -> void:
@@ -488,7 +646,7 @@ static func _build_tabs(t: Theme, cream: Color) -> void:
 		t.set_font_size("font_size", type_name, size_of("text_body"))
 		for c in ["font_selected_color", "font_unselected_color", "font_hovered_color"]:
 			t.set_color(c, type_name, cream)
-		t.set_color("font_disabled_color", type_name, color("text_on_viewport"))
+		t.set_color("font_disabled_color", type_name, color("disabled_text"))
 		t.set_constant("h_separation", type_name, 8)
 	t.set_stylebox("panel", "TabContainer", t.get_stylebox("panel", "PanelPlate"))
 	# ButtonTab: tab-as-Button (meta screens). Selection = toggle pressed state (wood-3 + cream outline).
@@ -503,7 +661,7 @@ static func _build_tabs(t: Theme, cream: Color) -> void:
 	t.set_font_size("font_size", "ButtonTab", size_of("text_body"))
 	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
 		t.set_color(c, "ButtonTab", cream)
-	t.set_color("font_disabled_color", "ButtonTab", color("text_on_viewport"))
+	t.set_color("font_disabled_color", "ButtonTab", color("disabled_text"))
 	t.set_constant("min_height", "ButtonTab", int(n.get("min_h", 56)))
 
 

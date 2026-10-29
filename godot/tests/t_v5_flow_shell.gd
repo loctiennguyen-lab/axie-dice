@@ -71,8 +71,8 @@ func _ready() -> void:
 	_ok(sh > 0 and int(boss.custom_state.get("shell_max", 0)) == sh, "stage2: Elite has Shell (%d)" % sh)
 	var p := _shell_plate(v, boss)
 	_ok(p != null and p.has_shell(), "stage2: SHELL bar visible")
-	var lbl := p.find_child("ShellText", true, false) as Label if p != null else null
-	_ok(lbl != null and lbl.text == "SHELL %d/%d" % [sh, sh], "plate label SHELL n/n: " + (lbl.text if lbl != null else "?"))
+	var lbl := p.find_child("ShellValue", true, false) as Label if p != null else null
+	_ok(lbl != null and lbl.text == "%d/%d" % [sh, sh], "plate label SHELL n/n: " + (lbl.text if lbl != null else "?"))
 	_ok(v.coach_shown_id == "C8", "C8 coach shown first time (%s)" % v.coach_shown_id)
 	boss.hp = 9999
 	boss.max_hp = 9999

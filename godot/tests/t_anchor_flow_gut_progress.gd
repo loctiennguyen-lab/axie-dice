@@ -33,7 +33,8 @@ func _chip_text(rm: Node) -> String:
 	var c := _chip(rm)
 	if c == null:
 		return "<no chip>"
-	var l := c.find_child("Text", true, false) as Label
+	# UI-04 HouseChip: the count lives in its own "Count" label ("1/2"), no "House Cores" prefix any more.
+	var l := c.find_child("Count", true, false) as Label
 	return l.text if l != null else "<no text>"
 
 
@@ -114,11 +115,11 @@ func _ready() -> void:
 	rm._take_selected_reward()
 	await _frames(14)
 	_ok(RunState.owned_relic_ids.has(String(house[0])), "house Core 1 owned")
-	_ok(_chip_text(rm).contains("House Cores 1/2"), "after house 1: " + _chip_text(rm))
+	_ok(_chip_text(rm).contains("1/2"), "after house 1: " + _chip_text(rm))
 	_ok(not RunState.anchor_awakened, "not awakened at 1")
 	await _take_forced(rm, non_house)
 	_ok(RunState.owned_relic_ids.has(non_house), "non-house Core owned")
-	_ok(_chip_text(rm).contains("House Cores 1/2"), "after non-house: " + _chip_text(rm))
+	_ok(_chip_text(rm).contains("1/2"), "after non-house: " + _chip_text(rm))
 	_ok(not RunState.anchor_awakened and not AnchorFx.log.has("play"), "still not awakened, no moment")
 	await _take_forced(rm, String(house[1]))
 	_ok(RunState.owned_relic_ids.has(String(house[1])), "house Core 2 owned")

@@ -1,26 +1,41 @@
 class_name BoLayer
 extends Control
-## Depth v4 Set frames over the dice tray (spec 1.2 / 1.4). Reads the engine snapshot `bo`, draws one flat frame
-## per group plus its label; fours and fives also get a banner. No blur, no gradient. Never blocks input.
-## Redraws only when asked (refresh) by CombatView, which does so on EventBus.bo_changed and after tray layout.
+## UI-05 b1 lane B: the SET banners above the dice tray (README "Update · DieCard parts and SETs"). One SetBanner per live SET of
+## the engine snapshot `bo`, in a centred row named SetBanners (set_banner_h high, kept when empty so the tray never jumps).
+## This is the ONLY SET banner: the old floating "FOUR HORNS ×2.2!" label and the per-group frames are gone (each DieCard draws
+## its SET ring now). A new or higher four / five pops its banner (scale, none with Reduce motion). Never blocks input.
+## Redraws only when asked (refresh) by CombatView, on EventBus.bo_changed and after the tray layout.
 
-const FRAME_W := 4.0
-const LABEL_H := 32.0
-const BANNER_Y_FROM_TRAY := 84.0
-
-var _groups: Array = []                 # [{rect: Rect2, label: String, size: int, tier4: bool}]
-var _labels: Array[Label] = []
-var _banner: Label = null
-var _banner_tween: Tween = null
-var label_lift := 0.0                   # raised while the REROLL chips sit above the cards
-var cards_provider: Callable = Callable()   # () -> uid -> Rect2 in this layer's space; polled so frames follow a tray that moves
+var row: HBoxContainer
+var _banners: Array[SetBanner] = []
+var _row_rect := Rect2()
 var _last_bo: Array = []
-## group dict -> real M in percent (engine m100_for: Anchor/Embers/Overcast adds included). Unset = raw snapshot m100.
-var m100_provider := Callable()
-var _last_cards: Dictionary = {}
-var last_banner: String = ""            # test hook
 var _seen: Dictionary = {}              # part -> best size already announced this fight/turn
-var _banner_key := Vector3i(-1, 0, 0)   # (part, size, m100) the visible banner announces
+var _pop_tween: Tween = null
+var _pop_until_ms := 0
+var _last_key := Vector3i(-1, 0, 0)     # (part, size, m100) of the banner last announced
+## Text of the SET last announced ("SET OF 4 ×2.2 · Mouth"), "" once that SET is gone (test hook, qa_smoke).
+var last_banner: String = ""
+## Kept so older callers still compile: banners have their own row now, they no longer follow the card rects.
+var label_lift := 0.0
+var cards_provider: Callable = Callable()
+## group dict -> real M in percent (engine bo_group_m100: Anchor / Core set_add / Overcast / cap). Unset = raw snapshot m100.
+var m100_provider := Callable()
+## group dict -> {tex: Texture2D (part glyph), overcast: bool, tip: String}. Unset = no glyph, no Overcast mark.
+var info_provider := Callable()
+
+
+func _init() -> void:
+	name = "BoLayer"
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+	z_index = 7
+	row = HBoxContainer.new()
+	row.name = "SetBanners"
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", UI3Theme.space("12"))
+	add_child(row)
 
 
 func _m100(g: Dictionary) -> int:
@@ -29,143 +44,109 @@ func _m100(g: Dictionary) -> int:
 	return int(g["m100"])
 
 
-func _init() -> void:
-	name = "BoLayer"
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_anchors_preset(Control.PRESET_FULL_RECT)
-	z_index = 7
+## Where the SetBanners row sits (DiceDock layout: the top band of the dock, dice_dock_w wide).
+func set_row_rect(r: Rect2) -> void:
+	_row_rect = r
+	row.position = r.position
+	row.size = r.size
 
 
-## `cards`: uid -> Rect2 (global-in-layer rect of the tray card). `bo`: engine snapshot.
-func refresh(bo: Array, cards: Dictionary) -> void:
+## Rebuilds the banners from the engine snapshot `bo` (one per group, engine order: first SET colour a, second b).
+## `_cards` is unused now (kept for the old signature).
+func refresh(bo: Array, _cards: Dictionary = {}) -> void:
 	_last_bo = bo
-	_last_cards = cards.duplicate()
-	_drop_stale_banner(bo)
-	_groups.clear()
-	for g in bo:
-		var r := Rect2()
-		var first := true
-		for uid in (g["uids"] as Array):
-			if not cards.has(int(uid)):
-				continue
-			var cr: Rect2 = cards[int(uid)]
-			r = cr if first else r.merge(cr)
-			first = false
-		if first:
+	while _banners.size() < bo.size():
+		var nb := SetBanner.new()
+		nb.name = "SetBanner" if _banners.is_empty() else "SetBanner%d" % _banners.size()
+		row.add_child(nb)
+		_banners.append(nb)
+	var live_key := false
+	for i in _banners.size():
+		var b := _banners[i]
+		b.visible = i < bo.size()
+		if not b.visible:
 			continue
-		var sz := int(g["size"])
-		var m := _m100(g)
-		_groups.append({"rect": r.grow(6.0), "label": V4Ui.set_label(sz, m),
-			"size": sz, "part": int(g["part"]), "m100": m})
-	while _labels.size() < _groups.size():
-		var l := UI3.label("", "LabelDisplay")
-		l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
-		l.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
-		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		var sb := UI3Theme.flat(UI3Theme.color("accent"), UI3Theme.radius("s"))
-		sb.content_margin_left = 12
-		sb.content_margin_right = 12
-		l.add_theme_stylebox_override("normal", sb)
-		l.name = "SetLabel%d" % _labels.size()
-		add_child(l)
-		_labels.append(l)
-	for i in _labels.size():
-		var l := _labels[i]
-		l.visible = i < _groups.size()
-		if l.visible:
-			var gd: Dictionary = _groups[i]
-			l.text = String(gd["label"])
-			var r: Rect2 = gd["rect"]
-			var w := maxf(l.get_minimum_size().x, 160.0)
-			l.size = Vector2(w, LABEL_H)
-			l.position = Vector2(r.position.x + (r.size.x - w) * 0.5, r.position.y - LABEL_H - 2.0 - label_lift)
-	queue_redraw()
+		var g: Dictionary = bo[i]
+		var info: Dictionary = info_provider.call(g) if info_provider.is_valid() else {}
+		b.setup(int(g["part"]), int(g["size"]), _m100(g), String(SetPreview.SET_KEYS[i % SetPreview.SET_KEYS.size()]),
+			info.get("tex", null), bool(info.get("overcast", false)), String(info.get("tip", "")))
+		if b.key == _last_key:
+			live_key = true
+			last_banner = b.text
+	if not live_key:
+		_drop_announce()
+	set_row_rect(_row_rect)
 
 
-## The tray can move after the snapshot (layout pass, resize, mode switch): follow the live card rects so the
-## label centre always equals the frame centre.
-func _process(_dt: float) -> void:
-	if not cards_provider.is_valid() or not visible:
-		return
-	var now: Dictionary = cards_provider.call()
-	if now != _last_cards:
-		refresh(_last_bo, now)
-
-
-## The banner and the tray label must never disagree: a banner whose (part, size, multiplier) is no longer a
-## current Set (reroll broke it, Wild changed it, a die was used) is cut at once instead of fading out.
-func _drop_stale_banner(bo: Array) -> void:
-	if _banner == null or not _banner.visible:
-		return
-	for g in bo:
-		if Vector3i(int(g["part"]), int(g["size"]), _m100(g)) == _banner_key:
-			return
-	_banner.visible = false
+## The SET last announced is gone (reroll broke it, Wild changed it, the fight moved on): forget it at once.
+func _drop_announce() -> void:
 	last_banner = ""
-	if _banner_tween != null:
-		_banner_tween.kill()
+	_last_key = Vector3i(-1, 0, 0)
+	_pop_until_ms = 0
+	if _pop_tween != null:
+		_pop_tween.kill()
+		_pop_tween = null
+	for b in _banners:
+		b.scale = Vector2.ONE
 
 
-func _draw() -> void:
-	var col := UI3Theme.color("accent")
-	for gd in _groups:
-		var r: Rect2 = gd["rect"]
-		var w := FRAME_W + (2.0 if int(gd["size"]) >= 4 else 0.0)   # four / five: thicker frame
-		draw_rect(r, col, false, w)
-
-
+## Visible banners' tray labels, "SET OF 3 ×1.3" (same words as before UI-05).
 func group_labels() -> Array[String]:
 	var out: Array[String] = []
-	for gd in _groups:
-		out.append(String(gd["label"]))
+	for b in _banners:
+		if b.visible:
+			out.append(b.label)
 	return out
 
 
-## Call when the engine snapshot changed: announces a NEW or HIGHER four / five with a banner.
-func announce(bo: Array, tray_top: float) -> void:
+## Visible banners' full text, "SET OF 4 ×2.2 · Mouth".
+func banner_texts() -> Array[String]:
+	var out: Array[String] = []
+	for b in _banners:
+		if b.visible:
+			out.append(b.text)
+	return out
+
+
+## Visible SetBanner nodes, in engine order.
+func banners() -> Array[SetBanner]:
+	var out: Array[SetBanner] = []
+	for b in _banners:
+		if b.visible:
+			out.append(b)
+	return out
+
+
+## True while a four / five pop is on screen (the coach bubble waits for it).
+func banner_up() -> bool:
+	return last_banner != "" and Time.get_ticks_msec() < _pop_until_ms
+
+
+## Call when the engine snapshot changed: a NEW or HIGHER four / five pops its banner. `_tray_top` kept for the old signature.
+func announce(bo: Array, _tray_top: float = 0.0) -> void:
 	var live := {}
-	for g in bo:
-		live[int(g["part"])] = int(g["size"])
+	for i in bo.size():
+		var g: Dictionary = bo[i]
 		var sz := int(g["size"])
-		if V4Ui.has_banner(sz) and sz > int(_seen.get(int(g["part"]), 0)):
-			_show_banner(V4Ui.banner_text(int(g["part"]), sz, _m100(g)), sz, tray_top,
-				Vector3i(int(g["part"]), sz, _m100(g)))
+		live[int(g["part"])] = sz
+		if V4Ui.has_banner(sz) and sz > int(_seen.get(int(g["part"]), 0)) and i < _banners.size():
+			_pop(_banners[i], sz)
 	_seen = live
 
 
-func _show_banner(text: String, size: int, tray_top: float, key := Vector3i(-1, 0, 0)) -> void:
-	last_banner = text
-	_banner_key = key
-	if _banner == null:
-		_banner = UI3.label("", "LabelDisplay")
-		_banner.name = "SetBanner"
-		_banner.add_theme_font_size_override("font_size", UI3Theme.size_of("text_banner"))
-		_banner.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
-		_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_banner.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var sb := UI3Theme.flat(UI3Theme.color("accent"), UI3Theme.radius("m"), 4, UI3Theme.color("selected_outline"))
-		sb.content_margin_left = 24
-		sb.content_margin_right = 24
-		_banner.add_theme_stylebox_override("normal", sb)
-		add_child(_banner)
-	_banner.text = text
-	_banner.size = Vector2(_banner.get_minimum_size().x, 64.0)
-	var vs := get_viewport_rect().size
-	_banner.position = Vector2((vs.x - _banner.size.x) * 0.5, tray_top - BANNER_Y_FROM_TRAY - 64.0)
-	_banner.visible = true
-	_banner.modulate.a = 1.0
-	if _banner_tween != null:
-		_banner_tween.kill()
-	if not is_inside_tree():
+func _pop(b: SetBanner, sz: int) -> void:
+	last_banner = b.text
+	_last_key = b.key
+	_pop_until_ms = Time.get_ticks_msec() + int(V4Ui.banner_secs(sz) * 1000.0)
+	if _pop_tween != null:
+		_pop_tween.kill()
+	b.scale = Vector2.ONE
+	if CombatView.disable_juice_for_tests or UI3Motion.reduced() or not is_inside_tree():
 		return
-	_banner_tween = create_tween()
-	_banner_tween.tween_interval(V4Ui.banner_secs(size))
-	if not (CombatView.disable_juice_for_tests or MetaState.reduce_flash):
-		_banner_tween.tween_property(_banner, "modulate:a", 0.0, 0.15)   # reduce-flash: plain cut, no fade
-	_banner_tween.tween_callback(func(): _banner.visible = false)
+	b.pivot_offset = b.size * 0.5
+	_pop_tween = create_tween()
+	_pop_tween.tween_property(b, "scale", Vector2.ONE * 1.12, 0.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_pop_tween.tween_property(b, "scale", Vector2.ONE, 0.18)
 
 
 ## Resets what was announced (new turn / new roll), so the next four announces again.

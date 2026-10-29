@@ -267,11 +267,13 @@ func _build_party_row(roster: Array) -> Control:
 		var v := VBoxContainer.new()
 		v.add_theme_constant_override("separation", 0)
 		p.add_child(v)
-		var nm := _centered(String(def.get("n", hero_key)), "LabelDisplay")
+		var nm := _centered("", "LabelDisplay")
+		nm.name = "PartyName"
 		nm.autowrap_mode = TextServer.AUTOWRAP_OFF
 		nm.clip_text = true
 		nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		v.add_child(nm)
+		Ui5Ellipsis.set_text(nm, String(def.get("n", hero_key)))   # B9: "Pomod…" at 1280, never "Pomodor"
 		v.add_child(_centered("T%d" % int(entry.get("tier", 1)), "LabelMuted"))
 		row.add_child(p)
 	return row
@@ -330,7 +332,9 @@ func _best_set_line(stats: Dictionary) -> Control:
 		l.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
 	else:
 		l.text = tr("Best set") + ": %s x%d  %s" % [V4Ui.part_name(int(b.get("part", 0))), int(b["size"]), V4Ui.mult_text(int(b["m100"]))]
-		l.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
+		# B5 (QA 29/10): accent_text is the ink for text ON an amber fill (#291808, ~1.2:1 on the walnut plate). On a plate
+		# the highlight is the amber `accent` itself, like the "New title" line above.
+		l.add_theme_color_override("font_color", UI3Theme.color("accent"))
 	return l
 
 

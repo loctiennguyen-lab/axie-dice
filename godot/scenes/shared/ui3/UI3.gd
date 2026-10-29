@@ -91,8 +91,8 @@ static func plate(kind := &"plate") -> PanelContainer:
 	return p
 
 
-## Button. variant: primary | secondary | danger | quiet. size: L (72, primary only) | M (56) | S (48,
-## secondary only); unsupported combos fall back to the nearest (secondary L = M). Hit area is never
+## Button. variant: primary | secondary | danger | quiet. size: L (72, primary only) | M (56) | S (48;
+## primary S = UI-04 Button/primary/small, RETRY / Reload); unsupported combos fall back to the nearest (secondary L = M). Hit area is never
 ## below 44 px. Disabled buttons should say why: use `set_disabled_reason`.
 static func button(text: String, variant := &"primary", size := &"M") -> Button:
 	var b := Button.new()
@@ -101,7 +101,7 @@ static func button(text: String, variant := &"primary", size := &"M") -> Button:
 	var type_name := "ButtonSecondary"
 	match variant:
 		&"primary":
-			type_name = "ButtonPrimaryL" if size == &"L" else "ButtonPrimaryM"
+			type_name = "ButtonPrimaryL" if size == &"L" else ("ButtonPrimaryS" if size == &"S" else "ButtonPrimaryM")
 		&"danger":
 			type_name = "ButtonDanger"
 		&"quiet":
@@ -338,7 +338,7 @@ static func status_tex_chip(tex: Texture2D, count: int, tint: Color) -> PanelCon
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(ic)
 	var n := label(str(count), "LabelDisplay")
-	n.add_theme_font_size_override("font_size", 20)
+	n.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	n.add_theme_color_override("font_color", tint)
 	n.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(n)
@@ -611,7 +611,7 @@ static func cost_chip(kind: StringName, amount: int, not_enough := false) -> Pan
 		fc.custom_minimum_size = Vector2(0, 40)
 		fc.add_theme_stylebox_override("panel", fsb)
 		var fl := label(TranslationServer.translate("Free"), "LabelDisplay")
-		fl.add_theme_font_size_override("font_size", 20)
+		fl.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		fl.add_theme_color_override("font_color", UI3Theme.color("text"))
 		fl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		fc.add_child(fl)
@@ -639,7 +639,7 @@ static func cost_chip(kind: StringName, amount: int, not_enough := false) -> Pan
 		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(ic)
 	var l := label(TranslationServer.translate("Free") if kind == &"free" else fmt(amount), "LabelDisplay")
-	l.add_theme_font_size_override("font_size", 20)
+	l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	l.add_theme_color_override("font_color", col)
 	row.add_child(l)
 	if not_enough:
@@ -1275,3 +1275,432 @@ static func describe(raw: String) -> Dictionary:
 ## Shorthand for `describe(raw).text`.
 static func player_text(raw: String) -> String:
 	return String(describe(raw)["text"])
+
+
+# ---------------------------------------------------------------- UI-04 shared components
+# Source: design/handoffs/ui-04-polish/round-1/handoff/components.md. Every size/colour is a token or a
+# components.md number. Text is passed in already localized.
+
+const TIERS: Array[StringName] = [&"moss", &"amber", &"crystal"]
+const TIER_PIPS := {&"moss": 1, &"amber": 2, &"crystal": 3}
+const ENEMY_TAGS: Array[StringName] = [&"elite", &"leader", &"shell", &"boss"]
+const HOUSES: Array[StringName] = [&"kin", &"volley", &"gambler", &"mana_mine", &"embers", &"big_hand"]
+const RISK_BAR_H := [8.4, 10.8, 13.2, 15.6, 18.0, 20.4]   # MissionRow: 6 bars, 8 px wide, heights 8.4 -> 20.4
+
+
+## Alias kept for lanes that already call it.
+static func _pips(count: int, px: int, tint: Color) -> HBoxContainer:
+	return pips(count, px, tint)
+
+
+static func _tex(icon_name: String, px: int) -> TextureRect:
+	var ic := TextureRect.new()
+	ic.texture = icon(icon_name)
+	ic.custom_minimum_size = Vector2(px, px)
+	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return ic
+
+
+## Row of `count` cur_fragment pips of `px` px tinted `tint` (named "Pips"). Used by tier chips; reusable by screens.
+static func pips(count: int, px: int, tint: Color) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.name = "Pips"
+	row.add_theme_constant_override("separation", 2)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for i in count:
+		var p := _tex("cur_fragment", px)
+		p.modulate = tint
+		row.add_child(p)
+	return row
+
+
+## KeyCap: kam-1 box, Work Sans 16 cream, hard 3 px shadow. 36 high, `small` = 28 (inside chips/buttons).
+## States: normal; `set_keycap_state(cap, &"dimmed")` (modulate 0.4); `&"pressed"` (shadow 3 -> 1, label +2).
+static func keycap(text: String, small := false) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.name = "KeyCap"
+	p.theme = UI3Theme.get_theme()
+	p.theme_type_variation = "PanelKeycapS" if small else "PanelKeycap"
+	p.custom_minimum_size = Vector2(28 if small else 36, 28 if small else 36)
+	var l := label(text, "LabelKeyHint")
+	l.name = "Key"
+	l.add_theme_color_override("font_color", UI3Theme.color("text"))
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(l)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return p
+
+
+## KeyCap state: &"normal" | &"dimmed" | &"pressed".
+static func set_keycap_state(cap: PanelContainer, state: StringName) -> void:
+	cap.modulate.a = 0.4 if state == &"dimmed" else 1.0
+	cap.remove_theme_stylebox_override("panel")
+	if state == &"pressed":
+		var sb := (cap.get_theme_stylebox("panel") as StyleBoxFlat).duplicate() as StyleBoxFlat
+		sb.shadow_offset = Vector2(0, 1)
+		sb.content_margin_top += 2
+		cap.add_theme_stylebox_override("panel", sb)
+
+
+## TierChip / TierBand for a Core tier (&"moss" | &"amber" | &"crystal"): fill tier_*_bg, 2 px tier border,
+## 1/2/3 cur_fragment pips and the word in tier colour. `band` = 56 high band across a Core card (radius s);
+## `current` false = legend-other (neutral-5 border, wood-1 fill, opacity 0.8).
+static func tier_chip(tier: StringName, word: String, current := true, band := false) -> PanelContainer:
+	var tc := UI3Theme.color("tier_" + String(tier))
+	var p := PanelContainer.new()
+	p.name = "TierBand" if band else "TierChip"
+	p.theme = UI3Theme.get_theme()
+	var fill := UI3Theme.color("tier_%s_bg" % tier) if current else UI3Theme.color("panel")
+	var border := tc if current else UI3Theme.color("disabled_border")
+	var sb := UI3Theme.flat(fill, UI3Theme.radius("s") if band else UI3Theme.radius("pill"), 2, border,
+		Vector4(16, 0, 16, 0))
+	p.add_theme_stylebox_override("panel", sb)
+	p.custom_minimum_size = Vector2(0, 56 if band else 40)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", UI3Theme.space("8"))
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(pips(int(TIER_PIPS.get(tier, 1)), 24 if band else 20, tc))
+	var l := label(word, "LabelDisplay")
+	l.name = "Word"
+	l.add_theme_color_override("font_color", tc if current else UI3Theme.color("text_muted"))
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(l)
+	p.add_child(row)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if not current:
+		p.modulate.a = 0.8
+	return p
+
+
+## CategoryChip (Core category: STAT / RULE CHANGE / MANA): Panel/tag_square, Rowdies 18, UPPERCASE, no glyph.
+static func category_chip(text: String) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.name = "CategoryChip"
+	p.theme = UI3Theme.get_theme()
+	p.theme_type_variation = "PanelTagSquare"
+	p.custom_minimum_size = Vector2(0, 32)
+	var l := label(text.to_upper(), "LabelDisplay")
+	l.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(l)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return p
+
+
+## HouseChip: pill, wood-1 fill, 2 px house-colour border, house glyph + text ("Kin House" / "Kin 1/2").
+## house = kin | volley | gambler | mana_mine | embers | big_hand. `pips_total` > 0 draws progress pips
+## (`pips_filled` lit). `awakened` = 3 px anchor_awake border + lemon pips (caller passes the word "Awakened").
+static func house_chip(house: StringName, text: String, pips_filled := 0, pips_total := 0, awakened := false,
+		height := 36) -> PanelContainer:
+	var col := UI3Theme.color("anchor_awake") if awakened else UI3Theme.color("house_" + String(house))
+	var p := PanelContainer.new()
+	p.name = "HouseChip"
+	p.theme = UI3Theme.get_theme()
+	p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("pill"),
+		3 if awakened else 2, col, Vector4(12, 0, 16, 0)))
+	p.custom_minimum_size = Vector2(0, height)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UI3Theme.space("8"))
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(_tex("house_" + String(house), 24))
+	var l := label(text, "LabelDisplay")
+	l.name = "Text"
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(l)
+	if pips_total > 0:
+		var pr := HBoxContainer.new()
+		pr.name = "Pips"
+		pr.add_theme_constant_override("separation", 4)
+		pr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		for i in pips_total:
+			var d := Panel.new()
+			d.custom_minimum_size = Vector2(12, 12)
+			d.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			var lit := i < pips_filled or awakened
+			d.add_theme_stylebox_override("panel", UI3Theme.flat(col if lit else Color.TRANSPARENT, 6, 2, col))
+			pr.add_child(d)
+		row.add_child(pr)
+	p.add_child(row)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return p
+
+
+## RunRuleChip: radius 8 rect (never a pill), run_rule_bg + 2 px run_rule_border; inner square "RUN RULE" label
+## (neutral-4 fill) + the rule name Rowdies 18. `label_text` is the localized "RUN RULE".
+static func run_rule_chip(rule_name: String, label_text: String) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.name = "RunRuleChip"
+	p.theme = UI3Theme.get_theme()
+	p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("run_rule_bg"), 8, 2,
+		UI3Theme.color("run_rule_border"), Vector4(6, 4, 12, 4)))
+	p.custom_minimum_size = Vector2(0, 40)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UI3Theme.space("8"))
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var tag := PanelContainer.new()
+	tag.name = "RuleLabel"
+	tag.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("disabled"), UI3Theme.radius("s"), 0,
+		Color.TRANSPARENT, Vector4(8, 0, 8, 0)))
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var tl := label(label_text.to_upper(), "LabelKeyHint")
+	tl.add_theme_color_override("font_color", UI3Theme.color("text"))
+	tl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tag.add_child(tl)
+	row.add_child(tag)
+	var l := label(rule_name, "LabelDisplay")
+	l.name = "Text"
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(l)
+	p.add_child(row)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return p
+
+
+## EnemyTag: kind elite | leader | shell | boss. Shapes differ so they separate without colour:
+## ELITE outline pill, LEADER solid lemon pill + hard 3 px shadow, SHELL square chip (radius 4), BOSS outline pill.
+## `word` = localized word. `inline` = 32 high (else 36). Children: "Icon" / "Word".
+static func enemy_tag(kind: StringName, word: String, inline := false) -> PanelContainer:
+	var h := 32 if inline else 36
+	var fill: Color
+	var border := Color.TRANSPARENT
+	var text_col: Color
+	var rad := UI3Theme.radius("pill")
+	var glyph := "node_elite"
+	var shadow := {}
+	match kind:
+		&"elite":
+			fill = UI3Theme.color("tag_elite_bg")
+			border = UI3Theme.color("tag_elite_border")
+			text_col = UI3Theme.color("tag_elite_text")
+		&"leader":
+			fill = UI3Theme.color("leader")
+			text_col = UI3Theme.color("leader_text")
+			# components.md: "solid pill, hard 3 px shadow" -> the keycap hard shadow token (y 3).
+			var ks: Dictionary = UI3Theme.tokens().get("shadow", {}).get("keycap", {})
+			shadow = {"y": int(ks.get("y", 3)), "color": UI3Theme.hex(String(ks.get("color", "#000000a0")))}
+		&"shell":
+			fill = UI3Theme.color("tag_shell_bg")
+			border = UI3Theme.color("shell")
+			text_col = UI3Theme.color("shell")
+			rad = UI3Theme.radius("chip_square")   # the only square enemy tag
+			glyph = "face_shield"
+		_:
+			fill = UI3Theme.color("tag_boss_bg")
+			border = UI3Theme.color("danger_text")
+			text_col = UI3Theme.color("text")   # UI-05: BOSS is a solid red pill, cream text (danger_text fails on it)
+			glyph = "node_boss"
+	var p := PanelContainer.new()
+	p.name = "EnemyTag_" + String(kind)
+	p.theme = UI3Theme.get_theme()
+	p.add_theme_stylebox_override("panel", UI3Theme.flat(fill, rad, 2 if border.a > 0.0 else 0, border,
+		Vector4(10, 0, 12, 0), shadow))
+	p.custom_minimum_size = Vector2(0, h)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var ic := _tex(glyph, 20 if inline else 24)
+	ic.name = "Icon"
+	if kind == &"shell":
+		ic.modulate = text_col   # greyscale glyph
+	row.add_child(ic)
+	var l := label(word, "LabelDisplay")
+	l.name = "Word"
+	l.add_theme_color_override("font_color", text_col)
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(l)
+	p.add_child(row)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return p
+
+
+## NameSuffix: 28 x 28 wood-3 square, radius 8, Rowdies 18 letter ("A", "B") after a repeated enemy name. One letter max.
+static func name_suffix(letter: String) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.name = "NameSuffix"
+	p.theme = UI3Theme.get_theme()
+	p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("btn_secondary"), 8))
+	p.custom_minimum_size = Vector2(28, 28)
+	var l := label(letter.substr(0, 1), "LabelDisplay")
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(l)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return p
+
+
+## Panel/dock container (352 action dock, 848 dice dock): plate shape, radius 20. `width` 0 = no minimum.
+static func dock(width := 0) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.name = "Dock"
+	p.theme = UI3Theme.get_theme()
+	p.theme_type_variation = "PanelDock"
+	if width > 0:
+		p.custom_minimum_size.x = width
+	return p
+
+
+## Waiting pill ("Waiting for server..."): 56 high, 2 px amber border, for the DiceDock/ActionDock waiting state.
+static func waiting_pill(text: String) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.name = "WaitingPill"
+	p.theme = UI3Theme.get_theme()
+	p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("pill"), 2,
+		UI3Theme.color("accent"), Vector4(24, 0, 24, 0)))
+	p.custom_minimum_size = Vector2(0, 56)
+	var l := label(text, "LabelDisplay")
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(l)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return p
+
+
+## NetNotice (UI-04): top centre, 80 high, wood-2, 2 px wood-3, 4 px accent (notice_edge) top. Line 1 Rowdies 18 =
+## the action that failed, line 2 Work Sans 18 muted = what is safe. RETRY = ButtonPrimaryS named "Retry", OK quiet
+## named "Ok". state: &"offline" | &"timeout" | &"retrying" (RETRY disabled, Spinner instead of the label).
+static func net_notice_v4(action_line: String, safe_line: String, retry_text: String, ok_text: String,
+		on_retry: Callable, on_ok: Callable, state := &"offline") -> PanelContainer:
+	var p := PanelContainer.new()
+	p.name = "NetNotice"
+	p.theme = UI3Theme.get_theme()
+	var sb := UI3Theme.flat(UI3Theme.color("notice_bg"), UI3Theme.radius("m"), 2, UI3Theme.color("btn_secondary"),
+		Vector4(16, 8, 16, 8))
+	sb.border_width_top = 4
+	p.add_theme_stylebox_override("panel", sb)
+	p.custom_minimum_size = Vector2(0, 80)
+	p.set_meta("state", state)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UI3Theme.space("16"))
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(row)
+	var col := VBoxContainer.new()
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", 0)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var l1 := label(action_line, "LabelDisplay")
+	l1.name = "Line1"
+	l1.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var l2 := label(safe_line, "LabelMuted")
+	l2.name = "Line2"
+	l2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(l1)
+	col.add_child(l2)
+	row.add_child(col)
+	var rb := button(retry_text, &"primary", &"S")
+	rb.name = "Retry"
+	if state == &"retrying":
+		rb.text = ""
+		rb.disabled = true
+		var sp := Spinner.new()
+		sp.tint = UI3Theme.color("accent_text")
+		rb.add_child(sp)
+	elif on_retry.is_valid():
+		rb.pressed.connect(on_retry)
+	row.add_child(rb)
+	var ob := button(ok_text, &"quiet")
+	ob.name = "Ok"
+	if on_ok.is_valid():
+		ob.pressed.connect(on_ok)
+	row.add_child(ob)
+	return p
+
+
+## UpdateBar: full width, 56 high, update_bar_bg + 2 px amber bottom edge. Title Rowdies 18 tier_amber, one Work Sans
+## 18 line, ButtonPrimaryS (44 min) "Reload the page". No close. The caller pushes the screen down 56.
+static func update_bar(title: String, line: String, reload_text: String, on_reload: Callable) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.name = "UpdateBar"
+	p.theme = UI3Theme.get_theme()
+	var sb := UI3Theme.flat(UI3Theme.color("update_bar_bg"), 0, 0, Color.TRANSPARENT, Vector4(24, 0, 24, 0))
+	sb.border_width_bottom = 2
+	sb.border_color = UI3Theme.color("accent")
+	p.add_theme_stylebox_override("panel", sb)
+	p.custom_minimum_size = Vector2(0, 56)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UI3Theme.space("16"))
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(row)
+	var t := label(title, "LabelDisplay")
+	t.name = "Title"
+	t.add_theme_color_override("font_color", UI3Theme.color("tier_amber"))
+	t.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(t)
+	var l := label(line)
+	l.name = "Line"
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.clip_text = true
+	row.add_child(l)
+	var b := button(reload_text, &"primary", &"S")
+	b.name = "Reload"
+	b.custom_minimum_size.y = UI3Theme.size_of("hit_min")
+	if on_reload.is_valid():
+		b.pressed.connect(on_reload)
+	row.add_child(b)
+	return p
+
+
+## Primary button with a CostChip inside (UI-04: the chip sits in the button it prices). kind as `cost_chip`.
+## Returns the Button; the chip is a child named "CostChip" at the right edge (right padding makes room for it).
+static func button_with_cost(text: String, kind: StringName, amount: int, not_enough := false, size := &"M") -> Button:
+	var b := button(text, &"primary", size)
+	var chip := cost_chip(kind, amount, not_enough)
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for c in chip.find_children("*", "Control", true, false):
+		(c as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if kind != &"free":
+		var dark := UI3Theme.flat(UI3Theme.color("keycap_bg"), UI3Theme.radius("pill"), 0, Color.TRANSPARENT,
+			Vector4(10, 0, 14, 0))
+		chip.add_theme_stylebox_override("panel", dark)
+		for l in chip.find_children("*", "Label", true, false):
+			if kind != &"gem":
+				(l as Label).add_theme_color_override("font_color", UI3Theme.color("text"))
+	chip.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+	chip.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	chip.grow_vertical = Control.GROW_DIRECTION_BOTH
+	chip.offset_right = -UI3Theme.space("16")
+	b.add_child(chip)
+	for st in ["normal", "hover", "pressed", "disabled"]:
+		# Read the style from the theme by variation: before the button is in the tree, get_theme_stylebox() does not
+		# resolve theme_type_variation yet and returns the grey engine default (dark fill, dark text).
+		var src: StyleBox = UI3Theme.get_theme().get_stylebox(st, b.theme_type_variation)
+		var s := (src if src is StyleBoxFlat else b.get_theme_stylebox(st)).duplicate() as StyleBoxFlat
+		s.content_margin_right += 96 + UI3Theme.space("8")
+		b.add_theme_stylebox_override(st, s)
+	return b
+
+
+## MissionRow risk bars: 6 bars 8 px wide, heights 8.4 -> 20.4, the first `tier` (0..6) filled. Fill = risk_bar for
+## tiers 1-4, risk_bar_high for 5-6; empty = hp_track. Named "RiskBars".
+static func risk_bars(tier: int) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.name = "RiskBars"
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 4)
+	row.custom_minimum_size = Vector2(0, 20.4)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for i in 6:
+		var b := Panel.new()
+		b.custom_minimum_size = Vector2(8, RISK_BAR_H[i])
+		b.size_flags_vertical = Control.SIZE_SHRINK_END
+		var col := UI3Theme.color("hp_track")
+		if i < tier:
+			col = UI3Theme.color("risk_bar_high" if i >= 4 else "risk_bar")
+		b.add_theme_stylebox_override("panel", UI3Theme.flat(col, 2))
+		b.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(b)
+	return row

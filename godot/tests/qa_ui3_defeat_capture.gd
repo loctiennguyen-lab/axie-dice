@@ -52,6 +52,7 @@ func _state(state: String, size: Vector2i, kind: String, node_id: String, asc: i
 		scene._defeat.set_busy(true)
 	for _i in 10:
 		await get_tree().process_frame
+	await get_tree().create_timer(0.8).timeout   # defeat fade-in (scrim 240 + panel at +200) must finish
 	var img := get_tree().root.get_texture().get_image()
 	img.save_png("%s/ui3-defeat-%s-%dx%d.png" % [_out, state, size.x, size.y])
 	print("QA: saved ui3-defeat-%s-%dx%d" % [state, size.x, size.y])

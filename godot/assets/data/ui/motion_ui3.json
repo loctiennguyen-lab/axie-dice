@@ -1,23 +1,2941 @@
 {
-  "_note": "UI-04 motion table: one entry per 'moment'. Read by UI3Motion (scenes/shared/ui3/UI3Motion.gd). Times in ms. trans/ease are Godot names without the TRANS_/EASE_ prefix. Seeded with the timings that were hardcoded in code before UI-04, so adding this file changed nothing visible. See design/handoffs/ui-04-polish/token-audit.md.",
-  "turn_banner": {
-    "_note": "CombatView._show_turn_banner: PLAYER TURN / ENEMY TURN plate. 390 in, 750 hold, 360 out.",
-    "in": {"ms": 390, "props": {
-      "alpha": {"from": 0.0, "to": 1.0, "trans": "LINEAR"},
-      "scale": {"from": 0.9, "to": 1.0, "trans": "BACK", "ease": "OUT"}}},
-    "hold_ms": 750,
-    "out": {"ms": 360, "props": {
-      "alpha": {"to": 0.0, "trans": "LINEAR"},
-      "scale": {"to": 1.04, "trans": "LINEAR"}}},
-    "skippable": true,
-    "hide_on_done": true
+ "_note": "UI-04 motion table: one entry per 'moment'. Read by UI3Motion (scenes/shared/ui3/UI3Motion.gd). Times in ms. trans/ease are Godot names without the TRANS_/EASE_ prefix. Seeded with the timings that were hardcoded in code before UI-04, so adding this file changed nothing visible. See design/handoffs/ui-04-polish/token-audit.md. UI-04 round 1 (handoff motion.md): one entry per row below the two seeded moments. Engine fields (UI3Motion.play): in/hold/out, shake, particles + particles2, hitstop_ms, sweep, hide/free_on_done. Other fields are data for the screen that plays the moment: trigger, delay_chain / delay_per_index_ms, sfx_name (design name; NOT in gacha_timing.json yet, so nothing plays), skip (rule text), reduce_flash (what the reduce_flash setting changes), star (a moment: any click/Space skips to the end state via opts.skip). Reduce motion (MetaState.reduce_motion) strips shake, hitstop, particles and slides inside play().",
+ "turn_banner": {
+  "_note": "CombatView._show_turn_banner: PLAYER TURN / ENEMY TURN plate. 390 in, 750 hold, 360 out.",
+  "in": {
+   "ms": 390,
+   "props": {
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    },
+    "scale": {
+     "from": 0.9,
+     "to": 1.0,
+     "trans": "BACK",
+     "ease": "OUT"
+    }
+   }
   },
-  "combo_banner": {
-    "_note": "CombatView combo chip: pops in, lives COMBO_FLOAT_SEC (1.8 s) in total (caller passes hold_ms 1550), fades 250.",
-    "in": {"ms": 180, "props": {"scale": {"from": 0.7, "to": 1.0, "trans": "BACK", "ease": "OUT"}}},
-    "hold_ms": 1550,
-    "out": {"ms": 250, "props": {"alpha": {"to": 0.0, "trans": "LINEAR"}}},
-    "skippable": true,
-    "free_on_done": true
-  }
+  "hold_ms": 750,
+  "out": {
+   "ms": 360,
+   "props": {
+    "alpha": {
+     "to": 0.0,
+     "trans": "LINEAR"
+    },
+    "scale": {
+     "to": 1.04,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "skippable": true,
+  "hide_on_done": true
+ },
+ "combo_banner": {
+  "_note": "CombatView combo chip: pops in, lives COMBO_FLOAT_SEC (1.8 s) in total (caller passes hold_ms 1550), fades 250.",
+  "in": {
+   "ms": 180,
+   "props": {
+    "scale": {
+     "from": 0.7,
+     "to": 1.0,
+     "trans": "BACK",
+     "ease": "OUT"
+    }
+   }
+  },
+  "hold_ms": 1550,
+  "out": {
+   "ms": 250,
+   "props": {
+    "alpha": {
+     "to": 0.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "skippable": true,
+  "free_on_done": true
+ },
+ "die_select": {
+  "trigger": "click / 1-5",
+  "_note": "die lift -18, side shadow 6->12, cream outline in; other dice modulate 0.85 (caller sets the others)",
+  "in": {
+   "ms": 120,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "to": [
+      0,
+      -18
+     ]
+    }
+   }
+  },
+  "sfx_name": "ui_die_pick",
+  "others_alpha": 0.85,
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "die_drop": {
+  "trigger": "Esc / click again",
+  "_note": "reverse of die_select",
+  "in": {
+   "ms": 120,
+   "trans": "CUBIC",
+   "ease": "IN",
+   "props": {
+    "offset": {
+     "to": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "sfx_name": "ui_die_drop",
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "die_used": {
+  "trigger": "die resolves (after the hit lands)",
+  "_note": "die scale 1->0.92, alpha 0.4, 'used' tag fades in (caller)",
+  "in": {
+   "ms": 140,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "to": 0.92
+    },
+    "alpha": {
+     "to": 0.4
+    }
+   }
+  },
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "hit": {
+  "trigger": "damage below a big hit and not a crit",
+  "_note": "Layers 'enemy_flash', 'knockback' (3D enemy) and 'hp_fill' / 'hp_trail' (enemy plate) are table data the 3D stage / plate own; 'number', 'shake', 'sparks' are wired. Source: design/handoffs/ui-05-figma/round-1/motion-batch1.md (hit). Played by scenes/combat/ui5/U5Moments.gd with UI3Motion.play_timeline.",
+  "in": {
+   "ms": 120
+  },
+  "shake": {
+   "px": 4,
+   "ms": 120,
+   "delay_ms": 0
+  },
+  "shake_target": "screen",
+  "layers": [
+   {
+    "name": "enemy_flash",
+    "target": "enemy_3d",
+    "delay_ms": 0,
+    "ms": 120,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 0.5,
+      "alpha": 0.8
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "kept",
+    "flash": true
+   },
+   {
+    "name": "knockback",
+    "target": "enemy_3d",
+    "delay_ms": 0,
+    "ms": 160,
+    "trans": "QUAD",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "x": 0
+     },
+     {
+      "t": 0.5,
+      "x": 18
+     },
+     {
+      "t": 1,
+      "x": 0
+     }
+    ],
+    "reduce": "removed"
+   },
+   {
+    "name": "number",
+    "target": "number",
+    "delay_ms": 0,
+    "ms": 700,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1,
+      "y": 0,
+      "scale": 0.6
+     },
+     {
+      "t": 0.25,
+      "y": -24,
+      "scale": 1.15
+     },
+     {
+      "t": 0.7,
+      "alpha": 1,
+      "y": -40,
+      "scale": 1.0
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "y": -48,
+      "scale": 1.0
+     }
+    ],
+    "reduce": "fade",
+    "size_token": "text_hero",
+    "color_token": "text"
+   },
+   {
+    "name": "hp_fill",
+    "target": "hp_fill",
+    "delay_ms": 60,
+    "ms": 240,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 1.0
+     },
+     {
+      "t": 1,
+      "scale_x": 0.58
+     }
+    ],
+    "reduce": "cap"
+   },
+   {
+    "name": "hp_trail",
+    "target": "hp_trail",
+    "delay_ms": 360,
+    "ms": 200,
+    "trans": "QUAD",
+    "ease": "IN",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 1.0
+     },
+     {
+      "t": 1,
+      "scale_x": 0.58
+     }
+    ],
+    "reduce": "cap",
+    "color_token": "text_on_viewport"
+   },
+   {
+    "name": "shake",
+    "delay_ms": 0,
+    "shake": {
+     "px": 4,
+     "ms": 120
+    },
+    "reduce": "removed"
+   },
+   {
+    "name": "sparks",
+    "target": "fx",
+    "delay_ms": 0,
+    "particles": {
+     "texture": "res://assets/ui3/icons/face_dmg.png",
+     "amount": 8,
+     "lifetime_ms": 400,
+     "speed": 420,
+     "spread_deg": 70,
+     "spread_full": true,
+     "gravity": 900,
+     "size_px": 24,
+     "direction_deg": -30,
+     "color_token": "face_attack"
+    },
+    "reduce": "removed"
+   }
+  ],
+  "sfx_name": "hit_light",
+  "skip": "not skippable (240 ms of control lock max)",
+  "reduce_flash": "no flash",
+  "skippable": false,
+  "star": false
+ },
+ "crit": {
+  "trigger": "crit face",
+  "_note": "'enemy_flash' / 'knockback' (3D) and 'hp' (plate) are data; 'tag', 'number', 'sweep', 'shake', sparks and the 40 ms hit-stop are wired. Source: design/handoffs/ui-05-figma/round-1/motion-batch1.md (crit). Played by scenes/combat/ui5/U5Moments.gd with UI3Motion.play_timeline.",
+  "in": {
+   "ms": 120
+  },
+  "shake": {
+   "px": 6,
+   "ms": 160,
+   "delay_ms": 0
+  },
+  "shake_target": "screen",
+  "layers": [
+   {
+    "name": "hitstop",
+    "delay_ms": 0,
+    "hitstop_ms": 40,
+    "reduce": "removed"
+   },
+   {
+    "name": "enemy_flash",
+    "target": "enemy_3d",
+    "delay_ms": 0,
+    "ms": 120,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 0.5,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "kept",
+    "flash": true
+   },
+   {
+    "name": "knockback",
+    "target": "enemy_3d",
+    "delay_ms": 0,
+    "ms": 200,
+    "trans": "QUAD",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "x": 0,
+      "rot": 0
+     },
+     {
+      "t": 0.5,
+      "x": 28,
+      "rot": 6
+     },
+     {
+      "t": 1,
+      "x": 0,
+      "rot": 0
+     }
+    ],
+    "reduce": "removed"
+   },
+   {
+    "name": "tag",
+    "target": "tag",
+    "delay_ms": 0,
+    "ms": 760,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "scale": 0.5,
+      "y": 0
+     },
+     {
+      "t": 0.2,
+      "alpha": 1,
+      "scale": 1.1
+     },
+     {
+      "t": 0.8,
+      "alpha": 1,
+      "scale": 1.0,
+      "y": -30
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "y": -40
+     }
+    ],
+    "reduce": "fade",
+    "text": "CRIT",
+    "color_token": "accent",
+    "text_token": "text_ink"
+   },
+   {
+    "name": "number",
+    "target": "number",
+    "delay_ms": 0,
+    "ms": 800,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1,
+      "y": 0,
+      "scale": 0.5
+     },
+     {
+      "t": 0.2,
+      "y": -20,
+      "scale": 1.4
+     },
+     {
+      "t": 0.75,
+      "alpha": 1,
+      "y": -40,
+      "scale": 1.1
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "y": -52,
+      "scale": 1.1
+     }
+    ],
+    "reduce": "fade",
+    "size_token": "text_hero",
+    "color_token": "accent"
+   },
+   {
+    "name": "sweep",
+    "target": "sweep",
+    "delay_ms": 40,
+    "ms": 260,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0.7,
+      "x": 0
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "x": 260
+     }
+    ],
+    "reduce": "removed",
+    "flash": true,
+    "width": 120,
+    "color_token": "text_on_viewport"
+   },
+   {
+    "name": "hp",
+    "target": "hp_fill",
+    "delay_ms": 60,
+    "ms": 260,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 1.0
+     },
+     {
+      "t": 1,
+      "scale_x": 0.37
+     }
+    ],
+    "reduce": "cap"
+   },
+   {
+    "name": "shake",
+    "delay_ms": 0,
+    "shake": {
+     "px": 6,
+     "ms": 160
+    },
+    "reduce": "removed"
+   },
+   {
+    "name": "sparks",
+    "target": "fx",
+    "delay_ms": 0,
+    "particles": {
+     "texture": "res://assets/ui3/icons/face_dmg.png",
+     "amount": 14,
+     "lifetime_ms": 500,
+     "speed": 520,
+     "spread_deg": 90,
+     "spread_full": true,
+     "gravity": 900,
+     "size_px": 28,
+     "direction_deg": -40
+    },
+    "reduce": "removed"
+   },
+   {
+    "name": "stars",
+    "target": "fx",
+    "delay_ms": 60,
+    "particles": {
+     "texture": "res://assets/ui3/icons/cur_fragment.png",
+     "amount": 6,
+     "lifetime_ms": 700,
+     "speed": 300,
+     "spread_deg": 140,
+     "spread_full": true,
+     "gravity": 500,
+     "size_px": 28,
+     "direction_deg": -90
+    },
+    "reduce": "removed"
+   }
+  ],
+  "sfx_name": "hit_crit",
+  "skip": "click / Space ends the float early",
+  "reduce_flash": "no flash, no sweep",
+  "skippable": true,
+  "star": true
+ },
+ "big_hit": {
+  "trigger": "damage >= 25% of the target's max HP, or a knockout (client-side)",
+  "_note": "Number is text_hero 56 scaled 0.52 -> 1.95 -> 1.5 (= the old 72 x 1.3, no 72 size, Liam 28/10). 'launched' (3D) and 'plate_pop' (enemy plate) are data; the rest is wired. Source: design/handoffs/ui-05-figma/round-1/motion-batch1.md (big_hit). Played by scenes/combat/ui5/U5Moments.gd with UI3Motion.play_timeline.",
+  "in": {
+   "ms": 120
+  },
+  "shake": {
+   "px": 10,
+   "ms": 220,
+   "delay_ms": 0
+  },
+  "shake_target": "screen",
+  "layers": [
+   {
+    "name": "hitstop",
+    "delay_ms": 0,
+    "hitstop_ms": 60,
+    "reduce": "removed"
+   },
+   {
+    "name": "flash",
+    "target": "flash",
+    "delay_ms": 0,
+    "ms": 120,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 0.5,
+      "alpha": 0.45
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "kept",
+    "flash": true,
+    "color_token": "text_on_viewport"
+   },
+   {
+    "name": "launched",
+    "target": "enemy_3d",
+    "delay_ms": 0,
+    "ms": 520,
+    "trans": "QUAD",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1,
+      "x": 0,
+      "y": 0,
+      "rot": 0
+     },
+     {
+      "t": 0.4,
+      "alpha": 1,
+      "x": 60,
+      "y": -40,
+      "rot": 24
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "x": 90,
+      "y": 10,
+      "rot": 40,
+      "scale": 0.9
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "tag",
+    "target": "tag",
+    "delay_ms": 0,
+    "ms": 1000,
+    "trans": "ELASTIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "scale": 0.3,
+      "rot": -8,
+      "y": 0
+     },
+     {
+      "t": 0.2,
+      "alpha": 1,
+      "scale": 1.2,
+      "rot": 3
+     },
+     {
+      "t": 0.85,
+      "alpha": 1,
+      "scale": 1.0,
+      "rot": 0,
+      "y": 0
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "y": -20
+     }
+    ],
+    "reduce": "fade",
+    "text": "★ BIG HIT",
+    "color_token": "intent_bighit_border",
+    "text_token": "text"
+   },
+   {
+    "name": "number",
+    "target": "number",
+    "delay_ms": 0,
+    "ms": 1000,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1,
+      "y": 0,
+      "scale": 0.52
+     },
+     {
+      "t": 0.18,
+      "y": -10,
+      "scale": 1.95
+     },
+     {
+      "t": 0.8,
+      "alpha": 1,
+      "y": -30,
+      "scale": 1.5
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "y": -44,
+      "scale": 1.5
+     }
+    ],
+    "reduce": "fade",
+    "size_token": "text_hero",
+    "color_token": "text"
+   },
+   {
+    "name": "sweep",
+    "target": "sweep",
+    "delay_ms": 60,
+    "ms": 360,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0.5,
+      "x": 600
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "x": 1500
+     }
+    ],
+    "reduce": "removed",
+    "flash": true,
+    "width": 200,
+    "color_token": "text_on_viewport"
+   },
+   {
+    "name": "plate_pop",
+    "target": "plate",
+    "delay_ms": 200,
+    "ms": 360,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1,
+      "scale": 1.0,
+      "y": 0
+     },
+     {
+      "t": 0.3,
+      "alpha": 1,
+      "scale": 1.08
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "scale": 0.6,
+      "y": 20
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "shake",
+    "delay_ms": 0,
+    "shake": {
+     "px": 10,
+     "ms": 220
+    },
+    "reduce": "removed"
+   },
+   {
+    "name": "sparks",
+    "target": "fx",
+    "delay_ms": 0,
+    "particles": {
+     "texture": "res://assets/ui3/icons/face_dmg.png",
+     "amount": 20,
+     "lifetime_ms": 600,
+     "speed": 640,
+     "spread_deg": 120,
+     "spread_full": true,
+     "gravity": 600,
+     "size_px": 30,
+     "direction_deg": -30
+    },
+    "reduce": "removed"
+   },
+   {
+    "name": "stars",
+    "target": "fx",
+    "delay_ms": 80,
+    "particles": {
+     "texture": "res://assets/ui3/icons/cur_fragment.png",
+     "amount": 12,
+     "lifetime_ms": 900,
+     "speed": 380,
+     "spread_deg": 180,
+     "spread_full": true,
+     "gravity": 420,
+     "size_px": 32,
+     "direction_deg": -90
+    },
+    "reduce": "removed"
+   }
+  ],
+  "sfx_name": "hit_big",
+  "skip": "click / Space",
+  "reduce_flash": "no flash, no sweep",
+  "skippable": true,
+  "star": true
+ },
+ "axie_ko": {
+  "trigger": "a party Axie reaches 0 HP",
+  "_note": "'last_flash' / 'tips_over' (3D Axie: CombatStage3D.play_death) and 'hp' / 'card_dims' (DieCard, dice lane) are data; 'vignette', 'label', 'stamp', 'shake' are wired. Source: design/handoffs/ui-05-figma/round-1/motion-batch1.md (axie_ko). Played by scenes/combat/ui5/U5Moments.gd with UI3Motion.play_timeline.",
+  "in": {
+   "ms": 120
+  },
+  "shake": {
+   "px": 6,
+   "ms": 160,
+   "delay_ms": 0
+  },
+  "shake_target": "screen",
+  "layers": [
+   {
+    "name": "last_flash",
+    "target": "axie_3d",
+    "delay_ms": 0,
+    "ms": 120,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 0.5,
+      "alpha": 0.9
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "kept",
+    "flash": true
+   },
+   {
+    "name": "tips_over",
+    "target": "axie_3d",
+    "delay_ms": 120,
+    "ms": 520,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1,
+      "y": 0,
+      "rot": 0
+     },
+     {
+      "t": 0.25,
+      "alpha": 1,
+      "y": -16,
+      "rot": -10
+     },
+     {
+      "t": 1,
+      "alpha": 0.45,
+      "y": 24,
+      "rot": -80
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "vignette",
+    "target": "vignette",
+    "delay_ms": 0,
+    "ms": 600,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 0.5,
+      "alpha": 0.25
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "cap",
+    "color_token": "danger_bg"
+   },
+   {
+    "name": "label",
+    "target": "label",
+    "delay_ms": 160,
+    "ms": 1100,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "y": 10
+     },
+     {
+      "t": 0.2,
+      "alpha": 1,
+      "y": 0
+     },
+     {
+      "t": 0.8,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "y": -16
+     }
+    ],
+    "reduce": "fade",
+    "text": "Knocked out",
+    "size_token": "text_banner",
+    "color_token": "danger_text"
+   },
+   {
+    "name": "hp",
+    "target": "hp_fill",
+    "delay_ms": 0,
+    "ms": 200,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 0.3
+     },
+     {
+      "t": 1,
+      "scale_x": 0.0
+     }
+    ],
+    "reduce": "cap"
+   },
+   {
+    "name": "stamp",
+    "target": "stamp",
+    "delay_ms": 280,
+    "ms": 260,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "scale": 1.8,
+      "rot": -12
+     },
+     {
+      "t": 1,
+      "alpha": 1,
+      "scale": 1.0,
+      "rot": -8
+     }
+    ],
+    "reduce": "fade",
+    "text": "OUT",
+    "color_token": "danger_text"
+   },
+   {
+    "name": "card_dims",
+    "target": "card",
+    "delay_ms": 280,
+    "ms": 200,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "alpha": 0.6
+     }
+    ],
+    "reduce": "cap"
+   },
+   {
+    "name": "shake",
+    "delay_ms": 0,
+    "shake": {
+     "px": 6,
+     "ms": 160
+    },
+    "reduce": "removed"
+   }
+  ],
+  "sfx_name": "axie_ko",
+  "skip": "click / Space",
+  "reduce_flash": "no flash",
+  "skippable": true,
+  "star": true
+ },
+ "shield_gain": {
+  "trigger": "a shield face resolves (shield goes up)",
+  "_note": "'segment' (shield segment on the HP bar) is data; 'bubble', 'number', 'glints' are wired. Source: design/handoffs/ui-05-figma/round-1/motion-batch1.md (shield_gain). Played by scenes/combat/ui5/U5Moments.gd with UI3Motion.play_timeline.",
+  "in": {
+   "ms": 120
+  },
+  "layers": [
+   {
+    "name": "bubble",
+    "target": "bubble",
+    "delay_ms": 0,
+    "ms": 520,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "scale": 0.6
+     },
+     {
+      "t": 0.5,
+      "alpha": 1,
+      "scale": 1.1
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "scale": 1.0
+     }
+    ],
+    "reduce": "fade",
+    "color_token": "face_shield"
+   },
+   {
+    "name": "number",
+    "target": "number",
+    "delay_ms": 60,
+    "ms": 700,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1,
+      "y": 0,
+      "scale": 0.6
+     },
+     {
+      "t": 0.25,
+      "y": -24,
+      "scale": 1.1
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "y": -48,
+      "scale": 1.1
+     }
+    ],
+    "reduce": "fade",
+    "size_token": "text_hero",
+    "color_token": "face_shield"
+   },
+   {
+    "name": "segment",
+    "target": "shield_segment",
+    "delay_ms": 120,
+    "ms": 240,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 0.0
+     },
+     {
+      "t": 1,
+      "scale_x": 1.0
+     }
+    ],
+    "reduce": "cap"
+   },
+   {
+    "name": "glints",
+    "target": "fx",
+    "delay_ms": 0,
+    "particles": {
+     "texture": "res://assets/ui3/icons/face_shield.png",
+     "amount": 6,
+     "lifetime_ms": 700,
+     "speed": 160,
+     "spread_deg": 60,
+     "spread_full": true,
+     "gravity": -120,
+     "size_px": 22,
+     "direction_deg": -90
+    },
+    "reduce": "removed"
+   }
+  ],
+  "sfx_name": "shield_up",
+  "skip": "not needed (700 ms)",
+  "reduce_flash": "no change",
+  "skippable": false,
+  "star": false
+ },
+ "turn_banner_player": {
+  "trigger": "player turn starts (Your turn)",
+  "_note": "Full-width band (size.banner_h, colour banner_player) at y 200: slides x -1920 -> 0 (240 EXPO OUT), holds 500, -> +1920 (240 QUAD IN). Played by U5TurnBanner. Source: design/handoffs/ui-05-figma/round-1/motion-batch1.md (turn_banner_player). Played by scenes/combat/ui5/U5Moments.gd with UI3Motion.play_timeline.",
+  "in": {
+   "ms": 120
+  },
+  "layers": [
+   {
+    "name": "band_in",
+    "target": "band",
+    "delay_ms": 0,
+    "ms": 240,
+    "trans": "EXPO",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1,
+      "x": -1920
+     },
+     {
+      "t": 1,
+      "alpha": 1,
+      "x": 0
+     }
+    ],
+    "reduce": "fade",
+    "reduce_from": 0
+   },
+   {
+    "name": "band_out",
+    "target": "band",
+    "delay_ms": 740,
+    "ms": 240,
+    "trans": "QUAD",
+    "ease": "IN",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1,
+      "x": 0
+     },
+     {
+      "t": 1,
+      "alpha": 1,
+      "x": 1920
+     }
+    ],
+    "reduce": "fade",
+    "reduce_to": 0
+   },
+   {
+    "name": "label_punch",
+    "target": "label",
+    "delay_ms": 120,
+    "ms": 300,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 0.8
+     },
+     {
+      "t": 0.6,
+      "scale": 1.08
+     },
+     {
+      "t": 1,
+      "scale": 1.0
+     }
+    ],
+    "reduce": "removed"
+   }
+  ],
+  "sfx_name": "turn_player",
+  "skip": "click / Space ends it; a click is only held for the first 240 ms, Space (and the End turn key) never reaches the fight while the band shows (Liam 29/10)",
+  "reduce_flash": "no change",
+  "skippable": true,
+  "star": true,
+  "band_color": "banner_player",
+  "text_color": "text_ink",
+  "shadow_color": "accent_rim",
+  "y": 200,
+  "size_token": "text_hero",
+  "block_input_ms": 240,
+  "hold_ms": 500
+ },
+ "turn_banner_enemy": {
+  "trigger": "enemy turn starts (Enemy turn)",
+  "_note": "Full-width band (size.banner_h, colour banner_enemy) at y 200: slides x -1920 -> 0 (240 EXPO OUT), holds 500, -> +1920 (240 QUAD IN). Played by U5TurnBanner. Source: design/handoffs/ui-05-figma/round-1/motion-batch1.md (turn_banner_enemy). Played by scenes/combat/ui5/U5Moments.gd with UI3Motion.play_timeline.",
+  "in": {
+   "ms": 120
+  },
+  "layers": [
+   {
+    "name": "band_in",
+    "target": "band",
+    "delay_ms": 0,
+    "ms": 240,
+    "trans": "EXPO",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1,
+      "x": -1920
+     },
+     {
+      "t": 1,
+      "alpha": 1,
+      "x": 0
+     }
+    ],
+    "reduce": "fade",
+    "reduce_from": 0
+   },
+   {
+    "name": "band_out",
+    "target": "band",
+    "delay_ms": 740,
+    "ms": 240,
+    "trans": "QUAD",
+    "ease": "IN",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1,
+      "x": 0
+     },
+     {
+      "t": 1,
+      "alpha": 1,
+      "x": 1920
+     }
+    ],
+    "reduce": "fade",
+    "reduce_to": 0
+   },
+   {
+    "name": "label_punch",
+    "target": "label",
+    "delay_ms": 120,
+    "ms": 300,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 0.8
+     },
+     {
+      "t": 0.6,
+      "scale": 1.08
+     },
+     {
+      "t": 1,
+      "scale": 1.0
+     }
+    ],
+    "reduce": "removed"
+   }
+  ],
+  "sfx_name": "turn_enemy",
+  "skip": "click / Space ends it; input is only held for the first 240 ms",
+  "reduce_flash": "no change",
+  "skippable": true,
+  "star": true,
+  "band_color": "banner_enemy",
+  "text_color": "text",
+  "shadow_color": "plate_ink",
+  "y": 200,
+  "size_token": "text_hero",
+  "block_input_ms": 240,
+  "hold_ms": 500
+ },
+ "boss_intro_band": {
+  "trigger": "a boss fight starts (its first Your turn), shown before the Your turn band",
+  "_note": "BossIntroBand over the arena (boss-intro--default, design/handoffs/ui-05-figma/round-1/ui05-combat-panels.html): band unfolds scaleY 0 -> 1 (210 BACK OUT, the Phase 2 band beat), holds 1600 (frame label), out 210 QUAD IN; the SkipHint fades with it. Facts are the boss HUD numbers (HP, SHELL, ENRAGE). Played by scenes/combat/ui5/U5BossBand.gd with UI3Motion.play_timeline (UI-05 b1 integration, Liam 29/10).",
+  "in": {
+   "ms": 210
+  },
+  "layers": [
+   {
+    "name": "band_in",
+    "target": "band",
+    "delay_ms": 0,
+    "ms": 210,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "scale_y": 0.0
+     },
+     {
+      "t": 1,
+      "alpha": 1,
+      "scale_y": 1.0
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "band_out",
+    "target": "band",
+    "delay_ms": 1810,
+    "ms": 210,
+    "trans": "QUAD",
+    "ease": "IN",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1,
+      "scale_y": 1.0
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "scale_y": 0.6
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "hint",
+    "target": "hint",
+    "delay_ms": 0,
+    "ms": 2020,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 0.06,
+      "alpha": 1
+     },
+     {
+      "t": 0.94,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "fade"
+   }
+  ],
+  "skip": "click, Space or the End turn key ends the band; that press never reaches the fight",
+  "reduce_flash": "no change",
+  "skippable": true,
+  "star": true,
+  "hold_ms": 1600
+ },
+ "intent_reveal": {
+  "trigger": "after the Your turn banner, one intent block per enemy",
+  "_note": "'pills' is played with UI3Motion.play on each IntentBlock (in = the same numbers), +80 ms per enemy. 'border_flash' and 'strip' run on big-hit plates. Source: design/handoffs/ui-05-figma/round-1/motion-batch1.md (intent_reveal). Played by scenes/combat/ui5/U5Moments.gd with UI3Motion.play_timeline.",
+  "in": {
+   "ms": 160,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 0.8,
+     "to": 1.0
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "layers": [
+   {
+    "name": "pills",
+    "target": "pill",
+    "delay_ms": 0,
+    "ms": 160,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "scale": 0.8
+     },
+     {
+      "t": 1,
+      "alpha": 1,
+      "scale": 1.0
+     }
+    ],
+    "reduce": "fade",
+    "stagger_ms": 80
+   },
+   {
+    "name": "border_flash",
+    "target": "border",
+    "delay_ms": 320,
+    "ms": 360,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 0.25,
+      "alpha": 1
+     },
+     {
+      "t": 0.5,
+      "alpha": 0
+     },
+     {
+      "t": 0.75,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "removed",
+    "flash": true,
+    "color_token": "text_on_viewport",
+    "width_token": "stroke_selected"
+   },
+   {
+    "name": "strip",
+    "target": "strip",
+    "delay_ms": 320,
+    "ms": 200,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "y": -12
+     },
+     {
+      "t": 1,
+      "alpha": 1,
+      "y": 0
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "badge",
+    "target": "badge",
+    "delay_ms": 320,
+    "ms": 200,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "scale": 0.6
+     },
+     {
+      "t": 1,
+      "alpha": 1,
+      "scale": 1.0
+     }
+    ],
+    "reduce": "fade"
+   }
+  ],
+  "sfx_name": "intent_tick",
+  "skip": "not needed",
+  "reduce_flash": "no border flash",
+  "skippable": false,
+  "star": false,
+  "delay_per_index_ms": 80,
+  "intent_danger_sfx": "intent_danger"
+ },
+ "attrition_card": {
+  "trigger": "3 turns before attrition starts",
+  "_note": "slides down 16 + fade after the banner; each new turn one pip fills with a number pop (caller)",
+  "in": {
+   "ms": 160,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "from": [
+      0,
+      -16
+     ],
+     "to": [
+      0,
+      0
+     ]
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "sfx_name": "attrition_tick",
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "boss_phase": {
+  "trigger": "the boss crosses a phase tick (Phase 2)",
+  "_note": "'segment' / 'tick' (boss bar, enemy lane) and 'roar' (3D boss) are data; hit-stop, flash, band, shake, shards are wired. Band = U5PhaseBand over the boss mid-body, 1 s. Source: design/handoffs/ui-05-figma/round-1/motion-batch1.md (boss_phase). Played by scenes/combat/ui5/U5Moments.gd with UI3Motion.play_timeline.",
+  "in": {
+   "ms": 120
+  },
+  "shake": {
+   "px": 12,
+   "ms": 300,
+   "delay_ms": 80
+  },
+  "shake_target": "screen",
+  "layers": [
+   {
+    "name": "hitstop",
+    "delay_ms": 0,
+    "hitstop_ms": 80,
+    "reduce": "removed"
+   },
+   {
+    "name": "segment",
+    "target": "phase_segment",
+    "delay_ms": 0,
+    "ms": 200,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1,
+      "scale_x": 1.0
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "scale_x": 0.0
+     }
+    ],
+    "reduce": "cap"
+   },
+   {
+    "name": "tick",
+    "target": "phase_tick",
+    "delay_ms": 0,
+    "ms": 300,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1
+     },
+     {
+      "t": 0.5,
+      "alpha": 0.6
+     },
+     {
+      "t": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "cap"
+   },
+   {
+    "name": "flash",
+    "target": "flash",
+    "delay_ms": 80,
+    "ms": 160,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 0.5,
+      "alpha": 0.5
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "cap",
+    "flash": true,
+    "color_token": "text_on_viewport"
+   },
+   {
+    "name": "roar",
+    "target": "boss_3d",
+    "delay_ms": 80,
+    "ms": 600,
+    "trans": "ELASTIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 1.0
+     },
+     {
+      "t": 0.3,
+      "scale": 1.12
+     },
+     {
+      "t": 1,
+      "scale": 1.0
+     }
+    ],
+    "reduce": "removed"
+   },
+   {
+    "name": "band",
+    "target": "band",
+    "delay_ms": 200,
+    "ms": 1400,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "scale_y": 0.0
+     },
+     {
+      "t": 0.15,
+      "alpha": 1,
+      "scale_y": 1.0
+     },
+     {
+      "t": 0.85,
+      "alpha": 1,
+      "scale_y": 1.0
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "scale_y": 0.6
+     }
+    ],
+    "reduce": "fade",
+    "text": "Phase %d",
+    "size_token": "text_hero",
+    "color_token": "plate",
+    "text_token": "text"
+   },
+   {
+    "name": "shake",
+    "delay_ms": 80,
+    "shake": {
+     "px": 12,
+     "ms": 300
+    },
+    "reduce": "removed"
+   },
+   {
+    "name": "shards",
+    "target": "fx",
+    "delay_ms": 80,
+    "particles": {
+     "texture": "res://assets/ui3/icons/face_shield.png",
+     "amount": 16,
+     "lifetime_ms": 800,
+     "speed": 520,
+     "spread_deg": 160,
+     "spread_full": true,
+     "gravity": 700,
+     "size_px": 30,
+     "direction_deg": -90,
+     "color_token": "shell"
+    },
+    "reduce": "removed"
+   }
+  ],
+  "sfx_name": "boss_phase",
+  "skip": "click / Space ends the band",
+  "reduce_flash": "no flash",
+  "skippable": true,
+  "star": true,
+  "band_h": 120
+ },
+ "waiting_server": {
+  "trigger": "server request pending > 300 ms",
+  "_note": "all actions modulate 1->0.4, the pill fades in, dots pulse 0.3<->1 (900 loop); only after 300 ms of waiting",
+  "in": {
+   "ms": 120,
+   "trans": "LINEAR",
+   "ease": "IN_OUT",
+   "props": {
+    "alpha": {
+     "from": 1.0,
+     "to": 0.4
+    }
+   }
+  },
+  "show_after_ms": 300,
+  "pulse": {
+   "prop": "alpha",
+   "from": 0.3,
+   "to": 1.0,
+   "ms": 900,
+   "trans": "SINE",
+   "ease": "IN_OUT",
+   "loop": true
+  },
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "victory": {
+  "trigger": "the last enemy is down",
+  "_note": "U5VictoryBand: scrim, rays, band (text_hero 56 held at scale 1.3, no 72 size), sub-line, continue hint, shake, confetti. First click / Space jumps to the end state, the second continues. Source: design/handoffs/ui-05-figma/round-1/motion-batch1.md (victory). Played by scenes/combat/ui5/U5Moments.gd with UI3Motion.play_timeline.",
+  "in": {
+   "ms": 120
+  },
+  "shake": {
+   "px": 6,
+   "ms": 160,
+   "delay_ms": 420
+  },
+  "shake_target": "screen",
+  "layers": [
+   {
+    "name": "scrim",
+    "target": "scrim",
+    "delay_ms": 0,
+    "ms": 300,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "alpha": 0.45
+     }
+    ],
+    "reduce": "cap",
+    "color_token": "bg"
+   },
+   {
+    "name": "rays",
+    "target": "rays",
+    "delay_ms": 120,
+    "ms": 4000,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "rot": 0
+     },
+     {
+      "t": 0.1,
+      "alpha": 0.35,
+      "rot": 20
+     },
+     {
+      "t": 1,
+      "alpha": 0.35,
+      "rot": 160
+     }
+    ],
+    "reduce": "removed",
+    "color_token": "text_on_viewport"
+   },
+   {
+    "name": "band",
+    "target": "band",
+    "delay_ms": 0,
+    "ms": 420,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1,
+      "y": -480
+     },
+     {
+      "t": 1,
+      "alpha": 1,
+      "y": 0
+     }
+    ],
+    "reduce": "fade",
+    "text": "Victory",
+    "size_token": "text_hero",
+    "label_scale": 1.3,
+    "color_token": "banner_player",
+    "text_token": "text_ink",
+    "reduce_from": 0
+   },
+   {
+    "name": "sub",
+    "target": "sub",
+    "delay_ms": 420,
+    "ms": 240,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "y": 12
+     },
+     {
+      "t": 1,
+      "alpha": 1,
+      "y": 0
+     }
+    ],
+    "reduce": "fade",
+    "size_token": "text_screen_title"
+   },
+   {
+    "name": "hint",
+    "target": "hint",
+    "delay_ms": 900,
+    "ms": 200,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "kept"
+   },
+   {
+    "name": "shake",
+    "delay_ms": 420,
+    "shake": {
+     "px": 6,
+     "ms": 160
+    },
+    "reduce": "removed"
+   },
+   {
+    "name": "shards",
+    "target": "fx",
+    "delay_ms": 420,
+    "particles": {
+     "texture": "res://assets/ui3/icons/cur_shard.png",
+     "amount": 24,
+     "lifetime_ms": 1400,
+     "speed": 760,
+     "spread_deg": 120,
+     "spread_full": true,
+     "gravity": 900,
+     "size_px": 32,
+     "direction_deg": -90
+    },
+    "reduce": "removed"
+   },
+   {
+    "name": "stars",
+    "target": "fx",
+    "delay_ms": 500,
+    "particles": {
+     "texture": "res://assets/ui3/icons/cur_fragment.png",
+     "amount": 18,
+     "lifetime_ms": 1600,
+     "speed": 640,
+     "spread_deg": 160,
+     "spread_full": true,
+     "gravity": 700,
+     "size_px": 28,
+     "direction_deg": -90
+    },
+    "reduce": "removed"
+   }
+  ],
+  "sfx_name": "victory_fanfare",
+  "skip": "click / Space jumps to the end state; a second press continues",
+  "reduce_flash": "no change",
+  "skippable": true,
+  "star": true,
+  "band_y": 330,
+  "band_h": 150,
+  "sub_y": 520,
+  "rays_y": 400,
+  "confetti_y": 420
+ },
+ "defeat": {
+  "trigger": "the last Axie is down (Party down panel)",
+  "_note": "'panel' is also the top-level in (DefeatPanel plays it 200 ms after the trigger, so in.delay_ms 500 lands it at 700). 'tint' is U5Moments.defeat; 'darken' is the DefeatPanel scrim; 'sinks' is the 3D party (data). Source: design/handoffs/ui-05-figma/round-1/motion-batch1.md (defeat). Played by scenes/combat/ui5/U5Moments.gd with UI3Motion.play_timeline.",
+  "in": {
+   "ms": 320,
+   "delay_ms": 500,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "from": [
+      0,
+      -24
+     ],
+     "to": [
+      0,
+      0
+     ]
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "layers": [
+   {
+    "name": "tint",
+    "target": "tint",
+    "delay_ms": 0,
+    "ms": 500,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 0.5,
+      "alpha": 0.35
+     },
+     {
+      "t": 1,
+      "alpha": 0.15
+     }
+    ],
+    "reduce": "cap",
+    "color_token": "danger_bg"
+   },
+   {
+    "name": "darken",
+    "target": "scrim",
+    "delay_ms": 200,
+    "ms": 700,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "alpha": 0.8
+     }
+    ],
+    "reduce": "cap"
+   },
+   {
+    "name": "sinks",
+    "target": "party_3d",
+    "delay_ms": 0,
+    "ms": 600,
+    "trans": "QUAD",
+    "ease": "IN",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1,
+      "y": 0,
+      "rot": 0
+     },
+     {
+      "t": 1,
+      "alpha": 0.5,
+      "y": 20,
+      "rot": -30
+     }
+    ],
+    "reduce": "removed",
+    "stagger_ms": 60
+   },
+   {
+    "name": "panel",
+    "target": "panel",
+    "delay_ms": 700,
+    "ms": 320,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "y": -24
+     },
+     {
+      "t": 1,
+      "alpha": 1,
+      "y": 0
+     }
+    ],
+    "reduce": "fade"
+   }
+  ],
+  "sfx_name": "defeat_sting",
+  "skip": "click / Space jumps to the panel (buttons still wait 1000 ms)",
+  "reduce_flash": "no change",
+  "skippable": true,
+  "star": true,
+  "primary_live_after_ms": 1000
+ },
+ "core_reveal_moss": {
+  "trigger": "Core offer opens (Moss only)",
+  "_note": "3 cards drop from y-40 + fade, 80 ms x card, tier band last; 6 fragments per card",
+  "in": {
+   "ms": 240,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "from": [
+      0,
+      -40
+     ],
+     "to": [
+      0,
+      0
+     ]
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 6,
+   "lifetime_ms": 400,
+   "spread_deg": 60,
+   "speed": 110,
+   "color_token": "tier_moss"
+  },
+  "delay_per_index_ms": 80,
+  "tier_band_last": true,
+  "sfx_name": "core_reveal_1",
+  "star": true,
+  "skip": "Skip -> all placed",
+  "reduce_flash": "no change",
+  "skippable": true
+ },
+ "core_reveal_amber": {
+  "trigger": "Core offer with at least one Amber",
+  "_note": "as Moss + the Amber card wobbles (+-3 deg, 2 steps) + sweep on its band at +240",
+  "in": {
+   "ms": 240,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "from": [
+      0,
+      -40
+     ],
+     "to": [
+      0,
+      0
+     ]
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 12,
+   "lifetime_ms": 600,
+   "spread_deg": 360,
+   "speed": 110,
+   "color_token": "tier_amber"
+  },
+  "delay_per_index_ms": 80,
+  "tier_band_last": true,
+  "sfx_name": "core_reveal_2",
+  "star": true,
+  "sweep": {
+   "delay_ms": 240
+  },
+  "wobble": {
+   "deg": 3,
+   "steps": 2,
+   "ms": 200
+  },
+  "skip": "Skip -> all placed",
+  "reduce_flash": "no flash, no sweep",
+  "skippable": true
+ },
+ "core_reveal_crystal": {
+  "trigger": "Core offer with at least one Crystal",
+  "_note": "as Amber + 2 sweeps, card hop (y-24 and back), shake +-4",
+  "in": {
+   "ms": 240,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "from": [
+      0,
+      -40
+     ],
+     "to": [
+      0,
+      0
+     ]
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 20,
+   "lifetime_ms": 900,
+   "spread_deg": 360,
+   "speed": 110,
+   "color_token": "tier_crystal"
+  },
+  "delay_per_index_ms": 80,
+  "tier_band_last": true,
+  "sfx_name": "core_reveal_3",
+  "star": true,
+  "sweep": {
+   "delay_ms": 240
+  },
+  "sweeps": 2,
+  "hop": {
+   "px": 24,
+   "at_ms": 240,
+   "ms": 400
+  },
+  "shake": {
+   "px": 4,
+   "ms": 400
+  },
+  "skip": "Skip -> all placed",
+  "reduce_flash": "no flash, no sweep",
+  "skippable": true
+ },
+ "gacha_flip": {
+  "trigger": "click a face-down Core card (screens 60-62)",
+  "_note": "scale x 1->0->1 with the new face + tier band colour (caller); particles per tier = the core_reveal_* rows",
+  "in": {
+   "ms": 240,
+   "trans": "CUBIC",
+   "ease": "IN_OUT",
+   "props": {
+    "scale": {
+     "from": 1.0,
+     "to": 1.0
+    }
+   }
+  },
+  "flip_x": true,
+  "sfx_name": "card_flip",
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "core_take": {
+  "trigger": "Take / Enter",
+  "_note": "chosen card shrinks into its slot in the Cores plate, others fade 120; trail in the tier colour (caller sets color)",
+  "in": {
+   "ms": 320,
+   "trans": "CUBIC",
+   "ease": "IN_OUT",
+   "props": {
+    "scale": {
+     "to": 0.3
+    },
+    "alpha": {
+     "to": 0.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "fly_to": "cores_plate_slot",
+  "others_fade_ms": 120,
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 6,
+   "lifetime_ms": 400,
+   "spread_deg": 30,
+   "speed": 60
+  },
+  "sfx_name": "core_take",
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "anchor_awaken": {
+  "trigger": "2nd House Core taken",
+  "_note": "scrim 160, card 0.6->1.1->1, 8 rays 12 deg/s, title letters pop one by one, Anchor chip turns lemon at the end. AnchorFx stays the implementation",
+  "in": {
+   "ms": 360,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 0.6,
+     "to": 1.0
+    }
+   }
+  },
+  "hold_ms": 900,
+  "out": {
+   "ms": 160,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "alpha": {
+     "to": 1.0
+    }
+   }
+  },
+  "scrim_ms": 160,
+  "rays": {
+   "count": 8,
+   "deg_per_sec": 12
+  },
+  "title_delay_ms": 200,
+  "text_delay_ms": 500,
+  "chip_turns_lemon_at_end": true,
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 40,
+   "lifetime_ms": 1200,
+   "spread_deg": 360,
+   "speed": 260,
+   "color_token": "anchor_awake"
+  },
+  "particles2": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 12,
+   "lifetime_ms": 2400,
+   "spread_deg": 360,
+   "speed": 30,
+   "color_token": "anchor_awake"
+  },
+  "sfx_name": "anchor_awaken",
+  "star": true,
+  "skip": "Skip -> chip state",
+  "reduce_flash": "no flash, no sweep, rays static",
+  "skippable": true
+ },
+ "level_up": {
+  "trigger": "Level reward taken",
+  "_note": "Axie card hop 160, level number pop, light sweep on the card",
+  "in": {
+   "ms": 240,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "to": [
+      0,
+      -18
+     ]
+    }
+   }
+  },
+  "hop_ms": 160,
+  "sweep": {
+   "delay_ms": 160
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/face_buff.svg",
+   "amount": 10,
+   "lifetime_ms": 600,
+   "spread_deg": 40,
+   "speed": 140,
+   "color_token": "face_buff",
+   "direction_deg": -90
+  },
+  "sfx_name": "level_up",
+  "star": true,
+  "skip": "Skip -> final",
+  "reduce_flash": "no flash, no sweep",
+  "skippable": true
+ },
+ "reward_take": {
+  "trigger": "click Take on a reward",
+  "_note": "card lifts -18 (200) then flies to its HUD target (280)",
+  "in": {
+   "ms": 200,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "to": [
+      0,
+      -18
+     ]
+    }
+   }
+  },
+  "out": {
+   "ms": 280,
+   "trans": "CUBIC",
+   "ease": "IN_OUT",
+   "props": {
+    "scale": {
+     "to": 0.3
+    },
+    "alpha": {
+     "to": 0.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "fly_to": "hud_target",
+  "sfx_name": "reward_take",
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "treasure_open": {
+  "trigger": "Treasure opens",
+  "_note": "lid shakes 3 steps (300), opens (owner anim, 600), relic card rises 40 + fade (240) at +700, sweep",
+  "in": {
+   "ms": 300,
+   "trans": "SINE",
+   "ease": "IN_OUT",
+   "props": {
+    "scale": {
+     "from": 1.0,
+     "to": 1.0
+    }
+   }
+  },
+  "shake": {
+   "px": 6,
+   "ms": 300
+  },
+  "sweep": {
+   "delay_ms": 700
+  },
+  "lid_open_ms": 600,
+  "reveal_card": {
+   "rise_px": 40,
+   "delay_ms": 700,
+   "ms": 240,
+   "trans": "BACK",
+   "ease": "OUT"
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_shard.png",
+   "amount": 16,
+   "lifetime_ms": 800,
+   "spread_deg": 50,
+   "speed": 380,
+   "color_token": "accent",
+   "gravity": 900,
+   "direction_deg": -90
+  },
+  "sfx_name": "treasure_open",
+  "star": true,
+  "skip": "Skip -> opened",
+  "reduce_flash": "no flash, no sweep",
+  "skippable": true
+ },
+ "echo_idle": {
+  "trigger": "Echo Box screen open",
+  "_note": "chest bob y +-6, 2400 ms loop (caller loops in+out); 3 slow motes",
+  "in": {
+   "ms": 1200,
+   "trans": "SINE",
+   "ease": "IN_OUT",
+   "props": {
+    "offset": {
+     "to": [
+      0,
+      -6
+     ]
+    }
+   }
+  },
+  "out": {
+   "ms": 1200,
+   "trans": "SINE",
+   "ease": "IN_OUT",
+   "props": {
+    "offset": {
+     "to": [
+      0,
+      6
+     ]
+    }
+   }
+  },
+  "loop": true,
+  "motes": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 3,
+   "life_ms": 3000,
+   "color_token": "egg"
+  },
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "echo_open": {
+  "trigger": "Open 1 (normal)",
+  "_note": "squash 1.1/0.9 x2, shake +-6, burst, chest swaps to the rarity tier chest, card rises at +700 (300); particles cur_stone or cur_fragment",
+  "in": {
+   "ms": 300,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 1.0,
+     "to": 1.1
+    }
+   }
+  },
+  "hold_ms": 0,
+  "out": {
+   "ms": 400,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "to": 1.0
+    }
+   }
+  },
+  "shake": {
+   "px": 6,
+   "ms": 300
+  },
+  "squash": {
+   "x": 1.1,
+   "y": 0.9,
+   "times": 2
+  },
+  "reveal_card_delay_ms": 700,
+  "reveal_card_ms": 300,
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_stone.png",
+   "amount": 20,
+   "lifetime_ms": 800,
+   "spread_deg": 50,
+   "speed": 380,
+   "color_token": "accent",
+   "gravity": 700,
+   "direction_deg": -90
+  },
+  "sfx_name": "box_open",
+  "star": true,
+  "skip": "Skip -> card",
+  "reduce_flash": "no change",
+  "skippable": true
+ },
+ "echo_dupe": {
+  "trigger": "reveal is a duplicate",
+  "_note": "DUPLICATE chip stamps in 1.4->1, one Fragment sprite per Fragment flies to the meter at +200, meter counts up 400",
+  "in": {
+   "ms": 160,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 1.4,
+     "to": 1.0
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "hold_ms": 0,
+  "out": {
+   "ms": 480,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "alpha": {
+     "to": 1.0
+    }
+   }
+  },
+  "fly_delay_ms": 200,
+  "meter_count_up_ms": 400,
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 5,
+   "lifetime_ms": 480,
+   "spread_deg": 20,
+   "speed": 200
+  },
+  "sfx_name": "box_dupe",
+  "star": true,
+  "skip": "Skip -> final",
+  "reduce_flash": "no change",
+  "skippable": true
+ },
+ "echo_rare": {
+  "trigger": "reveal rarity >= Rare",
+  "_note": "before the card: band in rarity colour, 2-step sweep, rays (Legendary+), hold +600; Mythic adds shake +-10; 30-60 fragments tinted rarity (caller sets color_token per rarity)",
+  "in": {
+   "ms": 600,
+   "trans": "SINE",
+   "ease": "IN_OUT",
+   "props": {
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "hold_ms": 600,
+  "sweep": {
+   "delay_ms": 0
+  },
+  "sweeps": 2,
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_fragment.png",
+   "amount": 45,
+   "lifetime_ms": 900,
+   "spread_deg": 360,
+   "speed": 240,
+   "color_token": "rarity_epic",
+   "ring": true
+  },
+  "mythic_shake": {
+   "px": 10,
+   "ms": 300
+  },
+  "rays_from": "legendary",
+  "sfx_name": "box_rare",
+  "sfx_by_rarity": {
+   "rare": "box_rare",
+   "legendary": "box_legend",
+   "mythic": "box_mythic"
+  },
+  "star": true,
+  "skip": "Skip -> card",
+  "reduce_flash": "no flash, no sweep, rays static",
+  "skippable": true
+ },
+ "echo_open10": {
+  "trigger": "Open 10 confirmed",
+  "_note": "10 cards flip one by one (120 each, 80 ms x index); best one last with its Rare+ treatment",
+  "in": {
+   "ms": 120,
+   "trans": "CUBIC",
+   "ease": "IN_OUT",
+   "props": {
+    "scale": {
+     "from": 1.0,
+     "to": 1.0
+    }
+   }
+  },
+  "flip_x": true,
+  "delay_per_index_ms": 80,
+  "best_last": true,
+  "sfx_name": "box_flip",
+  "skip": "Skip -> all face up",
+  "reduce_flash": "no change",
+  "skippable": true
+ },
+ "pass_level_up": {
+  "trigger": "XP crosses a level",
+  "_note": "XP bar fills (count-up 600), level badge pop + sweep, the level card on the track gets the cream outline",
+  "in": {
+   "ms": 600,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 1.0,
+     "to": 1.0
+    }
+   }
+  },
+  "hold_ms": 0,
+  "out": {
+   "ms": 240,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 1.0,
+     "to": 1.0
+    }
+   }
+  },
+  "count_up_ms": 600,
+  "badge_pop_ms": 240,
+  "sweep": {
+   "delay_ms": 600
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_shard.png",
+   "amount": 12,
+   "lifetime_ms": 700,
+   "spread_deg": 40,
+   "speed": 220,
+   "color_token": "accent",
+   "direction_deg": -90
+  },
+  "sfx_name": "pass_level",
+  "star": true,
+  "skip": "Skip -> final",
+  "reduce_flash": "no flash, no sweep",
+  "skippable": true
+ },
+ "daily_claim": {
+  "trigger": "Claim",
+  "_note": "reward chip pops, 8 sprites of the reward icon fly to the HUD chip",
+  "in": {
+   "ms": 160,
+   "trans": "BACK",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 0.7,
+     "to": 1.0
+    }
+   }
+  },
+  "hold_ms": 0,
+  "out": {
+   "ms": 480,
+   "trans": "CUBIC",
+   "ease": "IN_OUT",
+   "props": {
+    "alpha": {
+     "to": 1.0
+    }
+   }
+  },
+  "fly_to_chip": true,
+  "fly_sprites": 8,
+  "fly_stagger_ms": 40,
+  "fly_delay_ms": 160,
+  "sfx_name": "daily_claim",
+  "star": true,
+  "skip": "Skip -> final",
+  "reduce_flash": "no change",
+  "skippable": true
+ },
+ "land_tier_up": {
+  "trigger": "Land upgrade completes",
+  "_note": "band in 240, camera push-in 4% over 600, Stone particles, sweep +400, hold 1400, band out 240",
+  "in": {
+   "ms": 240,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "from": [
+      0,
+      -80
+     ],
+     "to": [
+      0,
+      0
+     ]
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "hold_ms": 1400,
+  "out": {
+   "ms": 240,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "to": [
+      0,
+      -80
+     ]
+    },
+    "alpha": {
+     "to": 0.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "camera_push_in": {
+   "pct": 4,
+   "ms": 600
+  },
+  "sweep": {
+   "delay_ms": 400
+  },
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_stone.png",
+   "amount": 24,
+   "lifetime_ms": 1000,
+   "spread_deg": 40,
+   "speed": 380,
+   "color_token": "accent",
+   "gravity": 700,
+   "direction_deg": -90
+  },
+  "chip_updates_as_band_leaves": true,
+  "sfx_name": "land_tier",
+  "star": true,
+  "hide_on_done": true,
+  "skip": "Skip -> chip updated",
+  "reduce_flash": "no flash, no sweep",
+  "skippable": true
+ },
+ "currency_gain": {
+  "trigger": "any Shard/Stone/Gem/ticket gain",
+  "_note": "count-up on the chip + fly-to-chip (8 sprites of that currency, 40 ms stagger); chip pops when the first sprite lands",
+  "in": {
+   "ms": 480,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 1.0,
+     "to": 1.0
+    }
+   }
+  },
+  "count_up_ms": 480,
+  "fly_to_chip": true,
+  "fly_sprites": 8,
+  "fly_stagger_ms": 40,
+  "chip_pop": {
+   "scale": 1.25,
+   "up_ms": 160,
+   "down_ms": 120
+  },
+  "sfx_name": "coin_gain",
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "run_end_win": {
+  "trigger": "Result opens after a win",
+  "_note": "panel scale 0.96->1, Shard hero count-up 800 at +240, fly-to-chip, shard fountain",
+  "in": {
+   "ms": 240,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 0.96,
+     "to": 1.0
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "hold_ms": 0,
+  "out": {
+   "ms": 800,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "alpha": {
+     "to": 1.0
+    }
+   }
+  },
+  "count_delay_ms": 240,
+  "fly_to_chip": true,
+  "particles": {
+   "texture": "res://assets/ui3/icons/cur_shard.png",
+   "amount": 20,
+   "lifetime_ms": 900,
+   "spread_deg": 60,
+   "speed": 400,
+   "color_token": "accent",
+   "gravity": 900,
+   "direction_deg": -90
+  },
+  "sfx_name": "run_win",
+  "star": true,
+  "skip": "Skip -> final numbers",
+  "reduce_flash": "no change",
+  "skippable": true
+ },
+ "run_end_lose": {
+  "trigger": "Result opens after a loss",
+  "_note": "panel only, no particles",
+  "in": {
+   "ms": 240,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "scale": {
+     "from": 0.96,
+     "to": 1.0
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "sfx_name": "run_lose",
+  "star": true,
+  "skip": "Skip -> final numbers",
+  "reduce_flash": "no change",
+  "skippable": true
+ },
+ "toast": {
+  "trigger": "toast queued (one at a time)",
+  "in": {
+   "ms": 160,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "from": [
+      0,
+      -16
+     ],
+     "to": [
+      0,
+      0
+     ]
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "hold_ms": 4000,
+  "out": {
+   "ms": 160,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "alpha": {
+     "to": 0.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "sfx_name": "toast",
+  "free_on_done": true,
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "net_notice": {
+  "trigger": "request failed",
+  "_note": "RETRY spinner replaces the label while retrying",
+  "in": {
+   "ms": 160,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "from": [
+      0,
+      -16
+     ],
+     "to": [
+      0,
+      0
+     ]
+    },
+    "alpha": {
+     "from": 0.0,
+     "to": 1.0,
+     "trans": "LINEAR"
+    }
+   }
+  },
+  "sfx_name": "net_warn",
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ },
+ "update_bar": {
+  "trigger": "modal closed",
+  "_note": "bar slides down 56, the screen's top margin animates 0->56 (caller)",
+  "in": {
+   "ms": 200,
+   "trans": "CUBIC",
+   "ease": "OUT",
+   "props": {
+    "offset": {
+     "from": [
+      0,
+      -56
+     ],
+     "to": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "margin_push_px": 56,
+  "skip": "not skippable (everyday)",
+  "reduce_flash": "no change",
+  "skippable": false
+ }
 }

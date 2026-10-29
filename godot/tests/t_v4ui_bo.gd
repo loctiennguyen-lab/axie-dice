@@ -1,5 +1,5 @@
 extends Node
-## v4 UI item 1: part chip on every card, Set frame + label from the engine snapshot, banner only for four / five.
+## v4 UI item 1 (UI-05 look): part chip on every card, SET ring + SetBanner from the engine snapshot, a pop only for four / five.
 var _guard := SaveGuard.new()
 var _checks := 0
 var _fails: Array[String] = []
@@ -9,27 +9,25 @@ func _check(ok: bool, msg: String) -> void:
 	if not ok:
 		_fails.append(msg)
 
-func _check_centred(v: Node, bl: BoLayer, tag: String) -> void:
-	var n := 0
-	for gd in bl._groups:
-		var lab: Label = bl._labels[n]
-		var uids: Array = []
-		for g in v._combat.bo:
-			if int(g["part"]) == int(gd["part"]) and int(g["size"]) == int(gd["size"]):
-				uids = g["uids"]
-		var lo := INF
-		var hi := -INF
-		var units: Array = v._party_dice_units()
-		for i in units.size():
-			if int(units[i].uid) in uids:
-				var b: Button = v._die_slot_buttons[i]
-				var gr := b.get_global_rect()
-				lo = minf(lo, gr.position.x)
-				hi = maxf(hi, gr.end.x)
-		var lc := lab.get_global_rect().get_center().x
-		_check(absf(lc - (lo + hi) * 0.5) <= 4.0, "%s: label centre %.1f vs group centre %.1f" % [tag, lc, (lo + hi) * 0.5])
-		n += 1
-	_check(n >= 1, "%s: at least one group" % tag)
+## UI-05: the SetBanners row is centred on the dock, every SET member card wears the ring in its SET colour, nobody else does.
+func _check_row(v: Node, bl: BoLayer, tag: String) -> void:
+	var dock: Control = v._dock_plate
+	var rr := bl.row.get_global_rect()
+	_check(absf(rr.get_center().x - dock.get_global_rect().get_center().x) <= 1.0, "%s: SetBanners row centred on the dock" % tag)
+	_check(absf(rr.position.y - dock.get_global_rect().position.y) <= 1.0, "%s: SetBanners row is the dock's top band" % tag)
+	var units: Array = v._party_dice_units()
+	var c: CombatEngine = v._combat
+	for i in units.size():
+		var card: DieCard = (v._die_slot_content[i] as Dictionary)["card"]
+		var key := SetPreview.set_key(c.bo, int(units[i].uid))
+		_check(card.set_ring.visible == (key != ""), "%s: card %d ring %s vs in SET %s" % [tag, i, card.set_ring.visible, key])
+		if key != "":
+			var sb: StyleBoxFlat = card.set_ring.get_theme_stylebox("panel")
+			_check(sb.border_color == UI3Theme.color(SetPreview.colour_token(key)), "%s: card %d ring in the SET colour" % [tag, i])
+	for bnr in bl.banners():
+		_check(bnr.get_global_rect().position.x >= rr.position.x - 1.0 and bnr.get_global_rect().end.x <= rr.end.x + 1.0,
+			"%s: banner inside the row" % tag)
+	_check(bl.banners().size() == c.bo.size(), "%s: one banner per SET (%d vs %d)" % [tag, bl.banners().size(), c.bo.size()])
 
 
 func _ready() -> void:
@@ -83,8 +81,8 @@ func _ready() -> void:
 	_check(chips == units.size(), "part chip on every card: %d/%d" % [chips, units.size()])
 	var any_pv := false
 	for b in v._die_slot_buttons:
-		var pl: Label = b.find_child("SetPreview", true, false)
-		if pl != null and pl.visible and String(pl.text).contains("→"):
+		var pl: Label = b.find_child("SetDelta", true, false)
+		if pl != null and pl.visible and (String(pl.text).contains("→") or String(pl.text).begins_with("+")):
 			any_pv = true
 	_check(any_pv, "preview 'v0 -> v' shows on a die in a Set")
 	# four -> banner
@@ -92,16 +90,15 @@ func _ready() -> void:
 		units[i].set_roll(2, false)
 	c._snap_bo()
 	await get_tree().process_frame
-	_check(bl.last_banner.begins_with("FOUR"), "banner for four: %s" % bl.last_banner)
-	# Label centred on its group: live button rects, 4 px tolerance (four-group, then a split group).
+	_check(bl.last_banner.begins_with("SET OF 4") and bl.banner_texts().has(bl.last_banner), "banner for four: %s" % bl.last_banner)
 	for _i in 4:
 		await get_tree().process_frame
-	_check_centred(v, bl, "four")
+	_check_row(v, bl, "four")
 	units[1].set_roll(1, false)   # a die of another part in the middle splits the group: 0, 2, 3 stay one Set of 3
 	c._snap_bo()
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_check_centred(v, bl, "split")
+	_check_row(v, bl, "split")
 	units[1].set_roll(2, false)
 	c._snap_bo()
 	await get_tree().process_frame
@@ -110,12 +107,12 @@ func _ready() -> void:
 		if String(ln).begins_with("[set]"):
 			logged = true
 	_check(logged, "a [set] line reached the battle log")
-	var words_hidden := true
+	var words := 0
 	if v._row_strip != null:
 		for ch in v._row_strip.get_children():
 			if ch is Label and ch.visible:
-				words_hidden = false
-	_check(words_hidden, "FRONT/BACK words hidden while a Set is on the tray")
+				words += 1
+	_check(words >= 1, "UI-05: FRONT/BACK words stay visible while a Set is on the tray (banners have their own row)")
 	print("=== t_v4ui_bo: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	_guard.restore()
 	if _fails.is_empty():

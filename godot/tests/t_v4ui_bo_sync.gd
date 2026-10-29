@@ -20,12 +20,20 @@ func _in_sync(v: Node, what: String) -> void:
 	var bl: BoLayer = v._bo_layer
 	var c: CombatEngine = v._combat
 	_check(bl.group_labels() == _engine_labels(c), "%s: labels %s vs engine %s" % [what, str(bl.group_labels()), str(_engine_labels(c))])
-	if bl._banner != null and bl._banner.visible:
-		var ok := false
-		for g in c.bo:
-			if V4Ui.banner_text(int(g["part"]), int(g["size"]), int(g["m100"])) == bl._banner.text:
-				ok = true
-		_check(ok, "%s: banner '%s' is not a current Set" % [what, bl._banner.text])
+	var texts: Array[String] = []
+	for g in c.bo:
+		texts.append(SetBanner.text_for(int(g["size"]), int(g["m100"]), int(g["part"])))
+	_check(bl.banner_texts() == texts, "%s: banners %s vs engine %s" % [what, str(bl.banner_texts()), str(texts)])
+	if bl.last_banner != "":
+		_check(texts.has(bl.last_banner), "%s: announced banner '%s' is not a current Set" % [what, bl.last_banner])
+	# UI-05: one banner system only (no floating label, no per-group frame labels).
+	var nodes := v.find_children("SetBanner*", "", true, false)
+	var shown := 0
+	for nd in nodes:
+		if nd is SetBanner and (nd as CanvasItem).is_visible_in_tree():
+			shown += 1
+	_check(shown == c.bo.size(), "%s: %d SetBanner nodes visible for %d SETs" % [what, shown, c.bo.size()])
+	_check(v.find_children("SetLabel*", "", true, false).is_empty(), "%s: no old SetLabel nodes" % what)
 
 func _ready() -> void:
 	CombatView.disable_juice_for_tests = true
@@ -47,24 +55,24 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_in_sync(v, "four")
 	var bl: BoLayer = v._bo_layer
-	_check(bl.last_banner.begins_with("FOUR") and bl._banner.visible, "four shows its banner")
+	_check(bl.last_banner.begins_with("SET OF 4"), "four is announced: %s" % bl.last_banner)
 	# a reroll breaks the four into three: the banner must go with it, in the same frame
 	units[3].set_roll(1, false)
 	c._snap_bo()
 	_in_sync(v, "four -> three")
-	_check(not bl._banner.visible, "banner cut when the four is gone")
+	_check(bl.last_banner == "" and not bl.banner_up(), "announce cut when the four is gone")
 	_check(bl.group_labels().size() == 1 and String(bl.group_labels()[0]).begins_with("SET OF 3"), "label says three: %s" % str(bl.group_labels()))
 	# back to four: announced again
 	units[3].set_roll(2, false)
 	c._snap_bo()
 	_in_sync(v, "three -> four")
-	_check(bl._banner.visible, "banner again for the new four")
+	_check(bl.last_banner.begins_with("SET OF 4"), "announced again for the new four")
 	# the Set vanishes completely
 	units[0].set_roll(1, false)
 	units[1].set_roll(3, false)
 	c._snap_bo()
 	_in_sync(v, "no set")
-	_check(bl.group_labels().is_empty() and not bl._banner.visible, "no label and no banner without a Set")
+	_check(bl.group_labels().is_empty() and bl.banner_texts().is_empty() and bl.last_banner == "", "no label and no banner without a Set")
 	# a layout pass (tray rebuild) never leaves a stale banner either
 	units[0].set_roll(2, false)
 	units[1].set_roll(2, false)
