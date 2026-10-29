@@ -200,6 +200,8 @@ func _ready() -> void:
 	_t(absf(root.size.x - r2.end.x - UI3Theme.space("screen")) < 1.0 and absf(root.size.y - r2.end.y - UI3Theme.space("screen")) < 1.0,
 		"fight skip hint 24 px from the bottom-right corner")
 	_t(band.modulate.a > 0.9 and is_equal_approx(band.scale.y, 1.0), "band unfolded and held (a %.2f, scale %.2f)" % [band.modulate.a, band.scale.y])
+	var status: Label = v._hud_frame.get("_hint")
+	_t(status.modulate.a < 0.01, "the StatusLine is hidden under the SkipHint while the band shows")
 	# Space skips the band only: the turn is not ended, then the Your turn band follows.
 	var seen0 := _space_seen
 	var turn0: int = v._combat.turn
@@ -210,6 +212,7 @@ func _ready() -> void:
 		"the skip Space did not reach the fight (turn %d, phase %d)" % [v._combat.turn, v._combat.phase])
 	_t(root.find_child("TurnBanner", false, false) is U5TurnBanner, "the Your turn band follows the boss band")
 	_t(_bands_in_tree() == 0, "no band left after the skip")
+	_t(is_equal_approx(status.modulate.a, 1.0), "the StatusLine is back after the band")
 	v.queue_free()
 	await _frames(3)
 

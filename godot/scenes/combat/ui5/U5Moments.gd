@@ -454,7 +454,8 @@ static func turn_banner(v: CombatView, player: bool, on_done := Callable()) -> v
 					if on_done.is_valid():
 						on_done.call()
 					return
-				U5TurnBanner.show_on(root(cv), true, on_done))
+				U5TurnBanner.show_on(root(cv), true, on_done),
+				[v._hud_frame.get("_hint")] if v._hud_frame != null else [])   # the SkipHint takes the StatusLine's corner
 			return
 	U5TurnBanner.show_on(root(v), player, on_done)
 

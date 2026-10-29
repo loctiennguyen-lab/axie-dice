@@ -16,6 +16,7 @@ var run: UI3Motion.Timeline
 var band: PanelContainer
 var hint: Control
 var _on_done := Callable()
+var _hidden: Array[WeakRef] = []   ## HUD bits under the SkipHint (StatusLine), alpha 0 while the band shows
 var _skip_early := false   ## a skip during the warm-up frames: the band never plays
 var _warm_frames := 0
 
@@ -63,8 +64,13 @@ static func data_for(v: CombatView) -> Dictionary:
 
 
 ## Build the band under `parent` (a full-rect Control) and play it. on_done runs once it is gone (or skipped).
-static func show_on(parent: Control, d: Dictionary, on_done := Callable()) -> U5BossBand:
+## `hide`: Controls that sit where the SkipHint goes (the HUD StatusLine); hidden while the band shows.
+static func show_on(parent: Control, d: Dictionary, on_done := Callable(), hide: Array = []) -> U5BossBand:
 	var b := U5BossBand.new()
+	for c in hide:
+		if c is CanvasItem and is_instance_valid(c):
+			b._hidden.append(weakref(c))
+			(c as CanvasItem).modulate.a = 0.0
 	b.name = "BossBand"
 	b._on_done = on_done
 	b.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -135,6 +141,11 @@ func finish(run_on_done := true) -> void:
 
 
 func _done() -> void:
+	for w in _hidden:
+		var c: CanvasItem = w.get_ref()
+		if c != null:
+			c.modulate.a = 1.0
+	_hidden.clear()
 	visible = false
 	name = "BossBandDone"
 	if not is_queued_for_deletion():
@@ -143,6 +154,13 @@ func _done() -> void:
 		var cb := _on_done
 		_on_done = Callable()
 		cb.call()
+
+
+func _exit_tree() -> void:
+	for w in _hidden:   # freed mid-band (scene change): give the StatusLine back
+		var c: CanvasItem = w.get_ref()
+		if c != null:
+			c.modulate.a = 1.0
 
 
 func _input(event: InputEvent) -> void:
