@@ -1465,10 +1465,7 @@ func _regroup_after_lead(uids: Array, lead_uid: int) -> bool:
 		var target := _slot_position(true, i, alive.size())
 		if (entry.get("rest_pos", slot.position) as Vector3).is_equal_approx(target):
 			continue   # already there (reseat_side runs on every rebuild)
-		_stop_action_motion(entry)   # a lunge in flight would land back on the old mark
-		var old_tw = entry.get("regroup_tween")
-		if old_tw is Tween and (old_tw as Tween).is_valid():
-			(old_tw as Tween).kill()
+		_stop_action_motion(entry)   # a lunge (or an older slide) in flight would land back on the old mark
 		entry["rest_pos"] = target
 		entry["is_enemy"] = true
 		if animate:
@@ -1478,6 +1475,14 @@ func _regroup_after_lead(uids: Array, lead_uid: int) -> bool:
 		else:
 			slot.position = target
 	return true
+
+
+## Stops a regroup slide in flight. The slot keeps whatever position it had; the caller puts it on rest_pos.
+func _kill_regroup(entry: Dictionary) -> void:
+	var tw = entry.get("regroup_tween")
+	if tw is Tween and (tw as Tween).is_valid():
+		(tw as Tween).kill()
+	entry["regroup_tween"] = null
 
 
 ## True once a unit's death is on screen (play_death started) or its slot is hidden (set_alive(false)).
@@ -1823,6 +1828,7 @@ func _play_action_motion(uid: int, entry: Dictionary, face_type: String,
 	var prev = entry.get("action_tween")
 	if prev is Tween and (prev as Tween).is_valid():
 		(prev as Tween).kill()
+	_kill_regroup(entry)   # a regroup slide still in flight must not fight the lunge over slot.position
 	var rest: Vector3 = entry.get("rest_pos", slot.position)
 	slot.position = rest
 	slot.scale = Vector3.ONE
@@ -1875,6 +1881,7 @@ func _stop_action_motion(entry: Dictionary) -> void:
 	if tw is Tween and (tw as Tween).is_valid():
 		(tw as Tween).kill()
 	entry["action_tween"] = null
+	_kill_regroup(entry)
 	var slot: Node3D = entry.get("slot")
 	if is_instance_valid(slot):
 		slot.position = entry.get("rest_pos", slot.position)

@@ -88,6 +88,33 @@ func _ready() -> void:
 	_expect_pattern(st, [en[1], en[2]], "animated, after the slide")
 	await _free(c)
 
+	# 5b. Slide in flight (animate = true), then the add lunges: the lunge kills the slide, starts from the new
+	#     rest_pos, and the add ends on the pattern slot (not dragged back by the slide).
+	c = await _build("elite", 3, false)
+	st = c.stage
+	en = c.enemies
+	st.play_death(en[0])
+	st.reseat_side(en, true)
+	var e1: Dictionary = st._units[en[1]]
+	var rg = e1.get("regroup_tween")
+	_assert(rg is Tween and (rg as Tween).is_valid() and (rg as Tween).is_running(), "animate: the regroup tween runs")
+	await get_tree().create_timer(CombatStage3D.REGROUP_SEC * 0.4).timeout
+	_assert(not _pos(st, en[1]).is_equal_approx(st._slot_position(true, 0, 2)), "animate: add 1 mid-slide")
+	st.play_action(en[1], "dmg", 1)
+	_assert(not ((rg as Tween).is_valid() and (rg as Tween).is_running()), "lunge: the regroup tween is killed")
+	_assert(e1.get("regroup_tween") == null, "lunge: regroup_tween cleared")
+	await get_tree().create_timer(CombatStage3D.action_motion_duration() + 0.2).timeout
+	_expect_pattern(st, [en[1], en[2]], "slide then lunge")
+	# _stop_action_motion also stops a slide: start one, stop, the slot is on rest_pos at once.
+	st._units[en[2]]["rest_pos"] = Vector3(9, 0, 9)
+	var tw2 := st.create_tween()
+	tw2.tween_property((st._units[en[2]] as Dictionary)["slot"], "position", Vector3(0, 0, 0), 1.0)
+	st._units[en[2]]["regroup_tween"] = tw2
+	st._stop_action_motion(st._units[en[2]])
+	_assert(not tw2.is_valid() or not tw2.is_running(), "stop_action_motion kills the slide")
+	_assert(_pos(st, en[2]).is_equal_approx(Vector3(9, 0, 9)), "stop_action_motion: slot on rest_pos")
+	await _free(c)
+
 	# 6. Same, Reduce motion on: instant.
 	MetaState.reduce_motion = true
 	c = await _build("elite", 3, false)
