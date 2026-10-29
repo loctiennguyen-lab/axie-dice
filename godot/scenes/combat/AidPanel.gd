@@ -233,10 +233,12 @@ func _row(r: Dictionary) -> Control:
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_theme_constant_override("separation", 0)
 	row.add_child(col)
-	var name_l := UI3.label(TranslationServer.translate(String(r.get("title", ""))), "LabelDisplay")
+	var name_l := UI3.label("", "LabelDisplay")
 	name_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	name_l.clip_text = true
+	name_l.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	Ui5Ellipsis.set_text(name_l, TranslationServer.translate(String(r.get("title", ""))))   # B9
 	if not on:
 		name_l.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
 	col.add_child(name_l)

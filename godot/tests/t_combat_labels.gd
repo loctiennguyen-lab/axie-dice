@@ -44,9 +44,10 @@ func _ready() -> void:
 	add_child(p)
 	p.setup(7, "Elite Bulwark", "", true, false, "ELITE")
 	p.set_nick("", "Elite Bulwark")
-	_ok(p._name_label.text == "Bulwark", "Elite prefix dropped while ELITE chip shows: %s" % p._name_label.text)
+	# Ui5Ellipsis.full_text: the name given to the label (it shows a "…" cut while the plate is not laid out yet).
+	_ok(Ui5Ellipsis.full_text(p._name_label) == "Bulwark", "Elite prefix dropped while ELITE chip shows: %s" % Ui5Ellipsis.full_text(p._name_label))
 	p.set_leader(true)
-	_ok(p._name_label.text == "Elite Bulwark", "leader keeps full name: %s" % p._name_label.text)
+	_ok(Ui5Ellipsis.full_text(p._name_label) == "Elite Bulwark", "leader keeps full name: %s" % Ui5Ellipsis.full_text(p._name_label))
 	p.set_intent({"show": true, "type": "blank", "num": 0, "label": "BLANK", "target": ""})
 	_ok(p._intent_action.text == "IDLE" and p._intent_num.text == "–", "blank intent wording")
 	p.set_intent({"show": true, "type": "dmg", "num": 24, "label": "ATTACK", "target": "Rex", "big_hit": true})

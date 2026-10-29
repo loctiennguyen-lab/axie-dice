@@ -151,7 +151,7 @@ func _refresh_name() -> void:
 		txt = txt.substr(0, txt.length() - 2)
 	if _is_boss:
 		txt = UI3.title_case(txt)
-	_name_label.text = txt
+	Ui5Ellipsis.set_text(_name_label, txt)   # B9: a short name cut by a few px still ends in "…"
 	if _suffix_chip != null:
 		_suffix_chip.visible = suffix != ""
 		if suffix != "":
@@ -163,6 +163,7 @@ func _refresh_name() -> void:
 	if _is_boss and f != null and f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, UI3Theme.size_of(key)).x > avail:
 		key = "text_body"
 	EnemyPlate.set_text_size(_name_label, key, true, 1.2 if key == "text_title" else 1.3)
+	Ui5Ellipsis.refit(_name_label)
 	var fs := UI3Theme.size_of(key)
 	var cut := f != null and f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > avail + 0.5
 	if _click_catcher != null:

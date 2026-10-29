@@ -112,7 +112,10 @@ func _test_plates(sc: float) -> void:
 		_ok(tf.get_string_size(pu._intent_action.text, HORIZONTAL_ALIGNMENT_LEFT, -1, pu._intent_action.get_theme_font_size("font_size")).x <= pu._intent_panel.size.x, "%s: verb fits the intent column" % tag)
 		_ok(pu._plate.size.y < 260.0, "%s: plate height sane (%.0f)" % [tag, pu._plate.size.y])
 	# Name row: suffix disc + the name without " A".
-	_ok(a._name_label.text == "Ravenling" and a._suffix_chip.visible, "%s: 'Ravenling A' -> name + NameSuffix" % tag)
+	# The label shows the name cut to its width with "…" (B9, Ui5Ellipsis); the name it was given is the full one.
+	_ok(Ui5Ellipsis.full_text(a._name_label) == "Ravenling" and a._suffix_chip.visible, "%s: 'Ravenling A' -> name + NameSuffix" % tag)
+	_ok(a._name_label.text == "Ravenling" or (a._name_label.text.ends_with("…") and "Ravenling".begins_with(a._name_label.text.trim_suffix("…"))),
+		"%s: EnemyName shows 'Ravenling' or a cut ending in '…' ('%s')" % [tag, a._name_label.text])
 	_ok((a._suffix_chip.get_node("Text") as Label).text == "A", "%s: suffix letter A" % tag)
 	# Long elite + LEADER: the tag moves to its own row so the name keeps room; the tooltip has the full name.
 	_ok(e._plate.tags_row.visible or e._plate.tag_box.visible, "%s: LEADER tag shown somewhere" % tag)

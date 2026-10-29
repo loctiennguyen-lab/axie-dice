@@ -267,11 +267,13 @@ func _build_party_row(roster: Array) -> Control:
 		var v := VBoxContainer.new()
 		v.add_theme_constant_override("separation", 0)
 		p.add_child(v)
-		var nm := _centered(String(def.get("n", hero_key)), "LabelDisplay")
+		var nm := _centered("", "LabelDisplay")
+		nm.name = "PartyName"
 		nm.autowrap_mode = TextServer.AUTOWRAP_OFF
 		nm.clip_text = true
 		nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		v.add_child(nm)
+		Ui5Ellipsis.set_text(nm, String(def.get("n", hero_key)))   # B9: "Pomod…" at 1280, never "Pomodor"
 		v.add_child(_centered("T%d" % int(entry.get("tier", 1)), "LabelMuted"))
 		row.add_child(p)
 	return row

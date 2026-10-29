@@ -415,7 +415,7 @@ func apply(d: Dictionary) -> void:
 	# OwnerRow + HP bar.
 	var hp_now := int(d.get("hp", 0))
 	var hp_max := int(d.get("max_hp", 1))
-	owner_name.text = String(d.get("name", ""))
+	Ui5Ellipsis.set_text(owner_name, String(d.get("name", "")))   # B9: "Pomod…", never a bare "Pomodor"
 	owner_hp.text = "%d/%d" % [maxi(hp_now, 0), hp_max]
 	hp_bar.set_stats(hp_now, hp_max)
 	hp_bar.set_at_risk(mini(hp_now, maxi(0, int(d.get("incoming", 0)) - int(d.get("shield", 0)))))
@@ -514,6 +514,7 @@ func _sync_sizes() -> void:
 	for l in [face_word, set_delta, owner_name, owner_hp]:
 		(l as Label).add_theme_font_size_override("font_size", body)
 	part_word.add_theme_font_size_override("font_size", UI3Theme.size_of("text_key"))
+	Ui5Ellipsis.refit(owner_name)
 	for m in _marks.values():
 		size_mark(m)
 
