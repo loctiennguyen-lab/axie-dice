@@ -43,6 +43,12 @@ func _ready() -> void:
 	# (it IS the loaded main scene here) from the tree — self.get_tree() would return null
 	# afterward. Grabbing it once up front sidesteps that, without touching CombatView.gd.
 	var tree := get_tree()
+	# B2: the win is now handled one deferred call after the killing move, and this test waits for it below.
+	# change_scene_to_file() frees the current scene, which used to be this node (a coroutine on a freed node
+	# never resumes: the test hung). Park under root and stop being the current scene first.
+	await tree.process_frame
+	reparent(tree.root)
+	tree.current_scene = null
 
 	CombatView.disable_juice_for_tests = true   # see file-level JUICE comment above
 
@@ -116,6 +122,11 @@ func _ready() -> void:
 		await _play_one_turn(combat, tree)
 		steps += 1
 
+	# B2: a win is handled one deferred call after the killing move (so the reward epoch hashes it). Let that
+	# run (apply_combat_result, its save writes, the scene change) BEFORE the save guard restores below.
+	for _i in 6:
+		await tree.process_frame
+
 	print("=== t_combatview_smoke: combat ended after %d simulated turn(s), won=%s lost=%s ===" % [
 		steps, combat.won, combat.lost])
 
@@ -124,6 +135,8 @@ func _ready() -> void:
 	_check(combat.won or combat.lost, "combat never finished within %d steps" % MAX_STEPS)
 	_check(steps < MAX_STEPS, "combat ran away past %d steps" % MAX_STEPS)
 	_check(bool(_view.get("_result_shown")), "CombatView never showed a result after combat_finished")
+	_check(not combat.won or RunState.phase != RunState.RunPhase.COMBAT,
+		"won, but the deferred result handling never applied the result (phase still COMBAT)")
 
 	CombatView.disable_juice_for_tests = false   # integration tests clean up after themselves
 		# (test-standards.md) — harmless in a single-test process, but keeps this static flag
