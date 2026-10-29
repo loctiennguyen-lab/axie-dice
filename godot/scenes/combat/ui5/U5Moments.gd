@@ -128,8 +128,9 @@ static func head(v: CombatView, uid: int, frac := 1.0) -> Vector2:
 
 
 ## Centres `c` on `at`, then keeps it inside the overlay root (minus the screen margin): a tag or number placed
-## over a unit at the screen edge is pulled in instead of being drawn off screen (B7).
-static func _place_center(c: Control, at: Vector2) -> void:
+## over a unit at the screen edge is pulled in instead of being drawn off screen (B7). `rise` = how far its timeline
+## lifts it afterwards (the hit number floats up 48 px), kept free above it.
+static func _place_center(c: Control, at: Vector2, rise := 0.0) -> void:
 	c.size = c.get_combined_minimum_size()
 	c.pivot_offset = c.size * 0.5
 	c.position = at - c.size * 0.5
@@ -139,6 +140,7 @@ static func _place_center(c: Control, at: Vector2) -> void:
 	var area := Rect2(Vector2.ZERO, host.size if host.size.x > 1.0 else host.get_viewport_rect().size)
 	var m := float(UI3Theme.space("screen"))
 	area = area.grow(-m)
+	area = area.grow_side(SIDE_TOP, -maxf(rise, 0.0))
 	if area.size.x > c.size.x:
 		c.position.x = clampf(c.position.x, area.position.x, area.end.x - c.size.x)
 	if area.size.y > c.size.y:
@@ -343,11 +345,20 @@ static func float_text(v: CombatView, uid: int, text: String, css_class: String,
 	var lbl := hero_label(shown, String(l.get("size_token", "text_hero")), String(l.get("color_token", "text")))
 	lbl.name = "HitNumber"
 	r.add_child(lbl)
-	_place_center(lbl, head(v, uid) + Vector2(0.0, -40.0))
+	_place_center(lbl, head(v, uid) + Vector2(0.0, -40.0), _rise_of(l))
 	var run := UI3Motion.play_timeline(mid, {"number": lbl}, {"host": r, "only": ["number"]})
 	_track(v, mid, run)
 	_free_after(run, [lbl])
 	return true
+
+
+## How far up a moment layer moves its target (largest negative keyframe y), for _place_center.
+static func _rise_of(layer: Dictionary) -> float:
+	var up := 0.0
+	for k in layer.get("kf", []):
+		if k is Dictionary and (k as Dictionary).has("y"):
+			up = maxf(up, -float((k as Dictionary)["y"]))
+	return up
 
 
 ## Shield gained (CombatView._on_hp_changed when the shield goes up): bubble + rising glints. The "+N" is float_text.

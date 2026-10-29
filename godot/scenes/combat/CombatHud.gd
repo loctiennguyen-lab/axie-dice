@@ -712,6 +712,7 @@ func set_seed_wait(on: bool) -> void:
 					_set_dim(true))
 	else:
 		_hint.text = _hint_before_wait   # the next update_right() refreshes everything else
+		Ui5HudStyle.sync_view_chip(_hint)
 		end_turn_button.text = _end_before_wait if _end_before_wait != "" else end_turn_button.text
 		_set_dim(false)
 

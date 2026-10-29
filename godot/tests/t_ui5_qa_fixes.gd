@@ -142,6 +142,10 @@ func _combat_cases() -> void:
 	r.add_child(num)
 	U5Moments._place_center(num, Vector2(vp.size.x * 0.5, -120.0))
 	_t(vp.encloses(num.get_global_rect()), "B7: a number placed at y -120 is pulled on screen (%s)" % num.get_global_rect())
+	var rise := U5Moments._rise_of(UI3Motion.layer("big_hit", "number"))
+	U5Moments._place_center(num, Vector2(vp.size.x * 0.5, -120.0), rise)
+	_t(rise >= 40.0 and num.get_global_rect().position.y - rise >= 0.0,
+		"B7: the hit number keeps room for its %.0f px rise (top %.1f)" % [rise, num.get_global_rect().position.y])
 	num.queue_free()
 	if slot != null:
 		slot.visible = true

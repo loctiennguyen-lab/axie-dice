@@ -165,7 +165,8 @@ func _refresh_name() -> void:
 	EnemyPlate.set_text_size(_name_label, key, true, 1.2 if key == "text_title" else 1.3)
 	Ui5Ellipsis.refit(_name_label)
 	var fs := UI3Theme.size_of(key)
-	var cut := f != null and f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > avail + 0.5
+	var cut := (f != null and f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > avail + 0.5) \
+		or _name_label.text != txt   # Ui5Ellipsis cut it (measured on the label itself)
 	if _click_catcher != null:
 		if _nick != "":
 			UI3Tooltip.bind(_click_catcher, "%s (%s)" % [_nick, _orig_name])
