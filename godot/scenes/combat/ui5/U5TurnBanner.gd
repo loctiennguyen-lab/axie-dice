@@ -3,8 +3,9 @@ extends Control
 ## UI-05 b1 lane E: "Your turn" / "Enemy turn" band (data-name TurnBanner, moment-turn-banner.html).
 ## Full width, size.banner_h high at y 200, banner_player / banner_enemy fill, text_hero 56. Slides in 240 EXPO OUT,
 ## holds 500, slides out 240 QUAD IN; the label punches 0.8 -> 1.08 -> 1. Numbers: motion rows
-## turn_banner_player / turn_banner_enemy. Click or Space ends it; input is only held during the first
-## block_input_ms (240), after that the click / Space also reaches the game. Frees itself when done.
+## turn_banner_player / turn_banner_enemy. Click or Space ends it. A click is only held during the first
+## block_input_ms (240), after that it also reaches the game. On the "Your turn" band Space (and the End turn key)
+## only skips the band for its whole duration, it never also ends the turn (Liam 29/10). Frees itself when done.
 
 var run: UI3Motion.Timeline
 var label: Label
@@ -71,11 +72,15 @@ func _input(event: InputEvent) -> void:
 	if run == null or run.done:
 		return
 	var mouse := event is InputEventMouseButton and (event as InputEventMouseButton).pressed
-	var space := event is InputEventKey and (event as InputEventKey).pressed and not (event as InputEventKey).echo \
-		and (event as InputEventKey).keycode == KEY_SPACE
+	var space := false
+	if event is InputEventKey and (event as InputEventKey).pressed and not (event as InputEventKey).echo:
+		space = (event as InputEventKey).keycode == KEY_SPACE
+		if not space and player:
+			KeyBindings.ensure()
+			space = event.is_action_pressed(KeyBindings.COMBAT_END_TURN)   # a rebound End turn key: same rule as Space
 	if not (mouse or space):
 		return
 	var held := Time.get_ticks_msec() - _t0 < _block_ms
 	finish()
-	if held and is_inside_tree():
+	if (held or (space and player)) and is_inside_tree():
 		get_viewport().set_input_as_handled()

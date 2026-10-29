@@ -6,11 +6,14 @@ extends Node
 var _fails: Array[String] = []
 var _checks := 0
 var _space_seen := 0   # Space presses that got past the moment layers (U5SkipCatcher eats them mid-fight)
+var _click_seen := 0   # clicks that got past them
 
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and (event as InputEventKey).pressed and (event as InputEventKey).keycode == KEY_SPACE:
 		_space_seen += 1
+	if event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
+		_click_seen += 1
 
 
 func _ok(c: bool, m: String) -> void:
@@ -31,6 +34,7 @@ func _ready() -> void:
 	await _hitstop_case()
 	await _timeline_reduced_case()
 	await _turn_banner_case()
+	await _turn_banner_space_case()
 	await _victory_case()
 	await _skip_case()
 	await _combat_hooks_case()
@@ -358,6 +362,60 @@ func _turn_banner_case() -> void:
 	r.queue_free()
 
 
+## Liam 29/10: on the "Your turn" band Space only skips the band, for its whole duration (never ends the turn).
+## A click still reaches the game after block_input_ms. The Enemy turn band is unchanged (Space also skips the turn).
+func _turn_banner_space_case() -> void:
+	var r := Control.new()
+	r.size = Vector2(1920, 1080)
+	add_child(r)
+	MetaState.reduce_motion = false
+	var held_ms := int(UI3Motion.table().get("turn_banner_player", {}).get("block_input_ms", 240))
+	# Space well after the click hold: skips the band, eaten.
+	var done := [0]
+	var b := U5TurnBanner.show_on(r, true, func() -> void: done[0] += 1)
+	await _real_wait(held_ms / 1000.0 + 0.15)
+	_ok(is_instance_valid(b) and not b.run.done, "Your turn band already gone before the late Space (test too slow)")
+	var seen0 := _space_seen
+	var ev := InputEventKey.new()
+	ev.keycode = KEY_SPACE
+	ev.pressed = true
+	get_viewport().push_input(ev)
+	await get_tree().process_frame
+	_ok(not is_instance_valid(b) or b.is_queued_for_deletion(), "Space did not skip the Your turn band")
+	_ok(done[0] == 1, "Your turn band on_done ran %d times after Space" % done[0])
+	_ok(_space_seen == seen0, "a Space that skipped the Your turn band also reached the game (would end the turn)")
+	# Space in the first frames: eaten too.
+	var b0 := U5TurnBanner.show_on(r, true)
+	await get_tree().process_frame
+	seen0 = _space_seen
+	get_viewport().push_input(ev)
+	await get_tree().process_frame
+	_ok(not is_instance_valid(b0) or b0.is_queued_for_deletion(), "early Space did not skip the Your turn band")
+	_ok(_space_seen == seen0, "an early Space on the Your turn band reached the game")
+	# A click after the hold: skips the band and still reaches the game (unchanged).
+	var b1 := U5TurnBanner.show_on(r, true)
+	await _real_wait(held_ms / 1000.0 + 0.15)
+	var c0 := _click_seen
+	var mb := InputEventMouseButton.new()
+	mb.button_index = MOUSE_BUTTON_LEFT
+	mb.pressed = true
+	mb.position = Vector2(960, 900)
+	get_viewport().push_input(mb)
+	await get_tree().process_frame
+	_ok(not is_instance_valid(b1) or b1.is_queued_for_deletion(), "a click did not skip the Your turn band")
+	_ok(_click_seen == c0 + 1, "a late click on the Your turn band was eaten (it should still pick a die)")
+	# Enemy turn band, Space after the hold: skips the band and reaches the game (Space skips the enemy turn).
+	var b2 := U5TurnBanner.show_on(r, false)
+	await _real_wait(held_ms / 1000.0 + 0.15)
+	seen0 = _space_seen
+	get_viewport().push_input(ev)
+	await get_tree().process_frame
+	_ok(not is_instance_valid(b2) or b2.is_queued_for_deletion(), "Space did not skip the Enemy turn band")
+	_ok(_space_seen == seen0 + 1, "a late Space on the Enemy turn band was eaten (enemy turn skip lost)")
+	await get_tree().process_frame
+	r.queue_free()
+
+
 ## Victory band with Reduce motion: the band never drops (y stays), no rays, no confetti; a press ends it.
 func _victory_case() -> void:
 	var r := Control.new()
@@ -409,13 +467,14 @@ func _skip_case() -> void:
 	var run := UI3Motion.play_timeline("axie_ko", {"label": lbl}, {"host": r, "only": ["label"]})
 	c.add(run)
 	_ok(c.running(), "catcher does not see the moment")
+	var seen_before := _space_seen
 	var ev := InputEventKey.new()
 	ev.keycode = KEY_SPACE
 	ev.pressed = true
 	get_viewport().push_input(ev)
 	await get_tree().process_frame
 	_ok(run.done and not c.running(), "Space did not skip the moment")
-	_ok(_space_seen == 0, "a Space that skipped a mid-fight moment also reached the game")
+	_ok(_space_seen == seen_before, "a Space that skipped a mid-fight moment also reached the game")
 	_ok(lbl.modulate.a < 0.01, "skipped label not at its end state (alpha %f)" % lbl.modulate.a)
 	c.queue_free()
 	r.queue_free()
@@ -484,6 +543,10 @@ func _combat_hooks_case() -> void:
 	root.add_child(tg)
 	var last := UI3Motion.play_timeline("crit", {"tag": tg}, {"host": root, "only": ["tag"]})
 	U5Moments.catcher(scene).add(last)
+	for tb in root.get_children():
+		if tb is U5TurnBanner:
+			(tb as U5TurnBanner).finish(false)   # the Your turn band eats Space while it shows (Liam 29/10)
+	await get_tree().process_frame
 	var seen0 := _space_seen
 	var ev := InputEventKey.new()
 	ev.keycode = KEY_SPACE
