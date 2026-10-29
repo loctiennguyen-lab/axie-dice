@@ -415,13 +415,13 @@ func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 	_end_cap_label = _end_cap.get_node("Key") as Label
 	end_turn.add_child(_end_cap)
 	_dock.add_child(end_turn)
-	# StatusLine: one Work Sans body line on the 3D view, centred.
+	# StatusLine: one Work Sans body line on the 3D view, centred, on a small chip (B4: readable on snow / desert).
 	_hint = UI3.label("", "")
 	_hint.name = "StatusLine"
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	Ui5HudStyle.on_view(_hint)
+	Ui5HudStyle.on_view_chip(_hint)
 	_dock.add_child(_hint)
 	_apply_tokens()
 	layout()
@@ -450,7 +450,7 @@ func _apply_tokens() -> void:
 	Ui5Keycap.refresh(_end_cap)
 	_cost_chip.custom_minimum_size = Vector2(0, UI3Theme.size_of("keycap_h"))
 	(_cost_chip.find_child("Icon", true, false) as Control).custom_minimum_size = Vector2.ONE * UI3Theme.size_of("icon_s")
-	_hint.custom_minimum_size = Vector2(dock_w, 0)
+	_hint.custom_minimum_size = Vector2(0, 0)   # SHRINK_CENTER: the chip hugs the text
 
 
 ## ToolKeys row: only the unlocked tools take a slot. Each key is (dock - 3 gaps) / 4 wide unless its word needs
@@ -812,6 +812,8 @@ func layout() -> void:
 		h = vs.y
 	if not is_equal_approx(UI3Theme.current_scale(), _scale_seen):
 		_apply_tokens()   # the window scale moved (1280 text floor): every token override is read again
+	if _hint != null:
+		Ui5HudStyle.sync_view_chip(_hint)   # no chip while the StatusLine is empty
 	_top_plate.size = Vector2.ZERO
 	_top_plate.position = Vector2(UI3Theme.space("screen"), UI3Theme.space("screen"))
 	# Left column, top to bottom: RunInfo (run_pill_h) · 20 · BossRhythm (boss / elite) · 16 · Anchor chip (48) · Cores plate

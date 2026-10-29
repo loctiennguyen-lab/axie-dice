@@ -68,6 +68,39 @@ static func on_view(l: Label) -> void:
 	l.add_theme_constant_override("shadow_outline_size", 0)
 
 
+## `.on-view` on a chip (B4, QA 29/10): the bare cream text could not be read on the snow and desert biomes, so the
+## label also draws a small `chip` pill behind its text (padding space_8 / space_4). The label is SHRINK_CENTER in
+## its box so the pill hugs the word; sync_view_chip() drops the pill while the text is empty.
+static func on_view_chip(l: Label) -> void:
+	on_view(l)
+	l.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	l.set_meta("ui5_view_chip", true)
+	sync_view_chip(l)
+
+
+## The pill behind an on_view_chip label: drawn only while there is text.
+static func sync_view_chip(l: Label) -> void:
+	if l.text.strip_edges() == "":
+		if not (l.get_theme_stylebox("normal") is StyleBoxEmpty):
+			var e := StyleBoxEmpty.new()   # same padding as the pill: the line keeps its height, nothing jumps
+			e.content_margin_top = UI3Theme.space("4")
+			e.content_margin_bottom = UI3Theme.space("4")
+			l.add_theme_stylebox_override("normal", e)
+		return
+	var cur := l.get_theme_stylebox("normal")
+	if cur != null and cur.has_meta("ui5_view_chip"):
+		return
+	var sb := UI3Theme.flat(UI3Theme.color("chip"), UI3Theme.radius("pill"), 0, Color.TRANSPARENT,
+		Vector4(UI3Theme.space("8"), UI3Theme.space("4"), UI3Theme.space("8"), UI3Theme.space("4")))
+	sb.set_meta("ui5_view_chip", true)
+	l.add_theme_stylebox_override("normal", sb)
+
+
+## Horizontal room the view chip adds around the text (0 for a plain label).
+static func view_chip_pad_x(l: Label) -> float:
+	return float(UI3Theme.space("8")) * 2.0 if l.has_meta("ui5_view_chip") else 0.0
+
+
 ## Square icon, `px` from a size token, centred.
 static func icon_rect(tex: Texture2D, px: int) -> TextureRect:
 	var ic := TextureRect.new()

@@ -29,7 +29,7 @@ func _init(key_name: String, b: Button, glyph_kind: StringName, word_text: Strin
 	word.name = "Word"
 	word.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	word.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	Ui5HudStyle.on_view(word)
+	Ui5HudStyle.on_view_chip(word)   # B4: a chip behind the word, readable on snow / desert
 	add_child(word)
 	b.visibility_changed.connect(func() -> void: visible = b.visible)
 	visible = b.visible
@@ -53,11 +53,12 @@ func refresh_tokens(key_w := -1.0) -> void:
 	_style()
 
 
-## Natural width: the larger of the plate and the word at the current font size.
+## Natural width: the larger of the plate and the word (with its chip) at the current font size.
 func natural_width() -> float:
 	var f := word.get_theme_font("font")
 	var fs := word.get_theme_font_size("font_size")
 	var ww := f.get_string_size(word.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x if f != null else 0.0
+	ww += Ui5HudStyle.view_chip_pad_x(word)
 	return maxf(float(UI3Theme.size_of("tool_key")), ceilf(ww))
 
 
