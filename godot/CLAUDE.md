@@ -6,6 +6,19 @@ Baloo) **không còn đúng** cho màn đã port.
 
 ## Thiết kế nằm ở đâu
 
+- **UI-05 (29/10) là bản mới nhất, thắng UI-04 cho mọi màn nó phủ.** Combat (đợt 1) đã code: `design/handoffs/ui-05-figma/round-1/`.
+  Run (đợt 2, chưa code): `round-2/`. Đợt cuối (Land, meta, còn lại) đang làm với Claude Design.
+  - Nguồn số là HTML + `tokens.json` sinh từ `build/`. `data-name` = tên node Godot. `<!-- godot: … -->` = luật HTML không thể hiện.
+  - Đọc phần "Our edits" ở đầu `README.md` của từng round.
+  - Style A "Toy Wood" cho mọi màn, token đã gộp vào `tokens_ui3.json`.
+  - Plan và luật code UI-05: `production/ui05-b1-plan.md` + `production/ui05-b1-lane-brief.md`. Component mới để ở `scenes/combat/ui5/` (hoặc `scenes/run_map/ui5/`), không nhồi thêm vào `UI3.gd`.
+  - Luật Liam đã chốt:
+    - Chỉ hiện phím **Space**: trên nút mà Space thực sự bấm, và trên "Click or Space to skip". Các phím khác vẫn hoạt động, chỉ ghi trong tooltip.
+    - Không chọn sẵn khi chọn món để lấy hoặc mua. Nút primary bị tắt và nói lý do.
+    - **Chữ dưới hoặc cạnh icon phải căn giữa theo icon.** Có `tests/ui5_align_check.gd` để kiểm.
+    - Cỡ chữ thêm `text_hero` 56. Không có cỡ 72: số to hơn thì scale 56 lên 1.3 bằng tween.
+    - Ở 1280, chữ không nhỏ hơn 14 px thật. `UI3Theme.size_of` tự nội suy theo `layout_scale()`, kẹp ở mức 0.667.
+    - Số SET luôn làm tròn lên, lấy từ engine (`_live_face_value`), không tự tính.
 - **UI-04 round 1 (28/10) thắng UI-03 round 2** cho 13 màn nó phủ: `design/handoffs/ui-04-polish/round-1/handoff/`
   (README, components.md, motion.md, tokens.json, `screens/<id>/spec.md`, file before/after HTML). Token giờ lấy từ UI-04
   (`tokens_ui3.json` = tokens.json của UI-04). Component UI-04 dùng chung nằm cuối `UI3.gd`; motion ở `motion_ui3.json`
