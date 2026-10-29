@@ -104,6 +104,19 @@ func _ready() -> void:
 	var dock: Control = hud.get("_dock")
 	var fs := hud.get("_hint").get_theme_font_size("font_size") as int
 	_check(float(fs) * (2.0 / 3.0) >= 14.0 - 0.01, "1280: StatusLine is >= 14 real px (%d logical)" % fs)
+	# B3 (QA 29/10): a 960x540 window (scale 0.5, a small Retina window or web < 1280 CSS px) lays out EXACTLY like
+	# 1280 in logical px (the canvas just scales down), so nothing outgrows its box or overlaps.
+	var at_1280 := _rects(view)
+	_fit_checks(view, "1280")
+	for sc: float in [0.5, 0.4]:
+		UI3Theme.set_scale_override(sc)
+		view._rebuild_all()
+		for _i in 3:
+			await get_tree().process_frame
+		var now := _rects(view)
+		for k: String in at_1280:
+			_check((now.get(k, Rect2()) as Rect2).is_equal_approx(at_1280[k]), "scale %.1f: %s keeps its 1280 rect (%s vs %s)" % [sc, k, now.get(k), at_1280[k]])
+		_fit_checks(view, "scale %.1f" % sc)
 	UI3Theme.set_scale_override(1.0)
 	view._rebuild_all()
 	for _i in 3:
@@ -174,6 +187,51 @@ func _sizes(view: Node, tag: String) -> void:
 	var end := hud.end_turn_button
 	_check(absf(end.size.y - UI3Theme.size_of("btn_l")) < 0.5 and end.get_theme_font_size("font_size") == UI3Theme.size_of("text_screen_title"),
 		"%s: End turn btn_l high, text_screen_title" % tag)
+
+
+## Global rects of the HUD pieces QA saw collide at scale < 0.667 (B3).
+func _rects(view: Node) -> Dictionary:
+	var hud: CombatHud = view._hud_frame
+	var out := {}
+	for n in ["RunInfo", "AidZone", "StatusLine", "UndoKey", "HoldKey", "WildKey", "OvercastKey"]:
+		var c := view.find_child(n, true, false) as Control
+		if c != null and c.is_visible_in_tree():
+			out[n] = c.get_global_rect()
+	out["ActionDock"] = (hud.get("_dock") as Control).get_global_rect()
+	out["EndTurn"] = hud.end_turn_button.get_global_rect()
+	out["Reroll"] = hud.reroll_button.get_global_rect()
+	for i in 5:
+		var s := view.find_child("DieSlot%d" % i, true, false) as Control
+		if s != null and s.is_visible_in_tree():
+			out["DieSlot%d" % i] = s.get_global_rect()
+	return out
+
+
+## B3: everything on screen, Aid clear of the first die card, tool words apart, button text inside its button.
+func _fit_checks(view: Node, tag: String) -> void:
+	var vs: Vector2 = view.get_viewport().get_visible_rect().size
+	var screen := Rect2(Vector2.ZERO, vs)
+	var r := _rects(view)
+	for k: String in r:
+		_check(screen.encloses(r[k]), "%s: %s on screen (%s)" % [tag, k, r[k]])
+	if r.has("AidZone") and r.has("DieSlot0"):
+		_check(not (r["AidZone"] as Rect2).intersects(r["DieSlot0"]), "%s: AidZone clear of die card 1 (%s / %s)" % [tag, r["AidZone"], r["DieSlot0"]])
+	var hud: CombatHud = view._hud_frame
+	var words: Array[Rect2] = []
+	for k in ["UndoKey", "HoldKey", "WildKey", "OvercastKey"]:
+		var key := hud.find_child(k, true, false) as Ui5ToolKey
+		if key != null and key.is_visible_in_tree():
+			var w := key.word
+			var tw := w.get_theme_font("font").get_string_size(w.text, HORIZONTAL_ALIGNMENT_LEFT, -1, w.get_theme_font_size("font_size")).x
+			_check(tw <= w.size.x + 0.5, "%s: '%s' fits its word box (%.1f in %.1f)" % [tag, w.text, tw, w.size.x])
+			words.append(w.get_global_rect())
+	for i in words.size():
+		for j in range(i + 1, words.size()):
+			_check(not words[i].intersects(words[j]), "%s: tool words %d and %d do not touch" % [tag, i, j])
+	for b: Button in [hud.end_turn_button, hud.reroll_button]:
+		var f := b.get_theme_font("font")
+		var tw := f.get_string_size(b.text, HORIZONTAL_ALIGNMENT_LEFT, -1, b.get_theme_font_size("font_size")).x
+		_check(tw <= b.size.x - 2.0 * UI3Theme.space("16"), "%s: '%s' text fits its button (%.1f in %.1f)" % [tag, b.text, tw, b.size.x])
 
 
 ## Liam 29/10: text under / beside an icon is centred on the icon (<= 1.5 px), measured on the drawn text box.

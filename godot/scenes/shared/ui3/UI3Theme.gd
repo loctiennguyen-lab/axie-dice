@@ -91,7 +91,7 @@ static func size_of(token: String, fallback := -1) -> int:
 		if fallback >= 0:
 			return fallback
 		return 18 if token.begins_with("text_") else 0
-	var sc := current_scale()
+	var sc := layout_scale()
 	if sc >= 1.0:
 		return int(v)
 	var ov: Dictionary = _overrides_logical()
@@ -121,6 +121,18 @@ static func scale_for(win: Vector2, dpr := 1.0) -> float:
 	return minf(win.x / 1920.0, win.y / 1080.0) / maxf(dpr, 1.0)
 
 
+## Lowest scale the 1280 rules follow (B3, QA 29/10). Below it (a web window under 1280 CSS px, a small Retina
+## window) the 1280 sizes and the text floor are NOT pushed further: every size keeps its 1280 logical value and the
+## whole canvas just scales down with the window, so text never grows past its box.
+const MIN_LAYOUT_SCALE := 2.0 / 3.0
+
+
+## Scale the size tokens and the text floor follow: current_scale() clamped to MIN_LAYOUT_SCALE at the bottom.
+static func layout_scale() -> float:
+	var sc := current_scale()
+	return sc if sc >= 1.0 else maxf(sc, MIN_LAYOUT_SCALE)
+
+
 ## Scale in effect now: the test override, else the root window. 1.0 when there is no tree (tools).
 static func current_scale() -> float:
 	if _scale_override > 0.0:
@@ -144,7 +156,7 @@ static func set_scale_override(sc: float) -> void:
 
 ## Re-reads the window scale. True when it changed (theme already rebuilt; the caller rebuilds its layout).
 static func sync_scale() -> bool:
-	var sc := current_scale()
+	var sc := layout_scale()
 	if absf(sc - _scale_cached) < 0.02 and (sc >= 1.0) == (_scale_cached >= 1.0):
 		return false   # dragging the window edge: ignore sub-2% steps so the theme is not rebuilt every pixel
 	if is_equal_approx(sc, _scale_cached):
@@ -167,7 +179,7 @@ static func _min_text_real() -> int:
 
 ## Logical text size that is not below the real px floor at the current scale (16 -> 21 at 0.667).
 static func _text_px(logical: int) -> int:
-	var sc := current_scale()
+	var sc := layout_scale()
 	if sc >= 1.0 or float(logical) * sc >= float(_min_text_real()) - 0.01:
 		return logical
 	return int(ceil(float(_min_text_real()) / sc - 0.01))
@@ -293,7 +305,7 @@ static func get_theme() -> Theme:
 static func reset_cache() -> void:
 	_tokens = {}
 	_theme = null
-	_scale_cached = current_scale()
+	_scale_cached = layout_scale()
 	_font_display = null
 	_font_body = null
 

@@ -49,6 +49,27 @@ func _ready() -> void:
 	UI3Theme.set_scale_override(0.8)
 	var mid := float(UI3Theme.size_of("die_card_w")) * 0.8
 	_ok(mid > 116.0 and mid < 152.0 * 0.8, "scale 0.8 lies between the two ends (%.1f real)" % mid)
+	# B3 (QA 29/10): below 0.667 (web < 1280 CSS px, a small Retina window) nothing grows further. Sizes and text
+	# keep their 1280 logical values and the canvas scales down as a whole, so text never outgrows its box.
+	UI3Theme.set_scale_override(2.0 / 3.0)
+	var at_1280 := {}
+	for k: String in ["die_card_w", "dice_dock_w", "aid_w", "text_body", "text_key_hint", "text_title", "text_banner", "btn_l", "action_dock_w"]:
+		at_1280[k] = UI3Theme.size_of(k)
+	for sc: float in [0.6, 0.5, 0.4, 1.0 / 3.0]:
+		UI3Theme.set_scale_override(sc)
+		_ok(is_equal_approx(UI3Theme.layout_scale(), 2.0 / 3.0) and UI3Theme.is_small(), "scale %.3f: layout scale clamped at 0.667, still small" % sc)
+		for k: String in at_1280:
+			_ok(UI3Theme.size_of(k) == int(at_1280[k]), "scale %.3f: %s keeps its 1280 value %d (got %d)" % [sc, k, at_1280[k], UI3Theme.size_of(k)])
+		_ok(UI3Theme.get_theme() == th and th.default_font_size == 21 and th.get_font_size("body", "Label") == 21,
+			"scale %.3f: theme text stays 21 logical (not blown up to %d)" % [sc, int(ceil(14.0 / sc))])
+	UI3Theme.set_scale_override(0.5)
+	_ok(UI3Theme.size_of("text_body") == 21 and UI3Theme.size_of("die_card_w") == 174, "scale 0.5: text 21 / card 174 logical, i.e. 10.5 / 87 real px, uniform")
+	UI3Theme.set_scale_override(0.4)
+	_ok(UI3Theme.size_of("dice_dock_w") == 918 and UI3Theme.size_of("aid_w") == 342, "scale 0.4: dock 918 / aid 342 logical")
+	UI3Theme.set_scale_override(0.5)
+	_ok(not UI3Theme.sync_scale(), "0.5 -> 0.5: nothing to rebuild")
+	UI3Theme.set_scale_override(0.4)
+	_ok(not UI3Theme.sync_scale(), "0.5 -> 0.4: the layout scale did not move, no rebuild")
 	UI3Theme.set_scale_override(1.0)
 	_ok(UI3Theme.get_theme() == th and th.default_font_size == 18 and UI3Theme.size_of("die_card_w") == 152, "back to 1920: theme and sizes restored")
 	_ok(not UI3Theme.sync_scale(), "sync_scale reports no change when nothing moved")
