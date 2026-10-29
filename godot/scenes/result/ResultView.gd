@@ -330,7 +330,9 @@ func _best_set_line(stats: Dictionary) -> Control:
 		l.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
 	else:
 		l.text = tr("Best set") + ": %s x%d  %s" % [V4Ui.part_name(int(b.get("part", 0))), int(b["size"]), V4Ui.mult_text(int(b["m100"]))]
-		l.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
+		# B5 (QA 29/10): accent_text is the ink for text ON an amber fill (#291808, ~1.2:1 on the walnut plate). On a plate
+		# the highlight is the amber `accent` itself, like the "New title" line above.
+		l.add_theme_color_override("font_color", UI3Theme.color("accent"))
 	return l
 
 
