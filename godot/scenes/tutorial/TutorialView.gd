@@ -420,7 +420,12 @@ func _enemy_rect() -> Rect2:
 			box = r if box.size == Vector2.ZERO else box.merge(r)
 	if box.size == Vector2.ZERO:
 		return Rect2()
-	box = box.grow_individual(46.0, 6.0, 46.0, 6.0)
+	# UI-05 (B11, QA 29/10): the target is the EnemyPlate in the right column (the head HUD is retired), so the lit
+	# area hugs the plate by space_8 and stays on screen; the old 46 px side margin ran past the right edge.
+	var g := float(UI3Theme.space("8"))
+	box = box.grow(g)
+	var vp := _view.get_viewport_rect() if _view.is_inside_tree() else Rect2(Vector2.ZERO, Vector2(1920, 1080))
+	box = box.intersection(vp) if vp.intersects(box) else box
 	return box
 
 
