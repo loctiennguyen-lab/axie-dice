@@ -47,6 +47,9 @@ func _open(kind: String, node_id: String, pw: int) -> Node:
 	get_tree().root.add_child(scene)
 	for _i in 90:
 		await get_tree().process_frame
+	# Real time, not frames: the boss band (~2 s, boss only), the Your turn band (~1 s), the intent reveal and the
+	# hider's restore must be over, or the shot catches the intents hidden / mid-pop (frames run fast in a capture).
+	await get_tree().create_timer(4.5 if kind == "boss" else 2.5).timeout
 	scene._land_dice_now()
 	return scene
 
