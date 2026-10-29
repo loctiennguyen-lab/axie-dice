@@ -16,6 +16,9 @@ var _fails: Array[String] = []
 var _checks := 0
 
 
+const Align := preload("res://tests/ui5_align_check.gd")
+
+
 func _check(ok: bool, msg: String) -> void:
 	_checks += 1
 	if not ok:
@@ -162,6 +165,8 @@ func _sizes(view: Node, tag: String) -> void:
 	_check(absf(dr.size.x - UI3Theme.size_of("action_dock_w")) < 0.5 and absf(dr.end.x - (vs.x - edge)) < 0.5 and absf(dr.end.y - (vs.y - edge)) < 0.5,
 		"%s: ActionDock action_dock_w wide at the bottom-right margin (%s in %s)" % [tag, dr, vs])
 	var zone := view.find_child("AidZone", true, false) as Control
+	_align(hud, "%s HUD" % tag)
+	_align(zone, "%s AidZone" % tag)
 	var zr := zone.get_global_rect()
 	_check(absf(zr.size.x - UI3Theme.size_of("aid_w")) < 0.5 and absf(zr.position.x - edge) < 0.5 and absf(zr.end.y - (vs.y - edge)) < 0.5,
 		"%s: AidZone aid_w wide at the bottom-left margin (%s, aid_w %d)" % [tag, zr, UI3Theme.size_of("aid_w")])
@@ -169,3 +174,11 @@ func _sizes(view: Node, tag: String) -> void:
 	var end := hud.end_turn_button
 	_check(absf(end.size.y - UI3Theme.size_of("btn_l")) < 0.5 and end.get_theme_font_size("font_size") == UI3Theme.size_of("text_screen_title"),
 		"%s: End turn btn_l high, text_screen_title" % tag)
+
+
+## Liam 29/10: text under / beside an icon is centred on the icon (<= 1.5 px), measured on the drawn text box.
+func _align(root: Node, tag: String) -> void:
+	var probs := Align.check(root, 1.5, tag + ": ")
+	_check(Align.pairs(root) > 0, "%s: the centring check measured no icon / label pair" % tag)
+	for pr in probs:
+		_check(false, pr)

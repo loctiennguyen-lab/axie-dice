@@ -11,6 +11,9 @@ var _checks := 0
 var _fails: Array[String] = []
 
 
+const Align := preload("res://tests/ui5_align_check.gd")
+
+
 func _check(ok: bool, msg: String) -> void:
 	_checks += 1
 	if not ok:
@@ -99,6 +102,7 @@ func _states(tag: String) -> void:
 	await _settle()
 	_check(card.set_ring.visible and _border(card.set_ring) == UI3Theme.color("set_a"), "%s: SET a ring" % tag)
 	_check(_bg(card.part_chip) == UI3Theme.color("set_a") and card.part_word.get_theme_color("font_color") == UI3Theme.color("set_text"), "%s: filled PartChip" % tag)
+	_align(card, "%s SET card" % tag)
 	_check(card.set_delta.text == SetPreview.delta_text(2, 5) and card.set_delta.get_theme_color("font_color") == UI3Theme.color("set_delta"), "%s: preview 2 → 5 (shown '%s', size %s, fonts %s)" % [tag, card.set_delta.text, card.size, UI3Theme.fonts_are_final()])
 	_row_fits(card, tag + " set")
 	# second SET colour
@@ -126,6 +130,15 @@ func _states(tag: String) -> void:
 		and mr.position.y == -10.0, "%s: marks hang 10 px off the die corner" % tag)
 	_check(mr.get_global_rect().position.x >= card.get_global_rect().position.x, "%s: marks never hang past the card's left edge" % tag)
 	_check(is_equal_approx(tm.size.y, float(UI3Theme.size_of("keycap_h"))), "%s: mark keycap_h" % tag)
+	_align(card, "%s marks card" % tag)
+	# SetBanner (plain and with OVERCAST): glyph, "SET OF 4", ×M and the part word centred on the glyph.
+	for oc in [false, true]:
+		var sb := SetBanner.new()
+		add_child(sb)
+		sb.setup(1, 4, 220, "set_a", UI3.icon("face_dmg"), oc)
+		await _settle()
+		_align(sb, "%s SetBanner%s" % [tag, " overcast" if oc else ""])
+		sb.queue_free()
 	card = _paint(content, _base({"held": true}))
 	_check(card.mark(&"held") != null and card.mark(&"held").visible and card.mark(&"held").name == "HeldMark" and not card.mark(&"temp").visible, "%s: HELD mark only" % tag)
 	btn.queue_free()
@@ -151,6 +164,10 @@ func _dock(v: Node, tag: String) -> void:
 	var front: Label = v._row_strip.find_child("FrontLabel", false, false)
 	_check(front != null and front.visible and is_equal_approx(front.position.y, TrayColumn.header_top(vs.y)), "%s: FRONT on the DiceHeader row" % tag)
 	_check(dock.get_theme_stylebox("panel") is StyleBoxEmpty, "%s: no panel behind the dice" % tag)
+	var cards_root: Node = (v._die_slot_buttons[0] as Node).get_parent() if not v._die_slot_buttons.is_empty() else dock
+	_align(cards_root, "%s dock" % tag)
+	if not bl.banners().is_empty():
+		_align(bl.row, "%s SetBanners" % tag)
 	for bnr in bl.banners():
 		var sl: Label = bnr.find_child("SizeLabel", true, false)
 		_check(sl.get_theme_font_size("font_size") == UI3Theme.size_of("text_body"), "%s: SetBanner text follows the scale" % tag)
@@ -233,3 +250,11 @@ func _ready() -> void:
 	for f in _fails:
 		print("t_die_card_states: FAIL - %s" % f)
 	get_tree().quit(1)
+
+
+## Liam 29/10: text under / beside an icon is centred on the icon (<= 1.5 px), measured on the drawn text box.
+func _align(root: Node, tag: String) -> void:
+	var probs := Align.check(root, 1.5, tag + ": ")
+	_check(Align.pairs(root) > 0, "%s: the centring check measured no icon / label pair" % tag)
+	for pr in probs:
+		_check(false, pr)
