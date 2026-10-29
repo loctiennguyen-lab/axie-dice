@@ -4588,6 +4588,11 @@ func _on_defeat_continue() -> void:
 		return
 	if _defeat != null:
 		_defeat.visible = false
+	# The fight goes on: undo what the defeat set. _finish(false) raised _result_shown, and while it stays up
+	# _still_running() is false, so the next End turn logged `end_turn` and then quit before the enemy phase
+	# (stuck on "Waiting…"), and _save_run_progress() skipped every save. _on_combat_finished() faded the music out.
+	_result_shown = false
+	_audio.start_music(String(_setup.get("node_id", "")), String(_setup.get("kind", "")) == "boss")
 	_rebuild_all()
 	_save_run_progress()
 
