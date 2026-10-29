@@ -56,7 +56,7 @@ func _ready() -> void:
 	_check(card.find_child("CardBack", true, false) == null, "cover gone after flip")
 	var c2: Control = rm._reward_cards[0]
 	_check(c2.has_meta("prism_accent") and c2.find_child("PrismFrame", true, false) != null, "Crystal card has the prism frame")
-	_check((c2.find_child("RewardName", true, false) as Label).theme_type_variation == "LabelTitle", "Crystal name is size 24")
+	_check((c2.find_child("RewardName", true, false) as Label).get_theme_font_size("font_size") == UI3Theme.size_of("text_screen_title"), "card name is text_screen_title (UI-05)")
 	# Skip: new offer, then a click.
 	RunState.pending_rewards = []
 	rm._close_overlay()

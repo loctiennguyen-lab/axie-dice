@@ -45,8 +45,8 @@ func _ready() -> void:
 	_check(RunState._core_offer_active and not RunState.pending_rewards.is_empty(), "Core offer 1 is pending after the rule pick")
 	var cards := _cards(rm)
 	_check(cards.size() >= 3, "Core offer overlay shows >= 3 Core cards (got %d)" % cards.size())
-	var t: Node = rm._overlay_root.find_child("RewardTitle", true, false) if rm._overlay_root != null else null
-	_check(t != null and (t as Label).text == "CHOOSE A CORE", "overlay title says CHOOSE A CORE")
+	var t: Node = rm._overlay_root.find_child("Title", true, false) if rm._overlay_root != null else null
+	_check(t != null and (t as Label).text == "Choose a Core", "overlay title says Choose a Core")
 	var shot := OS.get_environment("AXIE_SHOT")
 	if shot != "" and DisplayServer.get_name() != "headless":
 		await _frames(20)

@@ -440,13 +440,13 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 	RunState.pending_rewards = [chaos, curse]
 	runmap.call("_show_reward_overlay", "CHOOSE A REWARD")
 	await get_tree().process_frame
-	_assert(runmap.find_child("TradeBox_gain", true, false) != null and runmap.find_child("TradeBox_gamble", true, false) != null
-		and runmap.find_child("TradeBox_curse", true, false) != null, "chaos/curse cards show TradeBoxes")
+	_assert(runmap.find_child("GainBox", true, false) != null and runmap.find_child("GambleBox", true, false) != null
+		and runmap.find_child("CurseBox", true, false) != null, "chaos/curse cards show TradeBoxes")
 	var reroll_before := RunState.bonus_reroll
 	runmap.call("_select_reward", 1)
 	runmap.call("_take_selected_reward")
 	await get_tree().process_frame
-	_assert(runmap.find_child("LastingConfirm", true, false) != null, "curse Take asks for confirmation")
+	_assert(runmap.find_child("ConfirmBar", true, false) != null, "curse Take asks for confirmation")
 	_assert(RunState.bonus_reroll == reroll_before and RunState.pending_rewards.size() == 2, "curse not applied before confirm")
 	runmap.call("_close_overlay")
 	await get_tree().process_frame
