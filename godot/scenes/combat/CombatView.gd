@@ -3013,6 +3013,8 @@ func _on_undo_pressed() -> void:
 	# SR0: one seed request in flight = no other dice action (never queue a second action on an unknown result)
 	if _combat.epoch_pending:
 		return
+	if _result_shown:   # B2: the fight is decided (win finish is deferred a frame) - no undo may log after it
+		return
 	_land_dice_now()   # dice still in the air land first: no tags / pending cards for an undone roll
 	_exit_rr_mode(false)
 	_reroll_prev.clear()
