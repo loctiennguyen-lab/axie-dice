@@ -6,7 +6,19 @@ Table: `motion_ui3.json`. Every row carries `trigger`, `skip`, `reduce_flash`, `
 (or pass `skip` on the first call). Reduce motion is applied inside `play()`.
 Fields the engine does NOT run yet (the screen plays them): `delay_per_index_ms`, `fly_to*`, `count_up_ms`, `number_pop`,
 `slowmo`, `camera_push_in`, `rays`, `wobble`, `hop`, `squash`, `pulse`, `flip_x`, `scrim_*`, `reveal_card`.
-Helpers: `UI3Motion.hitstop(node, ms)`, `UI3Motion.sweep(parent, delay_ms)`.
+Helpers: `UI3Motion.hitstop(node, ms)` (restore timer on the SceneTree, capped at 200 ms; `end_hitstop()` restores
+at once), `UI3Motion.sweep(parent, delay_ms, ms, width, alpha, color_token, fade)`.
+
+## UI-05 timelines (batch 1 combat moments)
+The ten combat moments (`hit`, `crit`, `big_hit`, `axie_ko`, `shield_gain`, `turn_banner_player`,
+`turn_banner_enemy`, `intent_reveal`, `boss_phase`, `victory`, `defeat`) carry a `layers` array: one row per layer of
+`design/handoffs/ui-05-figma/round-1/motion-batch1.md`, same ms / delay / trans / ease / values / Reduce-motion rule.
+Play with `UI3Motion.play_timeline(id, {target: node}, opts)` (opts: `host`, `shake` Callable(px, sec), `only` /
+`except` layer names, `reduced`, `skip`, `on_done`); it returns a `UI3Motion.Timeline` (`skip()`, `done`, `finished`).
+Keyframe `t` is a share of the layer's time; trans/ease shape each segment. Layers whose target is a 3D node or
+another lane's node (`enemy_3d`, `hp_fill`, `card`, ...) are data only. The combat screen plays them through
+`scenes/combat/ui5/U5Moments.gd` (+ `U5TurnBanner`, `U5VictoryBand`, `U5KoStamp`, `U5SkipCatcher`).
+Gate: `t_reduce_motion_rest` checks every row against the tables.
 
 ## 02-combat / 30-defeat-panel
 - `die_select`, `die_drop`, `die_used`
