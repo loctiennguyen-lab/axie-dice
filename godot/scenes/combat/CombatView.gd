@@ -3114,10 +3114,10 @@ func _on_hit_landed(src_uid: int, uid: int, value: int, crit: bool) -> void:
 	_append_log("[hit] %s -> %s : %d%s" % [_unit_name(src_uid), _unit_name(uid), value, " CRIT" if crit else ""])
 	_record_recap(src_uid, uid, value)
 	_after_impact(func():
-		if is_instance_valid(_stage3d):
-			_stage3d.play_hit_reaction(uid)   # `uid` is whoever just TOOK this hit — see
-				# CombatStage3D.play_hit_reaction()'s own comment for the damage_pipeline.gd cross-check
 		var mid := _hit_moment_id(uid, value, crit)
+		if is_instance_valid(_stage3d):
+			_stage3d.play_hit_reaction(uid, mid == "big_hit")   # `uid` is whoever just TOOK this hit — see
+				# CombatStage3D.play_hit_reaction()'s own comment for the damage_pipeline.gd cross-check
 		U5Moments.on_hit(self, uid, mid)   # UI-05 lane E: tag, flash, sweep, sparks, hit-stop (motion rows hit/crit/big_hit)
 		_play_hit_juice(mid))
 
@@ -3147,10 +3147,24 @@ func _on_face_used(uid: int, _side: String, target_uid: int, aoe: bool, face_par
 		# (class, key, boss flag) and the face's body part. The stage only needs to know
 		# whether it came out ranged, which decides lunge vs plant-and-fire.
 		var vfx_key := _vfx_key_for(uid, face_part, face_type)
-		_stage3d.play_action(uid, face_type, target_uid, vfx_key)   # "ra chiêu" — clip/pace
-			# varies by face_type (_ACTION_ANIM_BY_TYPE), and `target_uid` is what lets the
-			# lunge aim at the unit being hit instead of just stepping forward
+		var emph := _anim_emphasis(uid)
+		_stage3d.play_action(uid, face_type, target_uid, vfx_key, face_part, emph[0], emph[1])
+			# "ra chiêu" — clip/pace by face type, die part and Set/Overcast (CombatAnim), and
+			# `target_uid` is what lets the lunge aim at the unit being hit
 		_play_skill_vfx(uid, target_uid, vfx_key, face_type)
+
+## [in a Set, Overcast] for the die that was just used — only picks the attack clip (view only;
+## reads the engine's Set snapshot `bo` and the die's `overcast` flag, writes nothing).
+func _anim_emphasis(uid: int) -> Array:
+	var u := _combat.by_uid(uid) if _combat != null else null
+	if u == null or u.side != "p":
+		return [false, false]
+	var in_set := false
+	for g in _combat.bo:
+		if ((g as Dictionary).get("uids", []) as Array).has(uid):
+			in_set = true
+			break
+	return [in_set, bool(u.overcast)]
 
 func _on_resonance_triggered(uid: int) -> void:
 	_append_log("[resonance] %s" % _unit_name(uid))
@@ -3477,6 +3491,10 @@ func _on_boss_phase_changed(uid: int) -> void:
 
 func _on_enemy_intent_executed(uid: int) -> void:
 	_append_log("[eact] %s executes intent" % _unit_name(uid))
+	var e := _combat.by_uid(uid) if _combat != null else null
+	if e != null and is_instance_valid(_stage3d) and int(e.status.get("stun", 0)) <= 0 \
+			and String(e.intent.get("charge", "")) == "start":
+		_stage3d.play_charge_roar(uid)   # a boss gathering its charge roars (view only)
 	_end_turn_acting_uid = uid   # §5.1a: END_TURN vignette pool follows whichever enemy is
 		# currently resolving its intent — reset when leaving END_TURN, see _on_turn_phase_changed()
 	_rebuild_all()
@@ -3500,6 +3518,12 @@ func _on_turn_phase_changed(old_phase: int, new_phase: int) -> void:
 		# then the intent reveal; the blocks stay hidden until it pops them.
 		U5Moments.hide_intents(self, UI3Motion.timeline_sec("turn_banner_player", UI3Motion.reduced()))
 		U5Moments.turn_banner(self, true, func() -> void: _reveal_intents.call_deferred())
+		if is_instance_valid(_stage3d):
+			var alive: Array = []
+			for pu in _combat.party:
+				if pu.hp > 0:
+					alive.append(pu.uid)
+			_stage3d.play_turn_fidget(alive, _combat.turn)   # one Axie fidgets (view only)
 
 ## Intent reveal (after the turn banner): each enemy's intent block pops in, 80 ms x enemy index.
 func _reveal_intents() -> void:
@@ -3720,6 +3744,7 @@ func _update_portrait(u: Unit) -> void:
 	p.set_incoming(_incoming_damage_for(u))
 	p.update_stats(u.hp, u.max_hp, u.shield, u.status)
 	_stage3d.set_alive(u.uid, u.hp > 0)
+	_stage3d.set_stunned(u.uid, u.hp > 0 and int(u.status.get("stun", 0)) > 0)
 	if u.side == "e":
 		_update_enemy_plate(p, u)
 		p.set_leader(bool(u.custom_state.get("alpha", false)) and u.hp > 0)
