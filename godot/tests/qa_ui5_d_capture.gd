@@ -13,7 +13,9 @@ var _suffix := ""
 
 func _ready() -> void:
 	_guard.capture()
-	_out = ProjectSettings.globalize_path("res://").path_join("../production/qa/ui05-b1/d").simplify_path()
+	_out = OS.get_environment("UI5_SHOT_DIR")   # integration shots go elsewhere, not over the lane's files
+	if _out == "":
+		_out = ProjectSettings.globalize_path("res://").path_join("../production/qa/ui05-b1/d").simplify_path()
 	DirAccess.make_dir_recursive_absolute(_out)
 	var small := get_window().size.x < 1600
 	_suffix = "--1280" if small else ""

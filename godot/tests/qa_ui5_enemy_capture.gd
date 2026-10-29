@@ -11,7 +11,9 @@ var _out := ""
 
 func _ready() -> void:
 	_guard.capture()
-	_out = ProjectSettings.globalize_path("res://").path_join("../production/qa/ui05-b1/c").simplify_path()
+	_out = OS.get_environment("UI5_SHOT_DIR")   # integration shots go elsewhere, not over the lane's files
+	if _out == "":
+		_out = ProjectSettings.globalize_path("res://").path_join("../production/qa/ui05-b1/c").simplify_path()
 	DirAccess.make_dir_recursive_absolute(_out)
 	RunState.start_new_run(424242, ["plant1", "beast1", "aqua1", "reptile1", "bug1"], "short", 6, false)
 	await get_tree().process_frame

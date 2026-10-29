@@ -21,6 +21,8 @@ func _ready() -> void:
 	RunState.start_new_run(424242, ["plant1", "beast1", "aqua1", "reptile1", "bug1"], "short", 6, false)
 	await get_tree().process_frame
 	var size := get_window().size
+	# Pin the design scale (a Retina Mac reads the window px as physical: 1920 would be 0.5), like lanes A-D.
+	UI3Theme.set_scale_override(1.0 if size.x >= 1600 else 2.0 / 3.0)
 	RunState.enter_node("r4_c0", "battle")
 	var scene: CombatView = (load("res://scenes/combat/Combat.tscn") as PackedScene).instantiate()
 	get_tree().root.add_child(scene)
@@ -86,6 +88,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	Engine.time_scale = 1.0
 	MetaState.reduce_motion = was_reduce
+	UI3Theme.set_scale_override(-1.0)
 	_guard.restore()
 	get_tree().quit(0)
 
