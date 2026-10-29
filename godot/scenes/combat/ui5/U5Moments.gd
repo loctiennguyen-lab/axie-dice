@@ -97,27 +97,52 @@ static func shake_cb(v: CombatView) -> Callable:
 
 # ---------------------------------------------------------------- anchors
 
-## Canvas point at `frac` of unit `uid`'s height (1 = just above the head), from the 3D stage. Falls back to the
-## top centre of its plate, then the screen centre.
+## Meta on the CombatView: {"uid:frac": last canvas point head() found on the 3D stage}.
+const HEAD_META := &"_u5_head_seen"
+
+
+## Canvas point at `frac` of unit `uid`'s height (1 = just above the head), from the 3D stage. Each answer is kept
+## per uid and frac (meta on the view), because a killing blow hides the unit's slot before its number and BIG HIT
+## tag are placed (B7, QA 29/10): then the last known point is used, else the centre of its plate, else the
+## screen centre. Never the plate TOP: the plates sit at the top edge, so tag offsets put it off screen.
 static func head(v: CombatView, uid: int, frac := 1.0) -> Vector2:
+	var seen: Dictionary = v.get_meta(HEAD_META, {})
+	var key := "%d:%.2f" % [uid, frac]
 	var u: Unit = v._combat.by_uid(uid) if v._combat != null else null
 	var st: CombatStage3D = v._stage3d
 	if u != null and is_instance_valid(st):
 		var h: float = CombatStage3D.AXIE_HEAD_HEIGHT if u.side == "p" else st.head_height_of(uid, CombatStage3D.HEAD_HEIGHT)
 		var p := st.get_unit_screen_pos(uid, h * frac)
 		if p.x >= 0.0:
-			return st.global_position + p
+			seen[key] = st.global_position + p
+			v.set_meta(HEAD_META, seen)
+			return seen[key]
+	if seen.has(key):
+		return seen[key]
 	var pt: Variant = v._portraits.get(uid)
 	if pt is Control and is_instance_valid(pt):
 		var r := (pt as Control).get_global_rect()
-		return Vector2(r.get_center().x, r.position.y)
+		if r.size.x > 0.0 and r.size.y > 0.0:
+			return r.get_center()
 	return root(v).size * 0.5
 
 
+## Centres `c` on `at`, then keeps it inside the overlay root (minus the screen margin): a tag or number placed
+## over a unit at the screen edge is pulled in instead of being drawn off screen (B7).
 static func _place_center(c: Control, at: Vector2) -> void:
 	c.size = c.get_combined_minimum_size()
 	c.pivot_offset = c.size * 0.5
 	c.position = at - c.size * 0.5
+	var host := c.get_parent() as Control
+	if host == null:
+		return
+	var area := Rect2(Vector2.ZERO, host.size if host.size.x > 1.0 else host.get_viewport_rect().size)
+	var m := float(UI3Theme.space("screen"))
+	area = area.grow(-m)
+	if area.size.x > c.size.x:
+		c.position.x = clampf(c.position.x, area.position.x, area.end.x - c.size.x)
+	if area.size.y > c.size.y:
+		c.position.y = clampf(c.position.y, area.position.y, area.end.y - c.size.y)
 
 
 ## An empty 0x0 Control at `at`: particles burst from it.
@@ -434,11 +459,7 @@ static func turn_banner(v: CombatView, player: bool, on_done := Callable()) -> v
 		if on_done.is_valid():
 			on_done.call()
 		return
-	for old in root(v).get_children():
-		if old is U5TurnBanner:
-			(old as U5TurnBanner).finish(false)   # its reveal belongs to a turn that is already over
-		elif old is U5BossBand:
-			(old as U5BossBand).finish(false)
+	clear_turn_bands(v)   # its reveal belongs to a turn that is already over
 	if player and v._boss_band_due:
 		# A boss fight's first turn: the boss intro band over the arena first, then the Your turn band (U5BossBand).
 		v._boss_band_due = false
@@ -536,10 +557,25 @@ static func intent_bighit(v: CombatView, p_in: UnitPortrait, delay_sec: float) -
 		v.get_tree().create_timer(delay_sec).timeout.connect(start)
 
 
+## Finishes a Your turn / Enemy turn band or boss intro band still on screen, without running its on_done (the
+## intent reveal of a turn that is over). Called by turn_banner, and when the fight ends (B8, QA 29/10: a win in
+## the first second of a turn put the Victory band on top of the Your turn band).
+static func clear_turn_bands(v: Node) -> void:
+	var layer := v.get_node_or_null(LAYER_NAME) if v != null and is_instance_valid(v) else null
+	if layer == null:
+		return
+	for old in (layer.get_node("Root") as Node).get_children():
+		if old is U5TurnBanner:
+			(old as U5TurnBanner).finish(false)
+		elif old is U5BossBand:
+			(old as U5BossBand).finish(false)
+
+
 ## Victory (CombatView._on_combat_finished, won): the Victory band over a dimmed scene. Stays until end_victory.
 static func victory(v: CombatView) -> void:
 	if not on(v):
 		return
+	clear_turn_bands(v)
 	end_victory(v)
 	var sub := "" if v._tutorial else TranslationServer.translate("%s cleared") % v._fight_title()
 	U5VictoryBand.show_on(root(v), sub, shake_cb(v))
@@ -580,6 +616,7 @@ static func _victory_band(v: Node) -> U5VictoryBand:
 static func defeat(v: CombatView) -> void:
 	if not on(v) or v._defeat == null or not is_instance_valid(v._defeat):
 		return
+	clear_turn_bands(v)
 	var lt := UI3Motion.layer("defeat", "tint")
 	var tint := overlay(String(lt.get("color_token", "danger_bg")), "DefeatTint")
 	v._defeat.add_child(tint)
