@@ -93,8 +93,10 @@ func _ready() -> void:
 	hud.update_right({"enabled": false}, {"n": 0, "max": 0, "cost": 1, "enabled": false}, {"sub": "0 dice unused", "enabled": false, "resolving": true})
 	_ok(e1.text == "Enemy turn" and hud._hint.text == CombatHud.ENEMY_TEXT and hud._end_cap.visible, "enemy turn: 'Enemy turn', 'Enemies are acting', Space stays")
 	hud.update_right({"enabled": true}, {"n": 0, "max": 0, "cost": 1, "enabled": false}, {"sub": "5 dice unused", "enabled": true, "resolving": false})
-	_ok(r1.text == "Reroll · need 1 MP" and r1.icon == null and not hud._cost_chip.visible and hud._hint.text == "Reroll: need 1 MP",
-		"short of mana: 'Reroll · need 1 MP', no glyph/chip, StatusLine says why")
+	_ok(r1.text == "Reroll · need 1 MP" and r1.icon == null and not hud._cost_chip.visible and hud._hint.text == "5 dice unused",
+		"short of mana: 'Reroll · need 1 MP', no glyph/chip; StatusLine keeps '5 dice unused' (it outranks the reroll reason)")
+	hud.update_right({"enabled": true}, {"n": 0, "max": 0, "cost": 1, "enabled": false}, {"sub": "0 dice unused", "unused": 0, "enabled": true, "resolving": false})
+	_ok(hud._hint.text == "Reroll: need 1 MP", "short of mana, no die unused: StatusLine says why ('%s')" % hud._hint.text)
 	hud.update_right({"enabled": true}, {"n": 0, "max": 0, "cost": 2, "enabled": true}, {"sub": "5 dice unused", "enabled": true, "resolving": false, "picked": true})
 	_ok(r1.text == "Reroll" and hud._cost_chip.visible and (hud._cost_chip.find_child("Amount", true, false) as Label).text == "2" and hud._hint.text == CombatHud.PICK_TEXT,
 		"paid reroll: 'Reroll' + mana CostChip 2; a picked die says 'Pick a target'")

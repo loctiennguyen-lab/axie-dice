@@ -1183,7 +1183,7 @@ func _update_hud() -> void:
 		{"n": _combat.rerolls, "max": _combat.max_rerolls, "cost": rr_cost, "tip": rr_tip, "stakes": stakes,
 		 "capped": _combat.rerolls <= 0 and not _combat.reroll_is_payable(),
 		 "enabled": executing and (_combat.rerolls > 0 or rr_paid_ok)},
-		{"sub": "%d dice unused" % unused,
+		{"sub": "%d dice unused" % unused, "unused": unused,
 		 "warn": has_unused and executing,
 		 "resolving": _combat.phase != CombatPhase.EXECUTE,
 		 "picked": executing and _selected_die_uid != -1,

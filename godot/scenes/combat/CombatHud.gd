@@ -607,8 +607,9 @@ func place_attrition(pos: Vector2) -> void:
 
 ## ActionDock texts + enabled states. Disabled buttons say why (UI3 rule).
 ## undo: {enabled, sub}  reroll: {n, max, cost, tip, stakes, capped, enabled}
-## end: {sub, warn, enabled, resolving, picked}  hold / overcast / wild: {show, enabled, text, tip[, on]}
-## StatusLine (HTML frames): Waiting for the server > Enemies are acting > Pick a target > Reroll: need N MP > sub.
+## end: {sub, unused, warn, enabled, resolving, picked}  hold / overcast / wild: {show, enabled, text, tip[, on]}
+## StatusLine: Waiting for the server > Enemies are acting > Pick a target > N dice unused > Reroll: need N MP > sub.
+## end.unused (int) says how many dice are unused; without it the number at the head of end.sub is used.
 func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary, hold: Dictionary = {}, overcast: Dictionary = {}, wild: Dictionary = {}) -> void:
 	if undo_button == null:
 		return
@@ -659,11 +660,13 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary, hold: D
 	for k in _tool_keys:
 		k.ensure_style()
 		k.sync_dim()
+	# Liam 29/10: "N dice unused" outranks "Reroll: need N MP" (the Reroll button already says "need N MP").
+	var unused := int(end.get("unused", String(end.get("sub", "")).to_int()))
 	if resolving:
 		_hint.text = TranslationServer.translate(ENEMY_TEXT)
 	elif bool(end.get("picked", false)):
 		_hint.text = TranslationServer.translate(PICK_TEXT)
-	elif need_mp:
+	elif need_mp and unused <= 0:
 		_hint.text = TranslationServer.translate("Reroll: need %d MP") % cost
 	else:
 		_hint.text = String(end.get("sub", ""))
