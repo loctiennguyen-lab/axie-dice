@@ -626,6 +626,13 @@ func _tile(def: Dictionary) -> Control:
 		_:
 			b.text = "Reach LV %d" % lv if season_phase() != "over" else "Not claimed"
 			b.disabled = true
+	# B6 (QA 29/10, minimal until the Pass redesign): at 1280 the 21 px text floor made "Next · needs 500 XP" set the
+	# column width, so the six columns plus the detail plate ran past the right edge. The button no longer sizes the
+	# tile; a long state ends in "…" with the whole text in the tooltip (the detail plate says it too).
+	b.clip_text = true
+	b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	if b.tooltip_text == "":
+		b.tooltip_text = b.text
 	b.focus_entered.connect(select_level.bind(lv))
 	b.mouse_entered.connect(select_level.bind(lv))
 	v.add_child(b)
