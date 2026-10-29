@@ -61,7 +61,7 @@ static var VICTORY := _s("FlagAttack", 1.5, 0.15)     ## arms out and spin befor
 static var FIDGET := _s("StaffSkill", 1.0)             ## a turn-start "hmm" by one Axie
 const STUN := "Stun"
 const HIT := "IdleGetHit"
-const VICTORY_CHEER_SEC := 0.55   ## how long the cheer holds the slot before the run starts
+const VICTORY_CHEER_SEC := 0.45   ## cheer length at the start of the run (march time unchanged)
 
 
 static func norm_part(part: String) -> String:

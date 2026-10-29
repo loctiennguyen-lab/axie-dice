@@ -3487,14 +3487,12 @@ func _on_float_text(uid: int, text: String, css_class: String, big: int) -> void
 func _on_boss_phase_changed(uid: int) -> void:
 	_append_log("[phase] boss %s changed phase" % _unit_name(uid))
 	U5Moments.boss_phase(self, uid)   # UI-05 lane E (motion row boss_phase)
+	if is_instance_valid(_stage3d):
+		_stage3d.play_roar(uid)   # the Chimera roars into its new phase (view only)
 	_rebuild_all()
 
 func _on_enemy_intent_executed(uid: int) -> void:
 	_append_log("[eact] %s executes intent" % _unit_name(uid))
-	var e := _combat.by_uid(uid) if _combat != null else null
-	if e != null and is_instance_valid(_stage3d) and int(e.status.get("stun", 0)) <= 0 \
-			and String(e.intent.get("charge", "")) == "start":
-		_stage3d.play_charge_roar(uid)   # a boss gathering its charge roars (view only)
 	_end_turn_acting_uid = uid   # §5.1a: END_TURN vignette pool follows whichever enemy is
 		# currently resolving its intent — reset when leaving END_TURN, see _on_turn_phase_changed()
 	_rebuild_all()

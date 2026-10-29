@@ -107,9 +107,9 @@ func _boss() -> void:
 	await get_tree().create_timer(0.45).timeout
 	await _shot("boss-Attack", boss.uid)
 	await get_tree().create_timer(1.6).timeout
-	_stage.play_charge_roar(boss.uid)
+	_stage.play_roar(boss.uid)
 	await get_tree().create_timer(0.7).timeout
-	await _shot("boss-Roar-charge", boss.uid)
+	await _shot("boss-Roar-phase", boss.uid)
 	await _close()
 
 

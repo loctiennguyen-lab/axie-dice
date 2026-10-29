@@ -192,7 +192,7 @@ func _test_stage(tree: SceneTree) -> void:
 	var f2 := _current_clip(stage, 2)
 	_check((f1 == "StaffSkill") != (f2 == "StaffSkill"), "turn fidget: %s / %s (want exactly one StaffSkill)" % [f1, f2])
 	# Victory: cheer first, then Run.
-	stage.play_victory_march([1, 2], 1.0, 0.3)
+	stage.play_victory_march([1, 2], 1.0, 1.0)
 	await tree.process_frame
 	var v := _current_clip(stage, 1)
 	_check(v == "FlagAttack" or UI3Motion.reduced(), "victory starts with %s, not the FlagAttack cheer" % v)

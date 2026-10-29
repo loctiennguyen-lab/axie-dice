@@ -1805,10 +1805,12 @@ func play_turn_fidget(uids: Array, turn: int) -> void:
 	entry["oneshot"] = CombatAnim.play_spec(character.playable, CombatAnim.FIDGET, false, _resume_idle.bind(uid))
 
 
-## A boss gathering a charge roars (its Roar clip, when the model ships one). View only.
-func play_charge_roar(uid: int) -> void:
+## A boss entering a new phase roars (its Roar clip; only the Chimera bosses ship one). View only,
+## and not under Reduce motion.
+func play_roar(uid: int) -> void:
 	var entry: Dictionary = _units.get(uid, {})
-	if CombatView.disable_juice_for_tests or entry.is_empty() or bool(entry.get("dying", false)):
+	if CombatView.disable_juice_for_tests or UI3Motion.reduced() or entry.is_empty() \
+			or bool(entry.get("dying", false)):
 		return
 	var atia: Dictionary = entry.get("atia", {})
 	if atia.has("player") and (atia.get("anims", {}) as Dictionary).has("roar"):
@@ -2164,6 +2166,10 @@ func play_death(uid: int) -> void:
 	if character != null and is_instance_valid(character):
 		playable = character.playable
 	var atia: Dictionary = entry.get("atia", {})
+	var aplayer := atia.get("player") as AnimationPlayer
+	if aplayer != null and is_instance_valid(aplayer):
+		aplayer.speed_scale = 1.0   # a stunned monster's groggy idle speed must not slow its death
+			# clip: the fade timer below is sized from the clip length at normal speed
 	if not CombatView.disable_juice_for_tests and atia.has("player"):
 		var secs := _atia_play(atia, "die")
 		if secs > 0.0:
@@ -2257,8 +2263,9 @@ func play_victory_march(uids: Array, distance: float, duration: float) -> void:
 	_exit_tween = tw
 	var moved := false
 	var reduced := UI3Motion.reduced()
-	# Victory cheer (CombatAnim.VICTORY: arms out, spin) before the run. Not under Reduce motion,
-	# which keeps the old instant cut. Skip (skip_victory_march) fast-forwards it with the rest.
+	# Victory cheer (CombatAnim.VICTORY: arms out, spin) for the first beat of the run, then Run.
+	# It rides the run's slow ease-in start instead of delaying it, so the march still takes exactly
+	# `duration` (CombatView and the raid screen wait on it). Not under Reduce motion.
 	var cheer := 0.0 if reduced else CombatAnim.VICTORY_CHEER_SEC
 	for uid in uids:
 		var entry: Dictionary = _units.get(uid, {})
@@ -2298,7 +2305,7 @@ func play_victory_march(uids: Array, distance: float, duration: float) -> void:
 			# No slide: units stay put; the scene change after the await is the cut.
 			tw.tween_interval(UI3Motion.REDUCED_MAX_SEC)
 		else:
-			tw.tween_property(slot, "position", target, duration).set_delay(cheer) \
+			tw.tween_property(slot, "position", target, duration) \
 				.set_trans(Tween.TRANS_SINE if not to_gate else Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		moved = true
 	if not moved:
@@ -2310,7 +2317,7 @@ func play_victory_march(uids: Array, distance: float, duration: float) -> void:
 		_ensure_flash()
 		_flash.color.a = 0.0
 		tw.tween_property(_flash, "color:a", 1.0, _EXIT_FLASH) \
-			.set_delay(cheer + maxf(duration - _EXIT_FLASH, 0.0)).set_ease(Tween.EASE_IN)
+			.set_delay(maxf(duration - _EXIT_FLASH, 0.0)).set_ease(Tween.EASE_IN)
 	await tw.finished
 	_exit_tween = null
 
