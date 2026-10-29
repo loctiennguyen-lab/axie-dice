@@ -71,6 +71,8 @@ var _music_player: AudioStreamPlayer = null
 var _sfx_players: Array[AudioStreamPlayer] = []
 var _next_voice: int = 0
 var _silent: bool = false
+## The one music fade in flight (in or out); killed before the next one starts.
+var _music_tween: Tween = null
 
 ## uid -> voice class (a CombatAudio.CLASS_TO_KIT key), filled by `register_unit()`. The
 ## director needs a unit's voice when `hit_landed` fires, and that payload carries only uids.
@@ -211,19 +213,27 @@ func start_music(node_id: String, is_boss: bool) -> void:
 	if stream == null:
 		push_warning("CombatAudioDirector: battle music failed to load: %s" % path)
 		return
+	_kill_music_tween()   # a fade-out still running (Continue right after a defeat) would stop the new track
 	_music_player.stream = stream
 	_music_player.volume_db = -40.0
 	_music_player.play()
-	var tween := create_tween()
-	tween.tween_property(_music_player, "volume_db", 0.0, MUSIC_FADE_IN_SEC)
+	_music_tween = create_tween()
+	_music_tween.tween_property(_music_player, "volume_db", 0.0, MUSIC_FADE_IN_SEC)
 
 
 func stop_music() -> void:
 	if _silent or _music_player == null or not _music_player.playing:
 		return
-	var tween := create_tween()
-	tween.tween_property(_music_player, "volume_db", -40.0, MUSIC_FADE_OUT_SEC)
-	tween.tween_callback(_music_player.stop)
+	_kill_music_tween()
+	_music_tween = create_tween()
+	_music_tween.tween_property(_music_player, "volume_db", -40.0, MUSIC_FADE_OUT_SEC)
+	_music_tween.tween_callback(_music_player.stop)
+
+
+func _kill_music_tween() -> void:
+	if _music_tween != null and _music_tween.is_valid():
+		_music_tween.kill()
+	_music_tween = null
 
 
 # ===========================================================================

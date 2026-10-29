@@ -36,6 +36,7 @@ func _ready() -> void:
 	EventBus.enemy_intent_executed.connect(func(_uid: int) -> void: _intents += 1)
 	await _case(false)
 	await _case(true)
+	await _case_stale()
 	for f in _fails:
 		print("t_continue_then_end_turn: FAIL — %s" % f)
 	_guard.restore()
@@ -62,8 +63,8 @@ func _frail(c: CombatEngine) -> void:
 			(u as Unit).hp = 1
 
 
-func _case(paid: bool) -> void:
-	var tag := "paid" if paid else "free"
+## Fresh run + real Combat.tscn on an elite node; free sample Continue left unless `paid`.
+func _open_view(paid: bool) -> CombatView:
 	RunState.start_new_run(RUN_SEED, TEAM, "short", 0, false)
 	RunState.current_node_id = NODE_ID
 	MetaState.runs = 10
@@ -85,6 +86,12 @@ func _case(paid: bool) -> void:
 	add_child(v)
 	for _i in 3:
 		await _tree.process_frame
+	return v
+
+
+func _case(paid: bool) -> void:
+	var tag := "paid" if paid else "free"
+	var v := await _open_view(paid)
 	var c: CombatEngine = v._combat
 	_check(c != null and not c.lost, "%s: fight built" % tag)
 	if c == null:
@@ -166,6 +173,54 @@ func _case(paid: bool) -> void:
 	_check(applied == fns.size() and fns.has("continue"), "%s: log and tape agree (%d tape, %s)" % [tag, applied, str(fns)])
 	_check(JSON.stringify(twin.to_data()) == JSON.stringify(c.to_data()), "%s: UI fight equals the engine replay" % tag)
 
+	v.queue_free()
+	for _i in 3:
+		await _tree.process_frame
+
+
+## Review follow-up: a defeat landing while End turn's enemy phase is still parked on a pacing timer, and
+## Continue pressed in the same frame. The old coroutine must not move any enemy or finish a turn on the
+## revived party when its timer fires. (The engine only raises a defeat inside finish_end_turn(), after
+## those timers, so this is forced with _check_end(): a guard test, not a real flow. No replay check.)
+func _case_stale() -> void:
+	var tag := "stale"
+	var v := await _open_view(false)
+	var c: CombatEngine = v._combat
+	_check(c != null and c.enemies.size() > 0, "%s: fight built" % tag)
+	if c == null:
+		return
+	_intents = 0
+	v._on_end_turn_pressed()   # not awaited: it parks on the enemy-step timer
+	for _i in 300:
+		await _tree.process_frame
+		if _intents > 0:
+			break
+	_check(_intents > 0 and c.phase == CombatEngine.CombatPhase.END_TURN, "%s: enemy phase under way" % tag)
+	var turn_before := c.turn
+	for u in c.party:
+		if not (u as Unit).is_token:
+			(u as Unit).hp = 0
+	c._check_end()
+	_check(c.lost and v._defeat != null and v._defeat.visible, "%s: defeat panel up mid-phase" % tag)
+	if v._defeat == null:
+		v.queue_free()
+		return
+	var cont: Button = v._defeat.find_child("Continue", true, false)
+	cont.pressed.emit()   # same frame
+	_check(not c.lost and c.phase == CombatEngine.CombatPhase.EXECUTE, "%s: Continue took" % tag)
+	var acted := _intents
+	var gap := CombatView.enemy_step_gap()
+	await _tree.create_timer(gap * float(c.enemies.size() + 2) + 0.5).timeout
+	await _settle(v)
+	_check(_intents == acted, "%s: no enemy moved after Continue (%d -> %d)" % [tag, acted, _intents])
+	_check(c.turn == turn_before and c.phase == CombatEngine.CombatPhase.EXECUTE and not c.lost,
+		"%s: still the revived player turn (turn %d -> %d, phase %d)" % [tag, turn_before, c.turn, c.phase])
+	_check(not v._end_turn_button.disabled, "%s: End turn usable" % tag)
+	_intents = 0
+	await v._on_end_turn_pressed()
+	await _settle(v)
+	_check(_intents > 0 and (c.lost or (c.turn == turn_before + 1 and c.phase == CombatEngine.CombatPhase.EXECUTE)),
+		"%s: the next End turn plays normally (turn %d, phase %d)" % [tag, c.turn, c.phase])
 	v.queue_free()
 	for _i in 3:
 		await _tree.process_frame

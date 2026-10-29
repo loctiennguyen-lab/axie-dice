@@ -290,6 +290,9 @@ var _hud: Dictionary = {}           # cached hud_state() for this rebuild
 var _selected_die_uid: int = -1
 var _log_lines: Array = []
 var _result_shown: bool = false
+## Bumped by every successful Continue. An End turn coroutine started before it (still parked on an enemy
+## pacing timer) sees a different number after its await and stops, instead of resuming on the revived fight.
+var _fight_epoch: int = 0
 var _max_rerolls: int = 0
 
 # --- R1 HUD (Dice UI R1). The frame (top HUD, attrition, right zone) is `CombatHud`, built once by
@@ -3089,8 +3092,9 @@ func _on_end_turn_pressed() -> void:
 	_selected_die_uid = -1
 	_clear_all_previews()
 	_end_turn_button_lock(true)
+	var fe := _fight_epoch
 	var et: Dictionary = await _combat.request_begin_end_turn()
-	if not _still_running():
+	if not _still_running(fe):
 		return
 	if _hud_frame != null:
 		_hud_frame.set_seed_wait(false)
@@ -3101,8 +3105,8 @@ func _on_end_turn_pressed() -> void:
 			NetNotice.show(self, String(et["code"]), _on_end_turn_pressed, "Could not send your turn")
 		return
 	_rebuild_all()   # the phase flip and the turn banner go up BEFORE the first enemy moves
-	await _run_enemy_phase()
-	if not _still_running():
+	await _run_enemy_phase(fe)
+	if not _still_running(fe):
 		return
 	_combat.finish_end_turn()
 	_rebuild_all()
@@ -3117,7 +3121,7 @@ func _on_end_turn_pressed() -> void:
 ##
 ## The trailing wait matters as much as the ones between: `finish_end_turn()` ticks poison and
 ## burn, and without it those numbers would land on top of the last attacker's own.
-func _run_enemy_phase() -> void:
+func _run_enemy_phase(fe: int = -1) -> void:
 	var gap := enemy_step_gap()
 	var i := 0
 	while i < _combat.enemies.size():
@@ -3126,17 +3130,18 @@ func _run_enemy_phase() -> void:
 		i += 1
 		if gap > 0.0 and i < _combat.enemies.size():
 			await get_tree().create_timer(gap).timeout
-			if not _still_running():
+			if not _still_running(fe):
 				return
-	if gap > 0.0 and _still_running():
+	if gap > 0.0 and _still_running(fe):
 		await get_tree().create_timer(gap).timeout
 
 
 ## Whether this scene is still the one playing. Every `await` above can come back after a
 ## killing blow has already ended the fight and changed scene (_finish()), and touching
 ## `_combat` or the portraits after that is a crash, not a cosmetic bug.
-func _still_running() -> bool:
-	return is_inside_tree() and _combat != null and not _result_shown
+## `fe` (optional): the _fight_epoch the caller started under; a Continue since then counts as not running.
+func _still_running(fe: int = -1) -> bool:
+	return is_inside_tree() and _combat != null and not _result_shown and (fe < 0 or fe == _fight_epoch)
 
 
 func _on_log_toggle_pressed() -> void:
@@ -4592,6 +4597,7 @@ func _on_defeat_continue() -> void:
 	# _still_running() is false, so the next End turn logged `end_turn` and then quit before the enemy phase
 	# (stuck on "Waiting…"), and _save_run_progress() skipped every save. _on_combat_finished() faded the music out.
 	_result_shown = false
+	_fight_epoch += 1
 	_audio.start_music(String(_setup.get("node_id", "")), String(_setup.get("kind", "")) == "boss")
 	_rebuild_all()
 	_save_run_progress()
