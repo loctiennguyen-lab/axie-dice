@@ -484,34 +484,10 @@ const CHEST_HEIGHT := _CLICK_TARGET_HEIGHT
 const HEAD_HEIGHT := 1.55 * UNIT_SCALE
 const AXIE_HEAD_HEIGHT := 1.3 * UNIT_SCALE   ## status chips of party Axies sit just above the real head
 
-## Per-face-type action clip/pace table (ui-programmer follow-up pass — user report: "chỉ dùng
-## WalkAttack cho MỌI hành động — nhàm chán"). Face `type` strings are exactly the rule spec's die-
-## face types (godot-port-rule-spec.md §2: dmg/shield/heal/mana/poison/buff/debuff/summon/blank);
-## this table only picks among the 11 REAL clips this addon ships (anim_names.gd) — no new clip is
-## invented. Two families, matching the rule spec's own "Ally targeting" split (§2: shield/heal/
-## buff/mana/summon are self/ally-directed, dmg/poison/debuff are enemy-directed):
-##  - enemy-directed (dmg/poison/debuff) -> an *Attack clip (unit visibly closes on its target).
-##    `dmg` is untouched (WalkAttack @ 1.0, "giữ như cũ" per the task brief). poison/debuff ALSO
-##    switch clip (WalkAttack -> RunAttack), not just speed, so they read as a genuinely different
-##    action from a plain damage swing, not the same pose in slow motion.
-##  - self/ally-directed (shield/heal/buff/mana/summon) -> IdleCarryItem (stationary — none of
-##    these ever target an enemy, so the unit must never "lao về phía trước"), differentiated only
-##    by `time_scale`: heal slowest/gentlest, shield/buff a crisp equip-pop, mana the quickest (a
-##    one-beat "cantrip" self-trigger), summon neutral.
-## Any face_type not listed here (covers "blank" and any future/unrecognized type) falls through to
-## _DEFAULT_ACTION_ANIM — the exact pre-existing WalkAttack/1.0 behavior, so nothing regresses for
-## a type this table doesn't recognize.
-const _ACTION_ANIM_BY_TYPE := {
-	"dmg": {"clip": AnimNames.WalkAttack, "time_scale": 1.0},
-	"poison": {"clip": AnimNames.RunAttack, "time_scale": 0.7},
-	"debuff": {"clip": AnimNames.RunAttack, "time_scale": 0.85},
-	"shield": {"clip": AnimNames.IdleCarryItem, "time_scale": 1.05},
-	"buff": {"clip": AnimNames.IdleCarryItem, "time_scale": 1.05},
-	"heal": {"clip": AnimNames.IdleCarryItem, "time_scale": 0.8},
-	"mana": {"clip": AnimNames.IdleCarryItem, "time_scale": 1.35},
-	"summon": {"clip": AnimNames.IdleCarryItem, "time_scale": 1.0},
-}
-const _DEFAULT_ACTION_ANIM := {"clip": AnimNames.WalkAttack, "time_scale": 1.0}
+## Action clip choice lives in CombatAnim (scenes/shared/combat_anim.gd): by face type, die part
+## and Set/Overcast, over the 9 base clips plus 12 baked weapon-package clips.
+## Atia monsters ship no stun clip: a stunned one plays its idle at this speed instead.
+const _ATIA_STUN_SPEED := 0.35
 
 ## ── "Ra chiêu" MOTION (2026-09-21) ────────────────────────────────────────────────────────
 ## The clip table above only reaches units that HAVE a rig. Every monster in the game is a
@@ -999,7 +975,11 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 				# returning to Idle. play_death() deliberately clears this back to "" so the Dead
 				# clip does NOT auto-resume Idle afterward — see that method's own comment.
 				character.playable.set_default(AnimNames.Idle)
-				character.playable.play(AnimNames.Idle, "", true)
+				# Extra body clips (CombatAnim): part-specific attacks, casts, victory cheer.
+				CombatAnim.register_extras(character)
+				# Each Axie starts its Idle at its own phase/pace so a row of five does not
+				# breathe in lockstep (view-only hash of the uid).
+				CombatAnim.play_spec(character.playable, _idle_spec(uid), true)
 			visual = character.root
 			character.root.scale = Vector3.ONE * UNIT_SCALE * (_BOSS_SCALE if is_named_boss else 1.0)
 			shadow_width = _CHARACTER_SHADOW_WIDTH_M * UNIT_SCALE * (_BOSS_SCALE if is_named_boss else 1.0)
@@ -1764,18 +1744,15 @@ func set_targetable(uid: int, v: bool) -> void:
 	slot.scale = Vector3.ONE * (1.08 if v else 1.0)
 
 
-## Action ("ra chiêu") reaction — EventBus.face_used handler, CombatView._on_face_used(). Picks a
-## clip + playback speed from _ACTION_ANIM_BY_TYPE keyed by the die face's own `type` (see that
-## table's comment) instead of always WalkAttack. Relies on the same set_default(Idle)/
-## advance_on_complete() built-in return-to-default path armed in spawn_unit() above — no timer
-## needed, AxiePlayable auto-resumes the looping Idle clip once the one-shot clip's last frame
-## plays out; an on_complete callback is only wired when time_scale != 1.0, to restore normal
-## speed before Idle resumes (see _on_action_time_scale_reset()). No-op for the capsule
-## placeholder fallback (no rig to animate) and for a unit already mid-death-sequence.
-## `target_uid` is optional and defaults to -1 ("no single target") so the pre-existing two-arg
-## call in tests/qa_action_variety_capture.gd keeps working unchanged.
+## Action ("ra chiêu") reaction — EventBus.face_used handler, CombatView._on_face_used(). The clip
+## comes from CombatAnim.pick_action(): face type first (shield/heal/buff/mana/summon/poison/debuff
+## each have their own non-WalkAttack motion), then for damage the die's body part (horn headbutt,
+## back throw, tail swipe, ...) and Set/Overcast (spin combo / jump slam). Its on_complete returns
+## the unit to its own Idle/Stun loop (_resume_idle()). No-op for the capsule placeholder and for a
+## unit already mid-death-sequence. `target_uid` defaults to -1 ("no single target") so the old
+## two-arg call in tests/qa_action_variety_capture.gd keeps working unchanged.
 func play_action(uid: int, face_type: String = "", target_uid: int = -1,
-		vfx_key: String = "") -> void:
+		vfx_key: String = "", face_part: String = "", big := false, overcast := false) -> void:
 	var entry: Dictionary = _units.get(uid, {})
 	if entry.is_empty() or bool(entry.get("dying", false)):
 		return
@@ -1788,22 +1765,113 @@ func play_action(uid: int, face_type: String = "", target_uid: int = -1,
 	# sheet alongside the lunge. No-op for anything with a real rig.
 	_play_sheet(entry, "attack")
 	if not CombatView.disable_juice_for_tests and (entry.get("atia", {}) as Dictionary).has("player"):
-		_atia_play(entry["atia"], "attack")
+		var atia: Dictionary = entry["atia"]
+		# Bosses ship a Cast clip: a face that does not hit anybody casts instead of swinging.
+		var slot_name := "attack"
+		if face_type != "dmg" and face_type != "" and (atia.get("anims", {}) as Dictionary).has("cast"):
+			slot_name = "cast"
+		_atia_play(atia, slot_name)
 	var character: AxieCharacter3D = entry.get("character")
 	if character == null or not is_instance_valid(character) or character.playable == null:
 		return
 	var playable: AxiePlayable = character.playable
-	playable.time_scale = 1.0   # defensive reset — see _on_action_time_scale_reset() comment;
-		# guards against a previous slowed/sped-up one-shot's on_complete never having fired yet
-		# (e.g. this same unit's play_action() is called again before its last clip finished).
-	var anim: Dictionary = _ACTION_ANIM_BY_TYPE.get(face_type, _DEFAULT_ACTION_ANIM)
-	var clip := String(anim["clip"])
-	var scale := float(anim["time_scale"])
-	if is_equal_approx(scale, 1.0):
-		playable.play(clip, "", false)
-	else:
-		playable.time_scale = scale
-		playable.play(clip, "", false, Callable(self, "_on_action_time_scale_reset").bind(uid))
+	playable.time_scale = 1.0   # defensive: per-clip pace now rides on AnimPlayParams.time_scale
+	# Which clip: face type, then the die's body part, then Set/Overcast (CombatAnim). The seed is a
+	# per-unit action counter, never the run RNG, so replays and results cannot move.
+	var n := int(entry.get("acts", 0)) + 1
+	entry["acts"] = n
+	var spec := CombatAnim.pick_action(face_type, face_part, big, overcast,
+		CombatAnim.hash3(uid, n, 0), UI3Motion.reduced())
+	entry["last_clip"] = String(spec["clip"])
+	var track := CombatAnim.play_spec(playable, spec, false, _resume_idle.bind(uid))
+	if track == null:
+		# Extra clip missing on this body (bake not shipped): the base attack, never a T-pose.
+		entry["last_clip"] = AnimNames.WalkAttack
+		track = CombatAnim.play_spec(playable, CombatAnim.DEFAULT_SPEC, false, _resume_idle.bind(uid))
+	entry["oneshot"] = track
+
+
+## Idle spec for one unit (CombatAnim.idle_params): Idle, or the Stun loop while stunned.
+func _idle_spec(uid: int) -> Dictionary:
+	var entry: Dictionary = _units.get(uid, {})
+	if bool(entry.get("stunned", false)):
+		return {"clip": CombatAnim.STUN, "time_scale": 1.0, "start": 0.0}
+	var ip := CombatAnim.idle_params(uid)
+	return {"clip": AnimNames.Idle, "time_scale": ip["time_scale"], "start": ip["start"]}
+
+
+## on_complete of every one-shot (action, hit, fidget): back to this unit's own Idle/Stun loop.
+## Taking over here (instead of AxiePlayable's plain default) keeps the per-unit phase/pace and
+## picks Stun when the unit got stunned meanwhile. Never after death (play_death() replaces the
+## current track, so this callback cannot fire for a dying unit).
+func _resume_idle(uid: int) -> void:
+	var entry: Dictionary = _units.get(uid, {})
+	if entry.is_empty() or bool(entry.get("dying", false)) or bool(entry.get("marching", false)):
+		return
+	entry["oneshot"] = null
+	var character: AxieCharacter3D = entry.get("character")
+	if character == null or not is_instance_valid(character) or character.playable == null:
+		return
+	CombatAnim.play_spec(character.playable, _idle_spec(uid), true)
+
+
+## True while a one-shot (action/hit/fidget) is still playing on this unit's rig.
+func _oneshot_active(entry: Dictionary) -> bool:
+	var character: AxieCharacter3D = entry.get("character")
+	var tr = entry.get("oneshot")
+	if tr == null or character == null or not is_instance_valid(character) or character.playable == null:
+		return false
+	return character.playable.is_track_active(tr as AnimTrack)
+
+
+## Stunned / frozen look (CombatView._update_portrait(), every rebuild, so it must be idempotent).
+## Rig: the body's own Stun loop replaces Idle (now, or when the running one-shot ends). Atia
+## models ship no stun clip: their idle slows to a groggy crawl instead.
+func set_stunned(uid: int, on: bool) -> void:
+	var entry: Dictionary = _units.get(uid, {})
+	if entry.is_empty() or bool(entry.get("dying", false)) or bool(entry.get("stunned", false)) == on:
+		return
+	entry["stunned"] = on
+	if CombatView.disable_juice_for_tests:
+		return
+	var character: AxieCharacter3D = entry.get("character")
+	if character != null and is_instance_valid(character) and character.playable != null:
+		character.playable.set_default(CombatAnim.STUN if on else AnimNames.Idle)
+		if not _oneshot_active(entry):
+			CombatAnim.play_spec(character.playable, _idle_spec(uid), true)
+	var atia: Dictionary = entry.get("atia", {})
+	var player := atia.get("player") as AnimationPlayer
+	if player != null and is_instance_valid(player):
+		player.speed_scale = _ATIA_STUN_SPEED if on else 1.0
+
+
+## Turn-start fidget: one idle Axie (picked by a hash of the turn, view only) does a short
+## "hmm" gesture so the row is not five copies of the same breathing loop. Skipped under Reduce
+## motion and for anyone stunned, busy or dead.
+func play_turn_fidget(uids: Array, turn: int) -> void:
+	if CombatView.disable_juice_for_tests or UI3Motion.reduced() or uids.is_empty():
+		return
+	var uid := int(uids[CombatAnim.hash3(turn, uids.size(), 3) % uids.size()])
+	var entry: Dictionary = _units.get(uid, {})
+	if entry.is_empty() or bool(entry.get("dying", false)) or bool(entry.get("stunned", false)) \
+			or _oneshot_active(entry):
+		return
+	var character: AxieCharacter3D = entry.get("character")
+	if character == null or not is_instance_valid(character) or character.playable == null:
+		return
+	entry["oneshot"] = CombatAnim.play_spec(character.playable, CombatAnim.FIDGET, false, _resume_idle.bind(uid))
+
+
+## A boss entering a new phase roars (its Roar clip; only the Chimera bosses ship one). View only,
+## and not under Reduce motion.
+func play_roar(uid: int) -> void:
+	var entry: Dictionary = _units.get(uid, {})
+	if CombatView.disable_juice_for_tests or UI3Motion.reduced() or entry.is_empty() \
+			or bool(entry.get("dying", false)):
+		return
+	var atia: Dictionary = entry.get("atia", {})
+	if atia.has("player") and (atia.get("anims", {}) as Dictionary).has("roar"):
+		_atia_play(atia, "roar")
 
 
 ## The lunge/cast Tween — see the _LUNGE_* constant block for the design and for why this
@@ -2060,25 +2128,12 @@ func _pulse_eye_light(tw: Tween, entry: Dictionary) -> void:
 	tw.tween_property(lamp, "light_energy", _EYE_LIGHT_ENERGY, _CAST_RISE * 1.5) 		.set_delay(_CAST_DIP).set_trans(Tween.TRANS_SINE)
 
 
-## Restores normal (1.0) playback speed once a slowed/sped-up one-shot action clip (see
-## _ACTION_ANIM_BY_TYPE above) finishes. Needed because `time_scale` is a property of the whole
-## AxiePlayable, not of one clip — without this, the auto-resumed looping Idle clip would keep
-## breathing at that same altered speed indefinitely.
-func _on_action_time_scale_reset(uid: int) -> void:
-	var entry: Dictionary = _units.get(uid, {})
-	if entry.is_empty():
-		return
-	var character: AxieCharacter3D = entry.get("character")
-	if character != null and is_instance_valid(character) and character.playable != null:
-		character.playable.time_scale = 1.0
-
-
-## Hit reaction — EventBus.hit_landed handler, CombatView._on_hit_landed(). Same auto-return-to-
-## Idle mechanism as play_action() above (no callback/timer). `uid` here is the unit that just
+## Hit reaction — EventBus.hit_landed handler, CombatView._on_hit_landed(). Same return-to-Idle
+## callback as play_action() above (_resume_idle()). `heavy` = CombatView's big_hit moment. `uid` here is the unit that just
 ## TOOK the hit (damage_pipeline.gd emits hit_landed(src_uid, uid, value, crit) with `uid` as the
 ## target — confirmed by reading both of that file's emit sites, including the thorns/reflect one
 ## where the roles are swapped but `uid` is still whoever is receiving THIS particular hit).
-func play_hit_reaction(uid: int) -> void:
+func play_hit_reaction(uid: int, heavy := false) -> void:
 	var entry: Dictionary = _units.get(uid, {})
 	if entry.is_empty() or bool(entry.get("dying", false)):
 		return
@@ -2089,7 +2144,11 @@ func play_hit_reaction(uid: int) -> void:
 			_atia_flinch(entry)   # no GetHit clip for this model: squash + recoil in code
 	if character == null or not is_instance_valid(character) or character.playable == null:
 		return
-	character.playable.play(AnimNames.IdleGetHit, "", false)
+	# A big hit staggers longer; ordinary hits get a small per-hit pace spread (view-only hash).
+	var n := int(entry.get("hits", 0)) + 1
+	entry["hits"] = n
+	entry["oneshot"] = CombatAnim.play_spec(character.playable,
+		CombatAnim.pick_hit(heavy, CombatAnim.hash3(uid, n, 1)), false, _resume_idle.bind(uid))
 
 
 ## Code-driven hit reaction for Atia models that ship no GetHit clip (chomper, bruiser,
@@ -2166,6 +2225,10 @@ func play_death(uid: int) -> void:
 	if character != null and is_instance_valid(character):
 		playable = character.playable
 	var atia: Dictionary = entry.get("atia", {})
+	var aplayer := atia.get("player") as AnimationPlayer
+	if aplayer != null and is_instance_valid(aplayer):
+		aplayer.speed_scale = 1.0   # a stunned monster's groggy idle speed must not slow its death
+			# clip: the fade timer below is sized from the clip length at normal speed
 	if not CombatView.disable_juice_for_tests and atia.has("player"):
 		var secs := _atia_play(atia, "die")
 		if secs > 0.0:
@@ -2259,6 +2322,10 @@ func play_victory_march(uids: Array, distance: float, duration: float) -> void:
 	_exit_tween = tw
 	var moved := false
 	var reduced := UI3Motion.reduced()
+	# Victory cheer (CombatAnim.VICTORY: arms out, spin) for the first beat of the run, then Run.
+	# It rides the run's slow ease-in start instead of delaying it, so the march still takes exactly
+	# `duration` (CombatView and the raid screen wait on it). Not under Reduce motion.
+	var cheer := 0.0 if reduced else CombatAnim.VICTORY_CHEER_SEC
 	for uid in uids:
 		var entry: Dictionary = _units.get(uid, {})
 		if entry.is_empty() or bool(entry.get("dying", false)):
@@ -2272,9 +2339,16 @@ func play_victory_march(uids: Array, distance: float, duration: float) -> void:
 		_stop_action_motion(entry)   # the winning blow's lunge must not tween the slot back
 			# to its mark while the march is walking it off the field
 		var character: AxieCharacter3D = entry.get("character")
+		entry["marching"] = true   # _resume_idle() must not put a cheering/running Axie back to Idle
 		if character != null and is_instance_valid(character) and character.playable != null:
-			character.playable.set_default(AnimNames.Run)
-			character.playable.play(AnimNames.Run, "", true)
+			var pl: AxiePlayable = character.playable
+			pl.set_default(AnimNames.Run)
+			if cheer > 0.0 and CombatAnim.play_spec(pl, CombatAnim.VICTORY) != null:
+				tw.tween_callback(func() -> void:
+					if is_instance_valid(character) and character.playable != null:
+						character.playable.play(AnimNames.Run, "", true)).set_delay(cheer)
+			else:
+				pl.play(AnimNames.Run, "", true)
 		var target: Vector3
 		if to_gate:
 			# Converge on the gate (x pulled to 15% of the row spread so five Axies fit the
