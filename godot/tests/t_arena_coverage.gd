@@ -99,8 +99,9 @@ func _check_framing(journey: Array) -> void:
 	var stage: CombatStage3D = load("res://scenes/shared/CombatStage3D.tscn").instantiate()
 	add_child(stage)
 	await get_tree().process_frame
-	# Frame the camera the way CombatView does at 1920x1080 (top bar 60, deck 204, stage band from 10% of the rest).
-	stage.frame_band(1080.0, 141.6, 876.0)
+	# Frame the camera the way CombatView does at 1920x1080 (CombatView.stage_band: band ends 16 px over the DieCards).
+	var band := CombatView.stage_band(1080.0)
+	stage.frame_band(1080.0, band.x, band.y)
 	for b in journey:
 		for boss in [false, true]:
 			stage.set_arena(String(b), boss)

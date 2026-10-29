@@ -40,7 +40,8 @@ func _case(key: String) -> void:
 	stage.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	stage.size = Vector2(1920, 1080)
 	await get_tree().process_frame
-	stage.frame_band(1080.0, 140.4, 876.0)
+	var band := CombatView.stage_band(1080.0)   # the band CombatView uses at 1920x1080
+	stage.frame_band(1080.0, band.x, band.y)
 	stage.set_encounter_kind("boss")
 	stage.set_arena("savannah", true)
 	var party: Array = []

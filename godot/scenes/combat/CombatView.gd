@@ -2375,7 +2375,6 @@ const _STAGE_BOTTOM_F := 1.0
 ## build and again on every viewport resize. See the band-frame block above.
 func _layout_stage_bands() -> void:
 	var canvas_h: float = get_viewport_rect().size.y
-	var band: float = maxf(canvas_h - _TOP_BAR_H - _DECK_H, 1.0)
 	if _stage3d != null:
 		# L6 (Liam 16/10, "remove the horizontal bar in the middle of the combat screen"): the
 		# stage used to be a rectangle from y=140 to the deck. Its opaque sky/ground started with a
@@ -2387,7 +2386,25 @@ func _layout_stage_bands() -> void:
 		_stage3d.anchor_bottom = 0.0
 		_stage3d.offset_top = 0.0
 		_stage3d.offset_bottom = canvas_h
-		_stage3d.frame_band(canvas_h, _TOP_BAR_H + band * _STAGE_TOP_F, _TOP_BAR_H + band * _STAGE_BOTTOM_F)
+		var b := stage_band(canvas_h)
+		_stage3d.frame_band(canvas_h, b.x, b.y)
+
+
+## UI-05: the 3D band [top, bottom] on a canvas `canvas_h` high (canvas px). It used to end at canvas_h - _DECK_H (876
+## on 1080), 16 px above the old 164 px tray card. The DiceDock cards are 228 tall (card top 828), so the front enemy
+## row (elite / boss adds at ADD_Z_FRONT, 4-5 enemy fights at ENEMY_Z_FRONT) stood on the cards. The band now ends
+## 16 px above the real card top again. Its top moves up by the same amount, capped at _STAGE_LIFT_MAX (the far back
+## row of a boss + 6 summons fight reaches y ~57 at 1080 and must stay on screen); past the cap the band shrinks
+## a little instead (64 px needed at 1920 -> 52 up, 12 shorter = 1.6 % smaller world).
+const _STAGE_LIFT_MAX := 52.0
+
+
+static func stage_band(canvas_h: float) -> Vector2:
+	var band: float = maxf(canvas_h - _TOP_BAR_H - _DECK_H, 1.0)
+	var top := _TOP_BAR_H + band * _STAGE_TOP_F
+	var bottom := _TOP_BAR_H + band * _STAGE_BOTTOM_F
+	var need := maxf(bottom - (TrayColumn.card_top(canvas_h) - 16.0), 0.0)
+	return Vector2(top - minf(need, _STAGE_LIFT_MAX), bottom - need)
 
 
 ## C1 — where the enemy HUD column starts, in CANVAS pixels.

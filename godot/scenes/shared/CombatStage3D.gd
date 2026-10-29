@@ -1382,6 +1382,8 @@ func reseat_side(uids: Array, is_enemy: bool) -> void:
 	for uid in axie_uids.duplicate():
 		if int(uid) == lead_uid:
 			axie_uids.erase(uid)
+	if is_enemy and lead_uid >= 0 and _slot_dead(lead_uid) and _regroup_after_lead(axie_uids, lead_uid):
+		return
 	var wide_lead_w := 0.0   # fitted width (m) of a boss model wider than WIDE_BOSS_MIN_W, else 0
 	if lead_uid >= 0 and bool((_units[lead_uid] as Dictionary).get("is_boss", false)):
 		var lead_atia: Dictionary = (_units[lead_uid] as Dictionary).get("atia", {}) as Dictionary
@@ -1435,6 +1437,61 @@ func reseat_side(uids: Array, is_enemy: bool) -> void:
 			slot.position = pl[1]
 			entry["rest_pos"] = slot.position   # the lunge's home moved with it
 			entry["is_enemy"] = is_enemy
+
+
+## UI-05 (Liam 29/10): once the Elite / boss is dead, the adds still alive stop holding the spread-out add slots
+## around it and regroup on the plain-fight ENEMY_PATTERNS (2 adds -> the 2-enemy rows, ...), so they no longer
+## stand one at the top edge and one on the DiceDock. View only: no rule, roster or RNG is read or changed.
+## Slides over REGROUP_SEC when the death was seen (play_death), instant under Reduce motion, in tests, or when the
+## lead was already dead (resumed fight). More than 5 adds keep the add layout (the patterns stop at 5).
+## Returns false when there is nothing to regroup (the caller then lays out as before).
+const REGROUP_SEC := 0.3
+
+
+func _regroup_after_lead(uids: Array, lead_uid: int) -> bool:
+	var alive: Array = []
+	for uid in uids:
+		if int(uid) != lead_uid and not _slot_dead(int(uid)):
+			alive.append(int(uid))
+	if alive.is_empty() or alive.size() > 5:
+		return false
+	var animate := bool((_units[lead_uid] as Dictionary).get("dying", false)) and not UI3Motion.reduced() \
+		and not CombatView.disable_juice_for_tests and is_inside_tree()
+	for i in alive.size():
+		var entry: Dictionary = _units[alive[i]]
+		var slot: Node3D = entry.get("slot")
+		if not is_instance_valid(slot):
+			continue
+		var target := _slot_position(true, i, alive.size())
+		if (entry.get("rest_pos", slot.position) as Vector3).is_equal_approx(target):
+			continue   # already there (reseat_side runs on every rebuild)
+		_stop_action_motion(entry)   # a lunge (or an older slide) in flight would land back on the old mark
+		entry["rest_pos"] = target
+		entry["is_enemy"] = true
+		if animate:
+			var tw := create_tween()
+			tw.tween_property(slot, "position", target, REGROUP_SEC).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			entry["regroup_tween"] = tw
+		else:
+			slot.position = target
+	return true
+
+
+## Stops a regroup slide in flight. The slot keeps whatever position it had; the caller puts it on rest_pos.
+func _kill_regroup(entry: Dictionary) -> void:
+	var tw = entry.get("regroup_tween")
+	if tw is Tween and (tw as Tween).is_valid():
+		(tw as Tween).kill()
+	entry["regroup_tween"] = null
+
+
+## True once a unit's death is on screen (play_death started) or its slot is hidden (set_alive(false)).
+func _slot_dead(uid: int) -> bool:
+	var entry: Dictionary = _units.get(uid, {})
+	if entry.is_empty():
+		return true
+	var slot: Node3D = entry.get("slot")
+	return bool(entry.get("dying", false)) or not is_instance_valid(slot) or not slot.visible
 
 
 func has_unit(uid: int) -> bool:
@@ -1771,6 +1828,7 @@ func _play_action_motion(uid: int, entry: Dictionary, face_type: String,
 	var prev = entry.get("action_tween")
 	if prev is Tween and (prev as Tween).is_valid():
 		(prev as Tween).kill()
+	_kill_regroup(entry)   # a regroup slide still in flight must not fight the lunge over slot.position
 	var rest: Vector3 = entry.get("rest_pos", slot.position)
 	slot.position = rest
 	slot.scale = Vector3.ONE
@@ -1823,6 +1881,7 @@ func _stop_action_motion(entry: Dictionary) -> void:
 	if tw is Tween and (tw as Tween).is_valid():
 		(tw as Tween).kill()
 	entry["action_tween"] = null
+	_kill_regroup(entry)
 	var slot: Node3D = entry.get("slot")
 	if is_instance_valid(slot):
 		slot.position = entry.get("rest_pos", slot.position)
