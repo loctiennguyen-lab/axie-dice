@@ -10,7 +10,8 @@ const MIN_GAP_PX := 20.0            ## footprint + 20 px between any two units
 const MIN_TEAM_GAP_PX := 180.0      ## empty field between the party's right edge and the nearest enemy
 const MIN_GATE_GAP_PX := 30.0       ## empty space between the last enemy and the gate
 const PANEL_X := 1576.0             ## left edge of the top-right enemy panel
-const TRAY_Y := 884.0               ## top of the bottom tray
+## Top of the DieCards: 828 at 1080 with the UI-05 DiceDock (was 884 over the old tray). Set in _ready().
+var TRAY_Y := 884.0
 const KEYS: Array[String] = ["chomper", "slime", "bugling", "spikelet", "ravenling"]
 const CLASSES: Array[String] = ["plant", "beast", "aqua", "reptile", "bug"]
 
@@ -21,6 +22,7 @@ var _dump := OS.get_environment("SPACING_PRINT") != ""
 
 func _ready() -> void:
 	print("=== t_combat_spacing: start ===")
+	TRAY_Y = TrayColumn.card_top(CANVAS.y)
 	for n in [1, 2, 3, 4, 5]:
 		await _case("%d enemies" % n, "battle", n, false, 0, 0)
 	await _case("elite alone", "elite", 1, false, 0, 0)
@@ -62,7 +64,8 @@ func _case_k(label: String, kind: String, n_enemy: int, boss: bool, eggs: int, p
 	stage.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	stage.size = CANVAS * k
 	await get_tree().process_frame
-	stage.frame_band(CANVAS.y * k, 140.4 * k, 876.0 * k)
+	var band := CombatView.stage_band(CANVAS.y)   # the band the game uses (UI-05 dock)
+	stage.frame_band(CANVAS.y * k, band.x * k, band.y * k)
 	stage.set_encounter_kind(kind)
 	stage.set_arena("savannah", boss)
 	var party: Array = []
