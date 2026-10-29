@@ -27,7 +27,8 @@ const FLASH_AT := 0.85         # about when the roar opens its mouth wide
 const BG_ASPECT := 1673.0 / 2048.0
 const _PanelParts := preload("res://scenes/combat/ui5/PanelParts.gd")
 const MODEL_H := 4.0           # fitted model height in metres
-const CAM_CLOSE_DIST := 13.0   # end of the push-in (was 11.2 before the UI-05 top band)
+const CAM_CLOSE_DIST := 13.0   # end of the push-in. Was 11.2; set to 13.0 for the top band this screen had in UI-05 b1
+                               # lanes. The band moved into the fight (29/10); kept at 13.0 until Liam picks the framing.
 const FOV := 34.0
 
 var data: Dictionary = {}
@@ -282,12 +283,13 @@ func _layout() -> void:
 
 ## Camera for push-in progress t (0 = wide, 1 = close).
 func _cam_set(t: float) -> void:
-	# UI-05: the close end stays far enough back that the head clears the BossIntroBand by 24 px (keep-clear box).
+	# The close end and v_offset were set so the head cleared the old top band by 24 px. The band now shows in the fight
+	# (U5BossBand), so the framing has free space at the top; it stays as is until Liam picks a framing.
 	var dist := lerpf(16.5, CAM_CLOSE_DIST, t)
 	var look_y := lerpf(1.7, 1.45, t)
 	_cam.position = Vector3(lerpf(0.5, 0.0, t), look_y + 0.55, dist)
 	_cam.look_at(Vector3(0.0, look_y, 0.0))
-	_cam.v_offset = 1.45   # slides the frame down so the head clears the UI-05 top band (feet land about 88% down)
+	_cam.v_offset = 1.45   # frames the boss low (feet about 88% down), from the old top-band layout
 
 
 func _play() -> void:

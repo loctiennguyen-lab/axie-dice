@@ -4,8 +4,10 @@ extends Control
 ## Full width, size.banner_h high at y 200, banner_player / banner_enemy fill, text_hero 56. Slides in 240 EXPO OUT,
 ## holds 500, slides out 240 QUAD IN; the label punches 0.8 -> 1.08 -> 1. Numbers: motion rows
 ## turn_banner_player / turn_banner_enemy. Click or Space ends it. A click is only held during the first
-## block_input_ms (240), after that it also reaches the game. On the "Your turn" band Space (and the End turn key)
-## only skips the band for its whole duration, it never also ends the turn (Liam 29/10). Frees itself when done.
+## block_input_ms (240), after that it also reaches the game. On the "Your turn" band Space and every combat key
+## (End turn, Reroll, 1-5, Undo, Hold, Aid) only skip the band for its whole duration: they never act on the fight
+## while the intents are still hidden (Liam 29/10). Only the left / right mouse button skips (not the wheel). Nothing
+## is read while a modal or the pause menu is open. Frees itself when done.
 
 var run: UI3Motion.Timeline
 var label: Label
@@ -68,16 +70,52 @@ func _done() -> void:
 		cb.call()
 
 
+## A left / right click (not the wheel, not a release).
+static func skip_click(event: InputEvent) -> bool:
+	var mb := event as InputEventMouseButton
+	return mb != null and mb.pressed and (mb.button_index == MOUSE_BUTTON_LEFT or mb.button_index == MOUSE_BUTTON_RIGHT)
+
+
+## Space, or a key bound to a combat action (End turn, Reroll, Undo, Hold, Aid, die 1-5). Not Esc (the pause menu)
+## and not Inspect (it only shows information).
+static func combat_key(event: InputEvent) -> bool:
+	var k := event as InputEventKey
+	if k == null or not k.pressed or k.echo:
+		return false
+	if k.keycode == KEY_SPACE:
+		return true
+	KeyBindings.ensure()
+	for a in [KeyBindings.COMBAT_END_TURN, KeyBindings.COMBAT_REROLL, KeyBindings.COMBAT_UNDO, KeyBindings.COMBAT_HOLD,
+			KeyBindings.COMBAT_AID]:
+		if event.is_action_pressed(a):
+			return true
+	for a in KeyBindings.DIE_ACTIONS:
+		if event.is_action_pressed(a):
+			return true
+	return false
+
+
+## True while a UI3 modal or the combat pause menu is open above the moments: the bands leave the input alone then.
+static func input_blocked(n: Node) -> bool:
+	if n == null or not n.is_inside_tree():
+		return true
+	if UI3Tooltip.modal_open(n.get_tree()):
+		return true
+	var p := n.get_parent()
+	while p != null:
+		if p is CombatView:
+			return (p as CombatView).pause_menu_open()
+		p = p.get_parent()
+	return false
+
+
 func _input(event: InputEvent) -> void:
-	if run == null or run.done:
+	if run == null or run.done or input_blocked(self):
 		return
-	var mouse := event is InputEventMouseButton and (event as InputEventMouseButton).pressed
+	var mouse := skip_click(event)
 	var space := false
 	if event is InputEventKey and (event as InputEventKey).pressed and not (event as InputEventKey).echo:
-		space = (event as InputEventKey).keycode == KEY_SPACE
-		if not space and player:
-			KeyBindings.ensure()
-			space = event.is_action_pressed(KeyBindings.COMBAT_END_TURN)   # a rebound End turn key: same rule as Space
+		space = combat_key(event) if player else (event as InputEventKey).keycode == KEY_SPACE
 	if not (mouse or space):
 		return
 	var held := Time.get_ticks_msec() - _t0 < _block_ms

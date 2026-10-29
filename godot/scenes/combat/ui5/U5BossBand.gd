@@ -6,7 +6,8 @@ extends Control
 ## boss_intro_band (motion_ui3.json): unfold 210, hold 1600, out 210; Reduce motion = alpha only.
 ## Facts are the boss HUD numbers once the fight is built: HP, SHELL (when the boss has one), ENRAGE (boss clock),
 ## "2 phases" for a two-phase boss; the rhythm row for rhythm bosses (Prep current on turn 1).
-## A click, Space or the End turn key ends it, and that press never reaches the fight (no die picked, no turn ended).
+## A left / right click, Space or any combat key (End turn, Reroll, 1-5, Undo, Hold, Aid) ends it, and that press
+## never reaches the fight (no die picked, no turn ended). Nothing is read while a modal / the pause menu is open.
 ## UI only: reads the engine, never changes it. Shown by U5Moments.turn_banner in front of the first Your turn band.
 
 const BandUi := preload("res://scenes/run_map/ui5/BossIntroBand.gd")
@@ -17,10 +18,12 @@ var band: PanelContainer
 var hint: Control
 var _on_done := Callable()
 var _hidden: Array[WeakRef] = []   ## HUD bits under the SkipHint (StatusLine), alpha 0 while the band shows
-var _skip_early := false   ## a skip during the warm-up frames: the band never plays
 var _warm_frames := 0
+var _t0_ms := 0
+var _gone := false   ## _done ran: from here on the next band (Your turn) owns the input
 
-const WARMUP_MAX := 30
+## Longest wait for the load hitch before the band plays anyway (also added to the intent hiding time).
+const WARMUP_MAX_MS := 400
 
 
 ## Band data for the live boss of `v` ({} when there is none). Same words as the boss HUD (HudKit.clock_tab).
@@ -96,34 +99,31 @@ static func show_on(parent: Control, d: Dictionary, on_done := Callable(), hide:
 	b.add_child(h)
 	b.band.modulate.a = 0.0
 	h.modulate.a = 0.0
+	b._t0_ms = Time.get_ticks_msec()
 	parent.add_child(b)
 	return b
 
 
 ## A boss fight's first frames load the arena and the boss model and can take hundreds of ms; a tween started
-## then would jump past the band. It starts once the frames are short again (3rd frame on, at most WARMUP_MAX).
+## then would jump past the band. It starts once the frames are short again (3rd frame on), at most WARMUP_MAX_MS.
 func _process(delta: float) -> void:
-	if run != null:
+	if run != null or _gone:
 		set_process(false)
 		return
 	_warm_frames += 1
-	if _skip_early:
-		set_process(false)
-		_done()
-		return
-	if (_warm_frames >= 3 and delta < 0.1) or _warm_frames >= WARMUP_MAX:
+	if (_warm_frames >= 3 and delta < 0.1) or Time.get_ticks_msec() - _t0_ms >= WARMUP_MAX_MS:
 		set_process(false)
 		run = UI3Motion.play_timeline(MOMENT, {"band": band, "hint": hint}, {"host": self, "on_done": _done})
 
 
 ## True from creation until the band is gone (also during the warm-up frames).
 func showing() -> bool:
-	return not is_queued_for_deletion() and visible and (run == null or not run.done)
+	return not _gone and not is_queued_for_deletion()
 
 
-## Seconds the band stays up (Reduce motion: the reduced timings).
+## Longest time the band can stay up: the warm-up cap plus the timeline (Reduce motion: the reduced timings).
 static func duration_sec() -> float:
-	return UI3Motion.timeline_sec(MOMENT, UI3Motion.reduced())
+	return WARMUP_MAX_MS / 1000.0 + UI3Motion.timeline_sec(MOMENT, UI3Motion.reduced())
 
 
 ## End the band now (a skip). run_on_done = false drops its callback.
@@ -131,9 +131,7 @@ func finish(run_on_done := true) -> void:
 	if not run_on_done:
 		_on_done = Callable()
 	if run == null:
-		_skip_early = true   # still warming up: _process ends it on its next frame
-		if not run_on_done:
-			_done()
+		_done()   # still warming up: it never plays; the Your turn band (next owner of the input) starts now
 	elif not run.done:
 		run.skip()
 	elif not is_queued_for_deletion():
@@ -141,6 +139,10 @@ func finish(run_on_done := true) -> void:
 
 
 func _done() -> void:
+	if _gone:
+		return
+	_gone = true
+	set_process(false)
 	for w in _hidden:
 		var c: CanvasItem = w.get_ref()
 		if c != null:
@@ -164,15 +166,9 @@ func _exit_tree() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if not showing() or _skip_early:
+	if not showing() or U5TurnBanner.input_blocked(self):
 		return
-	var press := event is InputEventMouseButton and (event as InputEventMouseButton).pressed
-	if not press and event is InputEventKey and (event as InputEventKey).pressed and not (event as InputEventKey).echo:
-		press = (event as InputEventKey).keycode == KEY_SPACE
-		if not press:
-			KeyBindings.ensure()
-			press = event.is_action_pressed(KeyBindings.COMBAT_END_TURN)
-	if not press:
+	if not (U5TurnBanner.skip_click(event) or U5TurnBanner.combat_key(event)):
 		return
 	if is_inside_tree():
 		get_viewport().set_input_as_handled()   # the skip press never picks a die or ends the turn

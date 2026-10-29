@@ -7,6 +7,7 @@ var _fails: Array[String] = []
 var _checks := 0
 var _space_seen := 0   # Space presses that got past the moment layers (U5SkipCatcher eats them mid-fight)
 var _click_seen := 0   # clicks that got past them
+var _key_seen := 0     # any key press that got past them
 
 
 func _input(event: InputEvent) -> void:
@@ -14,6 +15,8 @@ func _input(event: InputEvent) -> void:
 		_space_seen += 1
 	if event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
 		_click_seen += 1
+	if event is InputEventKey and (event as InputEventKey).pressed:
+		_key_seen += 1
 
 
 func _ok(c: bool, m: String) -> void:
@@ -392,6 +395,33 @@ func _turn_banner_space_case() -> void:
 	await get_tree().process_frame
 	_ok(not is_instance_valid(b0) or b0.is_queued_for_deletion(), "early Space did not skip the Your turn band")
 	_ok(_space_seen == seen0, "an early Space on the Your turn band reached the game")
+	# Combat keys (Reroll, 1, Undo, Hold, Aid) on the Your turn band: skip it, never reach the fight.
+	KeyBindings.ensure()
+	for act in [KeyBindings.COMBAT_REROLL, KeyBindings.DIE_ACTIONS[0], KeyBindings.COMBAT_UNDO, KeyBindings.COMBAT_HOLD,
+			KeyBindings.COMBAT_AID]:
+		var bk := U5TurnBanner.show_on(r, true)
+		await _real_wait(held_ms / 1000.0 + 0.1)
+		var k0 := _key_seen
+		var kev := InputEventKey.new()
+		var code: Key = KeyBindings.keys_of(act)[0]
+		kev.keycode = code
+		kev.physical_keycode = code
+		kev.pressed = true
+		get_viewport().push_input(kev)
+		await get_tree().process_frame
+		_ok(not is_instance_valid(bk) or bk.is_queued_for_deletion(), "%s did not skip the Your turn band" % act)
+		_ok(_key_seen == k0, "%s on the Your turn band reached the game" % act)
+	# The wheel does not skip it.
+	var bw := U5TurnBanner.show_on(r, true)
+	await get_tree().process_frame
+	var wh := InputEventMouseButton.new()
+	wh.button_index = MOUSE_BUTTON_WHEEL_UP
+	wh.pressed = true
+	get_viewport().push_input(wh)
+	await get_tree().process_frame
+	_ok(is_instance_valid(bw) and not bw.is_queued_for_deletion(), "the mouse wheel skipped the Your turn band")
+	bw.finish(false)
+	await get_tree().process_frame
 	# A click after the hold: skips the band and still reaches the game (unchanged).
 	var b1 := U5TurnBanner.show_on(r, true)
 	await _real_wait(held_ms / 1000.0 + 0.15)

@@ -96,6 +96,17 @@ func _bands_in_tree() -> int:
 		func(n: Node) -> bool: return not n.is_queued_for_deletion() and (n as CanvasItem).is_visible_in_tree()).size()
 
 
+## A press of the first key bound to `action` (InputMap), so is_action_pressed() matches it.
+func _key_of(action: StringName) -> InputEventKey:
+	KeyBindings.ensure()
+	var ev := InputEventKey.new()
+	var code: Key = KeyBindings.keys_of(action)[0]
+	ev.keycode = code
+	ev.physical_keycode = code
+	ev.pressed = true
+	return ev
+
+
 func _space() -> InputEventKey:
 	var ev := InputEventKey.new()
 	ev.keycode = KEY_SPACE
@@ -202,15 +213,33 @@ func _ready() -> void:
 	_t(band.modulate.a > 0.9 and is_equal_approx(band.scale.y, 1.0), "band unfolded and held (a %.2f, scale %.2f)" % [band.modulate.a, band.scale.y])
 	var status: Label = v._hud_frame.get("_hint")
 	_t(status.modulate.a < 0.01, "the StatusLine is hidden under the SkipHint while the band shows")
-	# Space skips the band only: the turn is not ended, then the Your turn band follows.
+	# The wheel does not skip; nothing is read while a modal is open.
+	var wheel := InputEventMouseButton.new()
+	wheel.button_index = MOUSE_BUTTON_WHEEL_DOWN
+	wheel.pressed = true
+	get_viewport().push_input(wheel)
+	_t(is_instance_valid(b) and b.showing(), "the mouse wheel skipped the band")
+	var modal := Control.new()
+	modal.add_to_group("ui3_modal")
+	add_child(modal)
+	# (a real modal eats the key itself; here the band's own reader is called to see that it stays out of the way)
+	_t(U5TurnBanner.input_blocked(b), "a ui3_modal blocks the band's input")
+	b._input(_space())
+	_t(is_instance_valid(b) and b.showing(), "a Space under a modal skipped the band")
+	await _frames(1)
+	modal.queue_free()
+	await _frames(1)
+	# Two Space presses in the same frame skip the band only: the turn is not ended, then the Your turn band follows.
 	var seen0 := _space_seen
 	var turn0: int = v._combat.turn
+	get_viewport().push_input(_space())
 	get_viewport().push_input(_space())
 	await _frames(2)
 	_t(_band_of(v) == null, "Space skipped the boss band")
 	_t(_space_seen == seen0 and v._combat.turn == turn0 and v._combat.phase == CombatEngine.CombatPhase.EXECUTE,
-		"the skip Space did not reach the fight (turn %d, phase %d)" % [v._combat.turn, v._combat.phase])
-	_t(root.find_child("TurnBanner", false, false) is U5TurnBanner, "the Your turn band follows the boss band")
+		"a double Space on the band reached the fight (turn %d, phase %d, %d seen)" % [v._combat.turn, v._combat.phase, _space_seen - seen0])
+	# (the first Space skipped the boss band, the second the Your turn band that followed it; section 5 checks the
+	# Your turn band comes after a band left alone)
 	_t(_bands_in_tree() == 0, "no band left after the skip")
 	_t(is_equal_approx(status.modulate.a, 1.0), "the StatusLine is back after the band")
 	v.queue_free()
@@ -229,6 +258,34 @@ func _ready() -> void:
 	await _frames(2)
 	_t(_band_of(w) == null and _click_seen == c0 and w._selected_die_uid == -1, "a click skips the band and picks nothing")
 	w.queue_free()
+	await _frames(3)
+	# Combat keys during the band (and the Your turn band after it) skip only: no reroll, no die picked, no undo.
+	var k := _fight("frost_lord")
+	await _frames(2)
+	await _until_playing(_band_of(k), 0.3)
+	var rr0: int = k._combat.rerolls
+	var mana0: int = k._combat.mana
+	var faces0 := JSON.stringify(k._combat.to_data())
+	# One press per band: Reroll skips the boss band, die 1 skips the Your turn band that follows; neither acts.
+	for act in [KeyBindings.COMBAT_REROLL, KeyBindings.DIE_ACTIONS[0]]:
+		get_viewport().push_input(_key_of(act))
+	await _frames(2)
+	_t(_band_of(k) == null, "a combat key skipped the boss band")
+	_t(k._combat.rerolls == rr0 and k._combat.mana == mana0 and k._selected_die_uid == -1 and k._combat.turn == 1
+		and JSON.stringify(k._combat.to_data()) == faces0, "combat keys on the boss / Your turn band acted on the fight")
+	k.queue_free()
+	await _frames(3)
+	# A double Space during the warm-up frames (before the band plays) never ends the turn either.
+	var wu := _fight("frost_lord")
+	await _frames(1)
+	var bwu := _band_of(wu)
+	_t(bwu != null and bwu.run == null, "warm-up: the band waits for the load hitch")
+	get_viewport().push_input(_space())
+	get_viewport().push_input(_space())
+	await _frames(2)
+	_t(_band_of(wu) == null and wu._combat.turn == 1 and wu._combat.phase == CombatEngine.CombatPhase.EXECUTE,
+		"a double Space in the warm-up reached the fight (turn %d)" % wu._combat.turn)
+	wu.queue_free()
 	await _frames(3)
 	var x := _fight("frost_lord")
 	await _frames(2)
