@@ -13,6 +13,7 @@ extends Control
 ## pass-state getter (view reads MetaState.pass_season + PassV2 statics).
 
 const _Econ := preload("res://scripts/meta/economy_db.gd")
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 const MONTHS := ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 const TASK_NAMES := {"play_runs": "Play %d runs", "win_runs": "Win %d runs", "reach_boss": "Reach a boss in %d run"}
 const NODE_W := 132.0
@@ -39,10 +40,10 @@ var last_result := ""
 var selected_lv := 0
 
 var _shell: Dictionary
-var _banner_host: VBoxContainer
+
 var _modal_layer: Control
 var _left: VBoxContainer
-var _detail: PanelContainer
+var _banner_host: VBoxContainer
 var _tiles := {}   # lv -> PanelContainer (grid tile)
 
 
@@ -51,10 +52,21 @@ func _ready() -> void:
 	if use_account:
 		state = derive_state()
 	refresh()
+	_initial_focus()
 	if is_remote():   # show the server's Pass numbers, not an old cache
 		MetaState.econ_remote().refresh(func(_r: Dictionary) -> void:
 			if is_inside_tree():
 				refresh())
+
+
+## Keyboard / pad start on ClaimAll when it is live, else on Back (never on a tile: a focused tile would pick a level).
+func _initial_focus() -> void:
+	if get_viewport() == null:
+		return
+	var all := find_child("ClaimAllButton", true, false) as Button
+	var tgt: Button = all if all != null and not all.disabled else find_child("BackButton", true, false) as Button
+	if tgt != null and get_viewport().gui_get_focus_owner() == null:
+		tgt.grab_focus.call_deferred()
 
 
 func derive_state() -> String:
@@ -197,10 +209,10 @@ func claim_loop() -> int:
 	if is_remote():
 		MetaState.pass_claim_post30_async(func(r: Dictionary) -> void:
 			var sh := int((r.get("result", {}) as Dictionary).get("shards", 0))
-			_remote_done(r, "+%d Shard" % sh))
+			_remote_done(r, "+%d Shards" % sh))
 		return 0
 	var s := PassV2.claim_post30(MetaState)
-	last_result = "+%d Shard" % s if s > 0 else "Nothing to claim"
+	last_result = "+%d Shards" % s if s > 0 else "Nothing to claim"
 	refresh()
 	return s
 
@@ -235,7 +247,7 @@ func season_text() -> String:
 static func reward_text(r: Dictionary) -> String:
 	var v = r.get("value")
 	match String(r.get("type", "")):
-		"shard": return "%d Shard" % int(v)
+		"shard": return "%d Shard%s" % [int(v), "" if int(v) == 1 else "s"]
 		"stone": return "%s Stone" % _thousands(int(v))
 		"ticket": return "%d ticket%s" % [int(v), "" if int(v) == 1 else "s"]
 		"gem": return "%d Gem" % int(v)
@@ -265,69 +277,80 @@ static func _thousands(n: int) -> String:
 
 
 
+# ---------------------------------------------------------------- build (UI-05 b23 S10, frames 21-pass--*)
 
-# ---------------------------------------------------------------- build
-
-const DETAIL_W := 440
 const COLS := 6
 const TILE_H := 132
+
+var _detail: Ui5DetailPlate
+var _tile_btn := {}   # lv -> Button
 
 
 func _build() -> void:
 	_shell = UI3Meta.build(self, PassSummary.NAME, "", _on_back)
 	(_shell["panel"] as Control).name = "PlateHost"   # t_ui_laws L0
-	_banner_host = _shell["banner_host"]
+	(_shell["back"] as Control).name = "BackButton"
+	(_shell["sub"] as Label).name = "SubLine"
 	_modal_layer = _shell["modal_layer"]
-	(_shell["sub"] as Label).name = "SeasonText"
 	var body := HBoxContainer.new()
 	body.name = "Body"
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", UI3Meta.GAP)
+	body.add_theme_constant_override("separation", UI3Theme.space("24"))
 	(_shell["col"] as VBoxContainer).add_child(body)
 	_left = VBoxContainer.new()
 	_left.name = "Content"
 	_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_left.add_theme_constant_override("separation", UI3Theme.space("16"))
+	_left.add_theme_constant_override("separation", UI3Theme.space("12"))
 	_left.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	# S4-10: when banners + weekly tasks leave less than two track rows (1280x720), the column scrolls
-	# instead of cutting LV 7-12 under the bottom bars.
 	var left_scroll := UI3Meta.scroll(_left)
 	left_scroll.name = "LeftScroll"
 	body.add_child(left_scroll)
-	_detail = UI3.plate(&"plate")
-	_detail.name = "DetailCard"
-	_detail.custom_minimum_size = Vector2(DETAIL_W, 0)
+	_detail = Ui5DetailPlate.new()
+	_detail.setup("pass_detail_w", "Pick a level", "Select a level to see its reward.", "Pick a level")
+	_detail.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.add_child(_detail)
 
 
 func refresh() -> void:
 	if _left == null:
 		return
-	UI3Meta.clear(_banner_host)
 	UI3Meta.clear(_left)
+	_tile_btn.clear()
 	(_shell["sub"] as Label).text = season_text()
+	var ban := VBoxContainer.new()
+	ban.name = "BannerHost"
+	ban.add_theme_constant_override("separation", UI3Theme.space("8"))
+	_left.add_child(ban)
 	match state:
 		"offline":
-			UI3Meta.banner(_banner_host, "Can't reach the server" if remote_on else "You're offline",
-				"Gem gifts need a connection." if remote_on else "Your pass progress is kept on this device.")
+			ban.add_child(PassParts.banner(&"warn", "Can't reach the server" if remote_on else "You're offline",
+				"Gem gifts need a connection." if remote_on else "Your pass progress is kept on this device."))
 		"guest":
-			UI3Meta.banner(_banner_host, "You're signed out", "Pass progress is kept on this device. Sign in to keep it.")
+			ban.add_child(PassParts.banner(&"info", "You're signed out", "Pass progress is kept on this device. Sign in to keep it."))
 	match season_phase():
 		"before":
-			UI3Meta.banner(_banner_host, "The season has not started", "XP starts counting on %s." % fmt_day(String(cfg().get("start_day", ""))))
+			ban.add_child(PassParts.banner(&"info", "The season has not started", "XP starts counting on %s." % fmt_day(String(cfg().get("start_day", "")))))
 		"over":
-			UI3Meta.banner(_banner_host, "The season is over", "XP stopped. Rewards you already reached can still be claimed.")
-	_build_level_card()
-	_build_weekly()
-	_build_track()
-	_build_extra_rows()
+			ban.add_child(PassParts.banner(&"info", "The season is over", "XP stopped. Rewards you already reached can still be claimed."))
+	_banner_host = ban
+	var ready_n := claimable_count()
+	_build_level_card(ready_n)
 	if last_result != "":
-		var res := UI3.label(last_result, "LabelTitle")
-		res.name = "ResultLine"
-		_left.add_child(res)
-	if selected_lv == 0 or _def(selected_lv).is_empty():
-		selected_lv = _default_level()
-	select_level(selected_lv)
+		_left.add_child(PassParts.result_line(last_result))
+	_build_weekly()
+	_build_track(ready_n)
+	_build_extra_rows()
+	if selected_lv != 0 and _def(selected_lv).is_empty():
+		selected_lv = 0
+	if selected_lv != 0:
+		select_level(selected_lv)
+	else:
+		_draw_detail()
+
+
+## How many levels "Claim all" would take now.
+func claimable_count() -> int:
+	return PassV2.claimable_levels(MetaState).size() if _same_season() else 0
 
 
 func _def(lv: int) -> Dictionary:
@@ -337,15 +360,7 @@ func _def(lv: int) -> Dictionary:
 	return {}
 
 
-## First claimable level, else the next one to reach, else 1.
-func _default_level() -> int:
-	var c := PassV2.claimable_levels(MetaState) if _same_season() else []
-	if not c.is_empty():
-		return int(c[0])
-	return mini(level() + 1, 30)
-
-
-## Detail plate follows the focused / hovered / clicked tile.
+## Detail plate follows the focused / hovered / clicked tile. Nothing is picked until then.
 func select_level(lv: int) -> void:
 	if _def(lv).is_empty():
 		return
@@ -370,65 +385,62 @@ func level_reason(lv: int) -> String:
 func reward_lines(def: Dictionary) -> Array[String]:
 	var out: Array[String] = []
 	for r in def.get("free", []):
-		out.append(reward_text(r))
+		if String((r as Dictionary).get("type", "")) != "cosmetic":
+			out.append(reward_text(r))
 		match String((r as Dictionary).get("type", "")):
 			"gem": out.append("Season gift, paid once at this level.")
 			"unlock": out.append("If you already own it, you get its Shard price instead.")
 	return out
 
 
-func _draw_detail() -> void:
-	UI3Meta.clear(_detail)
-	var def := _def(selected_lv)
-	if def.is_empty():
-		return
-	var lv := selected_lv
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", UI3Theme.space("16"))
-	_detail.add_child(v)
-	var has_art := false
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", UI3Theme.space("16"))
-	var t := UI3.label("Level %d" % lv, "LabelScreenTitle")
-	t.name = "DetailTitle"
-	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(t)
-	head.add_child(UI3Meta.tag(_state_word(node_state(lv))))
-	v.add_child(head)
+func _cos_ids(def: Dictionary) -> Array:
+	var ids := []
 	for r in def.get("free", []):
 		if String((r as Dictionary).get("type", "")) == "cosmetic":
-			var art := CosmeticTile.art(String(r.get("value", "")), 200.0)
-			if art != null:
-				var art_host := CenterContainer.new()
-				art_host.custom_minimum_size = Vector2(0, 200)
-				art_host.add_child(art)
-				v.add_child(art_host)
-				has_art = true
-				break
-	var dt := UI3.label("\n".join(reward_lines(def)))
-	dt.name = "DetailText"
-	dt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v.add_child(dt)
-	var why := level_reason(lv)
-	if why != "" and node_state(lv) != "claimed":
-		var wl := UI3.label(why, "LabelMuted")
-		wl.name = "DetailReason"
-		wl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		v.add_child(wl)
-	# No art for this level: the plate hugs its content instead of stretching an empty gap.
-	_detail.size_flags_vertical = Control.SIZE_EXPAND_FILL if has_art else Control.SIZE_SHRINK_BEGIN
-	if has_art:
-		var sp := Control.new()
-		sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		v.add_child(sp)
-	var b := UI3.button("Claim level %d" % lv, &"primary", &"L")
-	b.name = "DetailClaim"
-	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if node_state(lv) == "claimable":
-		b.pressed.connect(claim_level.bind(lv))
-	else:
-		UI3.set_disabled_reason(b, "Already claimed" if node_state(lv) == "claimed" else "Not reached yet")
-	v.add_child(b)
+			ids.append(String(r.get("value", "")))
+	return ids
+
+
+func _draw_detail() -> void:
+	if _detail == null:
+		return
+	var def := _def(selected_lv)
+	if def.is_empty():
+		_detail.show_empty()
+		return
+	var lv := selected_lv
+	var st := node_state(lv)
+	_detail.show_item("Level %d" % lv)
+	_detail.body.add_child(UI3Meta.tag(_state_word(st)))
+	for cid in _cos_ids(def):
+		var art := CosmeticTile.art(String(cid), 200.0)
+		if art != null:
+			var host := CenterContainer.new()
+			host.name = "FrameArt"
+			host.custom_minimum_size = Vector2(0, 200)
+			host.add_child(art)
+			_detail.body.add_child(host)
+		var tier := PassParts.tier_of(String(cid))
+		var nm := _detail.add_line(CosmeticTile.display_name(String(cid)), "text")
+		nm.name = "RewardName"
+		var tw := _detail.add_line(PassParts.tier_word(tier))
+		tw.name = "RewardTier"
+		tw.add_theme_color_override("font_color", DiceSkin.tier_text_color(tier))
+	for ln in reward_lines(def):
+		_detail.add_line(ln, "text_muted" if ln.begins_with("If you") or ln.begins_with("Season gift") else "text")
+	var b: Button
+	match st:
+		"claimed":
+			b = _detail.set_primary("Claimed")
+			Ui5ClaimButton.set_claimed(b)
+		"claimable":
+			b = _detail.set_primary("Claim level %d" % lv)
+			b.theme_type_variation = &"ButtonSecondary"   # Claim all is the screen's one primary while a level is ready
+			b.pressed.connect(claim_level.bind(lv))
+		_:
+			var why := "Reach Level %d" % lv if season_phase() != "over" else "Not claimed"
+			b = _detail.set_primary(why, why)
+	b.name = "ClaimLevelButton"
 
 
 ## Text on the disabled button of the next level to reach: how much XP is still missing.
@@ -445,34 +457,29 @@ static func _state_word(st: String) -> String:
 	return "Locked"
 
 
-func _build_level_card() -> void:
-	var card := UI3.plate(&"plate")
-	card.name = "LevelCard"
+func _build_level_card(ready_n: int) -> void:
+	var card := PassParts.plate("LevelCard", UI3Theme.space("16"), UI3Theme.space("20"))
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", UI3Theme.space("24"))
+	row.add_theme_constant_override("separation", UI3Theme.space("20"))
 	card.add_child(row)
 	var lv := level()
-	var badge := UI3.plate(&"card")
-	badge.custom_minimum_size = Vector2(96, 96)
-	var bl := UI3.label(str(lv), "LabelScreenTitle")
-	bl.name = "LevelNumber"
-	bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	bl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	# S4-10: the big number says what it is.
-	var bcol := VBoxContainer.new()
-	bcol.alignment = BoxContainer.ALIGNMENT_CENTER
-	bcol.add_theme_constant_override("separation", 0)
-	var cap := UI3.label("Level", "LabelMuted")
+	var badge := VBoxContainer.new()
+	badge.name = "LevelBadge"
+	badge.alignment = BoxContainer.ALIGNMENT_CENTER
+	badge.add_theme_constant_override("separation", 0)
+	var cap := Ui5Text.label("Level", "text_body", "text_muted")
 	cap.name = "LevelCaption"
 	cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	bcol.add_child(cap)
-	bcol.add_child(bl)
-	badge.add_child(bcol)
+	badge.add_child(cap)
+	var bl := Ui5Text.label(str(lv), "text_banner", "text", true)
+	bl.name = "LevelNumber"
+	bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	badge.add_child(bl)
 	row.add_child(badge)
 	var mid := VBoxContainer.new()
 	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mid.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	mid.add_theme_constant_override("separation", UI3Theme.space("8"))
+	mid.add_theme_constant_override("separation", UI3Theme.space("4"))
 	var cur_total := int(PassV2.level_def(lv).get("xp_total", 0))
 	var bar := ProgressBar.new()
 	bar.name = "XpBar"
@@ -490,153 +497,155 @@ func _build_level_card() -> void:
 		bar.max_value = loop
 		bar.value = (xp() - PassV2.max_xp()) % loop
 		info = "Loop: %s / %s XP" % [UI3.fmt(int(bar.value)), UI3.fmt(loop)]
-	var il := UI3.label(info, "LabelTitle")
+	var il := Ui5Text.label(info, "text_title", "text")
 	il.name = "XpInfo"
 	mid.add_child(il)
 	mid.add_child(bar)
-	mid.add_child(UI3.label("Level L needs 500 + 40 × (L − 1) XP", "LabelMuted"))
+	mid.add_child(Ui5Text.label("Level L needs 500 + 40 × (L − 1) XP", "text_body", "text_muted"))
 	row.add_child(mid)
-	var all := UI3.button("Claim all", &"secondary", &"M")
-	all.name = "ClaimAll"
-	all.custom_minimum_size.x = 200
+	var txt := "Claim all · %d level%s" % [ready_n, "" if ready_n == 1 else "s"] if ready_n > 0 else "Claim all · Nothing to claim"
+	var all := Ui5ClaimButton.make(txt, &"M")
+	all.name = "ClaimAllButton"
 	all.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	all.disabled = PassV2.claimable_levels(MetaState).is_empty() if _same_season() else true
+	all.disabled = ready_n == 0
 	all.pressed.connect(claim_all)
 	row.add_child(all)
 	_left.add_child(card)
 
 
 func _build_weekly() -> void:
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", UI3Theme.space("8"))
-	var h := UI3.label("Weekly tasks · %s" % week_reset_text(), "LabelTitle")
-	h.name = "WeeklyTitle"
-	box.add_child(h)
+	var h := Ui5Text.label("Weekly tasks · %s" % week_reset_text(), "text_title", "text")
+	h.name = "TasksTitle"
+	_left.add_child(h)
 	var row := HBoxContainer.new()
-	row.name = "WeeklyRow"
+	row.name = "Tasks"
 	row.add_theme_constant_override("separation", UI3Theme.space("16"))
 	var xp_each := int((cfg().get("weekly_tasks", {}) as Dictionary).get("xp_each", 500))
 	var live := season_phase() == "active"
 	for st in PassV2.weekly_status(MetaState, today()):
 		var id := String(st["id"])
-		var card := UI3.plate(&"card")
-		card.name = "Weekly_" + id
+		var card := PassParts.plate("TaskCard", UI3Theme.space("12"), UI3Theme.space("16"))
+		card.set_meta("task_id", id)
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var hb := HBoxContainer.new()
-		hb.add_theme_constant_override("separation", UI3Theme.space("16"))
+		hb.add_theme_constant_override("separation", UI3Theme.space("12"))
 		card.add_child(hb)
 		var v := VBoxContainer.new()
 		v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		v.add_child(UI3.label(String(TASK_NAMES.get(id, id)) % int(st["target"]), "LabelTitle"))
-		var pl := UI3.label("%d / %d · +%d XP" % [int(st["progress"]), int(st["target"]), xp_each], "LabelMuted")
+		var tl := Ui5Text.label(String(TASK_NAMES.get(id, id)) % int(st["target"]), "text_title", "text")
+		tl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v.add_child(tl)
+		var pl := Ui5Text.label("%d / %d · +%d XP" % [int(st["progress"]), int(st["target"]), xp_each], "text_body", "text_muted")
 		pl.name = "Progress"
 		v.add_child(pl)
 		hb.add_child(v)
-		var b := UI3.button("Claimed" if st["claimed"] else "Claim", &"secondary", &"S")
-		b.name = "WeeklyClaim_" + id
+		var b := PanelParts.button("Claim", &"secondary", &"S")
+		b.name = "ClaimButton"
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		b.disabled = bool(st["claimed"]) or not bool(st["done"]) or not live
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.custom_minimum_size.x = 0
+		b.set_meta("task_id", id)
+		if bool(st["claimed"]):
+			Ui5ClaimButton.set_claimed(b)
+			b.name = "ClaimButton"
+		elif not live:
+			b.text = "Claim · The season is not running"
+			b.disabled = true
+		elif not bool(st["done"]):
+			b.text = "Claim · Task not finished"
+			b.disabled = true
+		b.tooltip_text = b.text if b.disabled else ""
 		b.pressed.connect(claim_weekly.bind(id))
 		hb.add_child(b)
-		row.add_child(card)
-	box.add_child(row)
-	_left.add_child(box)
+		row.add_child(card, true)
+	_left.add_child(row)
 
 
-func _build_track() -> void:
+func _build_track(ready_n: int) -> void:
 	_tiles.clear()
-	var h := UI3.label("Free track", "LabelTitle")
+	var h := Ui5Text.label("Free track", "text_title", "text")
+	h.name = "TrackTitle"
 	_left.add_child(h)
 	var grid := GridContainer.new()
 	grid.name = "TrackGrid"
 	grid.columns = COLS
-	grid.add_theme_constant_override("h_separation", UI3Theme.space("16"))
-	grid.add_theme_constant_override("v_separation", UI3Theme.space("16"))
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", UI3Theme.space("12"))
+	grid.add_theme_constant_override("v_separation", UI3Theme.space("12"))
 	for def in cfg().get("levels", []):
 		var tile := _tile(def)
 		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		grid.add_child(tile)
+		grid.add_child(tile, true)
 	var sc := UI3Meta.scroll(grid)
 	sc.name = "TrackScroll"
-	sc.custom_minimum_size.y = TILE_H * 2 + UI3Theme.space("16")   # two full rows
+	sc.custom_minimum_size.y = UI3Theme.size_of("pass_tile_h") * 2 + UI3Theme.space("12")   # two full rows
 	_left.add_child(sc)
 
 
 func _tile(def: Dictionary) -> Control:
 	var lv := int(def["lv"])
 	var st := node_state(lv)
-	var p := UI3.plate(&"card")
-	p.name = "Node_%d" % lv
-	p.custom_minimum_size = Vector2(0, TILE_H)
+	var p := PassParts.plate("PassTile", UI3Theme.space("12"), UI3Theme.space("12"))
+	p.set_meta("lv", lv)
+	p.custom_minimum_size = Vector2(0, UI3Theme.size_of("pass_tile_h"))
 	_tiles[lv] = p
 	if st == "locked":
 		p.modulate.a = 0.75
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", UI3Theme.space("8"))
+	v.add_theme_constant_override("separation", UI3Theme.space("4"))
 	p.add_child(v)
 	var top := HBoxContainer.new()
-	var lvl := UI3.label("LV %d" % lv, "LabelTitle")
+	top.name = "Head"
+	top.add_theme_constant_override("separation", UI3Theme.space("8"))
+	var lvl := Ui5Text.label("Level %d" % lv, "text_title", "text")
 	lvl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(lvl)
 	for r in def.get("free", []):
 		if String((r as Dictionary).get("type", "")) == "gem":
 			top.add_child(UI3Meta.tag("Season gift"))
 	v.add_child(top)
-	var cos_id := ""
+	var rest: Array[String] = []
 	for r in def.get("free", []):
-		if String((r as Dictionary).get("type", "")) == "cosmetic" and CosmeticTile.art(String(r.get("value", "")), 8.0) != null:
-			cos_id = String(r.get("value", ""))
-			break
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", UI3Theme.space("8"))
-	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	if cos_id != "":
-		_cosmetic_reward_block(v, cos_id, st)
-	else:
-		for r in def.get("free", []):
-			if String((r as Dictionary).get("type", "")) == "cosmetic":
-				var art := CosmeticTile.art(String(r.get("value", "")), 48.0)
-				if art != null:
-					row.add_child(art)
-					break
-	var names: Array[String] = []
-	for r in def.get("free", []):
-		names.append(reward_text(r))
-	var rl := UI3.label(", ".join(names))
-	rl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rl.size_flags_vertical = Control.SIZE_SHRINK_BEGIN   # text hugs the top when a cosmetic tile makes the row taller
-	rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	rl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if cos_id == "":
-		row.add_child(rl)
-		v.add_child(row)
-	var hot := cos_id != "" and st == "claimable"   # a cosmetic tile ready to claim: Claim is its one primary
-	var b := UI3.button("", &"primary" if hot else &"secondary", &"M" if hot else &"S")
-	b.name = "NodeBtn_%d" % lv
+		if String((r as Dictionary).get("type", "")) == "cosmetic":
+			var cid := String(r.get("value", ""))
+			var blk := PassParts.cosmetic_block(cid, 40.0)
+			if st != "claimable":
+				blk.modulate.a = 0.5 if st == "claimed" else 0.7
+			v.add_child(blk)
+		else:
+			rest.append(reward_text(r))
+	if not rest.is_empty():
+		var rl := Ui5Text.label(", ".join(rest), "text_body", "text_muted" if _cos_ids(def).size() > 0 else "text")
+		rl.name = "RewardText"
+		rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v.add_child(rl)
+	var sp := Control.new()
+	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(sp)
+	var b := PanelParts.button("", &"secondary", &"S")
+	b.name = "TileButton"
 	match st:
 		"claimed":
-			b.text = "✓ Claimed"
-			b.disabled = true
+			Ui5ClaimButton.set_claimed(b)
+			b.name = "TileButton"
 		"claimable":
-			b.text = "CLAIM"
+			b.text = "Claim"   # secondary: Claim all is the screen's one primary
 			b.pressed.connect(claim_level.bind(lv))
 		"next":
 			b.text = next_text(lv)
 			b.disabled = true
 		_:
-			b.text = "Reach LV %d" % lv if season_phase() != "over" else "Not claimed"
+			b.text = "Reach Level %d" % lv if season_phase() != "over" else "Not claimed"
 			b.disabled = true
-	# B6 (QA 29/10, minimal until the Pass redesign): at 1280 the 21 px text floor made "Next · needs 500 XP" set the
-	# column width, so the six columns plus the detail plate ran past the right edge. The button no longer sizes the
-	# tile; a long state ends in "…" with the whole text in the tooltip (the detail plate says it too).
+	# A long state ends in "…" with the whole text in the tooltip, so it never widens the column (B6).
 	b.clip_text = true
 	b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	if b.tooltip_text == "":
-		b.tooltip_text = b.text
+	b.tooltip_text = b.text
 	b.focus_entered.connect(select_level.bind(lv))
 	b.mouse_entered.connect(select_level.bind(lv))
 	v.add_child(b)
-	# Click on the tile body opens the reward popup.
+	_tile_btn[lv] = b
 	p.gui_input.connect(func(ev: InputEvent) -> void:
 		var mb := ev as InputEventMouseButton
 		if mb != null and mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
@@ -645,96 +654,50 @@ func _tile(def: Dictionary) -> Control:
 	return p
 
 
-## 48-store-pass-tiles for a dice skin / frame reward: 4 px tier strip, art box (wood-2) with the art at 100% when
-## claimable, 50% when claimed, 40% when locked, then name (18 chars) and the tier word in its colour. The action
-## button below is the tile's own (Claim stays the one primary). Pure look: claim logic is untouched.
-func _cosmetic_reward_block(v: VBoxContainer, cos_id: String, st: String) -> void:
-	var art_id := Cosmetics.art_id(cos_id)
-	var tier := 0
-	var m: Dictionary = CosmeticArt.manifest()
-	var e: Variant = (m.get("dice", {}) as Dictionary).get(art_id, (m.get("frames", {}) as Dictionary).get(art_id, {}))
-	if e is Dictionary:
-		tier = int((e as Dictionary).get("tier", 0))
-	var strip := ColorRect.new()
-	strip.name = "TierStrip"
-	strip.custom_minimum_size = Vector2(0, 4)
-	strip.color = DiceSkin.tier_color(tier)
-	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(strip)
-	# Compact on purpose: strip, a 64 px art box, a one-line name and the tier word, so the tile is only about 25 px
-	# taller than a normal one and its button stays visible whenever the row's top is.
-	var box := Panel.new()
-	box.name = "ArtBox"
-	box.custom_minimum_size = Vector2(0, 64)
-	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.clip_contents = true
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s")))
-	var art := CosmeticTile.art(cos_id, 56.0)
-	if art != null:
-		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		art.modulate.a = 0.4 if st == "locked" or st == "next" else (0.5 if st == "claimed" else 1.0)
-		var cc := CenterContainer.new()
-		cc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		cc.add_child(art)
-		box.add_child(cc)
-	v.add_child(box)
-	var nm := UI3.label(CosmeticTile.display_name(cos_id).left(18), "LabelTitle")
-	nm.name = "RewardName"
-	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	nm.clip_text = true
-	nm.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
-	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(nm)
-	var tw := UI3.label(DiceSkin.TIER_NAMES.values()[clampi(tier, 0, 5)])
-	tw.name = "RewardTier"
-	tw.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tw.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	tw.clip_text = true
-	tw.add_theme_color_override("font_color", DiceSkin.tier_text_color(tier))
-	tw.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(tw)
+## The Button of level `lv` in the grid (tests, QA).
+func tile_button(lv: int) -> Button:
+	return _tile_btn.get(lv) as Button
 
 
-## Reward detail popup (round 2): every reward of the level, the state, and Claim when it is ready.
+## The weekly task's Claim button (tests, QA).
+func task_button(id: String) -> Button:
+	for c in find_children("TaskCard*", "PanelContainer", true, false):
+		if String(c.get_meta("task_id", "")) == id:
+			return c.find_child("ClaimButton", true, false) as Button
+	return null
+
+
+## Reward popup: every reward of the level, its state, Close and (when ready) Claim with the Space keycap.
 func open_reward(lv: int) -> void:
 	var def := _def(lv)
 	if def.is_empty() or _modal_layer.get_child_count() > 0:
 		return
 	select_level(lv)
-	var lines := reward_lines(def)
+	var lines: Array = reward_lines(def)
 	var why := level_reason(lv)
 	if why != "":
 		lines.append(why)
-	var close := UI3.button("Close", &"secondary", &"M")
-	close.name = "Close"
-	var acts: Array = [close]
-	var claim: Button = null
-	if node_state(lv) == "claimable":
-		claim = UI3.button("Claim", &"primary", &"M")
-		claim.name = "Claim"
-		acts.append(claim)
-	var m := UI3.modal("Level %d · Free track" % lv, "\n".join(lines), acts, acts.size() - 1)
-	m.name = "RewardPopup"
+	var claimable := node_state(lv) == "claimable"
+	var pop := PassParts.level_popup("Level %d · Free track" % lv, _cos_ids(def), lines, claimable)
+	var m: UI3.ModalRoot = pop["root"]
 	var shut := func() -> void:
-		if is_instance_valid(m):
+		if is_instance_valid(m) and m.get_parent() != null:
 			m.get_parent().remove_child(m)
 			m.queue_free()
-	close.pressed.connect(shut)
+	(pop["close"] as Button).pressed.connect(shut)
 	m.cancelled.connect(shut)
+	var claim := pop["claim"] as Button
 	if claim != null:
 		claim.pressed.connect(func() -> void:
 			shut.call()
 			claim_level(lv))
 	_modal_layer.add_child(m)
+	PassParts.place_claim_cap(claim)
 
 
 func _build_extra_rows() -> void:
 	var prem := PassV2.premium_state()
-	var pr := UI3.plate(&"row")
-	pr.name = "PremiumRow"
+	var pr := PassParts.plate("PremiumRow", UI3Theme.space("8"), UI3Theme.space("16"), "m")
 	var ph := HBoxContainer.new()
 	ph.add_theme_constant_override("separation", UI3Theme.space("16"))
 	pr.add_child(ph)
@@ -743,27 +706,26 @@ func _build_extra_rows() -> void:
 	ph.add_child(rib)
 	var rl := rib.get_child(0) as Label
 	rl.name = "PremiumRibbon"
-	var pt := UI3.label("Premium track: locked, opens in season %d. Nothing to buy now." % int(prem["unlock_season"]), "LabelMuted")
+	var pt := Ui5Text.label("Premium track: locked, opens in season %d. Nothing to buy now." % int(prem["unlock_season"]), "text_body", "text_muted")
 	pt.name = "PremiumText"
 	ph.add_child(pt)
 	_left.add_child(pr)
-
 	var loop: Dictionary = cfg().get("post30_loop", {})
 	var shard := int(loop.get("shard", 50))
-	var lr := UI3.plate(&"row")
-	lr.name = "LoopRow"
+	var lr := PassParts.plate("LoopRow", UI3Theme.space("8"), UI3Theme.space("12"), "m")
 	var lh := HBoxContainer.new()
 	lh.add_theme_constant_override("separation", UI3Theme.space("16"))
 	lr.add_child(lh)
 	var done := int(ps().get("post30_claimed", 0)) * shard
 	var pend := PassV2.post30_pending(MetaState) if _same_season() else 0
-	var ll := UI3.label("After level 30: every %s XP = %d Shard · claimed so far %d Shard" % [
-		UI3.fmt(int(loop.get("xp", 2000))), shard, done])
+	var ll := Ui5Text.label("After level 30: every %s XP = %d Shards · claimed so far %d Shards" % [
+		UI3.fmt(int(loop.get("xp", 2000))), shard, done], "text_body", "text")
 	ll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ll.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	ll.name = "LoopText"
 	lh.add_child(ll)
-	var lb := UI3.button("Claim %d Shard" % (pend * shard) if pend > 0 else "Nothing yet", &"secondary", &"S")
-	lb.name = "LoopClaim"
+	var lb := PanelParts.button("Claim %d Shards" % (pend * shard) if pend > 0 else "Nothing yet", &"secondary", &"S")
+	lb.name = "LoopClaimButton"
 	lb.disabled = pend <= 0
 	lb.pressed.connect(claim_loop)
 	lh.add_child(lb)

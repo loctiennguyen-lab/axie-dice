@@ -33,10 +33,10 @@ func _ready() -> void:
 	_ok(s.season_phase() == "active", "phase active")
 	_ok(s.season_text() == "Season 1 · ends 29 Dec 2026", "header text: " + s.season_text())
 	_ok(s.level() == 5, "level 5")
-	_ok(s.find_children("NodeBtn_*", "Button", true, false).size() == 30, "30 nodes")
+	_ok(s.find_children("TileButton*", "Button", true, false).size() == 30, "30 nodes")
 	_ok(s.node_state(5) == "claimable" and s.node_state(6) == "next" and s.node_state(9) == "locked", "node states")
-	_ok((s.find_child("NodeBtn_6", true, false) as Button).disabled, "next node disabled")
-	_ok((s.find_child("NodeBtn_9", true, false) as Button).text == "Reach LV 9", "locked text")
+	_ok((s.tile_button(6) as Button).disabled, "next node disabled")
+	_ok((s.tile_button(9) as Button).text == "Reach Level 9", "locked text")
 	_ok(s.find_child("PremiumRibbon", true, false) != null and (s.find_child("PremiumRibbon", true, false) as Label).text == "SEASON 2", "premium ribbon")
 	_ok(s.find_children("*", "Button", true, false).filter(func(b): return "buy" in (b as Button).text.to_lower()).is_empty(), "no purchase button")
 	# no internal id leaks into any visible label (every level, plate, tiles)
@@ -53,23 +53,23 @@ func _ready() -> void:
 	var shards := MetaState.shard_pool
 	var r := s.claim_level(1)
 	_ok(bool(r.ok) and MetaState.shard_pool == shards + 300, "lv1 claimed +300 shard")
-	_ok(s.node_state(1) == "claimed" and (s.find_child("NodeBtn_1", true, false) as Button).disabled, "lv1 shows claimed")
+	_ok(s.node_state(1) == "claimed" and (s.tile_button(1) as Button).disabled, "lv1 shows claimed")
 	var again := s.claim_level(1)
 	_ok(not bool(again.ok) and MetaState.shard_pool == shards + 300, "no double claim")
 	_ok(not bool(s.claim_level(6).ok), "unreached level refused")
 	# claim all
 	var n := s.claim_all()
 	_ok(n == 4 and PassV2.claimable_levels(MetaState).is_empty(), "claim all took levels 2-5")
-	_ok((s.find_child("ClaimAll", true, false) as Button).disabled, "claim all disabled when nothing left")
+	_ok((s.find_child("ClaimAllButton", true, false) as Button).disabled, "claim all disabled when nothing left")
 	# weekly
 	var wk := PassV2.week_key("2026-11-10")
 	_ok(s.week_reset_text() == "resets Mon 16 Nov 2026, 00:00 UTC", "reset text: " + s.week_reset_text())
-	_ok((s.find_child("WeeklyClaim_win_runs", true, false) as Button).disabled, "weekly not done: disabled")
+	_ok(s.task_button("win_runs").disabled, "weekly not done: disabled")
 	MetaState.pass_season["weekly"] = {wk: {"runs": 5, "wins": 2, "boss": 0, "claimed": []}}
 	s.refresh()
 	await get_tree().process_frame
-	_ok(not (s.find_child("WeeklyClaim_play_runs", true, false) as Button).disabled, "play 5 claimable")
-	_ok((s.find_child("WeeklyClaim_reach_boss", true, false) as Button).disabled, "boss task not done")
+	_ok(not s.task_button("play_runs").disabled, "play 5 claimable")
+	_ok(s.task_button("reach_boss").disabled, "boss task not done")
 	var xp0 := s.xp()
 	_ok(bool(s.claim_weekly("play_runs").ok) and s.xp() == xp0 + 500, "weekly +500 XP")
 	_ok(not bool(s.claim_weekly("play_runs").ok) and s.xp() == xp0 + 500, "weekly once only")
@@ -79,8 +79,8 @@ func _ready() -> void:
 	MetaState.pass_season["level"] = 6
 	s.refresh()
 	await get_tree().process_frame
-	var nb := s.find_child("NodeBtn_6", true, false) as Button
-	_ok(nb != null and nb.text == "CLAIM" and s.node_state(6) == "claimable", "lv6 claimable button")
+	var nb := s.tile_button(6) as Button
+	_ok(nb != null and nb.text == "Claim" and s.node_state(6) == "claimable", "lv6 claimable button")
 	nb.pressed.emit()
 	_ok(s.node_state(6) == "claimed", "pressing NodeBtn_6 claims it")
 	# post-30 loop through the view
@@ -101,10 +101,10 @@ func _ready() -> void:
 	var xp1 := o.xp()
 	MetaState.pass_season["weekly"] = {PassV2.week_key("2027-01-05"): {"runs": 5, "wins": 2, "boss": 1, "claimed": []}}
 	o.refresh()
-	_ok((o.find_child("WeeklyClaim_play_runs", true, false) as Button).disabled, "weekly disabled after season")
+	_ok(o.task_button("play_runs").disabled, "weekly disabled after season")
 	_ok(not bool(o.claim_weekly("play_runs").ok) and o.xp() == xp1, "weekly refused after season, no XP")
-	_ok((o.find_child("NodeBtn_7", true, false) as Button).text == "CLAIM", "reached level claimable after season")
-	_ok((o.find_child("NodeBtn_12", true, false) as Button).text == "Not claimed", "unreached shows Not claimed")
+	_ok((o.tile_button(7) as Button).text == "Claim", "reached level claimable after season")
+	_ok((o.tile_button(12) as Button).text == "Not claimed", "unreached shows Not claimed")
 	_ok(bool(o.claim_level(7).ok) and o.xp() == xp1, "claim after season works, XP unchanged")
 	o.queue_free()
 	# before season banner
