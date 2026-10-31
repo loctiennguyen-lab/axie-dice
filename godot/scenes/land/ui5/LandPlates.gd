@@ -126,20 +126,44 @@ static func cell_button(btn_name: String, text: String, on_press: Callable) -> B
 
 ## Space keycap on a primary button (primary variant), shown only while the button is enabled (a disabled primary has
 ## no keycap, Liam 30/10). Positioned after the centred label via Ui5HudStyle.place_trailing; re-synced on redraw/resize.
-static func attach_space_cap(b: Button, pad: int) -> PanelContainer:
+static func attach_space_cap(b: Button, pad_in: int) -> PanelContainer:
 	var cap := Ui5Keycap.make("Space", &"primary")
 	b.add_child(cap)
+	var pad := maxi(pad_in, UI3Theme.space("24"))   # space token "32" may be absent: never 0
+	var gap := UI3Theme.space("12")
+	cap.set_anchors_preset(Control.PRESET_CENTER_RIGHT)   # layout-independent: pinned pad px from the right edge
+	cap.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	cap.grow_vertical = Control.GROW_DIRECTION_BOTH
+	cap.offset_right = -pad
 	var sync := func() -> void:
 		if not is_instance_valid(b) or not is_instance_valid(cap):
 			return
-		var sig := "%s|%s|%s|%d" % [b.text, b.disabled, b.size, UI3Theme.size_of("keycap_h")]
+		var sig := "%s|%s|%s|%d|%d" % [b.text, b.disabled, b.size, UI3Theme.size_of("keycap_h"), b.get_theme_font_size("font_size")]
 		if String(b.get_meta("cap_sig", "")) == sig:
 			return
 		b.set_meta("cap_sig", sig)
 		cap.visible = not b.disabled
-		if b.is_inside_tree():
-			Ui5HudStyle.place_trailing(b, cap, pad)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT if cap.visible else HORIZONTAL_ALIGNMENT_CENTER   # label left, Space right: never overlap
+		var cs := cap.get_combined_minimum_size()
+		var extra := (gap + int(ceilf(cs.x))) if cap.visible else 0
+		var font := b.get_theme_font("font")
+		var tw := font.get_string_size(b.text, HORIZONTAL_ALIGNMENT_LEFT, -1, b.get_theme_font_size("font_size")).x if font != null else 0.0
+		var base_w := float(b.get_meta("base_w", b.custom_minimum_size.x))
+		b.set_meta("base_w", base_w)
+		b.custom_minimum_size.x = maxf(base_w, ceilf(tw) + 2.0 * pad + extra) if cap.visible else base_w
+		# Styles come from the theme by variation (b.get_theme_stylebox is the grey engine default before the button
+		# is in the tree); the right content margin grows by the cap so the label centres in what is left.
+		var th := UI3Theme.get_theme()
+		for st in ["normal", "hover", "pressed", "disabled", "hover_pressed"]:
+			var src: StyleBox = th.get_stylebox(st, b.theme_type_variation)
+			if src is StyleBoxFlat:
+				var d := (src as StyleBoxFlat).duplicate() as StyleBoxFlat
+				d.content_margin_right = maxf(d.content_margin_right, float(pad)) + extra if cap.visible else d.content_margin_right
+				if cap.visible:
+					d.content_margin_left = maxf(d.content_margin_left, float(pad))
+				b.add_theme_stylebox_override(st, d)
 	b.draw.connect(sync)
 	b.resized.connect(sync)
+	b.minimum_size_changed.connect(sync)
 	sync.call_deferred()
 	return cap

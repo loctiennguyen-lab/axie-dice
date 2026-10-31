@@ -167,6 +167,7 @@ func build_hud() -> void:
 	_l._load_daily_tries()
 	_l._run_plate = _l._build_run_button()
 	rr.add_child(_l._run_plate)
+	_l._run_plate.minimum_size_changed.connect(_l._layout, CONNECT_DEFERRED)   # the keycap widens the plate: re-place the row
 
 
 ## LandPlate: "Upgrade Land · Forest 2/6 · Stone a/b · n to Next" (secondary S button), or the max-tier plate.
