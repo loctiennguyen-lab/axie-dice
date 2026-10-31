@@ -38,6 +38,7 @@ func _ready() -> void:
 
 func _open() -> Node:
 	var v: Node = (load("res://scenes/codex/Codex.tscn") as PackedScene).instantiate()
+	v.set("no_scene_change", true)
 	add_child(v)
 	for _i in 6:
 		await get_tree().process_frame
@@ -91,12 +92,22 @@ func _run(sc: float) -> void:
 		_check(v.find_child(k[1], true, false) != null, "[%s] %s" % [tag, k[1]])
 		_check(v.find_child(k[2], true, false) != null, "[%s] %s tile" % [tag, k[2]])
 		_frame(v, sc, tag + " " + k[0])
+	for tn in v.find_children("TileName", "Label", true, false):
+		_check((tn as Label).get_line_count() <= 2, "[%s] tile name '%s' wraps in <= 2 lines (%d)" % [tag, (tn as Label).text, (tn as Label).get_line_count()])
 	v.tile_for("a_volley").activated.emit()
 	await get_tree().process_frame
 	for n in ["AnchorCard", "HouseGlyph", "AnchorName", "HouseLine", "Summary", "RuleBox", "AwakensBox", "HouseCores", "HouseCoreChip"]:
 		_check(v.find_child(n, true, false) != null, "[%s] detail %s" % [tag, n])
 	_check(Align.pairs(v) > 0, "[%s] align pairs > 0 (house glyph + name)" % tag)
 	_frame(v, sc, tag + " detail")
+	var card := v.find_child("AnchorCard", true, false)
+	_check(card.find_children("*", "ScrollContainer", true, false).is_empty(), "[%s] AnchorCard has no scroll of its own" % tag)
+	for pair in CodexContent.TABS:
+		v._select_tab(pair[0])
+		await get_tree().process_frame
+		_frame(v, sc, tag + " tab " + pair[0])
+		var rb := v._body as RichTextLabel
+		_check(float(rb.get_theme_font_size("normal_font_size")) * sc >= 14.0 - 0.01, "[%s] body text >= 14 real px" % tag)
 	# search
 	v._search.text = "poison"
 	v._on_search_changed("poison")
@@ -110,6 +121,22 @@ func _run(sc: float) -> void:
 		_check(String(r.get_meta("plain")).to_lower().contains("poison") and r.text.contains("[bgcolor"), "[%s] hit has the word, marked" % tag)
 	_check((v.topic_node("mana") as Button).modulate.a < 1.0 and (v.topic_node("st") as Button).modulate.a == 1.0, "[%s] non-matching topics dim" % tag)
 	_frame(v, sc, tag + " search")
+	# hit click opens the topic and clears the search
+	(hits[0] as Ui5CodexTile).activated.emit()
+	_check(v._search.text == "" and v._current_tab == String(hits[0].get_meta("topic_key")), "[%s] SearchHit opens its topic and clears the search" % tag)
+	for raw in ["cell", "color", "font_size", "bgcolor"]:
+		v._search.text = raw
+		v._on_search_changed(raw)
+		_check((v.find_child("ResultCount", true, false) as Label).text == "0 results", "[%s] BBCode word '%s' finds nothing" % [tag, raw])
+	# Esc: clears the search first, a second Esc goes back
+	var ev := InputEventKey.new()
+	ev.keycode = KEY_ESCAPE
+	ev.pressed = true
+	var before: int = v.back_requests
+	v._unhandled_key_input(ev)
+	_check(v._search.text == "" and v.back_requests == before, "[%s] Esc with a search clears it, no back" % tag)
+	v._unhandled_key_input(ev)
+	_check(v.back_requests == before + 1, "[%s] second Esc goes back" % tag)
 	v._search.text = "zzqx"
 	v._on_search_changed("zzqx")
 	await get_tree().process_frame

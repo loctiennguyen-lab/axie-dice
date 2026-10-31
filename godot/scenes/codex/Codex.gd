@@ -54,8 +54,14 @@ func _initial_focus() -> void:
 		_search.grab_focus()
 
 
+var no_scene_change := false   # tests
+var back_requests := 0
+
+
 func _on_back() -> void:
-	LandNav.back_to_land()
+	back_requests += 1
+	if is_inside_tree() and not no_scene_change:
+		LandNav.back_to_land()
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
@@ -220,8 +226,25 @@ func _on_topic(key: String) -> void:
 	_select_tab(key)
 
 
+var _plain: Dictionary = {}   # key -> Array[String], plain_lines cache
+
+
+func _lines(key: String) -> Array:
+	if not _plain.has(key):
+		_plain[key] = CodexContent.plain_lines(key)
+	return _plain[key]
+
+
+## A topic matches by its name, or when a plain-text line (no BBCode) holds the word.
 func _topic_hit(key: String, label: String, needle: String) -> bool:
-	return label.to_lower().contains(needle) or (not BOOK_LEDE.has(key) and CodexContent.tab_text(key).to_lower().contains(needle))
+	if label.to_lower().contains(needle):
+		return true
+	if BOOK_LEDE.has(key):
+		return false
+	for ln in _lines(key):
+		if String(ln).to_lower().contains(needle):
+			return true
+	return false
 
 
 ## Matching topics get a SearchHit under "Results for ..."; the others dim. The count says how many match.
@@ -267,11 +290,12 @@ func _on_search_changed(q: String) -> void:
 ## The first line of the topic that holds the word (a window around it when long); the lede when only the name matched.
 func _snippet(key: String, needle: String) -> String:
 	if not BOOK_LEDE.has(key):
-		for ln in CodexContent.plain_lines(key):
-			var i := ln.to_lower().find(needle)
+		for ln in _lines(key):
+			ln = String(ln)
+			var i: int = ln.to_lower().find(needle)
 			if i >= 0:
-				var a := maxi(0, i - SNIP)
-				var b := mini(ln.length(), i + needle.length() + SNIP)
+				var a: int = maxi(0, i - SNIP)
+				var b: int = mini(ln.length(), i + needle.length() + SNIP)
 				return ("… " if a > 0 else "") + ln.substr(a, b - a) + (" …" if b < ln.length() else "")
 	return String(CodexContent.TAB_LEDE.get(key, BOOK_LEDE.get(key, "")))
 

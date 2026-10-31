@@ -87,6 +87,8 @@ static func tile(node_name: String, met: bool, title: String, sub: String, edge:
 			h.add_child(ic)
 			nm = Ui5Text.label(title, "text_key", "text", true)
 			nm.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			nm.custom_minimum_size.x = 1
 			h.add_child(nm)
 			v.add_child(h)
 		else:
@@ -98,7 +100,11 @@ static func tile(node_name: String, met: bool, title: String, sub: String, edge:
 		v.add_child(nm)
 	nm.name = "TileName"
 	nm.clip_text = false
-	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if met and icon != null:
+		nm.autowrap_mode = TextServer.AUTOWRAP_OFF
+		nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	else:
+		nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var s := Ui5Text.label(sub if met and sub != "" else (TranslationServer.translate("Met") if met else TranslationServer.translate("Not met yet")), "text_body", "text_muted")
 	s.name = "TileSub"
 	s.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

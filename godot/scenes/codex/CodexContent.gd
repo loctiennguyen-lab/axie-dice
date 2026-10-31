@@ -455,13 +455,23 @@ static func plain_lines(key: String) -> Array[String]:
 static func _table(headers: Array, rows: Array) -> String:
 	var cols: int = headers.size()
 	var s := "[table=%d]" % cols
-	for h in headers:
-		s += "[cell bg=#%s][b]%s[/b][/cell]" % [UI3Theme.color("chip").to_html(false), _safe(h)]
+	var chip := UI3Theme.color("chip").to_html(false)
+	var raised := UI3Theme.color("plate_raised").to_html(false)
+	var muted := UI3Theme.color("text_muted").to_html(false)
+	for i in cols:
+		s += "[cell bg=#%s padding=12,8,12,8 expand=%d][color=#%s][b]%s[/b][/color][/cell]" % [chip, _ratio(cols, i), muted, _safe(headers[i])]
 	for row in rows:
-		for cell in row:
-			s += "[cell bg=#%s]%s[/cell]" % [UI3Theme.color("plate_raised").to_html(false), _safe(cell)]
+		for i in cols:
+			s += "[cell bg=#%s padding=12,8,12,8 expand=%d]%s[/cell]" % [raised, _ratio(cols, i), _safe(row[i] if i < row.size() else "")]
 	s += "[/table]\n"
 	return s
+
+
+## Column weights: .tbl is 0.35fr / 1fr for two columns, equal for more.
+static func _ratio(cols: int, i: int) -> int:
+	if cols == 2:
+		return 35 if i == 0 else 100
+	return 1
 
 
 ## Defends the "never <NULL>/NaN/undefined" UI rule (inherited from tools/verify.mjs) at the
