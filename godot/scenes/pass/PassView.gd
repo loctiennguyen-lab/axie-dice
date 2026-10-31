@@ -319,12 +319,18 @@ func _build() -> void:
 
 ## Level the player last saw on this screen (session). -1 = not seen yet. ResultView may seed it before XP is paid.
 static var seen_level := -1
+## Account the level above belongs to; a different account (sign-in / sign-out) starts over.
+static var seen_account := ""
 
 
 ## UI-05 b23 lane M3: `pass-level-up` when the level went up since the last time this screen drew. Level pop + the new
 ## tile's Claim pulse; the XP bar rows and tag have no node here (data).
 func _level_moment() -> void:
 	var lv := level()
+	var acc := String(AccountService.account.get("id", ""))
+	if acc != seen_account:
+		seen_level = -1
+		seen_account = acc
 	var was := seen_level
 	seen_level = lv
 	if was < 0 or lv <= was or UI3Gacha.is_instant() or DisplayServer.get_name() == "headless" or not is_inside_tree():
