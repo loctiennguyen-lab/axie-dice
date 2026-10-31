@@ -24,7 +24,7 @@ var day_override := ""
 
 var _shell: Dictionary
 var _banner_host: VBoxContainer
-var _body: HBoxContainer
+var _body: VBoxContainer
 var test_mode := false
 var sign_in_calls := 0
 var daily_result_ok := true
