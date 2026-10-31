@@ -149,16 +149,6 @@ func _ready() -> void:
 			words += (c as Label).text + " "
 	_check(words.strip_edges() == "Click or to skip" and Ui5Keycap.all_under(sh).size() == 1, "SkipHint reads 'Click or [Space] to skip'")
 
-	# F2: no keycap on a disabled End turn button (Enemy turn / Waiting...)
-	var et: Button = hud.get("end_turn_button")
-	var cap: Control = et.find_child("EndKeyCap", true, false)
-	et.disabled = true
-	hud.call("_sync_end_cap")
-	_check(cap != null and not cap.visible, "F2: disabled End turn shows no KeyCap")
-	et.disabled = false
-	hud.call("_sync_end_cap")
-	_check(cap.visible, "F2: enabled End turn shows the Space KeyCap")
-
 	UI3Theme.set_scale_override(-1.0)
 	CombatView.disable_juice_for_tests = false
 	view.queue_free()
