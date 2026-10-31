@@ -511,7 +511,8 @@ func _banner(msg: String, detail: String, tone: StringName, with_sign_in := fals
 ## A signed-out or expired account: with the remote wallet on, a guest has no Shards to show and cannot stake.
 func _retry() -> void:
 	set_state(derive_state() if use_account else "normal")
-	sync_server(true)   # ask the server again (reconcile + unlocks), not just redraw
+	if state != "guest":
+		sync_server(true)   # ask the server again (reconcile + unlocks), not just redraw
 
 
 func is_guest_view() -> bool:
