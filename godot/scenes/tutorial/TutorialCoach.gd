@@ -347,7 +347,7 @@ func show_step(step_label: String, title: String, body: String, cta: String,
 
 
 ## A full-screen moment with nothing behind it to teach: welcome, win, loss. Scrim over the real combat.
-func show_curtain(title: String, body: String, cta: String) -> void:
+func show_curtain(title: String, body: String, cta: String, skip := true) -> void:
 	_hide_all()
 	_scrim.color = UI3Theme.color("scrim")
 	_scrim.visible = true
@@ -357,7 +357,7 @@ func show_curtain(title: String, body: String, cta: String) -> void:
 	_curtain_body.text = body
 	_curtain_cta.text = cta
 	_curtain_cta.visible = cta != ""
-	_curtain_skip.visible = true
+	_curtain_skip.visible = skip
 	_starter.visible = false
 	UI3Tooltip.hide_all(get_tree())   # a plate raised by the HUD just before the curtain must not stay on top of it
 	if cta != "":
@@ -418,7 +418,7 @@ func _reward_card(f: Dictionary, index: int) -> PanelContainer:
 	card.gui_input.connect(func(ev: InputEvent) -> void:
 		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
 			_select_reward(index)
-			card.grab_focus()
+			_take.grab_focus()   # Take shows the Space cap now, so Space must press it, not re-pick the card
 		elif ev.is_action_pressed("ui_accept") and not ev.is_echo():
 			_select_reward(index)
 			_take.grab_focus())

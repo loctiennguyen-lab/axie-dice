@@ -192,6 +192,11 @@ func _process(_delta: float) -> void:
 	var ph := _phase()
 	if ph != _last_phase:
 		_render(false)
+	if ph == Step.WELCOME and _view != null:
+		# The combat's own "Your turn" band must not play under the Welcome curtain: finish it (runs its on_done).
+		for tb in _view.find_children("TurnBanner*", "Control", true, false):   # Combat.tscn also has a plain plate of that name
+			if tb.has_method("finish"):
+				tb.call("finish", true)
 
 
 func _on_combat_finished(won: bool) -> void:
