@@ -112,6 +112,16 @@ func _pass(sc: float) -> void:
 	d.claim_daily()
 	await _frames(3)
 	_ok(_btn(d, "DailyClaim").disabled and _btn(d, "DailyClaim").text == "Claim · Claimed today", "%s: claimed says why" % tag)
+	var dc := _btn(d, "DailyClaim").get_global_rect()
+	var dcard := d.find_child("DailyCard", true, false) as Control
+	var rows_ok := true
+	for rn in ["RewardShards", "RewardStone", "RewardXp"]:
+		var rr := d.find_child(rn, true, false) as Control
+		if rr == null or rr.get_global_rect().intersects(dc) or rr.get_global_rect().end.y > dc.position.y:
+			rows_ok = false
+	await get_tree().create_timer(0.6).timeout   # a claim moment (if it plays) has finished
+	dc = _btn(d, "DailyClaim").get_global_rect()
+	_ok(rows_ok and dcard.get_global_rect().encloses(dc) and not dc.intersects((d.find_child("RewardShards", true, false) as Control).get_global_rect()) and dc.position.y > (d.find_child("RewardXp", true, false) as Control).get_global_rect().end.y, "%s: claimed DailyClaim sits below the reward rows" % tag)
 	_ok(d.find_child("ResultLine", true, false) != null and d.find_child("ToneDisc", true, false) != null, "%s: result line with ToneDisc" % tag)
 	_ok(_btn(d, "GemClaim").theme_type_variation == "ButtonPrimaryL" and not _btn(d, "GemClaim").disabled, "%s: Gem claim is the primary now" % tag)
 	_ok(_btn(d, "GemClaim").icon == null, "%s: primary Gem claim has no icon (text only)" % tag)

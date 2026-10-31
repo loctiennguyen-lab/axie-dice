@@ -93,6 +93,12 @@ func claim_daily() -> bool:
 func _play_claim_moment() -> void:
 	if not is_inside_tree() or _cards_host == null or UI3Gacha.is_instant() or DisplayServer.get_name() == "headless":
 		return
+	# The cards were just rebuilt: the VBox has not placed the button yet, and the timeline captures `position` as its base.
+	# Played at once it would settle the button at (0,0) on top of the reward rows. Wait until the containers have sorted.
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not is_inside_tree() or _cards_host == null:
+		return
 	var rows: Array = []
 	var card := _cards_host.find_child("DailyCard", true, false)
 	for n in ["RewardShards", "RewardStone", "RewardXp"]:
