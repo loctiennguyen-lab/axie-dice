@@ -46,6 +46,21 @@ func _ready() -> void:
 			get_viewport().get_texture().get_image().save_png("%s/29-codex--%s%s.png" % [out, st, sfx])
 			v.queue_free()
 			await get_tree().process_frame
+		for pair in [["res://scenes/guides/Guides.tscn", "guides"], ["res://scenes/unlocks/Unlocks.tscn", "unlocks"], ["res://scenes/combat/InfoPanelView.tscn", "infopanel-keywords"]]:
+			var w: Node = (load(pair[0]) as PackedScene).instantiate()
+			if w.get("no_scene_change") != null:
+				w.set("no_scene_change", true)
+			add_child(w)
+			for _i in 4:
+				await get_tree().process_frame
+			if pair[1] == "infopanel-keywords":
+				w.setup(null, [])
+				w._select_tab("kw")
+			for _i in 10:
+				await get_tree().process_frame
+			get_viewport().get_texture().get_image().save_png("%s/%s%s.png" % [out, pair[1], sfx])
+			w.queue_free()
+			await get_tree().process_frame
 	UI3Theme.set_scale_override(-1.0)
 	_guard.restore()
 	get_tree().quit(0)
