@@ -31,7 +31,7 @@ func _build_event_screen(picked: int, outcome: String) -> void:
 	var host := ctrl._open_ui3_screen()
 	var screen := HBoxContainer.new()
 	screen.name = "EventScreen"
-	screen.set_anchors_preset(Control.PRESET_FULL_RECT)
+	screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	screen.alignment = BoxContainer.ALIGNMENT_CENTER
 	screen.add_theme_constant_override("separation", UI3Theme.space("40"))
 	screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -94,11 +94,13 @@ func _build_event_screen(picked: int, outcome: String) -> void:
 		var ol := UI3.label(outcome, "LabelTitle")
 		ol.name = "Text"
 		ol.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		ol.custom_minimum_size.x = 400
 		oc.add_child(ol)
 	else:
 		var body := _PanelParts.on_view(UI3.label(String(ev.get("desc", ""))))
 		body.name = "EventBody"
 		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		body.custom_minimum_size.x = 400
 		col.add_child(body)
 
 	ctrl._overlay_vbox = VBoxContainer.new()
@@ -148,6 +150,7 @@ func _select_event(index: int) -> void:
 
 func _add_event_option(raw: Dictionary, index: int, picked: int) -> Control:
 	var card := UI3.plate(&"card")
+	card.name = "ChoiceRow"
 	card.custom_minimum_size.y = UI3Theme.size_of("choice_h")
 	ctrl._overlay_vbox.add_child(card, true)   # ChoiceRow, ChoiceRow2, ...
 	var line := HBoxContainer.new()
@@ -175,6 +178,7 @@ func _add_event_option(raw: Dictionary, index: int, picked: int) -> Control:
 	tc.add_child(tl)
 	var d := UI3.label(String(raw.get("desc", "")))
 	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	d.custom_minimum_size.x = 400   # a wrap width from the first layout pass (else the min height spikes)
 	d.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tc.add_child(d)
 	card.set_meta("opt", index)
@@ -191,7 +195,7 @@ func _add_event_option(raw: Dictionary, index: int, picked: int) -> Control:
 	card.focus_entered.connect(card.queue_redraw)
 	card.focus_exited.connect(card.queue_redraw)
 	card.gui_input.connect(func(ev: InputEvent) -> void:
-		var by_mouse := ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT
+		var by_mouse: bool = ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT
 		if by_mouse or (ev.is_action_pressed("ui_accept") and not ev.is_echo()):
 			_select_event(index)
 			var go := _action_button()

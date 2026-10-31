@@ -610,7 +610,7 @@ func test_event_and_treasure_ui3() -> void:
 	_assert(go != null and go.text == "Continue" and not go.disabled, "event outcome: button must be Continue")
 	if opts.size() > 1:
 		_assert(absf((runmap.find_child("ChoiceRow2", true, false) as Control).modulate.a - 0.4) < 0.01, "event outcome: other choices at 40%")
-	_assert((runmap.find_child("EventBody", true, false) as Label).text == "Result text", "event outcome: body must be the result")
+	_assert((runmap.find_child("OutcomeText", true, false).find_child("Text", true, false) as Label).text == "Result text", "event outcome: OutcomeText must be the result")
 	runmap.call("_on_treasure_node", "tn")
 	await get_tree().process_frame
 	_assert(runmap.find_child("OpenButton", true, false) != null, "treasure: closed state needs 'Open chest'")
