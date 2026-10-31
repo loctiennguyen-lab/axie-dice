@@ -43,16 +43,22 @@ func setup(it: Dictionary, shop_index: int, why: String) -> void:
 	ic.offset_bottom = px / 2.0
 	art.add_child(ic)
 	column.add_child(art)
+	# CoreName / chips / RuleText live in their own Body box: CoreName is the card title (left, as the HTML), not the
+	# label of the Art icon, so the "label under an icon is centred" rule (and ui5_align_check) must not pair them.
+	var body := VBoxContainer.new()
+	body.name = "Body"
+	body.add_theme_constant_override("separation", UI3Theme.space("8"))
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(body)
 	var nm := PanelParts.text(String(it.get("title", "")), "text_title", "text", true)
 	nm.name = "CoreName"
-	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER   # text under an icon is centred on it (Liam 29/10)
 	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	column.add_child(nm)
+	body.add_child(nm)
 	var chips := HFlowContainer.new()
 	chips.name = "ChipRow"
 	chips.add_theme_constant_override("h_separation", UI3Theme.space("8"))
 	chips.add_theme_constant_override("v_separation", UI3Theme.space("8"))
-	column.add_child(chips)
+	body.add_child(chips)
 	chips.add_child(Parts.tier_chip(tier))
 	chips.add_child(_category_chip(axis))
 	var dsc := UI3.describe(String(it.get("desc", "")))
@@ -60,9 +66,11 @@ func setup(it: Dictionary, shop_index: int, why: String) -> void:
 	rule.name = "RuleText"
 	rule.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	rule.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	column.add_child(rule)
+	body.add_child(rule)
 	buy_button = shop_buy_button(int(it.get("cost", 0)), why)
 	column.add_child(buy_button)
+	if bool(it.get("bought", false)):
+		style_bought(buy_button)
 
 
 ## `.btn-secondary.s.buy`: "Buy · N Shards", or disabled saying why ("Need N Shards", "Bought").
@@ -92,3 +100,16 @@ func _category_chip(axis: String) -> PanelContainer:
 	w.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	h.add_child(w)
 	return p
+
+
+## `.btn.is-bought`: success_bg fill, path_on border and text, check icon. The button stays disabled ("Bought").
+static func style_bought(b: Button) -> void:
+	var on := UI3Theme.color("path_on")
+	var sb := UI3Theme.flat(UI3Theme.color("success_bg"), UI3Theme.radius("m"), UI3Theme.stroke("btn"), on,
+		Vector4(UI3Theme.space("24"), 0, UI3Theme.space("24"), 0))
+	b.add_theme_stylebox_override("disabled", sb)
+	for c in ["font_disabled_color", "font_color"]:
+		b.add_theme_color_override(c, on)
+	b.icon = UI3.icon("ui_check")
+	b.expand_icon = true
+	b.add_theme_constant_override("icon_max_width", UI3Theme.size_of("icon_s"))

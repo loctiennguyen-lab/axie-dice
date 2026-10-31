@@ -18,13 +18,14 @@ func setup(it: Dictionary, shop_index: int, why: String) -> void:
 	var pad := UI3Theme.space("16")
 	add_theme_stylebox_override("panel", PanelParts.plate_box("l", pad))
 	custom_minimum_size.x = UI3Theme.size_of("shop_card_w")
-	size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	size_flags_vertical = Control.SIZE_FILL   # HTML align-items:stretch: the three supplies are as tall as the tallest
 	var col := VBoxContainer.new()
 	col.name = "Column"
 	col.add_theme_constant_override("separation", UI3Theme.space("8"))
 	add_child(col)
 	var row := HBoxContainer.new()
 	row.name = "Row"
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL   # Buy sits at the bottom of the stretched card
 	row.add_theme_constant_override("separation", UI3Theme.space("12"))
 	col.add_child(row)
 	row.add_child(PanelParts.icon_rect(UI3.icon(String(ICONS.get(String(it.get("kind", "")), "face_buff"))), UI3Theme.size_of("choice_icon")))

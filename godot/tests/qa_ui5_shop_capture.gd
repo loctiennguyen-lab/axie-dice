@@ -39,7 +39,7 @@ func _ready() -> void:
 	add_child(m)
 	for _i in 8:
 		await get_tree().process_frame
-	var a: Array[Dictionary] = [_item("c_bastion", false), _item("c_backline_glow", false)]
+	var a: Array[Dictionary] = [_item("c_bastion", false), _item("c_backline_glow", true)]
 	a.append_array(_supplies(false))
 	RunState.shards_this_run = 100
 	RunState.shop_items.assign(a)

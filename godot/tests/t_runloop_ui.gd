@@ -350,7 +350,8 @@ func test_shop_bought_and_unaffordable_buttons_use_different_styleboxes() -> voi
 	var buy1: Button = (cards[1] as Node).find_child("BuyButton", true, false)
 	_assert(buy1 != null and buy1.disabled and buy1.text == "Need 999 Shards",
 		"unaffordable item: Buy must be disabled and say 'Need 999 Shards', got '%s'" % (buy1.text if buy1 else ""))
-	_assert(buy0.get_theme_stylebox("disabled") == buy1.get_theme_stylebox("disabled") or buy0.text != buy1.text, "bought / unaffordable are told apart")
+	_assert((buy0.get_theme_stylebox("disabled") as StyleBoxFlat).bg_color != (buy1.get_theme_stylebox("disabled") as StyleBoxFlat).bg_color,
+		"bought (success) and unaffordable (grey) disabled buttons look different")
 	_assert(runmap.find_child("BlockReason", true, false) == null, "the reason is on the button only, not repeated above it")
 	_assert(runmap.find_child("Notice", true, false) != null, "nothing affordable: notice missing")
 	RunState.shards_this_run = 100

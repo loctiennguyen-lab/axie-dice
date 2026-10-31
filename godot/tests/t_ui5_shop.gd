@@ -109,6 +109,9 @@ func _pass(sc: float, asc: int) -> void:
 	await _frames()
 	var bbs := m.find_children("BuyButton", "Button", true, false)
 	_ok((bbs[0] as Button).text == "Bought" and (bbs[0] as Button).disabled, "%s: bought Core says Bought" % tag)
+	var bsb := (bbs[0] as Button).get_theme_stylebox("disabled") as StyleBoxFlat
+	_ok(bsb != null and bsb.bg_color.is_equal_approx(UI3Theme.color("success_bg")) and bsb.border_color.is_equal_approx(UI3Theme.color("path_on")), "%s: Bought button is success-styled" % tag)
+	_ok((m.find_children("SupplyItem*", "", true, false)[0] as Control).size.y == (m.find_children("SupplyItem*", "", true, false)[2] as Control).size.y, "%s: supplies equal height" % tag)
 	_ok((bbs[1] as Button).text == "Need %d Shards" % int(items[1]["cost"]) and (bbs[1] as Button).disabled, "%s: short on shards says Need N" % tag)
 	_ok((bbs[4] as Button).text == "Sold out" and (bbs[4] as Button).disabled, "%s: sold-out supply" % tag)
 	_ok(Ui5Keycap.all_under(m).size() == 1, "%s: still only the Leave keycap (none on disabled buys)" % tag)
@@ -118,6 +121,8 @@ func _pass(sc: float, asc: int) -> void:
 	await _frames()
 	_ok(m.find_child("Notice", true, false) != null, "%s: notice when nothing is affordable" % tag)
 	_ok(get_viewport().gui_get_focus_owner() == m.find_child("LeaveButton", true, false), "%s: focus falls to Leave" % tag)
+	var cn := m.find_child("CoreName", true, false) as Label
+	_ok(cn.horizontal_alignment == HORIZONTAL_ALIGNMENT_LEFT, "%s: CoreName left like the HTML" % tag)
 	_small(m, tag + " cant-afford", sc)
 	m.queue_free()
 	await _frames(2)

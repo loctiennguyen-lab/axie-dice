@@ -216,6 +216,7 @@ func _add_shop_row(raw: Dictionary, index: int) -> PanelContainer:
 	return card
 
 
+## Kept only because RunMapController still forwards `_shop_art` (typed call); nothing draws with it any more.
 func _shop_art(it: Dictionary, px: float, accent: Color) -> Control:
 	var art := Panel.new()
 	art.name = "Art"
@@ -242,7 +243,7 @@ func _shop_art(it: Dictionary, px: float, accent: Color) -> Control:
 	return art
 
 
-## No preselect any more (each card has its own Buy): just remembers the last index for the controller.
+## Kept for the controller forwarder and tools/qa captures. No preselect any more (each card has its own Buy): just remembers the last index for the controller.
 func _select_shop(index: int) -> void:
 	ctrl._shop_sel = index
 
