@@ -1,7 +1,7 @@
 extends Node
 ## UI-05 b23 lane S3a1: Run setup main layout (frames stage1, stage3, a5, full-locked, newcomer, daily, ranked), 1920 and 1280.
 ## Data-names exist, the 7 run kinds (3 modes x state) build, inside 1920 logical, text >= 14 real px, equal party columns,
-## Space keycap on an enabled Start only, initial focus on the Normal toggle (never Start), begin_run params arrive unchanged (stub).
+## no keycap on Start (the Space keycap lives on the open-run Continue button), initial focus on the Normal toggle (never Start), begin_run params arrive unchanged (stub).
 ## Run: AXIE_TEST_NO_NET=1 godot --headless --path godot res://tests/t_ui5_run_setup.tscn
 const Fx := preload("res://tests/ui5_run_setup_fixture.gd")
 const Align := preload("res://tests/ui5_align_check.gd")
@@ -40,6 +40,7 @@ func _ready() -> void:
 		for id in Fx.STATE_IDS:
 			await _state_frame(id, sc, "%s state %s" % ["1920" if sc == 1.0 else "1280", id])
 	UI3Theme.set_scale_override(1.0)
+	await _trailing_style()
 	_guard.restore()
 	if _fails.is_empty():
 		print("t_ui5_run_setup: PASS (%d checks)" % _checks)
@@ -48,6 +49,22 @@ func _ready() -> void:
 		for f in _fails:
 			print("t_ui5_run_setup: FAIL - ", f)
 		get_tree().quit(1)
+
+
+## place_trailing on a primary button that is not in the tree yet: once it is, the fill is the variation's, not the grey default.
+func _trailing_style() -> void:
+	var b := UI3.button("Go", &"primary", &"L")
+	var cap := Ui5Keycap.make("Space", &"primary")
+	b.add_child(cap)
+	Ui5HudStyle.place_trailing(b, cap, 16)
+	add_child(b)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	Ui5HudStyle.place_trailing(b, cap, 16)
+	var want := (UI3Theme.get_theme().get_stylebox("normal", "ButtonPrimaryL") as StyleBoxFlat).bg_color
+	var got := b.get_theme_stylebox("normal") as StyleBoxFlat
+	_check(got != null and got.bg_color.is_equal_approx(want), "place_trailing before tree: normal fill is the variation's, got %s" % [str(got.bg_color) if got else "null"])
+	b.queue_free()
 
 
 func _contrast(a: Color, b: Color) -> float:
@@ -142,7 +159,7 @@ func _frame(id: String, sc: float, tag: String) -> void:
 	var chip_lock := s.find_children("LockRow", "HBoxContainer", true, false)
 	for lr in chip_lock:
 		var icr := (lr as Node).get_node("LockIcon") as Control
-		_check(icr.size.x >= 14.0 and icr.size.y >= 14.0, "%s: lock icon %s >= 14 px" % [tag, str(icr.size)])
+		_check(icr.size.x * sc >= 13.99 and icr.size.y * sc >= 13.99, "%s: lock icon %s >= 14 real px" % [tag, str(icr.size)])
 	for pr in Align.check(s, 1.5, tag + ": "):
 		_check(false, pr)
 	# start passes the same params as before (stub), only in the first full-party frame

@@ -399,7 +399,8 @@ func _set_lock_look(b: Button, locked: bool, txt: String, icon_px := 18, gap := 
 	ic.texture = UI3.icon("ui_lock")
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	ic.custom_minimum_size = Vector2(icon_px, icon_px)
+	var px := maxf(float(icon_px), ceilf(14.0 / UI3Theme.layout_scale()))   # >= 14 real px at 1280
+	ic.custom_minimum_size = Vector2(px, px)
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(ic)
 	var lb := Label.new()
