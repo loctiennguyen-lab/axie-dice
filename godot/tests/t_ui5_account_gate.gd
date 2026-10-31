@@ -37,7 +37,6 @@ func _ready() -> void:
 		await _choose(sc)
 		await _move(sc)
 	UI3Theme.set_scale_override(1.0)
-	_check(_pairs > 0, "align_check measured > 0 icon/label pairs (%d)" % _pairs)
 	print("=== t_ui5_account_gate: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	if _fails.is_empty():
 		print("t_ui5_account_gate: PASS - %d checks OK" % _checks)
@@ -97,6 +96,7 @@ func _gate(sc: float) -> void:
 	await _frames()
 	var tag := "gate %.2f" % sc
 	_common(ov, ["Scrim", "BootOfflineGate", "BrandRow", "Brand", "Version", "ToneDisc", "Title", "Body", "TryAgainButton"], tag, sc)
+	_check(Align.pairs(ov) > 0, "[%s] gate: align_check measured > 0 ToneDisc/label pairs" % tag)
 	_check(_focus_name() == "TryAgainButton", "[%s] initial focus is TryAgainButton (%s)" % [tag, _focus_name()])
 	_check((ov.find_child("Version", true, false) as Label).text == Parts.version_text(), "[%s] version from the project setting" % tag)
 	var disc := ov.find_child("ToneDisc", true, false)
@@ -179,7 +179,7 @@ func _choose(sc: float) -> void:
 		var txt := ""
 		for l in cards[0].find_children("*", "Label", true, false):
 			txt += (l as Label).text + "|"
-		_check(txt.contains(UI3.fmt(7)) or txt.contains("7 · 5"), "[%s] local card shows its own runs (%s)" % [tag, txt])
+		_check(txt.contains("7 · 5"), "[%s] local card shows its own runs (%s)" % [tag, txt])
 		_check(txt.contains("On this browser"), "[%s] local sub line" % tag)
 		_check((cards[1].find_children("*", "Label", true, false).any(func(l: Label) -> bool: return l.text.begins_with("Saved "))), "[%s] cloud card says when it was saved" % tag)
 		var pri := ov.find_child(case[3], true, false) as Button

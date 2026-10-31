@@ -7,9 +7,6 @@ extends RefCounted
 ## UI-03: welcome, desktop sign-in, save choice and toasts are on UI3 (round-2 screens 16 and 26).
 ## The account chip (B) is on UI3 tokens too (AccountChip, round-2 components.md).
 
-const WELCOME_W := 760.0
-const CHOICE_W := 980.0
-const MOVE_W := 760.0
 const TOAST_SECONDS := 10.0
 const Parts := preload("res://scenes/account/ui5/AccountParts.gd")
 const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
