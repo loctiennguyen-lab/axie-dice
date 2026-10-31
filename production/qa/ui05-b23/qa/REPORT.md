@@ -47,3 +47,16 @@ Chưa thấy lỗi game nào chặn deploy trong phần đã xem; nhưng phần 
 
 ## Reduce motion / reduce flashing
 Chưa kiểm (có flow `reduce-1920` trong hàng đợi, chưa xong; moment core-reveal/anchor-awaken/echo mythic với Settings bật chưa chụp).
+
+## Soak 2026-10-31-ui5b23 (bản giảm, 381 ô)
+- 2856 run, 0 run xấu (bản 28/10: 3 STUCK_TURNS), verify ok 1326, skip_forced 1530 (flow ép, bỏ verify theo thiết kế).
+- 1905 dòng `ERROR: Couldn't open directory at path "user://acct"` — y hệt bản soak 28/10 (trước UI-05): nhiễu môi trường, không mới.
+- Báo cáo: `production/qa/soak/2026-10-31-ui5b23/SUMMARY.md`.
+
+## Flow UI cả run (Q2, sau khi sửa driver)
+- 1920, 1280, reduce motion: hết run, 10 trận, 0 anomaly; RunVerifier raw + patched ok, `patched_matches_ui` true.
+- "Khối cam" đầu lượt 1 = band Your turn đang trượt ra (đúng spec), không phải lỗi.
+
+## Lỗi đã sửa sau QA (F1, F2)
+- Daily nút Claim đè thẻ; Echo reveal art trống (giữ thumb rồi drop theo spec UI-03); tab bar focus theo tab chọn; Missions N6 cắt dòng; Echo Series tên 1 dòng; GachaFx skip ComboBanner.
+- KHÔNG sửa: keycap Space trên End turn lúc lượt địch — frame round-1 vẽ nó (Space tua FX).
