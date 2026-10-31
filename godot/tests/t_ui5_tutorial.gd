@@ -88,7 +88,7 @@ func _coach_pass(sc: float, aligned: Array) -> void:
 	var card := coach.find_child("StepCard", true, false) as Control
 	_ok(is_equal_approx(card.size.x, UI3Theme.size_of("step_card_w")), "step %s: card is step_card_w wide" % tag)
 	var hole := tgt.get_global_rect().grow(10.0)
-	var bands: Array = coach.find_children("Dim", "ColorRect", true, false)
+	var bands: Array = coach.find_children("Dim*", "ColorRect", true, false)
 	_ok(bands.size() == 4, "step %s: four dim bands" % tag)
 	var leaks := 0
 	for pt in [hole.get_center(), hole.position + Vector2(2, 2), hole.end - Vector2(2, 2)]:
@@ -167,7 +167,7 @@ func _lock() -> void:
 	_ok(int(t.call("_phase")) == TutorialView.Step.REROLL, "lock: three Got its reach REROLL")
 	_ok(not bool(t.call("_allows", "die:0")) and not bool(t.call("_allows", "end_turn")) and not bool(t.call("_allows", "undo")), "lock: REROLL refuses die / end turn / undo")
 	_ok(bool(t.call("_allows", "reroll")), "lock: REROLL allows reroll")
-	var bands := t.find_children("Dim", "ColorRect", true, false)
+	var bands := t.find_children("Dim*", "ColorRect", true, false)
 	_ok(bands.size() == 4, "lock: coach bands exist under the view")
 	t.queue_free()
 	await _frames(2)
