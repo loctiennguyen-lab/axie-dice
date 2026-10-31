@@ -58,6 +58,8 @@ func _pass(sc: float) -> void:
 	add_child(pm)
 	pm.build({"floor": 4, "total": 18, "ascension": 0, "shards": 40})
 	await _frames()
+	var resume_sb := (pm.find_child("ResumeButton", true, false) as Button).get_theme_stylebox("normal")
+	_ok(resume_sb != null and int(resume_sb.content_margin_left) == UI3Theme.space("20"), "%s: Resume padding 20 like the other rows (built inside the tree)" % tag)
 	for n in ["MenuColumn", "Title", "SubLine", "ResumeButton", "KeyCap", "CoresownedRow", "RunmapRow", "SettingsRow",
 			"SaveandquitRow", "AbandonrunRow", "SidePanel", "OwnedCore", "CoreSlot", "TierChip"]:
 		_ok(pm.find_child(n, true, false) != null, "%s: node %s" % [tag, n])
