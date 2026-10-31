@@ -110,6 +110,7 @@ func _pass(sc: float) -> void:
 	var buy := _btn(s, "BuyButton")
 	_ok(not buy.disabled and buy.text == "Buy for %s Gem" % UI3.fmt(int(b0.gems)), "%s: live Buy from data (%s)" % [tag, buy.text])
 	_ok(buy.theme_type_variation.begins_with("ButtonPrimary"), "%s: Buy is the amber primary" % tag)
+	_ok(_btn(s, "TicketTile_%d" % int(b0.tickets)).button_pressed, "%s: picked ticket tile is pressed" % tag)
 	gb = _btn(s, "GiftButton")
 	_ok(gb.theme_type_variation.begins_with("ButtonSecondary") and gb.icon == null, "%s: gift secondary while Buy is live" % tag)
 	var gi := gb.find_child("GemIcon", true, false) as Control
@@ -143,6 +144,11 @@ func _pass(sc: float) -> void:
 	MetaState.gems_cache = 5000
 	_btn(s, "CosmeticTile_" + String(it.id)).pressed.emit()
 	await _frames(3)
+	_ok(_btn(s, "CosmeticTile_" + String(it.id)).button_pressed, "%s: picked cosmetic tile is pressed" % tag)
+	for ci in items:
+		var nl := _btn(s, "CosmeticTile_" + String(ci.id)).get_node("Col").get_child(2) as Label
+		var dn := CosmeticTile.display_name(String(ci.id))
+		_ok(nl.text == (dn if dn != "" else String(ci.id)), "%s: tile name = manifest name (%s)" % [tag, nl.text])
 	_ok(not _btn(s, "BuyButton").disabled and _btn(s, "BuyButton").text == "Buy for %s Gem" % UI3.fmt(int(it.price)), "%s: cosmetic Buy price from data" % tag)
 	_ok(s.buy_cosmetic(String(it.id), String(it.rarity)) == "", "%s: cosmetic bought" % tag)
 	await _frames(3)

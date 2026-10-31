@@ -49,7 +49,7 @@ func _ready() -> void:
 	s.set_tab("tickets")
 	s.select("ticket_%d" % int((gem.store.ticket_bundles as Array)[1].tickets))
 	await _shot("19-store--tickets", small)
-	s.open_confirm("Tickets", "Adds Echo Box tickets.", int((gem.store.ticket_bundles as Array)[1].gems), func() -> void: pass)
+	(s.find_child("BuyButton", true, false) as Button).pressed.emit()   # the real path: 15 tickets / Adds 15 Echo Box tickets.
 	await _shot("19-store--confirm", small)
 	s.close_modal()
 	MetaState.gems_cache = 5000
