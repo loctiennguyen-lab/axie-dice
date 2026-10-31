@@ -186,7 +186,8 @@ static func asc_chip(a: int) -> Button:
 	var ic := TextureRect.new()
 	ic.name = "Lock"
 	ic.texture = UI3.icon("ui_lock")
-	ic.custom_minimum_size = Vector2(14, 14)
+	var px := maxf(14.0, 14.0 / UI3Theme.layout_scale())   # >= 14 real px at 1280
+	ic.custom_minimum_size = Vector2(px, px)
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -198,14 +199,25 @@ static func asc_chip(a: int) -> Button:
 	l.name = "Label"
 	h.add_child(l)
 	b.add_child(h)
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	var ring := UI3.attach_focus_ring(b)   # rounded to the chip, not the default box
+	ring.add_theme_stylebox_override("panel", UI3Theme.focus_style(UI3Theme.radius("m")))
 	return b
 
 
 static func style_asc_chip(b: Button, on: bool, locked: bool) -> void:
 	var bg := "chip" if locked else ("plate_raised" if on else "btn_secondary")
-	var sb := UI3Theme.flat(UI3Theme.color(bg), UI3Theme.radius("m"), 3 if on else 0, UI3Theme.color("selected"))
-	for st in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
-		b.add_theme_stylebox_override(st, sb)
+	var ring := 3 if on else 0
+	var rim := UI3Theme.color("selected")
+	var base := UI3Theme.flat(UI3Theme.color(bg), UI3Theme.radius("m"), ring, rim)
+	# hover = a touch lighter; pressed = a touch darker; a chip that is on keeps its look
+	var hover := base if on else UI3Theme.flat(UI3Theme.color("plate_raised" if locked else "btn_secondary_hover"), UI3Theme.radius("m"), 0, rim)
+	var down := base if on else UI3Theme.flat(UI3Theme.color("plate" if locked else "btn_secondary_pressed"), UI3Theme.radius("m"), 0, rim)
+	b.add_theme_stylebox_override("normal", base)
+	b.add_theme_stylebox_override("disabled", base)
+	b.add_theme_stylebox_override("hover", hover)
+	b.add_theme_stylebox_override("pressed", down)
+	b.add_theme_stylebox_override("hover_pressed", hover)
 	var fc := UI3Theme.color("text_muted" if locked else "text")
 	(b.get_node("Content/Label") as Label).add_theme_color_override("font_color", fc)
 	(b.get_node("Content/Lock") as Control).visible = locked

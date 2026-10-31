@@ -108,6 +108,7 @@ func _pass(sc: float, tag: String) -> void:
 	var stub := LeaderboardSourceStub.new()
 	stub.boards["6|season"] = {"rows": _rows(12), "me": {"rank": 48, "name": "Me", "score": 1500, "won": true}}
 	stub.boards["6|today"] = {"rows": _rows(5), "me": {}}
+	stub.boards["9|season"] = {"rows": _rows(10), "me": {}}
 	var s := await _make(sc, stub)
 	for n in NAMES:
 		_check(s.find_child(n, true, false) != null, "%s: node %s exists" % [tag, n])
@@ -120,6 +121,11 @@ func _pass(sc: float, tag: String) -> void:
 	var fo := s.get_viewport().gui_get_focus_owner()
 	_check(fo != null and fo.name == "AscChipA6", "%s: initial focus on your best Ascension chip (%s)" % [tag, str(fo)])
 	_check((s.find_child("AscChipA7", true, false) as Button).tooltip_text == "Locked for you", "%s: A7 locked" % tag)
+	_check(s.find_child("PinnedRow", true, false) != null, "%s: season: PinnedRow" % tag)
+	var lock := (s.find_child("AscChipA7", true, false) as Button).get_node("Content/Lock") as Control
+	_check(lock.visible and lock.custom_minimum_size.x * sc >= 13.99, "%s: lock icon >= 14 real px (%.1f)" % [tag, lock.custom_minimum_size.x * sc])
+	var chip := s.find_child("AscChipA3", true, false) as Button
+	_check(chip.has_theme_stylebox_override("hover") and chip.get_theme_stylebox("hover") != chip.get_theme_stylebox("normal") and chip.find_child("FocusRing", false, false) != null, "%s: chip has its own hover style and a focus ring" % tag)
 	_audit(s, sc, tag + " season")
 	# pick a row: ring on it, plate fills, footer has the disabled Watch replay
 	s.open_detail(1)
@@ -137,20 +143,23 @@ func _pass(sc: float, tag: String) -> void:
 	s.set_period("today")
 	await _settle()
 	_check((s.find_child("TodayTab", true, false) as Button).button_pressed, "%s: Today tab on" % tag)
+	_check(s.find_child("PinnedRow", true, false) == null, "%s: today: no PinnedRow" % tag)
 	_audit(s, sc, tag + " today")
 	s.set_period("season")
 	s.set_asc(9)
 	await _settle()
-	_check(s.is_locked() and s.find_child("EmptyState", true, false) == null, "%s: locked board readable" % tag)
+	_check(s.is_locked() and s.find_child("EmptyState", true, false) == null and s.find_child("PinnedRow", true, false) != null, "%s: locked board readable, PinnedRow" % tag)
 	_audit(s, sc, tag + " locked")
 	s.set_asc(2)
 	await _settle()
-	_check(s.find_child("EmptyState", true, false) != null, "%s: EmptyState" % tag)
+	_check(s.find_child("EmptyState", true, false) != null and s.find_child("PinnedRow", true, false) == null, "%s: EmptyState, no PinnedRow" % tag)
 	_audit(s, sc, tag + " empty")
 	# loading
 	stub.pending = true
 	s.set_asc(6)
 	await _settle()
+	var heads: Array = s.find_child("Head", true, false).find_children("*", "Label", true, false).map(func(l): return (l as Label).text)
+	_check(heads == ["RANK", "PLAYER", "SCORE", "RESULT"] or heads.size() == 4, "%s: Head has 4 columns while loading %s" % [tag, str(heads)])
 	_check(s.find_child("Skeleton", true, false) != null and s.find_child("PinnedRow", true, false) == null, "%s: loading skeleton, no pinned row" % tag)
 	_audit(s, sc, tag + " loading")
 	stub.release()
@@ -160,7 +169,7 @@ func _pass(sc: float, tag: String) -> void:
 	stub.fail_reason = "offline"
 	s.retry()
 	await _settle()
-	_check(s.find_child("Banner", true, false) != null and s.find_child("TryAgainButton", true, false) != null and s.find_child("BackToLandButton", true, false) != null, "%s: offline banner buttons" % tag)
+	_check(s.find_child("Banner", true, false) != null and s.find_child("TryAgainButton", true, false) != null and s.find_child("BackToLandButton", true, false) != null and s.find_child("PinnedRow", true, false) != null, "%s: offline banner buttons, PinnedRow" % tag)
 	_check(s.find_child("Banner", true, false).find_child("ToneDisc", true, false) != null, "%s: banner ToneDisc" % tag)
 	_check(is_equal_approx((s.find_child("Row0", true, false) as Control).modulate.a, 0.55), "%s: cached rows grey" % tag)
 	_audit(s, sc, tag + " offline")
@@ -172,6 +181,9 @@ func _pass(sc: float, tag: String) -> void:
 	# error with nothing cached
 	var e := await _make(sc, LeaderboardSource.new())
 	_check(e.find_child("ErrorState", true, false) != null and e.find_child("TryAgainButton", true, false) != null and e.find_child("PinnedRow", true, false) == null, "%s: ErrorState, no pinned row" % tag)
+	var eh := LeaderboardScreen.new()
+	_check(eh.columns().map(func(c): return c[0]) == ["rank", "name", "score", "won"], "%s: default columns with no rows" % tag)
+	eh.free()
 	_check(e.find_child("ErrorState", true, false).find_child("ToneDisc", true, false) != null, "%s: ErrorState ToneDisc" % tag)
 	_audit(e, sc, tag + " error")
 	e.get_parent().queue_free()
@@ -184,6 +196,33 @@ func _pass(sc: float, tag: String) -> void:
 	_check(n.find_child("PinnedNote", true, false) != null and (n.find_child("PinnedNote", true, false) as Label).text.begins_with("Ranked opens after"), "%s: newcomer pinned note" % tag)
 	_audit(n, sc, tag + " newcomer")
 	n.get_parent().queue_free()
+	# own name: signed-in account name + You tag; no account name -> just "You"
+	var saved_acc: Dictionary = AccountService.account
+	var ns := LeaderboardSourceStub.new()
+	ns.boards["6|season"] = {"rows": _rows(3), "me": {"rank": 9, "score": 100}}
+	AccountService.account = {"name": "Zed", "email": "z@example.test"}
+	var a1 := await _make(sc, ns)
+	var pr1 := a1.find_child("PinnedRow", true, false)
+	_check((pr1.find_child("Name", true, false) as Label).text == "Zed" and pr1.find_child("YouTag", true, false) != null, "%s: pinned row shows the account name + You tag" % tag)
+	a1.get_parent().queue_free()
+	AccountService.account = {}
+	var a2 := await _make(sc, ns)
+	var pr2 := a2.find_child("PinnedRow", true, false)
+	_check((pr2.find_child("Name", true, false) as Label).text == "You" and pr2.find_child("YouTag", true, false) == null, "%s: no account name: 'You' and no tag" % tag)
+	a2.get_parent().queue_free()
+	AccountService.account = saved_acc
+	# a scrolling list keeps Head / Row / Pinned columns in line
+	var big := LeaderboardSourceStub.new()
+	big.boards["6|season"] = {"rows": _rows(30), "me": {"rank": 31, "score": 5}}
+	var b := await _make(sc, big)
+	await _settle()
+	var sx: Array = []
+	for nd in [b.find_child("Head", true, false), b.find_child("Row0", true, false), b.find_child("PinnedRow", true, false)]:
+		var lbls: Array = nd.find_children("*", "Label", true, false).filter(func(l): return (l as Label).visible and (l as Label).horizontal_alignment == HORIZONTAL_ALIGNMENT_RIGHT)
+		sx.append((lbls[0] as Label).global_position.x + (lbls[0] as Label).size.x)
+	_check(abs(sx[0] - sx[1]) <= 1.0 and abs(sx[1] - sx[2]) <= 1.0, "%s: Score column right edge in line Head/Row0/Pinned %s" % [tag, str(sx)])
+	_audit(b, sc, tag + " scrolling")
+	b.get_parent().queue_free()
 	# long names do not move the columns
 	var long_stub := LeaderboardSourceStub.new()
 	var lr := _rows(3)

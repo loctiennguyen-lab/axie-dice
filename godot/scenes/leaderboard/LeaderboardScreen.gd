@@ -139,12 +139,13 @@ func close_detail() -> void:
 	_draw_detail()
 
 
-## Columns drawn for the current rows: always rank / name / score, others only if a row has them.
+## Columns drawn for the current rows: always rank / name / score, others only if a row has them. With no rows yet
+## (first load, empty board) the default four of the frame are drawn: RANK / PLAYER / SCORE / RESULT.
 func columns() -> Array:
 	var out: Array = []
 	for d in COL_DEFS:
 		var k: String = d[0]
-		if k in ["rank", "name", "score"] or rows.any(func(r): return (r as Dictionary).has(k) and str(r[k]) != ""):
+		if k in ["rank", "name", "score"] or (k == "won" and rows.is_empty()) or rows.any(func(r): return (r as Dictionary).has(k) and str(r[k]) != ""):
 			out.append(d)
 	return out
 
@@ -290,7 +291,7 @@ func _score_text(r: Dictionary) -> String:
 
 
 ## The Name cell: name (trimmed), then the "You" tag for the own row.
-func _name_cell(r: Dictionary, you: bool, ratio: float) -> Control:
+func _name_cell(r: Dictionary, you: bool, ratio: float, tag := true) -> Control:
 	var nm := HBoxContainer.new()
 	nm.name = "NameCell"
 	nm.set_meta("ratio", ratio)
@@ -305,19 +306,23 @@ func _name_cell(r: Dictionary, you: bool, ratio: float) -> Control:
 		nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nl.custom_minimum_size.x = 0
 	nm.add_child(nl)
-	if you:
+	if you and tag:
 		nm.add_child(LbParts.tag("You", &"you", "YouTag"))
 	return nm
 
 
-func _cells_for(r: Dictionary, you: bool) -> Array:
+func _own_label() -> String:
+	return _my_name() if _my_name() != "" else "You"
+
+
+func _cells_for(r: Dictionary, you: bool, tag := true) -> Array:
 	var out: Array = []
 	for d in _cols:
 		var k: String = d[0]
 		var ratio := float(d[2])
 		match k:
 			"rank": out.append(LbRow.text_cell(str(r.get("rank", "—")), ratio))
-			"name": out.append(_name_cell(r, you, ratio))
+			"name": out.append(_name_cell(r, you, ratio, tag))
 			"land": out.append(LbRow.text_cell(String(r.get("land", "")), ratio, "text_body", "text", false))
 			"aid": out.append(LbRow.text_cell(_aid_text(r) if r.has("aid") else "", ratio, "text_body", "text_muted", false))
 			"score": out.append(LbRow.text_cell(_score_text(r), ratio, "text_title", "text", true, true))
@@ -390,14 +395,41 @@ func _redraw_table() -> void:
 				var sc := UI3Meta.scroll(rv)
 				sc.name = "Scroll"
 				_table_host.add_child(sc)
-	if status == "empty" and is_locked():
-		var fill := Control.new()   # keeps the pinned row at the foot
-		fill.name = "Fill"
-		fill.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		_table_host.add_child(fill)
-	if status != "loading" and not error_card:
-		_table_host.add_child(_pinned())
+	if pinned_visible():
+		var ph := MarginContainer.new()   # same right pad as the Head when the list scrolls (columns stay in line)
+		ph.name = "PinnedHost"
+		ph.add_child(_pinned())
+		_table_host.add_child(ph)
+	_sync_scroll_pad()
 	_draw_detail()
+
+
+## The own row is pinned in the states the frames draw it: season / detail / locked / offline-with-cache / guest / newcomer.
+## Not while loading, on an empty board or on the error card, and not on Today for a ranked player (already in the list).
+func pinned_visible() -> bool:
+	var has_board := status == "ok" or (status == "failed" and not rows.is_empty())
+	if not has_board:
+		return false
+	return not (period == "today" and not guest and not newcomer)
+
+
+## The scroll bar takes SCROLL_W from the rows: Head and PinnedHost give the same width back so the columns stay in line.
+func _sync_scroll_pad() -> void:
+	var sc := _table_host.get_node_or_null("Scroll") as ScrollContainer
+	if sc == null:
+		sc = _table_host.get_node_or_null("SkeletonScroll") as ScrollContainer
+	var pad := 0
+	if sc != null:
+		var bar := sc.get_v_scroll_bar()
+		if not bar.visibility_changed.is_connected(_sync_scroll_pad):
+			bar.visibility_changed.connect(_sync_scroll_pad)
+		pad = UI3Theme.SCROLL_W if bar.visible else 0
+	var hd := _table_host.get_node_or_null("Head") as MarginContainer
+	if hd != null:
+		hd.add_theme_constant_override("margin_right", UI3Theme.space("16") + pad)
+	var ph := _table_host.get_node_or_null("PinnedHost") as MarginContainer
+	if ph != null:
+		ph.add_theme_constant_override("margin_right", pad)
 
 
 func _fill(c: Control) -> Control:
@@ -415,7 +447,7 @@ func _pinned() -> Control:
 		for d in _cols:
 			match String(d[0]):
 				"rank": cells.append(LbRow.text_cell("—", float(d[2])))
-				"name": cells.append(_name_cell({"name": "Guest" if guest else _my_name()}, not guest, float(d[2])))
+				"name": cells.append(_name_cell({"name": "Guest" if guest else _own_label()}, not guest and _my_name() != "", float(d[2])))
 				_: rest += float(d[2])
 		var m := LbRow.text_cell(msg, maxf(rest, 1.0), "text_body", "text_muted", false)
 		m.name = "PinnedNote"
@@ -423,17 +455,18 @@ func _pinned() -> Control:
 		p.setup_row("PinnedRow", _cols, cells)
 	else:
 		var row: Dictionary = me.duplicate()
-		row["name"] = String(row.get("name", "")) if String(row.get("name", "")) != "" else _my_name()
+		var nm := String(row.get("name", ""))
+		row["name"] = nm if nm != "" else _own_label()
 		if not row.has("rank"):
 			row["rank"] = "—"
-		p.setup_row("PinnedRow", _cols, _cells_for(row, true))
+		p.setup_row("PinnedRow", _cols, _cells_for(row, true, String(row["name"]) != "You"))
 	p.set_pinned()
 	return p
 
 
+## The signed-in account name, or "" (a guest has none: the row then says "You" with no tag).
 func _my_name() -> String:
-	var n: Variant = MetaState.get("display_name")
-	return String(n) if n != null and String(n) != "" else "You"
+	return AccountService.display_name() if AccountService.is_signed_in() else ""
 
 
 ## DetailPlate (always shown): the selected row's facts + Watch replay. No selection = "Pick a run".
