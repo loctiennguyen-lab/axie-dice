@@ -120,16 +120,16 @@ func _ready() -> void:
 	add_child(d)
 	await get_tree().process_frame
 	var shards := MetaState.shard_pool
-	_ok(not (d.find_child("ClaimDaily", true, false) as Button).disabled, "daily claimable")
+	_ok(not (d.find_child("DailyClaim", true, false) as Button).disabled, "daily claimable")
 	_ok(d.claim_daily() and MetaState.shard_pool > shards, "daily claim grants")
 	var after := MetaState.shard_pool
 	_ok(not d.claim_daily() and MetaState.shard_pool == after, "daily claims once")
-	_ok((d.find_child("ClaimDaily", true, false) as Button).disabled, "daily button disabled after claim")
+	_ok((d.find_child("DailyClaim", true, false) as Button).disabled, "daily button disabled after claim")
 	_ok(bool(d.claim_gift().ok) and not bool(d.claim_gift().ok), "daily gem gift once")
 	MetaState.gems_cache = 900
 	MetaState.gem_gift_day = ""
 	d._refresh()
-	_ok(d.gift_state() == "cap" and (d.find_child("ClaimGift", true, false) as Button).disabled, "gift at cap: nothing to claim")
+	_ok(d.gift_state() == "cap" and (d.find_child("GemClaim", true, false) as Button).disabled, "gift at cap: nothing to claim")
 	MetaState.daily_date = ""
 	d.set_state("guest")
 	_ok(not d.claim_daily() and MetaState.daily_date == "", "remote guest cannot claim")

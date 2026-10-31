@@ -27,14 +27,14 @@ func _ready() -> void:
 	_check(cid != "" and not CoreCombos.get_combo(cid).is_empty(), "real combo picked: %s" % cid)
 	var card := d.find_child("ComboCard", true, false)
 	_check(card != null, "combo card exists")
-	var chip := d.find_child("ComboStatus", true, false)
+	var chip := d.find_child("StatusChip", true, false)
 	_check(chip != null and _text(chip) == "Not yet", "starts Not yet")
 	var shards := MetaState.shard_pool
 	RunState.combo_done = {cid: "pair"}
 	EventBus.combo_formed.emit(cid, "pair")
 	_check(bool(MetaState.combo_daily_today()["done"]), "combo_formed completes the daily")
 	d._refresh()
-	chip = d.find_child("ComboStatus", true, false)
+	chip = d.find_child("StatusChip", true, false)
 	_check(chip != null and _text(chip) == "Done", "card shows Done")
 	_check(MetaState.cosmetics_owned.has(ComboDaily.TITLE_FIRST), "title granted")
 	_check(MetaState.shard_pool == shards, "no Shards")
