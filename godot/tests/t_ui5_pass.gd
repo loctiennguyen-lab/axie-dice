@@ -45,7 +45,7 @@ func _make(sc: float, day: String, xp: int, claimed: Array, state := "normal") -
 	MetaState.pass_season["xp"] = xp
 	MetaState.pass_season["claimed_free"] = claimed.duplicate()
 	var host := Control.new()
-	host.size = Vector2(1920, 1080) * sc
+	host.size = Vector2(1920, 1080)   # the canvas is logical 1920 at every scale
 	add_child(host)
 	var s: PassView = load("res://scenes/pass/Pass.tscn").instantiate()
 	s.use_account = false
@@ -91,6 +91,17 @@ func _texts(root: Node) -> String:
 	return out
 
 
+## Nothing visible outside a ScrollContainer may end beyond the screen (DetailPlate, HUD, header).
+func _inside(n: Node, w: float, tag: String) -> void:
+	if n is ScrollContainer:
+		_check((n as Control).get_global_rect().end.x <= w + 0.5, "%s: %s ends at %.0f > %.0f" % [tag, n.name, (n as Control).get_global_rect().end.x, w])
+		return
+	if n is Control and (n as Control).is_visible_in_tree() and not (n is Window):
+		_check((n as Control).get_global_rect().end.x <= w + 0.5, "%s: %s ends at %.0f > %.0f" % [tag, n.name, (n as Control).get_global_rect().end.x, w])
+	for c in n.get_children():
+		_inside(c, w, tag)
+
+
 func _pass(sc: float, tag: String) -> void:
 	# live: level 10 (xp_total 6800 is level 10 or more in the table), 1-7 claimed
 	var lvl10 := int(PassV2.level_def(10).get("xp_total", 0))
@@ -101,6 +112,9 @@ func _pass(sc: float, tag: String) -> void:
 	_check(s.find_children("TileButton*", "Button", true, false).size() == 30, "%s: 30 TileButton" % tag)
 	_check(s.find_children("TaskCard*", "PanelContainer", true, false).size() == 3, "%s: 3 TaskCard" % tag)
 	var dp := s.find_child("DetailPlate", true, false) as Ui5DetailPlate
+	var w := 1920.0
+	_inside(s, w, tag + " live")
+	var live_left := (s.find_child("LeftScroll", true, false) as Control).size.x
 	_check(dp.is_empty() and dp.title.text == "Pick a level", "%s: opens with 'Pick a level'" % tag)
 	_check(s.selected_lv == 0, "%s: nothing preselected" % tag)
 	_check(Ui5Keycap.all_under(dp).is_empty(), "%s: no keycap on the disabled primary" % tag)
@@ -116,7 +130,7 @@ func _pass(sc: float, tag: String) -> void:
 		var sbn := cb.get_theme_stylebox("disabled")
 		var need := f.get_string_size(cb.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x + cb.get_theme_constant("icon_max_width") \
 			+ cb.get_theme_constant("h_separation") + sbn.content_margin_left + sbn.content_margin_right
-		_check(cb.text == "Claimed" and not cb.clip_text and need <= cb.size.x + 0.5, "%s: tile %d: Claimed fits (%.0f of %.0f)" % [tag, lv, need, cb.size.x])
+		_check(cb.text == "Claimed" and need <= cb.size.x + 0.5, "%s: tile %d: Claimed fits (%.0f of %.0f)" % [tag, lv, need, cb.size.x])
 	for fxlv in [5, 15]:
 		s.select_level(fxlv)
 		await _settle()
@@ -169,6 +183,9 @@ func _pass(sc: float, tag: String) -> void:
 	ca = s.find_child("ClaimAllButton", true, false) as Button
 	_check(ca.disabled and ca.text == "Claim all · Nothing to claim", "%s: Claim all off, says nothing to claim" % tag)
 	_audit(s, sc, tag + " claimed")
+	(s.find_child("TrackScroll", true, false) as ScrollContainer).scroll_vertical = 100000
+	await _settle()
+	_inside(s, w, tag + " scrolled")
 	# weekly states
 	var wk := PassV2.week_key("2026-11-10")
 	MetaState.pass_season["weekly"] = {wk: {"runs": 5, "wins": 2, "boss": 0, "claimed": ["win_runs"]}}
@@ -188,6 +205,7 @@ func _pass(sc: float, tag: String) -> void:
 	lp.get_parent().queue_free()
 	# over / offline / guest / before
 	var o := await _make(sc, "2027-01-05", lvl10 + 100, [1, 2, 3])
+	_inside(o, w, tag + " over")
 	_check(o.find_child("Banner", true, false) != null and o.tile_button(30).text == "Not claimed", "%s: over: banner, Not claimed" % tag)
 	_check(o.task_button("play_runs").text == "Claim · The season is not running", "%s: over: task reason" % tag)
 	_audit(o, sc, tag + " over")
@@ -199,6 +217,8 @@ func _pass(sc: float, tag: String) -> void:
 		g.get_parent().queue_free()
 	var b := await _make(sc, "2026-10-12", 0, [])
 	_check(b.find_child("Banner", true, false) != null and (b.find_child("ClaimAllButton", true, false) as Button).disabled, "%s: before: banner, Claim all off" % tag)
+	_inside(b, w, tag + " before")
+	_check(absf((b.find_child("LeftScroll", true, false) as Control).size.x - live_left) < 0.5, "%s: left column same width with and without Claimed tiles" % tag)
 	var bf := get_viewport().gui_get_focus_owner()
 	_check(bf != null and bf.name == "BackButton", "%s: before: initial focus is BackButton" % tag)
 	_check((b.task_button("play_runs") as Button).text == "Claim · The season is not running", "%s: before: task reason" % tag)

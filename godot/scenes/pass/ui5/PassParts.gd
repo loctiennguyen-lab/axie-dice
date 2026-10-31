@@ -105,6 +105,8 @@ static func cosmetic_block(cos_id: String, art_px: float, node_name := "CosBlock
 	v.add_child(nm)
 	var tw := Ui5Text.label(tier_word(tier), "text_body", "text")
 	tw.name = "RewardTier"
+	tw.clip_text = true
+	tw.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	tw.add_theme_color_override("font_color", DiceSkin.tier_text_color(tier))
 	v.add_child(tw)
 	h.add_child(v)

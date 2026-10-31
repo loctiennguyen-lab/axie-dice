@@ -555,13 +555,15 @@ func _build_weekly() -> void:
 		v.add_child(tl)
 		var pl := Ui5Text.label("%d / %d · +%d XP" % [int(st["progress"]), int(st["target"]), xp_each], "text_body", "text_muted")
 		pl.name = "Progress"
+		pl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		v.add_child(pl)
 		hb.add_child(v)
 		var b := PanelParts.button("Claim", &"secondary", &"S")
 		b.name = "ClaimButton"
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b.custom_minimum_size = Vector2(UI3Theme.space("32") * 6, UI3Theme.size_of("btn_m"))   # wraps a long reason inside the card (frame: max 55%), never char by char
+		b.clip_text = true   # the long reason wraps inside the button, it never sets the card's width
+		b.custom_minimum_size = Vector2(UI3Theme.space("32") * 7, UI3Theme.size_of("btn_m"))   # wraps a long reason inside the card (frame: max 55%), never char by char
 		b.set_meta("task_id", id)
 		if bool(st["claimed"]):
 			Ui5ClaimButton.set_claimed(b)
@@ -612,11 +614,11 @@ func _tile(def: Dictionary) -> Control:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", UI3Theme.space("4"))
 	p.add_child(v)
-	var top := HBoxContainer.new()
+	var top := HFlowContainer.new()   # the "Season gift" tag wraps under the level instead of widening the column
 	top.name = "Head"
-	top.add_theme_constant_override("separation", UI3Theme.space("8"))
+	top.add_theme_constant_override("h_separation", UI3Theme.space("8"))
+	top.add_theme_constant_override("v_separation", UI3Theme.space("4"))
 	var lvl := Ui5Text.label("Level %d" % lv, "text_title", "text")
-	lvl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top.add_child(lvl)
 	for r in def.get("free", []):
 		if String((r as Dictionary).get("type", "")) == "gem":
@@ -658,9 +660,9 @@ func _tile(def: Dictionary) -> Control:
 			b.disabled = true
 	# A long state ends in "…" with the whole text in the tooltip, so it never widens the column (B6).
 	Ui5HudStyle.reserve_trailing(b, null, UI3Theme.space("4"))   # slim side padding so "Claimed" fits a 1280 column
-	if st != "claimed":   # "Claimed" is short and must always read in full
-		b.clip_text = true
-		b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	# Column width must not depend on text: the button never sizes the tile. "Claimed" fits with the slim padding (tested).
+	b.clip_text = true
+	b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	b.tooltip_text = b.text
 	b.focus_entered.connect(select_level.bind(lv))
 	b.mouse_entered.connect(select_level.bind(lv))
@@ -728,6 +730,8 @@ func _build_extra_rows() -> void:
 	rl.name = "PremiumRibbon"
 	var pt := Ui5Text.label("Premium track: locked, opens in season %d. Nothing to buy now." % int(prem["unlock_season"]), "text_body", "text_muted")
 	pt.name = "PremiumText"
+	pt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	pt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	ph.add_child(pt)
 	_left.add_child(pr)
 	var loop: Dictionary = cfg().get("post30_loop", {})
