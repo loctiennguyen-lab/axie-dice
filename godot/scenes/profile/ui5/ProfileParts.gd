@@ -20,9 +20,9 @@ static func plate(node_name: String, pad_v: int, pad_h: int) -> PanelContainer:
 
 
 ## `.tag`: pill, min-h tag_h, Rowdies text_key. `ring` alpha > 0 draws a 2 px outline. Label node is "Text".
-static func tag(text: String, node_name := "Tag", fg := Color.TRANSPARENT, bg := Color.TRANSPARENT, icon_name := "", ring := Color.TRANSPARENT) -> PanelContainer:
+static func tag(text: String, node_name := "Tag", fg := Color.TRANSPARENT, bg := Color.TRANSPARENT, icon_name := "", ring := Color.TRANSPARENT, no_fill := false) -> PanelContainer:
 	var f := fg if fg.a > 0.0 else UI3Theme.color("text")
-	var b := bg if bg.a > 0.0 else UI3Theme.color("chip")
+	var b := Color.TRANSPARENT if no_fill else (bg if bg.a > 0.0 else UI3Theme.color("chip"))
 	var p := PanelContainer.new()
 	p.name = node_name
 	p.theme = UI3Theme.get_theme()

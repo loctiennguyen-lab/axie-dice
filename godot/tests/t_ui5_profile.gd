@@ -15,8 +15,8 @@ class StubService extends Node:
 
 const HEAD := ["Header", "BackButton", "Title", "SubLine", "OverviewTab", "CosmeticsTab", "TitlesTab", "Body"]
 const OVERVIEW := ["StatTiles", "StatTile_Runs", "LandSection", "RunList", "ProfileCard", "Avatar", "Name", "TitleLine", "SyncChip"]
-const COSM := ["CategoryTabs", "DiceTab", "FramesTab", "Grid", "CosmeticTile", "EquippedDisc", "PreviewPlate", "Preview3D", "EquipButton"]
-const TITLES := ["TitleGrid", "TitleTile", "UseDefaultButton", "EquipButton", "ProfileCard"]
+const COSM := ["CategoryTabs", "DiceTab", "FramesTab", "Grid", "CosmeticTile_default_die", "EquippedDisc", "PreviewPlate", "Preview3D", "EquipButton"]
+const TITLES := ["TitleGrid", "TitleTile_none", "UseDefaultButton", "EquipButton", "ProfileCard"]
 var _guard := SaveGuard.new()
 var _fails: Array[String] = []
 var _checks := 0
@@ -73,7 +73,7 @@ func _open() -> ProfileView:
 
 func _names(v: Node, names: Array, tag: String) -> void:
 	for n in names:
-		_check(v.find_child(n + "*", true, false) != null, "[%s] node '%s' exists" % [tag, n])
+		_check(v.find_child(n, true, false) != null, "[%s] node '%s' exists" % [tag, n])
 
 
 ## Every visible control outside a scroll lies inside the 1920x1080 logical frame; texts are >= 14 real px at 1280.
@@ -112,11 +112,24 @@ func _screens(sc: float) -> void:
 	_svc.account = {"name": "Mai", "sky_mavis": true}
 	MetaState.record_run_outcome({"mode": "short", "ascension": 5, "kind": "normal", "aid_used": 0, "mission_id": ""}, true)
 	MetaState.record_run_outcome({"mode": "full", "ascension": 3, "kind": "ranked", "aid_used": 2, "mission_id": ""}, false)
-	MetaState.runs = 2
+	MetaState.record_run_outcome({"mode": "short", "ascension": 2, "kind": "normal", "aid_used": 0, "mission_id": ""}, false)
+	MetaState.runs = 3
 	MetaState.wins = 1
 	var v := await _open()
+	var lost_clean := 0
+	var pure_won := 0
+	for r in v.find_children("RunRow_*", "PanelContainer", true, false):
+		var res := (r.find_child("Result", true, false).find_child("Text", true, false) as Label).text
+		var pill := r.find_child("PurePill", true, false)
+		if res == "Lost":
+			_check(pill == null, "[%s] a Lost run never shows Pure (%s)" % [tag, (r.find_child("AidMark", true, false) as Label).text])
+			if (r.find_child("AidMark", true, false) as Label).text == "no Aid":
+				lost_clean += 1
+		elif pill != null:
+			pure_won += 1
+	_check(lost_clean == 1 and pure_won == 1, "[%s] Lost no-Aid row exists without Pure; the Won no-Aid row has it" % tag)
 	_names(v, HEAD + OVERVIEW, tag)
-	_check(v.find_children("RunRow_*", "PanelContainer", true, false).size() == 2, "[%s] 2 RunRows" % tag)
+	_check(v.find_children("RunRow_*", "PanelContainer", true, false).size() == 3, "[%s] 3 RunRows" % tag)
 	_check(v.find_children("StatTile_*", "PanelContainer", true, false).size() == 5, "[%s] 5 StatTiles" % tag)
 	var card := v.find_child("ProfileCard", true, false) as Control
 	_check(card != null and absf(card.size.x - float(UI3Theme.size_of("profile_detail_w"))) < 1.0, "[%s] ProfileCard wide profile_detail_w (%s)" % [tag, card.size.x if card != null else -1.0])
@@ -175,11 +188,19 @@ func _equips() -> void:
 	(v.find_child("CosmeticTile_" + dice[1], true, false) as Button).pressed.emit()
 	eq = v.find_child("EquipButton", true, false) as Button
 	_check(eq.disabled and eq.text == "Equip · Locked", "locked pick: Equip · Locked")
+	(v.find_child("CosmeticTile_" + dice[0], true, false) as Button).grab_focus()
 	(v.find_child("CosmeticTile_" + dice[0], true, false) as Button).pressed.emit()
+	for _i in 3:
+		await get_tree().process_frame
+	_check(get_viewport().gui_get_focus_owner() == v.find_child("CosmeticTile_" + dice[0], true, false), "focus stays on the clicked tile after the rebuild")
 	eq = v.find_child("EquipButton", true, false) as Button
 	_check(not eq.disabled and eq.text == "Equip", "owned pick: Equip live")
+	eq.grab_focus()
 	eq.pressed.emit()
-	await get_tree().process_frame
+	for _i in 3:
+		await get_tree().process_frame
+	var fo := get_viewport().gui_get_focus_owner()
+	_check(fo != null and v.is_ancestor_of(fo) and fo.name == "CosmeticTile_" + dice[0], "Equip disabled after equipping: focus moves to the picked tile (%s)" % [fo.name if fo != null else "none"])
 	_check(MetaState.equipped_die_skin == dice[0], "skin equip writes MetaState")
 	(v.find_child("FramesTab", true, false) as Button).pressed.emit()
 	(v.find_child("CosmeticTile_" + frames[0], true, false) as Button).pressed.emit()
@@ -197,8 +218,13 @@ func _equips() -> void:
 	v.set_tab(2)
 	var gt := v.find_child("TitleTile_title_Gardener", true, false)
 	_check(gt != null, "owned Land title tile")
+	(gt.find_child("EquipButton", true, false) as Button).grab_focus()
 	(gt.find_child("EquipButton", true, false) as Button).pressed.emit()
+	for _i in 3:
+		await get_tree().process_frame
 	_check(MetaState.equipped_title == "title:Gardener", "title equip writes MetaState")
+	fo = get_viewport().gui_get_focus_owner()
+	_check(fo != null and v.is_ancestor_of(fo), "title equip: focus is not lost (%s)" % [fo.name if fo != null else "none"])
 	var none := v.find_child("TitleTile_none", true, false)
 	(none.find_child("UseDefaultButton", true, false) as Button).pressed.emit()
 	_check(MetaState.equipped_title == "", "Use default clears the title")

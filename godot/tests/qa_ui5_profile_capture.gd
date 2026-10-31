@@ -42,6 +42,12 @@ func _ready() -> void:
 		await _shot("overview-empty", sfx, 0)
 		for i in 8:
 			MetaState.record_run_outcome({"mode": "short" if i % 3 else "full", "ascension": i % 6, "kind": "normal" if i % 4 else "ranked", "aid_used": i % 2, "mission_id": ""}, i % 3 != 0)
+		var won_n := 0
+		MetaState.record_run_outcome({"mode": "short", "ascension": 3, "kind": "normal", "aid_used": 0, "mission_id": "ms_x"}, true)
+		MetaState.runs = MetaState.run_log.size()
+		for e in MetaState.run_log:
+			won_n += 1 if bool((e as Dictionary).get("won", false)) else 0
+		MetaState.wins = won_n   # tiles and run list agree
 		await _shot("overview", sfx, 0)
 		_svc.account = {}
 		await _shot("guest", sfx, 0)
@@ -79,6 +85,8 @@ func _shot(state: String, sfx: String, tab: int, pick := "", frames := false) ->
 		v.refresh()
 	for _i in 12:
 		await get_tree().process_frame
+	if tab == 1:
+		await get_tree().create_timer(2.5).timeout   # thumbnails bake
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png("%s/24-profile--%s%s.png" % [_out, state, sfx])
 	v.queue_free()

@@ -104,6 +104,8 @@ func refresh() -> void:
 		return
 	_preview_gen += 1
 	_stage = null
+	var fo := get_viewport().gui_get_focus_owner() if is_inside_tree() else null
+	var focus_path := String(get_path_to(fo)) if fo != null and is_ancestor_of(fo) else ""
 	UI3Meta.clear(_body)
 	for i in _tab_btns.size():
 		_tab_btns[i].button_pressed = (i == tab)
@@ -116,6 +118,22 @@ func refresh() -> void:
 			_titles_tab()
 		_:
 			_overview_tab()
+	if focus_path != "":
+		_restore_focus.call_deferred(focus_path)
+
+
+## The body is rebuilt on every refresh: give focus back to the same node, else to the picked tile, else the tab.
+func _restore_focus(path: String) -> void:
+	if not is_inside_tree():
+		return
+	var n := get_node_or_null(path) as Control
+	if n == null or not n.is_visible_in_tree() or (n is BaseButton and (n as BaseButton).disabled):
+		n = null
+		if tab == 1:
+			n = find_child("CosmeticTile_default_" + cat if selected == "" else "CosmeticTile_" + selected, true, false) as Control
+		if n == null:
+			n = _tab_btns[tab]
+	n.grab_focus()
 
 
 func _open_account() -> void:
@@ -315,7 +333,7 @@ func _run_row(e: Dictionary, i: int) -> Control:
 	var aid := int(e.get("aid", 0))
 	var at := "no Aid (mission)" if mission else ("Aid %d" % aid if aid > 0 else "no Aid")
 	var won := bool(e.get("won", false))
-	return Parts.run_row(i, _short_date(String(e.get("date", ""))), run_mode_text(e), "A%d" % int(e.get("asc", 0)), won, at, aid == 0 and not mission)
+	return Parts.run_row(i, _short_date(String(e.get("date", ""))), run_mode_text(e), "A%d" % int(e.get("asc", 0)), won, at, won and aid == 0 and not mission)
 
 
 # ============================================================================ Cosmetics
@@ -490,7 +508,7 @@ func _preview_plate(owned: Array[String], sel: String) -> Control:
 	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(nm)
 	if not is_default:
-		head.add_child(Parts.tag(RARITY_NAMES[clampi(tier, 0, 5)], "TierChip", DiceSkin.tier_text_color(tier), Color(0, 0, 0, 0.001), "", DiceSkin.tier_color(tier)))
+		head.add_child(Parts.tag(RARITY_NAMES[clampi(tier, 0, 5)], "TierChip", DiceSkin.tier_text_color(tier), Color.TRANSPARENT, "", DiceSkin.tier_color(tier), true))
 	var stage := PanelContainer.new()
 	stage.name = "Preview3D"
 	stage.theme = UI3Theme.get_theme()
