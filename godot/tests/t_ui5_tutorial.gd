@@ -121,35 +121,34 @@ func _coach_pass(sc: float, aligned: Array) -> void:
 	_ok(coach.find_child("GemCell", true, false) == null, "starter %s: no Gem cell when no gems" % tag)
 	_ok(coach.find_child("SkipTutorialButton", true, false) == null or not coach.find_child("SkipTutorialButton", true, false).is_visible_in_tree(), "starter %s: no Skip" % tag)
 	aligned.append(_fit(coach, sc, "starter " + tag))
-	# Reward pick: nothing chosen, Take off and says why; picking turns it on; Take emits.
+	# Reward pick (Liam's call, plan UI-05 b23): nothing preselected; clicking a card takes it at once; no Take button.
 	_picked = -1
 	coach.show_rewards("You won.", "Pick one.", [
 		{"category": "A", "rarity": "Common", "icon": "face_heal", "title": "One", "desc": "d1"},
 		{"category": "B", "rarity": "Rare", "icon": "ui_mooncard", "title": "Two", "desc": "d2"},
 		{"category": "C", "rarity": "Common", "icon": "cur_shard", "title": "Three", "desc": "d3"}])
 	await _frames(4)
-	_has(coach, ["TutorialRewardPick", "CardRow", "Footer", "TakeButton", "RewardName", "RewardBody"], "reward " + tag)
+	_has(coach, ["TutorialRewardPick", "CardRow", "RewardName", "RewardBody"], "reward " + tag)
 	var cards: Array = coach.find_children("RewardCard*", "PanelContainer", true, false)
 	_ok(cards.size() == 3, "reward %s: three RewardCards" % tag)
-	var take := coach.find_child("TakeButton", true, false) as Button
-	_ok(take.disabled and take.text == "Pick a reward" and take.get_node_or_null("KeyCap") == null, "reward %s: Take off, says why, no keycap" % tag)
+	var foot := coach.find_child("Footer", true, false) as Control
+	_ok(foot == null or not foot.is_visible_in_tree(), "reward %s: no Take button shown (a click takes)" % tag)
 	var sel := 0
 	for c in cards:
 		sel += 1 if c.selected else 0
-	_ok(sel == 0, "reward %s: nothing preselected" % tag)
+	_ok(sel == 0 and _picked == -1, "reward %s: nothing preselected, nothing taken yet" % tag)
 	_ok(cards[0].has_focus(), "reward %s: initial focus on the first card" % tag)
-	coach.call("_select_reward", 1)
-	await _frames(3)
-	_ok(cards[1].selected and not take.disabled and take.get_node_or_null("KeyCap") != null, "reward %s: pick turns Take on with Space cap" % tag)
+	aligned.append(_fit(coach, sc, "reward " + tag))
 	var click := InputEventMouseButton.new()
 	click.button_index = MOUSE_BUTTON_LEFT
 	click.pressed = true
 	cards[2].gui_input.emit(click)
-	await _frames(3)
-	_ok(cards[2].selected and get_viewport().gui_get_focus_owner() == take, "reward %s: clicking a card puts focus on TakeButton" % tag)
-	aligned.append(_fit(coach, sc, "reward " + tag))
-	take.pressed.emit()
-	_ok(_picked == 2, "reward %s: Take emits the picked index" % tag)
+	await _frames(2)
+	_ok(_picked == 2, "reward %s: clicking a card takes it at once" % tag)
+	_picked = -1
+	cards[1].gui_input.emit(click)
+	await _frames(2)
+	_ok(_picked == -1, "reward %s: a second click does not take again" % tag)
 	# Skip confirm.
 	coach.show_curtain("Done", "Body.", "Go to the Land", false)
 	await _frames(3)

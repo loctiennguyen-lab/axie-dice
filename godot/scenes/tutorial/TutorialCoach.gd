@@ -60,6 +60,7 @@ var _reward_row: HBoxContainer
 var _reward_cards: Array = []
 var _reward_sel := -1
 var _take: Button
+var _reward_taken := false
 var _skip_modal: Control
 var _root: Control
 
@@ -230,6 +231,9 @@ func _build_reward() -> void:
 	_take.custom_minimum_size.x = UI3Theme.size_of("d_take_min_w")
 	_take.pressed.connect(func(): if _reward_sel >= 0: reward_chosen.emit(_reward_sel))
 	foot.add_child(_take)
+	# Liam (plan UI-05 b23): the tutorial reward is taken by clicking a card, as the game always did. The frame's Take
+	# button stays built but hidden, so the footer takes no room.
+	foot.visible = false
 
 
 func _lift_selected() -> void:
@@ -384,7 +388,7 @@ func show_starter(title: String, line: String, entries: Array, cta: String) -> v
 	_curtain_cta.grab_focus.call_deferred()
 
 
-## The reward beat: Scrim + TutorialRewardPick. Nothing is picked until the player picks (Take is off and says so).
+## The reward beat: Scrim + TutorialRewardPick. Clicking a card (or Space/Enter on it) takes it at once (Liam's call).
 func show_rewards(title: String, body: String, flavors: Array) -> void:
 	_hide_all()
 	_scrim.color = UI3Theme.color("scrim")
@@ -400,6 +404,7 @@ func show_rewards(title: String, body: String, flavors: Array) -> void:
 		var card := _reward_card(flavors[i], i)
 		_reward_row.add_child(card, true)
 		_reward_cards.append(card)
+	_reward_taken = false
 	_select_reward(-1)
 	_reward_cards[0].grab_focus.call_deferred()
 
@@ -416,12 +421,12 @@ func _reward_card(f: Dictionary, index: int) -> PanelContainer:
 	d.custom_minimum_size.x = UI3Theme.size_of("reward_card_w") - 2 * UI3Theme.space("20")
 	card.text_box.add_child(d)
 	card.gui_input.connect(func(ev: InputEvent) -> void:
-		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+		var hit: bool = (ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT) \
+				or (ev.is_action_pressed("ui_accept") and not ev.is_echo())
+		if hit and not _reward_taken:
+			_reward_taken = true   # one take per reward beat (a double click must not emit twice)
 			_select_reward(index)
-			_take.grab_focus()   # Take shows the Space cap now, so Space must press it, not re-pick the card
-		elif ev.is_action_pressed("ui_accept") and not ev.is_echo():
-			_select_reward(index)
-			_take.grab_focus())
+			reward_chosen.emit(index))
 	return card
 
 
