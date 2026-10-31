@@ -301,6 +301,9 @@ func _name_cell(r: Dictionary, you: bool, ratio: float) -> Control:
 	if you:
 		nl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 		nl.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	else:
+		nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		nl.custom_minimum_size.x = 0
 	nm.add_child(nl)
 	if you:
 		nm.add_child(LbParts.tag("You", &"you", "YouTag"))
@@ -358,7 +361,10 @@ func _redraw_table() -> void:
 				var s := UI3.skeleton_row(UI3Theme.size_of("lb_row_l_h"))
 				s.name = "Skeleton" if i == 0 else "Skeleton%d" % i
 				sk.add_child(s)
-			_table_host.add_child(sk)
+			var ssc := UI3Meta.scroll(sk)   # never taller than the space left (1280)
+			ssc.name = "SkeletonScroll"
+			ssc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_table_host.add_child(ssc)
 		"empty":
 			# A locked board says why in the caption only; no "No runs here yet" on top of it.
 			if not is_locked():
@@ -384,7 +390,7 @@ func _redraw_table() -> void:
 				var sc := UI3Meta.scroll(rv)
 				sc.name = "Scroll"
 				_table_host.add_child(sc)
-	if status == "loading" or (status == "empty" and is_locked()):
+	if status == "empty" and is_locked():
 		var fill := Control.new()   # keeps the pinned row at the foot
 		fill.name = "Fill"
 		fill.size_flags_vertical = Control.SIZE_EXPAND_FILL

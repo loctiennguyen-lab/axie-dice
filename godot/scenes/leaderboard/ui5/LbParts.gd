@@ -167,7 +167,7 @@ static func asc_chip(a: int) -> Button:
 	var b := Button.new()
 	b.name = "AscChipA%d" % a
 	b.theme = UI3Theme.get_theme()
-	b.text = "A%d" % a
+	b.set_meta("asc", a)
 	b.toggle_mode = false
 	b.focus_mode = Control.FOCUS_ALL
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -175,10 +175,29 @@ static func asc_chip(a: int) -> Button:
 	b.custom_minimum_size = Vector2(0, UI3Theme.size_of("btn_s"))
 	b.add_theme_font_override("font", UI3Theme.font_display())
 	b.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
-	b.add_theme_constant_override("icon_max_width", 14)
-	b.add_theme_constant_override("h_separation", UI3Theme.space("4"))
-	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	b.clip_text = false
+	# .asc: lock icon (locked only) + "A6", centred together (an HBox so the centring check can measure it)
+	var h := HBoxContainer.new()
+	h.name = "Content"
+	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	h.alignment = BoxContainer.ALIGNMENT_CENTER
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_theme_constant_override("separation", UI3Theme.space("4"))
+	var ic := TextureRect.new()
+	ic.name = "Lock"
+	ic.texture = UI3.icon("ui_lock")
+	ic.custom_minimum_size = Vector2(14, 14)
+	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	ic.modulate.a = 0.8
+	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ic.visible = false
+	h.add_child(ic)
+	var l := Ui5Text.label("A%d" % a, "text_body", "text", true)
+	l.name = "Label"
+	h.add_child(l)
+	b.add_child(h)
 	return b
 
 
@@ -188,8 +207,7 @@ static func style_asc_chip(b: Button, on: bool, locked: bool) -> void:
 	for st in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
 		b.add_theme_stylebox_override(st, sb)
 	var fc := UI3Theme.color("text_muted" if locked else "text")
-	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
-		b.add_theme_color_override(c, fc)
-	b.icon = UI3.icon("ui_lock") if locked else null
+	(b.get_node("Content/Label") as Label).add_theme_color_override("font_color", fc)
+	(b.get_node("Content/Lock") as Control).visible = locked
 	b.modulate = Color.WHITE
 	b.tooltip_text = "Locked for you" if locked else ""
