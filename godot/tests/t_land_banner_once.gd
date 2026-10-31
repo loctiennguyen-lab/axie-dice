@@ -31,7 +31,7 @@ func _ready() -> void:
 	MetaState.land_tier = 2
 	MetaState.land_tier_banner_seen = 1
 	var h := await _land()
-	_check(h.find_child("TierBanner", true, false) != null, "banner shows on first visit to tier 2")
+	_check(h.find_child("TierUpBanner", true, false) != null, "banner shows on first visit to tier 2")
 	_check(MetaState.land_tier_banner_seen == 2, "seen = 2")
 	h.queue_free()
 	await get_tree().process_frame
@@ -39,7 +39,7 @@ func _ready() -> void:
 	MetaState.reload_from_store()
 	_check(MetaState.land_tier_banner_seen == 2 and MetaState.land_tier == 2, "seen survives save/load")
 	var h2 := await _land()
-	_check(h2.find_child("TierBanner", true, false) == null, "no banner second time")
+	_check(h2.find_child("TierUpBanner", true, false) == null, "no banner second time")
 	h2.queue_free()
 	# cloud apply path: the JSON goes through reload_from_store; seen never runs ahead of the tier
 	MetaState.land_tier_banner_seen = 2
@@ -49,7 +49,7 @@ func _ready() -> void:
 	MetaState.land_tier = 1
 	MetaState.land_tier_banner_seen = 1
 	var h3 := await _land()
-	_check(h3.find_child("TierBanner", true, false) == null, "no banner on tier 1")
+	_check(h3.find_child("TierUpBanner", true, false) == null, "no banner on tier 1")
 	h3.queue_free()
 	LandHub.qa = {}
 	LandNav.dry_run = false

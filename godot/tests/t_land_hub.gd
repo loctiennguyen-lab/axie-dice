@@ -39,7 +39,7 @@ func _ready() -> void:
 	# UI-03: the dock is gone; every place is reached by its world label (hit box + key), focusable.
 	for id in ["house", "missions", "vault", "echobox", "pass", "store"]:
 		_check((hub.find_child("Hit_" + id, true, false) as Control).focus_mode == Control.FOCUS_ALL, "hộp bấm %s phải focus được" % id)
-	for n in ["ProfileChip", "Rail_Daily", "Codex", "Wallet", "Currencies", "HudBottomLeft", "HudBottomRight", "Settings"]:
+	for n in ["ProfilePlate", "ProfileButton", "LandPlate", "DailyButton", "CodexButton", "EditLandButton", "RaidButton", "CurrencyPlate", "LinksPlate", "RunRow", "TopLeft", "SettingsButton"]:
 		_check(hub.find_child(n, true, false) != null, "thiếu " + n)
 	# No name plates, status pills or Names toggle: the name lives in a tooltip (hover / focus / first tap).
 	for id in ["portal", "house", "missions", "echobox", "pass", "vault", "store", "board"]:
@@ -52,7 +52,7 @@ func _ready() -> void:
 	_check(UI3Tooltip.text_of(hub.find_child("Plot_gallery", true, false) as Control).contains("Opens at Land tier 5"),
 		"ô Gallery: tooltip ghi lý do khoá")
 	_check(hub.get("_badges") == null, "không còn chip trạng thái")
-	_check((hub.find_child("Settings", true, false) as Control).get_parent().get_parent() == hub.find_child("Wallet", true, false),
+	_check((hub.find_child("SettingsButton", true, false) as Control).get_parent().get_parent() == hub.find_child("CurrencyPlate", true, false),
 		"Settings nằm chung plate với tiền")
 
 	# has_modal(): what holds back AccountService's rebuild. A touch sign preview must not.
@@ -119,7 +119,7 @@ func _ready() -> void:
 
 	# Layout follows the window: plate centre x stays on the house centre at any height.
 	var pass_plate := hub.find_child("Hit_pass", true, false) as Button
-	_check(String((hub.META["pass"] as Dictionary)["sub"]).ends_with("29 Dec 2026"), "Pass sub-line phải ghi 29 Dec 2026")
+	_check(String((hub.META["pass"] as Dictionary)["sub"]).ends_with("28 Dec 2026"), "Pass sub-line phải ghi 28 Dec 2026")
 	_check(absf(pass_plate.position.x + pass_plate.size.x * 0.5 - 1218.0) < 1.0, "hộp Pass lệch tâm x")
 
 	hub.queue_free()
@@ -134,8 +134,8 @@ func _ready() -> void:
 		await get_tree().process_frame
 		_check((h.find_child("Hit_gallery", true, false) != null) == (tier >= 5), "tier %d: Gallery built" % tier)
 		_check((h.find_child("Plot_gallery", true, false) != null) == (tier < 5), "tier %d: ô Gallery" % tier)
-		_check((h.find_child("UpgradeLand", true, false) != null) == (tier < 6), "tier %d: nút Upgrade" % tier)
-		_check((h.find_child("LandChip", true, false) != null) == (tier == 6), "tier %d: chip max tier" % tier)
+		_check((h.find_child("LandPlate", true, false) is Button) == (tier < 6), "tier %d: nút Upgrade" % tier)
+		_check((h.find_child("LandPlate", true, false) is PanelContainer) == (tier == 6), "tier %d: chip max tier" % tier)
 		_check(h.find_child("Hit_portal", true, false) != null, "tier %d: thiếu Portal" % tier)
 		LandNav.last_path = ""
 		h.call("_handle_key", KEY_3)
@@ -154,22 +154,22 @@ func _ready() -> void:
 			LandNav.last_path = ""
 			h2.call("_handle_key", KEY_5)
 			_check(LandNav.last_path == "", "offline: Pass không mở")
-			var db := h2.find_child("Rail_Daily", true, false) as Button
+			var db := h2.find_child("DailyButton", true, false) as Button
 			_check(db.disabled and "needs connection" in db.text, "offline: Daily tắt và ghi lý do")
 			var rp := h2.find_child("RunPlate", true, false) as Button
 			_check(rp.disabled and "needs connection" in rp.text, "offline: Start run tắt và ghi lý do (round 2)")
 			_check("Needs a connection" in UI3Tooltip.text_of(h2.find_child("Hit_pass", true, false) as Control), "offline: tooltip Pass ghi lý do")
 		if bool(st.get("guest", false)):
 			_check((h2.find_child("RunPlate", true, false) as Button).text == "Sign in to play", "chưa đăng nhập: nút chính là Sign in to play")
-			_check(not (h2.find_child("Currencies", true, false) as Control).visible, "chưa đăng nhập: ẩn tiền")
-			_check(not (h2.find_child("Rail_Daily", true, false) as Control).visible, "lần đầu: ẩn Daily")
+			_check(not (h2.find_child("ShardValue", true, false) as Control).visible, "chưa đăng nhập: ẩn tiền")
+			_check(not (h2.find_child("DailyButton", true, false) as Control).visible, "lần đầu: ẩn Daily")
 			_check(h2.call("_block_reason", "pass") == "Sign in to use" and h2.call("_block_reason", "store") == "Sign in to use", "chưa đăng nhập: ô online ghi Sign in to use")
 			_check(h2.call("_block_reason", "board") != "Sign in to use", "chưa đăng nhập: Leaderboard vẫn đọc được")
 			LandNav.last_path = ""
 			(h2.find_child("RunPlate", true, false) as Button).emit_signal("pressed")
 			_check(LandNav.last_path == "", "chưa đăng nhập: không vào Run Setup")
 		if st.has("loading"):
-			_check(String((h2.find_child("value_cur_shard", true, false) as Label).text) == "···", "loading: tiền hiện ···")
+			_check(String((h2.find_child("ShardValue", true, false).get_node("Value") as Label).text) == "···", "loading: tiền hiện ···")
 		h2.queue_free()
 		await get_tree().process_frame
 	# C4: "New run" on a Mission run settles the open stake as a loss (no refund, escrow cleared).
@@ -217,7 +217,7 @@ func _ready() -> void:
 	var hd := (load("res://scenes/land/Land.tscn") as PackedScene).instantiate() as LandHub
 	add_child(hd)
 	await get_tree().process_frame
-	_check((hd.find_child("Rail_Daily", true, false) as Button).text == "Daily run · 2 of 3", "Daily ghi số lượt còn")
+	_check((hd.find_child("DailyButton", true, false) as Button).text == "Daily run · 2 of 3", "Daily ghi số lượt còn")
 	hd.queue_free()
 	await get_tree().process_frame
 	# "Start here" coach card only for a player who never fought or finished a run (and no run is open).
@@ -250,7 +250,7 @@ func _ready() -> void:
 	_check(LandNav.last_path == "" and ht.get("_touch_id") == "vault", "chạm 1 lần: chỉ hiện tooltip")
 	(ht.find_child("Hit_vault", true, false) as Button).emit_signal("pressed")
 	_check(LandNav.last_path == "res://scenes/vault/Vault.tscn", "chạm lần 2 mở Vault")
-	_check((ht.find_child("Settings", true, false) as Control).custom_minimum_size.x >= 44.0, "Settings >= 44 px")
+	_check((ht.find_child("SettingsButton", true, false) as Control).custom_minimum_size.x >= 44.0, "Settings >= 44 px")
 	# Mouse input switches touch mode off: click opens directly again.
 	var mb := InputEventMouseButton.new()
 	mb.pressed = true
