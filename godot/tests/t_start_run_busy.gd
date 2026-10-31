@@ -56,7 +56,7 @@ func _ready() -> void:
 	s.daily_info_hook = func(cb: Callable) -> void: cb.call(true, {"used": 0, "max": 3})
 	add_child(s)
 	await get_tree().process_frame
-	var b: Button = s.find_child("Begin", true, false)
+	var b: Button = s.find_child("StartButton", true, false)
 	_ok(b != null and not b.disabled, "Begin starts enabled")
 	var label0 := b.text
 	b.pressed.emit()
@@ -87,7 +87,7 @@ func _ready() -> void:
 
 	# 409 -> run_in_progress: open_run state, button usable again afterwards.
 	var s2 := await _make_setup()
-	var b2: Button = s2.find_child("Begin", true, false)
+	var b2: Button = s2.find_child("StartButton", true, false)
 	_code = "run_in_progress"
 	_next_ok = false
 	b2.pressed.emit()
@@ -102,7 +102,7 @@ func _ready() -> void:
 	var s3 := await _make_setup()
 	_code = "unauthenticated"
 	_next_ok = false
-	(s3.find_child("Begin", true, false) as Button).pressed.emit()
+	(s3.find_child("StartButton", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
 	_gate = true
 	for i in 4:
@@ -115,7 +115,7 @@ func _ready() -> void:
 	s4.run_map_override = "res://nope_missing.tscn"
 	_code = ""
 	_next_ok = true
-	(s4.find_child("Begin", true, false) as Button).pressed.emit()
+	(s4.find_child("StartButton", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
 	_gate = true
 	for i in 4:
@@ -127,11 +127,11 @@ func _ready() -> void:
 	s5.start_timeout_s = 0.2
 	_code = ""
 	_next_ok = false
-	(s5.find_child("Begin", true, false) as Button).pressed.emit()
+	(s5.find_child("StartButton", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
 	_ok(s5._busy, "timeout case: busy at first")
 	await get_tree().create_timer(0.5).timeout
-	_ok(not s5._busy and not (s5.find_child("Begin", true, false) as Button).disabled, "timeout: button released")
+	_ok(not s5._busy and not (s5.find_child("StartButton", true, false) as Button).disabled, "timeout: button released")
 	_ok(s5.find_child("Banner", true, false) != null or s5._banner_host.get_child_count() > 0, "timeout: banner shown")
 	_gate = true
 	s5.queue_free()

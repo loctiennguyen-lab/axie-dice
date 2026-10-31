@@ -216,9 +216,9 @@ func _ready() -> void:
 	rs.no_scene_change = true
 	add_child(rs)
 	await get_tree().process_frame
-	_ok(not (rs.find_child("LoadPreset", true, false) as Button).disabled, "Load preset enabled")
-	_ok(not (rs.find_child("SavePreset", true, false) as Button).disabled, "Save preset enabled")
-	_ok(not (rs.find_child("LeaderboardBtn", true, false) as Button).disabled, "Leaderboard enabled for non-newcomer")
+	_ok(not (rs.find_child("TeamPresetsButton", true, false) as Button).disabled, "Load preset enabled")
+	_ok(not (rs.find_child("SavePresetButton", true, false) as Button).disabled, "Save preset enabled")
+	_ok(not (rs.find_child("LeaderboardButton", true, false) as Button).disabled, "Leaderboard enabled for non-newcomer")
 	_ok(rs.save_preset("Run Setup team") == "" and TeamPresets.count() == 1, "save current party")
 	rs.clear_slot(2)
 	_ok(rs.save_preset("Half") != "", "incomplete party cannot be saved")
@@ -244,7 +244,7 @@ func _ready() -> void:
 	nb.no_scene_change = true
 	add_child(nb)
 	await get_tree().process_frame
-	_ok((nb.find_child("LeaderboardBtn", true, false) as Button).disabled, "newcomer: Leaderboard locked in Run Setup")
+	_ok((nb.find_child("LeaderboardButton", true, false) as Button).disabled, "newcomer: Leaderboard locked in Run Setup")
 	nb.queue_free()
 
 	# ---- routing

@@ -76,7 +76,7 @@ func _ready() -> void:
 	# Locked ascension
 	_ok(not s.select_ascension(4), "A4 locked refused")
 	_ok(s.ascension == 0, "ascension unchanged after refused pick")
-	(s.find_child("Asc9", true, false) as Button).pressed.emit()
+	(s.find_child("AscChipA9", true, false) as Button).pressed.emit()
 	_ok(s.ascension == 0, "pressing locked chip does not select")
 	_ok(s.select_ascension(3), "A3 unlocked accepted")
 	# Full locked
@@ -95,7 +95,7 @@ func _ready() -> void:
 	s.clear_slot(4)
 	_ok(s.filled_count() == 4, "clear removes")
 	_ok(s.begin_block_reason().begins_with("Pick 1 more Axie"), "reason for missing Axie")
-	_ok((s.find_child("Begin", true, false) as Button).disabled, "Begin disabled with 4")
+	_ok((s.find_child("StartButton", true, false) as Button).disabled, "Begin disabled with 4")
 	s.open_picker(4)
 	await get_tree().process_frame
 	_ok(s.find_child("Picker", true, false) != null, "picker renders")
@@ -139,7 +139,7 @@ func _ready() -> void:
 		_ok(s.state == st, "state %s" % st)
 	s.set_state("offline")
 	_ok(s.begin_block_reason().begins_with("Needs a connection"), "offline reason")
-	_ok((s.find_child("Begin", true, false) as Button).disabled, "offline disables Begin")
+	_ok((s.find_child("StartButton", true, false) as Button).disabled, "offline disables Begin")
 	s.queue_free()
 	await get_tree().process_frame
 	# State derived from a stubbed AccountService status
@@ -163,7 +163,7 @@ func _ready() -> void:
 	var signed := [0]
 	sg.sign_in_hook = func() -> void: signed[0] += 1
 	_ok(sg.begin_block_reason() == "Sign in to play", "guest: Begin reason")
-	_ok((sg.find_child("Begin", true, false) as Button).disabled, "guest: Begin disabled")
+	_ok((sg.find_child("StartButton", true, false) as Button).disabled, "guest: Begin disabled")
 	for k in ["daily", "ranked"]:
 		_ok(sg.kind_block_reason(k) == "Sign in to play " + k.capitalize(), "guest: %s reason" % k)
 	var sib := sg.find_child("SignInButton", true, false) as Button
@@ -217,7 +217,7 @@ func _ready() -> void:
 
 func _banners(s: RunSetup) -> int:
 	var n := 0
-	for c in s.find_child("Panel", true, false).find_children("Banner", "PanelContainer", true, false):
+	for c in s.find_child("SetupColumn", true, false).find_children("Banner", "PanelContainer", true, false):
 		if not (c as Node).is_queued_for_deletion():
 			n += 1
 	return n
@@ -262,7 +262,7 @@ func _kind_tests() -> void:
 	_ok(s.kind == "normal" and not bool(s.start_params()["ranked"]) and s.start_params()["kind"] == "normal", "kind starts normal")
 	_ok(s.select_kind("daily") and s.kind == "daily", "Daily pickable with tries left")
 	_ok(s.start_params()["kind"] == "daily" and not bool(s.start_params()["ranked"]), "Daily params: kind daily, not ranked")
-	_ok((s.find_child("ModeDaily", true, false) as Button).text.contains("2 of 3 left"), "Daily shows tries left")
+	_ok((s.find_child("DailyToggle", true, false) as Button).text.contains("2 of 3 left"), "Daily shows tries left")
 	_ok(s.select_kind("ranked") and bool(s.start_params()["ranked"]) and s.start_params()["kind"] == "ranked", "Ranked pickable for a non-newcomer")
 	# a vault Axie in the party blocks Ranked and drops it back to Normal
 	var keep := s.party[0]
@@ -280,7 +280,7 @@ func _kind_tests() -> void:
 	_daily_used = 3
 	var s2 := await _make()
 	_ok(not s2.select_kind("daily") and s2.kind_block_reason("daily") == "No tries left today", "Daily disabled at 0 tries")
-	_ok((s2.find_child("ModeDaily", true, false) as Button).disabled, "Daily button disabled at 0 tries")
+	_ok((s2.find_child("DailyToggle", true, false) as Button).disabled, "Daily button disabled at 0 tries")
 	s2.queue_free()
 	# newcomer: Ranked locked with the count
 	MetaState.runs_with_battle = 2
@@ -306,7 +306,7 @@ func _kind_tests() -> void:
 	s4.account_status_hook = func() -> int: return AccountService.Status.GUEST
 	_ok(s4.kind_block_reason("ranked") == "Sign in to play Ranked", "local build, signed out: says sign in")
 	_ok(s4.find_child("AnchorLine", true, false) != null and (s4.find_child("AnchorLine", true, false) as Label).text.begins_with("Anchor:"), "S3-3: Anchor line under Mode")
-	_ok(s4.find_child("AscLockLine", true, false) != null, "S3-6: ascension lock line")
+	_ok(s4.find_child("UnlockLine", true, false) != null, "S3-6: ascension lock line")
 	s4.queue_free()
 	# Daily-run reward: once per UTC day, ledgered, survives reload
 	var sh0 := MetaState.shard_pool
