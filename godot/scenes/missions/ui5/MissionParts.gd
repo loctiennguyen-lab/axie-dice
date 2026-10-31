@@ -111,7 +111,7 @@ static func locked_tag() -> PanelContainer:
 
 
 ## Banner: ToneDisc + Title + Body (+ optional SignInButton). tone &"ok"/&"warn"/&"error"/&"info".
-static func banner(tone: StringName, title: String, body: String, sign_in: Callable = Callable()) -> PanelContainer:
+static func banner(tone: StringName, title: String, body: String, sign_in: Callable = Callable(), retry: Callable = Callable()) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.name = "Banner"
 	p.theme = UI3Theme.get_theme()
@@ -137,4 +137,9 @@ static func banner(tone: StringName, title: String, body: String, sign_in: Calla
 		btn.name = "SignInButton"
 		btn.pressed.connect(sign_in)
 		h.add_child(btn)
+	if retry.is_valid():   # kept on purpose: the frames draw no Retry, but offline / start errors need a way to try again
+		var rb := UI3.button("Retry", &"secondary", &"S")
+		rb.name = "RetryButton"
+		rb.pressed.connect(retry)
+		h.add_child(rb)
 	return p

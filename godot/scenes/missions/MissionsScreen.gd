@@ -88,15 +88,6 @@ func derive_state() -> String:
 	return "normal"
 
 
-## First tier you can stake, else the first on the board.
-func _default_tier() -> String:
-	var all := offers()
-	for o in all:
-		if bool((o as Dictionary).unlocked):
-			return String((o as Dictionary).tier)
-	return String((all[0] as Dictionary).tier) if not all.is_empty() else ""
-
-
 func select_tier(tier_id: String) -> void:
 	if not offer(tier_id).is_empty():
 		selected = tier_id   # picking only moves the ring and the plate: no log, no server call
@@ -284,11 +275,11 @@ func _start_inner(tier_id: String) -> Dictionary:
 		if not w.done:
 			await w.finished
 		if w.value != "":
-			_banner(w.value, "Nothing was spent.", &"error")
+			_banner(w.value, "Nothing was spent.", &"error", false, true)
 			return {"ok": false, "code": "syncing"}
 	var mid := MetaState.take_mission_stake(tier_id, int(o.stake))
 	if mid == "":
-		_banner("Could not take the stake", "Nothing was spent.", &"error")
+		_banner("Could not take the stake", "Nothing was spent.", &"error", false, true)
 		return {"ok": false, "code": "stake"}
 	var params := mission_params(tier_id, mid)
 	var r: Dictionary = (await start_hook.call(params)) if (test_mode and start_hook.is_valid()) else (await RunState.begin_run(params))
@@ -337,7 +328,7 @@ func set_state(s: String) -> void:
 	match s:
 		"offline":
 			if remote_on:
-				_banner("Can't reach the server", "Cards are readable. Stakes need a connection; nothing is spent.", &"warn")
+				_banner("Can't reach the server", "Cards are readable. Stakes need a connection; nothing is spent.", &"warn", false, true)
 			else:
 				_banner("You're offline", "Missions run on this device for now; progress syncs when you reconnect.", &"info")
 		"guest":
@@ -406,7 +397,6 @@ func open_confirm(tier_id: String) -> void:
 	var no := PanelParts.button("Not now", &"secondary", &"M")
 	no.name = "NotNowButton"
 	var cap := Ui5Keycap.make("Space")
-	cap.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
 	var yes := PanelParts.button("Stake %s and play" % stake_txt, &"primary", &"M")
 	yes.name = "StakeButton"
 	yes.disabled = block_reason(tier_id) != ""
@@ -420,10 +410,16 @@ func open_confirm(tier_id: String) -> void:
 	root.cancelled.connect(close_modal)
 	_modal_layer.add_child(root)
 	no.add_child(cap)   # Space presses the focused Not now
-	cap.position = Vector2.ZERO
+	var cw := int(cap.get_combined_minimum_size().x) + UI3Theme.space("8")
 	cap.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
-	cap.offset_left = -cap.custom_minimum_size.x - UI3Theme.space("8")
+	cap.offset_left = -cw
 	cap.offset_right = -UI3Theme.space("8")
+	for st in ["normal", "hover", "pressed", "focus"]:   # room for the cap inside the button, text stays centred in the rest
+		var sb := no.get_theme_stylebox(st) as StyleBoxFlat
+		if sb != null:
+			var d := sb.duplicate() as StyleBoxFlat
+			d.content_margin_right = d.content_margin_right + cw
+			no.add_theme_stylebox_override(st, d)
 
 
 func close_modal() -> void:
@@ -493,6 +489,7 @@ func _build() -> void:
 	main.add_child(sc)
 	var dp := Ui5DetailPlate.new()
 	dp.setup("mission_detail_w", "Pick a tier", "Select a tier to see its stake, payout and rules.", "Pick a tier")
+	dp.scroll.get_v_scroll_bar().custom_minimum_size.x = UI3Theme.SCROLL_W   # visible overflow (t_ui_laws L2)
 	_detail = dp
 	main.add_child(dp)
 
@@ -502,12 +499,16 @@ func _on_back() -> void:
 		LandNav.back_to_land()
 
 
-func _banner(msg: String, detail: String, tone: StringName, with_sign_in := false) -> void:
+func _banner(msg: String, detail: String, tone: StringName, with_sign_in := false, with_retry := false) -> void:
 	UI3Meta.clear(_banner_host)
-	_banner_host.add_child(MissionParts.banner(tone, msg, detail, _sign_in if with_sign_in else Callable()))
+	_banner_host.add_child(MissionParts.banner(tone, msg, detail, _sign_in if with_sign_in else Callable(), _retry if with_retry else Callable()))
 
 
 ## A signed-out or expired account: with the remote wallet on, a guest has no Shards to show and cannot stake.
+func _retry() -> void:
+	set_state(derive_state() if use_account else "normal")
+
+
 func is_guest_view() -> bool:
 	return remote_on and state == "guest"
 
