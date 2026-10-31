@@ -6,7 +6,7 @@ extends PanelContainer
 ## 12 px lift (re-applied after every sort of the parent row); focus = the sky ring outside that.
 ## GachaReveal relies on child 0 being the content column: keep it first.
 
-const PanelParts := preload("res://scenes/combat/ui5/PanelParts.gd")
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 
 var column: VBoxContainer
 var cat_row: HBoxContainer

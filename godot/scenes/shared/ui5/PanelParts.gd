@@ -2,7 +2,7 @@ extends RefCounted
 ## UI-05 batch 1, lane D: small builders shared by the panels (defeat, reward pick, boss intro).
 ## Source: design/handoffs/ui-05-figma/round-1/ui05-combat-panels.html (CSS classes named in each comment).
 ## Every number is a token (UI3Theme); nothing here is a new component of UI3.gd (lane rule: helpers live in
-## their own file). Use through `const PanelParts := preload("res://scenes/combat/ui5/PanelParts.gd")`.
+## their own file). Use through `const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")`.
 
 
 ## `.plate` box: walnut fill, 2 px lighter rim, hard lip (shadow.lip) with no blur. `rad` = radius token.

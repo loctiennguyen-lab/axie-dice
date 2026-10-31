@@ -25,7 +25,7 @@ const IN_SEC := 0.24
 const ROAR_AT := 0.45
 const FLASH_AT := 0.85         # about when the roar opens its mouth wide
 const BG_ASPECT := 1673.0 / 2048.0
-const _PanelParts := preload("res://scenes/combat/ui5/PanelParts.gd")
+const _PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 const MODEL_H := 4.0           # fitted model height in metres
 const CAM_CLOSE_DIST := 13.0   # end of the push-in. Was 11.2; set to 13.0 for the top band this screen had in UI-05 b1
                                # lanes. The band moved into the fight (29/10); kept at 13.0 until Liam picks the framing.
