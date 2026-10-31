@@ -471,6 +471,29 @@ func _start_core_reveal(shake_host: Control) -> void:
 	ctrl._reveal.start(ctrl._reward_cards, tier, first, jackpot, shake_host, -1.0, from_t)
 	for cv in ctrl._reveal._covers:
 		(cv as Node).name = "CoreCardBack"
+	_play_reveal_moment(tier, shake_host)
+
+
+## UI-05 b23 lane M2: the `core-reveal` rows GachaReveal does not draw (name punch, sparks, Crystal shake), timed from
+## the real first flip. GachaReveal still owns backs / aura / flips; the table is the shared timing.
+func _play_reveal_moment(tier: int, shake_host: Control) -> void:
+	var rv: GachaReveal = ctrl._reveal
+	if rv == null or not is_instance_valid(rv) or not rv.running or rv._plan.is_empty() or UI3Gacha.is_instant():
+		return
+	var tg := {}
+	for k in ctrl._reward_cards.size():
+		var card: Control = ctrl._reward_cards[k]
+		tg["card%d" % (k + 1)] = card
+		var nm := card.find_child("CoreName", true, false)
+		if nm is CanvasItem:
+			(nm as Control).pivot_offset = (nm as Control).size * 0.5
+			tg["name%d" % (k + 1)] = nm
+	var first_flip_ms: float = float((rv._plan["flips"] as Array)[0]) * 1000.0
+	UI3Motion.play_timeline("core-reveal", tg, {"host": rv, "tier": tier, "delay_ms": first_flip_ms - 840.0,
+		"tier_color": UI3Gacha.tier_color(tier), "only": ["name_1", "name_2", "name_3", "sparks_1", "sparks_2", "sparks_3", "shake_last"],
+		"shake": func(px: float, sec: float) -> void:
+			if shake_host != null and is_instance_valid(shake_host):
+				UI3Motion.wobble(shake_host, px, sec)})
 
 
 ## One UI-05 RewardCard (31-reward): Category + RarityChip, RewardArt (rarity edge), RewardName, then the body:

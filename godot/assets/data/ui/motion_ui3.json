@@ -2937,5 +2937,1753 @@
   "skip": "not skippable (everyday)",
   "reduce_flash": "no change",
   "skippable": false
+ },
+ "core-reveal": {
+  "trigger": "Core offer opens (face-down, then flips one by one)",
+  "_note": "GachaReveal drives backs/aura/flips; the table is the shared timing, name punch / sparks / last-flip shake are played from it. Source: design/handoffs/ui-05-figma/round-2/motion-batch2.md. Played with UI3Motion.play_timeline; layers whose target the screen does not pass are data only.",
+  "in": {
+   "ms": 120
+  },
+  "layers": [
+   {
+    "name": "backs",
+    "target": "backs",
+    "delay_ms": 0,
+    "ms": 240,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "y": 40,
+      "scale": 0.92
+     },
+     {
+      "t": 1,
+      "alpha": 1,
+      "y": 0,
+      "scale": 1
+     }
+    ],
+    "reduce": "fade",
+    "owner": "GachaReveal"
+   },
+   {
+    "name": "aura",
+    "target": "halo",
+    "delay_ms": 240,
+    "ms": 600,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0.35,
+      "scale": 1
+     },
+     {
+      "t": 0.5,
+      "alpha": 0.8,
+      "scale": 1.04
+     },
+     {
+      "t": 1,
+      "alpha": 0.35,
+      "scale": 1
+     }
+    ],
+    "reduce": "cap",
+    "owner": "GachaReveal",
+    "ms_by_tier": [
+     600,
+     900,
+     1500
+    ]
+   },
+   {
+    "name": "rays",
+    "target": "rays",
+    "delay_ms": 240,
+    "ms": 1500,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "alpha": 0.3
+     }
+    ],
+    "reduce": "removed",
+    "flash": true,
+    "crystal_only": true,
+    "owner": "data"
+   },
+   {
+    "name": "flip_a",
+    "target": "card",
+    "delay_ms": 840,
+    "ms": 175,
+    "trans": "QUAD",
+    "ease": "IN",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 1
+     },
+     {
+      "t": 1,
+      "scale_x": 0
+     }
+    ],
+    "reduce": "removed",
+    "owner": "GachaReveal",
+    "stagger_ms": 180
+   },
+   {
+    "name": "flip_b",
+    "target": "card",
+    "delay_ms": 1015,
+    "ms": 175,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 0
+     },
+     {
+      "t": 1,
+      "scale_x": 1
+     }
+    ],
+    "reduce": "fade",
+    "owner": "GachaReveal",
+    "stagger_ms": 180
+   },
+   {
+    "name": "halo_hide",
+    "target": "halo",
+    "delay_ms": 1015,
+    "ms": 120,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0.8
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "kept",
+    "owner": "GachaReveal",
+    "stagger_ms": 180
+   },
+   {
+    "name": "name_1",
+    "target": "name1",
+    "delay_ms": 1100,
+    "ms": 260,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 0.8
+     },
+     {
+      "t": 0.6,
+      "scale": 1.1
+     },
+     {
+      "t": 1,
+      "scale": 1
+     }
+    ],
+    "reduce": "removed"
+   },
+   {
+    "name": "name_2",
+    "target": "name2",
+    "delay_ms": 1280,
+    "ms": 260,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 0.8
+     },
+     {
+      "t": 0.6,
+      "scale": 1.1
+     },
+     {
+      "t": 1,
+      "scale": 1
+     }
+    ],
+    "reduce": "removed"
+   },
+   {
+    "name": "name_3",
+    "target": "name3",
+    "delay_ms": 1460,
+    "ms": 260,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 0.8
+     },
+     {
+      "t": 0.6,
+      "scale": 1.1
+     },
+     {
+      "t": 1,
+      "scale": 1
+     }
+    ],
+    "reduce": "removed"
+   },
+   {
+    "name": "sparks_1",
+    "target": "card1",
+    "delay_ms": 1015,
+    "particles": {
+     "texture": "res://assets/ui3/icons/cur_fragment.png",
+     "amount": 6,
+     "lifetime_ms": 600,
+     "speed": 320,
+     "spread_deg": 160,
+     "spread_full": true,
+     "gravity": 500,
+     "size_px": 22,
+     "amount_by_tier": [
+      6,
+      10,
+      16
+     ],
+     "tier_color": true
+    },
+    "reduce": "removed"
+   },
+   {
+    "name": "sparks_2",
+    "target": "card2",
+    "delay_ms": 1195,
+    "particles": {
+     "texture": "res://assets/ui3/icons/cur_fragment.png",
+     "amount": 6,
+     "lifetime_ms": 600,
+     "speed": 320,
+     "spread_deg": 160,
+     "spread_full": true,
+     "gravity": 500,
+     "size_px": 22,
+     "amount_by_tier": [
+      6,
+      10,
+      16
+     ],
+     "tier_color": true
+    },
+    "reduce": "removed"
+   },
+   {
+    "name": "sparks_3",
+    "target": "card3",
+    "delay_ms": 1375,
+    "particles": {
+     "texture": "res://assets/ui3/icons/cur_fragment.png",
+     "amount": 6,
+     "lifetime_ms": 600,
+     "speed": 320,
+     "spread_deg": 160,
+     "spread_full": true,
+     "gravity": 500,
+     "size_px": 22,
+     "amount_by_tier": [
+      6,
+      10,
+      16
+     ],
+     "tier_color": true
+    },
+    "reduce": "removed"
+   },
+   {
+    "name": "shake_last",
+    "delay_ms": 1375,
+    "shake": {
+     "px": 4,
+     "ms": 140
+    },
+    "reduce": "removed",
+    "crystal_only": true
+   },
+   {
+    "name": "hint_out",
+    "target": "hint",
+    "delay_ms": 1500,
+    "ms": 200,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "kept"
+   }
+  ],
+  "sfx_name": "core_aura_moss",
+  "skip": "click / Space jumps to the end state",
+  "reduce_flash": "no flash, no rays, no shake, no hit-stop",
+  "skippable": true,
+  "star": true
+ },
+ "core-taken": {
+  "trigger": "Take on a Core card",
+  "_note": "The card flies into the next free slot of the Cores plate. Source: design/handoffs/ui-05-figma/round-2/motion-batch2.md. Played with UI3Motion.play_timeline; layers whose target the screen does not pass are data only.",
+  "in": {
+   "ms": 120
+  },
+  "layers": [
+   {
+    "name": "pop",
+    "target": "card",
+    "delay_ms": 0,
+    "ms": 140,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 1
+     },
+     {
+      "t": 1,
+      "scale": 1.06
+     }
+    ],
+    "reduce": "removed"
+   },
+   {
+    "name": "others",
+    "target": "others",
+    "delay_ms": 60,
+    "ms": 220,
+    "trans": "QUAD",
+    "ease": "IN",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1,
+      "y": 0
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "y": 60
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "title",
+    "target": "title",
+    "delay_ms": 60,
+    "ms": 200,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "kept"
+   },
+   {
+    "name": "fly",
+    "target": "card",
+    "delay_ms": 140,
+    "ms": 520,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 1.06,
+      "rot": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "scale": 0.11,
+      "rot": -12,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade",
+    "fly": {
+     "control": [
+      -430,
+      -60
+     ]
+    }
+   },
+   {
+    "name": "trail",
+    "target": "card",
+    "delay_ms": 300,
+    "particles": {
+     "texture": "res://assets/ui3/icons/cur_fragment.png",
+     "amount": 8,
+     "lifetime_ms": 500,
+     "speed": 120,
+     "spread_deg": 360,
+     "spread_full": true,
+     "gravity": 0,
+     "size_px": 18
+    },
+    "reduce": "removed"
+   },
+   {
+    "name": "slot",
+    "target": "slot",
+    "delay_ms": 640,
+    "ms": 260,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 1.6,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "scale": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "slot_burst",
+    "target": "slot",
+    "delay_ms": 640,
+    "particles": {
+     "texture": "res://assets/ui3/icons/cur_fragment.png",
+     "amount": 10,
+     "lifetime_ms": 500,
+     "speed": 240,
+     "spread_deg": 360,
+     "spread_full": true,
+     "gravity": 300,
+     "size_px": 20
+    },
+    "reduce": "removed"
+   },
+   {
+    "name": "count_old",
+    "target": "count_old",
+    "delay_ms": 700,
+    "ms": 160,
+    "trans": "QUAD",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "y": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "y": -10,
+      "alpha": 0
+     }
+    ],
+    "reduce": "kept"
+   },
+   {
+    "name": "count_new",
+    "target": "count_new",
+    "delay_ms": 760,
+    "ms": 200,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "y": 10,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "y": 0,
+      "alpha": 1
+     }
+    ],
+    "reduce": "kept"
+   }
+  ],
+  "sfx_name": "core_take",
+  "skip": "click / Space jumps to the filled slot",
+  "reduce_flash": "no flash, no rays, no shake, no hit-stop",
+  "skippable": true,
+  "star": true
+ },
+ "reward-taken": {
+  "trigger": "Take on a non-Core reward",
+  "_note": "The card flies to its target row on the party plate. Source: design/handoffs/ui-05-figma/round-2/motion-batch2.md. Played with UI3Motion.play_timeline; layers whose target the screen does not pass are data only.",
+  "in": {
+   "ms": 120
+  },
+  "layers": [
+   {
+    "name": "press",
+    "target": "button",
+    "delay_ms": 0,
+    "ms": 120,
+    "trans": "QUAD",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "y": 0
+     },
+     {
+      "t": 0.5,
+      "y": 6
+     },
+     {
+      "t": 1,
+      "y": 0
+     }
+    ],
+    "reduce": "kept"
+   },
+   {
+    "name": "others",
+    "target": "others",
+    "delay_ms": 80,
+    "ms": 240,
+    "trans": "QUAD",
+    "ease": "IN",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1,
+      "y": 0,
+      "rot": 0
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "y": 80,
+      "rot": 4
+     }
+    ],
+    "reduce": "fade",
+    "stagger_ms": 40
+   },
+   {
+    "name": "title",
+    "target": "title",
+    "delay_ms": 120,
+    "ms": 200,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "kept"
+   },
+   {
+    "name": "pulse",
+    "target": "card",
+    "delay_ms": 80,
+    "ms": 220,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 1
+     },
+     {
+      "t": 1,
+      "scale": 1.08
+     }
+    ],
+    "reduce": "removed"
+   },
+   {
+    "name": "plate_in",
+    "target": "plate",
+    "delay_ms": 200,
+    "ms": 240,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "x": -40,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "x": 0,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "fly",
+    "target": "card",
+    "delay_ms": 300,
+    "ms": 480,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 1.08,
+      "alpha": 1
+     },
+     {
+      "t": 0.9,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "scale": 0.1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "fade",
+    "fly": {
+     "control": [
+      0,
+      0
+     ]
+    }
+   },
+   {
+    "name": "hp",
+    "target": "hp_fill",
+    "delay_ms": 780,
+    "ms": 300,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 0.7
+     },
+     {
+      "t": 1,
+      "scale_x": 1
+     }
+    ],
+    "reduce": "cap"
+   },
+   {
+    "name": "float",
+    "target": "float",
+    "delay_ms": 780,
+    "ms": 900,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 0.6,
+      "alpha": 0,
+      "y": 0
+     },
+     {
+      "t": 0.3,
+      "scale": 1.1,
+      "alpha": 1,
+      "y": -20
+     },
+     {
+      "t": 1,
+      "scale": 1,
+      "alpha": 1,
+      "y": -32
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "glints",
+    "target": "row",
+    "delay_ms": 780,
+    "particles": {
+     "texture": "res://assets/ui3/icons/face_heal.png",
+     "amount": 8,
+     "lifetime_ms": 600,
+     "speed": 200,
+     "spread_deg": 120,
+     "spread_full": true,
+     "gravity": 200,
+     "size_px": 22
+    },
+    "reduce": "removed"
+   }
+  ],
+  "sfx_name": "reward_take",
+  "skip": "click / Space jumps to the run map with the change applied",
+  "reduce_flash": "no flash, no rays, no shake, no hit-stop",
+  "skippable": true,
+  "star": true
+ },
+ "treasure-open": {
+  "trigger": "Open chest",
+  "_note": "The vault bursts, three reward cards rise out of it. Source: design/handoffs/ui-05-figma/round-2/motion-batch2.md. Played with UI3Motion.play_timeline; layers whose target the screen does not pass are data only.",
+  "in": {
+   "ms": 120
+  },
+  "layers": [
+   {
+    "name": "press",
+    "target": "button",
+    "delay_ms": 0,
+    "ms": 260,
+    "trans": "QUAD",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "y": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "y": 6,
+      "alpha": 0
+     }
+    ],
+    "reduce": "kept"
+   },
+   {
+    "name": "title",
+    "target": "title",
+    "delay_ms": 60,
+    "ms": 200,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "kept"
+   },
+   {
+    "name": "wobble",
+    "target": "vault",
+    "delay_ms": 80,
+    "ms": 560,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "rot": 0,
+      "scale_y": 1
+     },
+     {
+      "t": 0.2,
+      "rot": 6
+     },
+     {
+      "t": 0.4,
+      "rot": -6
+     },
+     {
+      "t": 0.6,
+      "rot": 4
+     },
+     {
+      "t": 0.8,
+      "rot": -4,
+      "scale_y": 0.9
+     },
+     {
+      "t": 1,
+      "rot": 0,
+      "scale_y": 0.9
+     }
+    ],
+    "reduce": "removed"
+   },
+   {
+    "name": "hitstop",
+    "delay_ms": 640,
+    "hitstop_ms": 70,
+    "reduce": "removed"
+   },
+   {
+    "name": "flash",
+    "target": "flash",
+    "delay_ms": 640,
+    "ms": 160,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 0.5,
+      "alpha": 0.55
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "removed",
+    "flash": true
+   },
+   {
+    "name": "vault_pop",
+    "target": "vault",
+    "delay_ms": 640,
+    "ms": 420,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 0.9,
+      "alpha": 1
+     },
+     {
+      "t": 0.6,
+      "scale": 1.25,
+      "alpha": 0.6
+     },
+     {
+      "t": 1,
+      "scale": 1.4,
+      "alpha": 0
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "rays",
+    "target": "rays",
+    "delay_ms": 640,
+    "ms": 1400,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 0.2,
+      "alpha": 0.4
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "removed",
+    "flash": true
+   },
+   {
+    "name": "shake",
+    "delay_ms": 640,
+    "shake": {
+     "px": 8,
+     "ms": 200
+    },
+    "reduce": "removed"
+   },
+   {
+    "name": "shards",
+    "target": "vault",
+    "delay_ms": 640,
+    "particles": {
+     "texture": "res://assets/ui3/icons/cur_shard.png",
+     "amount": 22,
+     "lifetime_ms": 1200,
+     "speed": 700,
+     "spread_deg": 140,
+     "spread_full": true,
+     "gravity": 900,
+     "size_px": 30,
+     "direction_deg": -90
+    },
+    "reduce": "removed"
+   },
+   {
+    "name": "stars",
+    "target": "vault",
+    "delay_ms": 700,
+    "particles": {
+     "texture": "res://assets/ui3/icons/cur_fragment.png",
+     "amount": 14,
+     "lifetime_ms": 1200,
+     "speed": 520,
+     "spread_deg": 200,
+     "spread_full": true,
+     "gravity": 600,
+     "size_px": 26,
+     "direction_deg": -90
+    },
+    "reduce": "removed"
+   },
+   {
+    "name": "card_1",
+    "target": "card1",
+    "delay_ms": 880,
+    "ms": 420,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "y": 120,
+      "scale": 0.5,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "y": 0,
+      "scale": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "card_2",
+    "target": "card2",
+    "delay_ms": 990,
+    "ms": 420,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "y": 120,
+      "scale": 0.5,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "y": 0,
+      "scale": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "card_3",
+    "target": "card3",
+    "delay_ms": 1100,
+    "ms": 420,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "y": 120,
+      "scale": 0.5,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "y": 0,
+      "scale": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "choose",
+    "target": "choose",
+    "delay_ms": 1000,
+    "ms": 240,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "y": -12,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "y": 0,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade"
+   }
+  ],
+  "sfx_name": "chest_open",
+  "skip": "click / Space jumps to the open state with the three cards",
+  "reduce_flash": "no flash, no rays, no shake, no hit-stop",
+  "skippable": true,
+  "star": true
+ },
+ "level-up": {
+  "trigger": "Level Up reward taken",
+  "_note": "Tier N to N+1: faces rewrite, Max HP grows. Source: design/handoffs/ui-05-figma/round-2/motion-batch2.md. Played with UI3Motion.play_timeline; layers whose target the screen does not pass are data only.",
+  "in": {
+   "ms": 120
+  },
+  "layers": [
+   {
+    "name": "dim",
+    "target": "scrim",
+    "delay_ms": 0,
+    "ms": 200,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "alpha": 0.4
+     }
+    ],
+    "reduce": "kept"
+   },
+   {
+    "name": "pillar",
+    "target": "pillar",
+    "delay_ms": 0,
+    "ms": 900,
+    "trans": "EXPO",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "scale_y": 0
+     },
+     {
+      "t": 0.3,
+      "alpha": 0.55,
+      "scale_y": 1
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "scale_y": 1
+     }
+    ],
+    "reduce": "removed",
+    "flash": true
+   },
+   {
+    "name": "hop",
+    "target": "axie",
+    "delay_ms": 120,
+    "ms": 420,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "y": 0,
+      "scale": 1
+     },
+     {
+      "t": 0.5,
+      "y": -30,
+      "scale": 1.06
+     },
+     {
+      "t": 1,
+      "y": 0,
+      "scale": 1
+     }
+    ],
+    "reduce": "removed"
+   },
+   {
+    "name": "axie_flash",
+    "target": "axie_flash",
+    "delay_ms": 120,
+    "ms": 200,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 0.5,
+      "alpha": 0.8
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "removed",
+    "flash": true
+   },
+   {
+    "name": "tag",
+    "target": "tag",
+    "delay_ms": 160,
+    "ms": 1100,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 0.5,
+      "alpha": 0,
+      "y": 0
+     },
+     {
+      "t": 0.2,
+      "scale": 1.15,
+      "alpha": 1,
+      "y": -44
+     },
+     {
+      "t": 0.3,
+      "scale": 1,
+      "alpha": 1,
+      "y": -44
+     },
+     {
+      "t": 1,
+      "scale": 1,
+      "alpha": 1,
+      "y": -44
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "tier_old",
+    "target": "tier_old",
+    "delay_ms": 360,
+    "ms": 160,
+    "trans": "QUAD",
+    "ease": "IN",
+    "kf": [
+     {
+      "t": 0,
+      "y": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "y": -14,
+      "alpha": 0
+     }
+    ],
+    "reduce": "kept"
+   },
+   {
+    "name": "tier_new",
+    "target": "tier_new",
+    "delay_ms": 440,
+    "ms": 300,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 1.6,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "scale": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "face_1",
+    "target": "face1",
+    "delay_ms": 520,
+    "ms": 220,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 1
+     },
+     {
+      "t": 0.5,
+      "scale_x": 0
+     },
+     {
+      "t": 1,
+      "scale_x": 1
+     }
+    ],
+    "reduce": "cap"
+   },
+   {
+    "name": "face_2",
+    "target": "face2",
+    "delay_ms": 590,
+    "ms": 220,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 1
+     },
+     {
+      "t": 0.5,
+      "scale_x": 0
+     },
+     {
+      "t": 1,
+      "scale_x": 1
+     }
+    ],
+    "reduce": "cap"
+   },
+   {
+    "name": "face_3",
+    "target": "face3",
+    "delay_ms": 660,
+    "ms": 220,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 1
+     },
+     {
+      "t": 0.5,
+      "scale_x": 0
+     },
+     {
+      "t": 1,
+      "scale_x": 1
+     }
+    ],
+    "reduce": "cap"
+   },
+   {
+    "name": "face_4",
+    "target": "face4",
+    "delay_ms": 730,
+    "ms": 220,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 1
+     },
+     {
+      "t": 0.5,
+      "scale_x": 0
+     },
+     {
+      "t": 1,
+      "scale_x": 1
+     }
+    ],
+    "reduce": "cap"
+   },
+   {
+    "name": "face_5",
+    "target": "face5",
+    "delay_ms": 800,
+    "ms": 220,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 1
+     },
+     {
+      "t": 0.5,
+      "scale_x": 0
+     },
+     {
+      "t": 1,
+      "scale_x": 1
+     }
+    ],
+    "reduce": "cap"
+   },
+   {
+    "name": "face_6",
+    "target": "face6",
+    "delay_ms": 870,
+    "ms": 220,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 1
+     },
+     {
+      "t": 0.5,
+      "scale_x": 0
+     },
+     {
+      "t": 1,
+      "scale_x": 1
+     }
+    ],
+    "reduce": "cap"
+   },
+   {
+    "name": "hp",
+    "target": "hp_fill",
+    "delay_ms": 960,
+    "ms": 320,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 0.8
+     },
+     {
+      "t": 1,
+      "scale_x": 1
+     }
+    ],
+    "reduce": "cap"
+   },
+   {
+    "name": "arrows",
+    "target": "axie",
+    "delay_ms": 120,
+    "particles": {
+     "texture": "res://assets/ui3/icons/face_buff.svg",
+     "amount": 12,
+     "lifetime_ms": 900,
+     "speed": 260,
+     "spread_deg": 40,
+     "spread_full": true,
+     "gravity": -200,
+     "size_px": 28,
+     "direction_deg": -90
+    },
+    "reduce": "removed"
+   }
+  ],
+  "sfx_name": "level_up",
+  "skip": "click / Space",
+  "reduce_flash": "no flash, no rays, no shake, no hit-stop",
+  "skippable": true,
+  "star": true
+ },
+ "anchor-awaken": {
+  "trigger": "2nd House Core taken (Kin to Unison)",
+  "_note": "2.5 s (1.6 s with Reduce motion), then the group settles into the HUD Anchor tile. AnchorFx plays it; scrim alpha is a share of the 0.6 scrim. Source: design/handoffs/ui-05-figma/round-2/motion-batch2.md. Played with UI3Motion.play_timeline; layers whose target the screen does not pass are data only.",
+  "in": {
+   "ms": 120
+  },
+  "layers": [
+   {
+    "name": "scrim",
+    "target": "scrim",
+    "delay_ms": 0,
+    "ms": 200,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "kept"
+   },
+   {
+    "name": "tag",
+    "target": "tag",
+    "delay_ms": 120,
+    "ms": 240,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "y": -20
+     },
+     {
+      "t": 1,
+      "alpha": 1,
+      "y": 0
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "tile",
+    "target": "tile",
+    "delay_ms": 200,
+    "ms": 420,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "scale": 0.4
+     },
+     {
+      "t": 0.6,
+      "alpha": 1,
+      "scale": 1.15
+     },
+     {
+      "t": 1,
+      "alpha": 1,
+      "scale": 1
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "hitstop",
+    "delay_ms": 452,
+    "hitstop_ms": 60,
+    "reduce": "removed"
+   },
+   {
+    "name": "frame",
+    "target": "tile",
+    "delay_ms": 460,
+    "ms": 200,
+    "snap": true,
+    "flash": true,
+    "reduce": "removed"
+   },
+   {
+    "name": "glyph",
+    "target": "glyph",
+    "delay_ms": 520,
+    "ms": 260,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "scale": 2,
+      "rot": -20
+     },
+     {
+      "t": 1,
+      "alpha": 1,
+      "scale": 1,
+      "rot": 0
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "rays",
+    "target": "rays",
+    "delay_ms": 460,
+    "ms": 2000,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 0.15,
+      "alpha": 0.3
+     },
+     {
+      "t": 0.85,
+      "alpha": 0.3
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "removed",
+    "flash": true
+   },
+   {
+    "name": "sweep",
+    "target": "sweep",
+    "delay_ms": 700,
+    "ms": 320,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0.7,
+      "x": -60
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "x": 300
+     }
+    ],
+    "reduce": "removed",
+    "flash": true
+   },
+   {
+    "name": "stars",
+    "target": "tile",
+    "delay_ms": 460,
+    "particles": {
+     "texture": "res://assets/ui3/icons/cur_fragment.png",
+     "amount": 18,
+     "lifetime_ms": 1000,
+     "speed": 460,
+     "spread_deg": 360,
+     "spread_full": true,
+     "gravity": 380,
+     "size_px": 28,
+     "color_token": "anchor_awake"
+    },
+    "reduce": "removed"
+   },
+   {
+    "name": "shake",
+    "delay_ms": 452,
+    "shake": {
+     "px": 6,
+     "ms": 160
+    },
+    "reduce": "removed"
+   },
+   {
+    "name": "name",
+    "target": "name",
+    "delay_ms": 640,
+    "ms": 360,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "scale": 0.6
+     },
+     {
+      "t": 0.6,
+      "alpha": 1,
+      "scale": 1.3
+     },
+     {
+      "t": 1,
+      "alpha": 1,
+      "scale": 1
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "rule",
+    "target": "rule",
+    "delay_ms": 900,
+    "ms": 240,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "y": 10
+     },
+     {
+      "t": 1,
+      "alpha": 1,
+      "y": 0
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "strip",
+    "target": "strip",
+    "delay_ms": 1000,
+    "ms": 240,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "y": 10
+     },
+     {
+      "t": 1,
+      "alpha": 1,
+      "y": 0
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "pips",
+    "target": "pip1",
+    "delay_ms": 1100,
+    "ms": 200,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 0
+     },
+     {
+      "t": 0.6,
+      "scale": 1.3
+     },
+     {
+      "t": 1,
+      "scale": 1
+     }
+    ],
+    "reduce": "kept",
+    "stagger_ms": 100
+   },
+   {
+    "name": "hint",
+    "target": "hint",
+    "delay_ms": 1300,
+    "ms": 200,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "kept"
+   },
+   {
+    "name": "settle",
+    "target": "group",
+    "delay_ms": 2200,
+    "ms": 300,
+    "trans": "QUAD",
+    "ease": "IN",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1,
+      "scale": 1
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "scale": 0.2
+     }
+    ],
+    "reduce": "fade",
+    "fly": {
+     "control": [
+      0,
+      0
+     ]
+    }
+   },
+   {
+    "name": "scrim_out",
+    "target": "scrim",
+    "delay_ms": 2300,
+    "ms": 200,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "kept"
+   }
+  ],
+  "sfx_name": "anchor_awaken",
+  "skip": "click / Space jumps to the settled state",
+  "reduce_flash": "no flash, no rays, no shake, no hit-stop",
+  "skippable": true,
+  "star": true
  }
 }
