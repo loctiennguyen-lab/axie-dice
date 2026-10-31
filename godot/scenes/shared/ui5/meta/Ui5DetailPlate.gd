@@ -18,7 +18,8 @@ var _empty_body := ""
 var _empty_reason := ""
 
 
-func setup(width_token: String, empty_title: String, empty_body := "", empty_reason := "") -> void:
+## gap: 8 for the mission/pass `.mdetail` plates, 12 for the Land upgrade `.detail` plate (round-3 meta2).
+func setup(width_token: String, empty_title: String, empty_body := "", empty_reason := "", gap := 8) -> void:
 	name = "DetailPlate"
 	theme = UI3Theme.get_theme()
 	_w_token = width_token
@@ -28,7 +29,7 @@ func setup(width_token: String, empty_title: String, empty_body := "", empty_rea
 	add_theme_stylebox_override("panel", Ui5PlateBox.plate(UI3Theme.space("16")))
 	var col := VBoxContainer.new()
 	col.name = "Col"
-	col.add_theme_constant_override("separation", UI3Theme.space("8"))
+	col.add_theme_constant_override("separation", UI3Theme.space(str(gap)))
 	add_child(col)
 	scroll = ScrollContainer.new()
 	scroll.name = "DetailScroll"
@@ -38,7 +39,7 @@ func setup(width_token: String, empty_title: String, empty_body := "", empty_rea
 	var inner := VBoxContainer.new()
 	inner.name = "ScrollCol"
 	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	inner.add_theme_constant_override("separation", UI3Theme.space("8"))
+	inner.add_theme_constant_override("separation", UI3Theme.space(str(gap)))
 	scroll.add_child(inner)
 	title = Ui5Text.label("", "text_screen_title", "text", true)
 	title.name = "Title"
