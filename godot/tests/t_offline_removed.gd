@@ -38,7 +38,7 @@ func _ready() -> void:
 	var layer := CanvasLayer.new()
 	add_child(layer)
 	var g := AccountUI.show_offline_gate(layer, svc)
-	_check(g.find_child("TryAgain", true, false) != null, "gate has the Try again button")
+	_check(g.find_child("TryAgainButton", true, false) != null, "gate has the Try again button")
 	_check(MainMenu.route_target() != "", "route_target still decides tutorial vs land after the gate")
 	svc.free()
 	_guard.restore()

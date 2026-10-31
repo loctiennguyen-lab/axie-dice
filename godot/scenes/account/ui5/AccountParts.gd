@@ -133,3 +133,95 @@ static func kv(text: String, node_name := "SaveStatus") -> PanelContainer:
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	p.add_child(l)
 	return p
+
+
+# ---- S8a2: boot offline gate (a13), welcome (a14), choose a save (a15), move progress (a16) ----
+
+## Version text for the brand row, from the project setting ("0.1.0-l1" -> "v0.1.0-l1").
+static func version_text() -> String:
+	var ver := String(ProjectSettings.get_setting("application/config/version", ""))
+	return ver if ver.begins_with("v") or ver.is_empty() else "v" + ver
+
+
+## Centered plate on an overlay: kind "welcome" = `.welcome` (radius l, gap 16, welcome_w), else `.dialog` (radius xl, gap 20, defeat_panel_w).
+## Returns {"panel", "col"}; the panel is already parented to a full-rect CenterContainer under `overlay`.
+static func centered(overlay: Control, node_name: String, kind := "dialog") -> Dictionary:
+	var center := CenterContainer.new()
+	center.name = "Center"
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(center)
+	var d: Dictionary = box(node_name, kind != "welcome")
+	var p := d["panel"] as PanelContainer
+	p.custom_minimum_size.x = UI3Theme.size_of("welcome_w" if kind == "welcome" else "defeat_panel_w")
+	center.add_child(p)
+	return d
+
+
+## `.dialog-head`: Title (text_banner) + optional Body node (gap 4). `heading` = a text_title line above the body text
+## (Choose a save). Body is a VBox when it has a heading, otherwise the wrapped Label itself.
+static func dialog_head(title: String, body_text: String, heading := "") -> VBoxContainer:
+	var h := VBoxContainer.new()
+	h.name = "DialogHead"
+	h.add_theme_constant_override("separation", UI3Theme.space("4"))
+	var t := Ui5Text.label(title, "text_banner", "text", true)
+	t.name = "Title"
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	h.add_child(t)
+	if heading == "":
+		h.add_child(body(body_text, false, "Body"))
+		return h
+	var b := VBoxContainer.new()
+	b.name = "Body"
+	b.add_theme_constant_override("separation", 0)
+	var hl := Ui5Text.label(heading, "text_title", "text", true)
+	hl.name = "Heading"
+	hl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	b.add_child(hl)
+	b.add_child(body(body_text, false, "Text"))
+	h.add_child(b)
+	return h
+
+
+## `.points .cell`: raised cell, label (Rowdies, body size) over a muted line, gap 4. Node "Point".
+static func point(label: String, line: String) -> PanelContainer:
+	var p := PanelParts.panel(PanelParts.cell_box(UI3Theme.space("12"), UI3Theme.space("16"), "m"), "Point")
+	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", UI3Theme.space("4"))
+	p.add_child(col)
+	var l := Ui5Text.label(label, "text_body", "text", true)
+	l.name = "Label"
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(l)
+	col.add_child(body(line, true, "Line"))
+	return p
+
+
+## Stat rows of a save summary. Shards are left out when the economy is remote (they are the server's, the cloud save
+## never carries them, so the row would always differ). Values come from the summary, nothing is literal.
+static func save_stats(s: Dictionary) -> Array:
+	var rows: Array = []
+	if MetaState.econ_remote() == null:
+		rows.append(["Gene Shards", UI3.fmt(int(s.get("shards", 0)))])
+	var run := String(s.get("run", ""))
+	rows.append_array([["XP", UI3.fmt(int(s.get("xp", 0)))],
+			["Vault", "%d / 20" % int(s.get("vault", 0))],
+			["Runs · wins", "%d · %d" % [int(s.get("runs", 0)), int(s.get("wins", 0))]],
+			["Run in progress", run if not run.is_empty() else "—"]])
+	return rows
+
+
+## Ui5SaveCard for a save summary. Not picked, and not a tab stop: the button under it is the action. A click on the
+## card only moves focus to `action` (never picks anything by itself).
+static func save_card(title: String, sub: String, s: Dictionary, action: Button = null) -> Ui5SaveCard:
+	var c := Ui5SaveCard.new()
+	c.setup(title, sub, save_stats(s))
+	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	c.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	c.focus_mode = Control.FOCUS_NONE
+	if action != null:
+		c.pressed.connect(func() -> void:
+			if is_instance_valid(action) and action.is_inside_tree():
+				action.grab_focus())
+	return c

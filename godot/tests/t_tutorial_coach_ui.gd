@@ -33,9 +33,9 @@ func _ready() -> void:
 		{"value": "500", "label": "Shards", "sub": "Not stakeable"},
 		{"value": "3", "label": "Tickets", "sub": ""}], "Go to the Land")
 	await get_tree().process_frame
-	var plate := coach.find_child("StarterPlate", true, false) as Control
+	var plate := coach.find_child("StarterPackCard", true, false) as Control
 	_ok(plate != null and plate.visible and plate.custom_minimum_size.x == 560.0, "starter plate 560 wide")
-	_ok((plate.find_children("*", "GridContainer", true, false)[0] as GridContainer).get_child_count() == 2, "two starter cells")
+	_ok((plate.find_child("Cells", true, false) as HBoxContainer).get_child_count() == 2, "two starter cells")
 	var ev := InputEventAction.new()
 	ev.action = "ui_cancel"
 	ev.pressed = true
