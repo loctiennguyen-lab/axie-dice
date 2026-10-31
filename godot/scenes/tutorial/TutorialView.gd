@@ -40,9 +40,9 @@ const TUT_TEAM: Array[String] = ["plant1", "beast1", "aqua1", "reptile1", "bird1
 const TUT_ENEMY_HP := 6
 
 const _REWARD_FLAVORS := [
-	{"title": "+3 Max HP", "desc": "A sturdier Axie survives more turns."},
-	{"title": "New Relic", "desc": "A passive effect that helps your whole team."},
-	{"title": "Gene Shard x20", "desc": "Currency to unlock permanent upgrades between runs."},
+	{"category": "Max HP", "rarity": "Common", "icon": "face_heal", "title": "+3 Max HP", "desc": "A sturdier Axie survives more turns."},
+	{"category": "Core", "rarity": "Rare", "icon": "ui_mooncard", "title": "New Core", "desc": "A passive effect that helps your whole team."},
+	{"category": "Shards", "rarity": "Common", "icon": "cur_shard", "title": "Gene Shard ×20", "desc": "Currency to unlock permanent upgrades between runs."},
 ]
 
 ## Total coached steps, for the "STEP n OF N" line on the card. FREE and the end screens are
@@ -262,17 +262,17 @@ func _render(_first: bool) -> void:
 			_coach.show_curtain("Welcome to Axie Dice!",
 				"Every Axie is a die, and every face is a real body part. "
 				+ "Let's play one battle together before you're on your own.",
-				"START")
+				"Start")
 		Step.PARTY:
 			_coach.show_step(_label(1), "These five are your team",
 				"Each card is one Axie's die, showing the face it just rolled: the body part, "
 				+ "what it does, and for how much.",
-				"GOT IT →", _dice_tray())
+				"Got it →", _dice_tray())
 		Step.INTENT:
 			_coach.show_step(_label(2), "The enemy shows its hand",
 				"That badge above its head is exactly what it will do on its turn. You always "
 				+ "get to see it coming.",
-				"GOT IT →", null, _enemy_rect())
+				"Got it →", null, _enemy_rect())
 		Step.REROLL:
 			_coach.show_step(_label(3), "Not happy with that roll?",
 				"Press REROLL. It re-rolls every die you haven't used yet, and you get a few "
@@ -321,7 +321,7 @@ func _render(_first: bool) -> void:
 		Step.LOST:
 			_coach.show_curtain("That fight didn't go your way.",
 				"That shouldn't happen in the tutorial, so let's just get you into the real game.",
-				"CONTINUE")
+				"Continue")
 
 
 ## daily.json "starter" (the amounts MetaState grants on a fresh save); {} if the file is unreadable.
