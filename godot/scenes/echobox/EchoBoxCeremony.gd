@@ -177,7 +177,7 @@ func _flip_in(cards: Array, order: Array) -> void:
 		seq.append(cards[int(k)])
 	var last := seq[seq.size() - 1] as Control
 	var only: Array = ["cards_flip"]
-	if int(last.get_meta("tier", 0)) >= 3:
+	if cards.size() == 10 and int(last.get_meta("tier", 0)) >= 3:   # last_pop delay is fixed for 10 cards
 		only.append("last_pop")
 	UI3Motion.play_timeline("open-10", {"cards": seq, "last_card": last}, {"host": host, "only": only,
 		"delay_ms": -float(UI3Motion.layer("open-10", "cards_flip").get("delay_ms", 0.0))})
