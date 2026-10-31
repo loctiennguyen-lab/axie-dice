@@ -399,13 +399,13 @@ func _screen_tick(m: Node, ov: Control) -> void:
 		if leave != null:
 			leave.pressed.emit()
 		return
-	if ov.find_child("OpenChest", true, false) != null:
+	if ov.find_child("OpenButton", true, false) != null:
 		_shot_once("treasure-closed")
-		(ov.find_child("OpenChest", true, false) as Button).pressed.emit()
+		(ov.find_child("OpenButton", true, false) as Button).pressed.emit()
 		return
-	var ev_act := ov.find_child("EventAction", true, false) as Button
+	var ev_act := (ov.find_child("ChooseButton", true, false) if ov.find_child("ChooseButton", true, false) != null else ov.find_child("ContinueButton", true, false)) as Button
 	if ev_act != null:
-		if ov.find_child("EventOption0", true, false) != null and m.get("_event_sel") == -1 and not _shots.has("event-outcome-%d" % RunState.power_level):
+		if ov.find_child("ChoiceRow", true, false) != null and m.get("_event_sel") == -1 and not _shots.has("event-outcome-%d" % RunState.power_level):
 			if not ev_act.text.begins_with(tr("Continue")):
 				_shot_once("event-%d" % RunState.power_level)
 				if RunState.event_options().is_empty():
@@ -414,13 +414,13 @@ func _screen_tick(m: Node, ov: Control) -> void:
 				await _wait(0.5)
 				_shot("event-outcome-%d" % RunState.power_level)
 				return
-		var go := ov.find_child("EventAction", true, false) as Button
+		var go := ov.find_child("ContinueButton", true, false) as Button
 		if go != null:
 			go.pressed.emit()
 		return
-	if ov.find_child("RewardPick", true, false) != null or ov.find_child("TreasureCards", true, false) != null:
+	if ov.find_child("RewardPick", true, false) != null or ov.find_child("TreasureReward", true, false) != null:
 		var core: bool = m.call("_core_offer_active")
-		var label := "core" if core else ("treasure" if ov.find_child("TreasureCards", true, false) != null else "reward")
+		var label := "core" if core else ("treasure" if ov.find_child("TreasureReward", true, false) != null else "reward")
 		var has_chaos := false
 		for r in RunState.pending_rewards:
 			has_chaos = has_chaos or String((r as Dictionary).get("t", "")) in ["chaos", "curse"]
