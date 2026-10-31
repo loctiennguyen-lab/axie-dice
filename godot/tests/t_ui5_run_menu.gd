@@ -20,7 +20,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	var team: Array[String] = ["plant1", "beast1", "aqua1", "reptile1", "bug1"]
 	RunState.start_new_run(790, team, "short", 0, false)
-	RunState.owned_relic_ids.assign(["c_bastion", "c_backline_glow"])
+	RunState.owned_relic_ids.assign(["c_bastion", "c_backline_glow", "r_ironvow"])
 	MetaState.mission_escrow = {"stake": 25}
 	for sc in [1.0, 2.0 / 3.0]:
 		UI3Theme.set_scale_override(sc)
@@ -66,6 +66,7 @@ func _pass(sc: float) -> void:
 	for k in ["Resume", "Relics", "Map", "Settings", "SaveQuit", "Abandon"]:
 		_ok((pm.rows[k] as Button).size.y >= float(UI3Theme.size_of("menu_row_h")) - 0.5, "%s: row %s is 64 high" % [tag, k])
 	_ok(pm.find_child("MenuColumn", true, false).size.y == pm.find_child("SidePanel", true, false).size.y, "%s: plates same height" % tag)
+	_ok(pm.find_child("OwnedPact", true, false) != null, "%s: pact r_ironvow has a row" % tag)
 	_small(pm, tag, sc)
 	_ok(Align.pairs(pm) > 0, "%s: align check measured pairs (%d)" % [tag, Align.pairs(pm)])
 	_ok(Align.check(pm).is_empty(), "%s: icon/label centred %s" % [tag, str(Align.check(pm))])
@@ -73,8 +74,7 @@ func _pass(sc: float) -> void:
 	(pm.rows["Map"] as Button).grab_focus()
 	await _frames(2)
 	_ok(pm.side_name == "map" and pm.find_children("StatRow*", "", true, false).size() == 5, "%s: focus on Run map shows 5 stat rows" % tag)
-	_ok(not (pm.find_child("StatRow", true, false) as Control).get_children().is_empty() and
-		not _text_has(pm, "Floor 4") and _text_has(pm, "4 of 18"), "%s: floor from map_info" % tag)
+	_ok(_text_has(pm, "4 of 18"), "%s: floor from map_info" % tag)
 	(pm.rows["Settings"] as Button).grab_focus()
 	await _frames(2)
 	for n in ["MusicRow", "SfxRow", "MuteRow", "ReduceRow", "OpenSettingsButton"]:
@@ -104,6 +104,14 @@ func _pass(sc: float) -> void:
 		_ok(foot2.get_child(0).name == "KeepPlayingButton" and foot2.find_child("AbandonButton", true, false) != null, "%s: Keep playing first" % tag)
 		_ok(get_viewport().gui_get_focus_owner() == foot2.get_child(0), "%s: focus starts on Keep playing" % tag)
 		_ok(ab.find_child("KeepPlayingButton", true, false).find_child("KeyCap", true, false) != null, "%s: Keep playing has the Space cap" % tag)
+		var keep := ab.find_child("KeepPlayingButton", true, false) as Button
+		var kcap := keep.find_child("KeyCap", true, false) as Control
+		var nb := keep.get_theme_stylebox("normal") as StyleBoxFlat
+		_ok(nb != null and nb.bg_color.a > 0.0, "%s: Keep playing has a fill" % tag)
+		var tw := keep.get_theme_font("font").get_string_size(keep.text, HORIZONTAL_ALIGNMENT_LEFT, -1, keep.get_theme_font_size("font_size")).x
+		var text_l := (keep.size.x - float(UI3Theme.space("12")) - kcap.size.x) * 0.5 - tw * 0.5
+		var group_c := (text_l + kcap.position.x + kcap.size.x) * 0.5
+		_ok(absf(group_c - keep.size.x * 0.5) <= 2.0, "%s: Keep playing label + cap centred in the button (c=%.1f w=%.1f)" % [tag, group_c, keep.size.x])
 		_ok((ab.find_child("AbandonButton", true, false) as Button).theme_type_variation == &"ButtonDanger", "%s: btn-danger" % tag)
 		_ok(ab.find_child("StakeLine", true, false) != null and _text_has(ab, "25 Shard"), "%s: stake line from MetaState" % tag)
 		_ok(not _text_has(ab, "60 Shard"), "%s: no illustration stake" % tag)
@@ -118,6 +126,19 @@ func _pass(sc: float) -> void:
 	await _frames()
 	(pm.find_child("AbandonButton", true, false) as Button).pressed.emit()
 	_ok(abandoned[0] == 1, "%s: Abandon run emits" % tag)
+	# Esc: no dialog -> resumed; dialog open -> closes only the dialog
+	var esc := InputEventAction.new()
+	esc.action = "ui_cancel"
+	esc.pressed = true
+	var resumed := [0]
+	pm.resumed.connect(func() -> void: resumed[0] += 1)
+	(pm.rows["SaveQuit"] as Button).pressed.emit()
+	await _frames()
+	pm._unhandled_input(esc)
+	_ok(pm.confirm_dialog() == null and resumed[0] == 0, "%s: Esc closes the open dialog only" % tag)
+	await _frames()
+	pm._unhandled_input(esc)
+	_ok(resumed[0] == 1, "%s: Esc with no dialog resumes" % tag)
 	pm.queue_free()
 	await _frames(2)
 

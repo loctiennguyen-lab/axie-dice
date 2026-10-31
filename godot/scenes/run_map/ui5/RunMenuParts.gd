@@ -65,7 +65,7 @@ static func stat_row(label: String, value: String, node_name := "StatRow") -> Pa
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", UI3Theme.space("12"))
 	p.add_child(h)
-	var l := PanelParts.text(label, "text_body", "text", true)
+	var l := PanelParts.text(label, "text_body", "text")   # t-body (Work Sans)
 	l.name = "Label"
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

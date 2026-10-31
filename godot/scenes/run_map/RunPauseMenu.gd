@@ -86,6 +86,11 @@ func _resume_row(col: VBoxContainer) -> void:
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.custom_minimum_size.y = UI3Theme.size_of("menu_row_h")
 	b.pressed.connect(func() -> void: resumed.emit())
+	for st in ["normal", "hover", "pressed", "disabled", "hover_pressed", "focus"]:   # .menu-row.btn-primary: padding 0 20
+		var sb := b.get_theme_stylebox(st).duplicate() as StyleBox
+		sb.content_margin_left = UI3Theme.space("20")
+		sb.content_margin_right = UI3Theme.space("20")
+		b.add_theme_stylebox_override(st, sb)
 	col.add_child(b)
 	rows["Resume"] = b
 	# Space-between: the keycap sits at the right edge (padding 20).
@@ -143,10 +148,12 @@ func show_side(which: String) -> void:
 			list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			list.add_theme_constant_override("separation", UI3Theme.space("12"))
 			sc.add_child(list)
-			if cores.is_empty() and RunState.run_rule == "":
+			if cores.is_empty() and RunState.run_rule == "" and _other_ids(cores).is_empty():
 				list.add_child(PanelParts.text(tr("No Cores yet."), "text_body", "text_muted"))
 			for id in cores:
 				list.add_child(_core_row(String(id)), true)
+			for id in _other_ids(cores):
+				list.add_child(_other_row(String(id)), true)
 			if RunState.run_rule != "":
 				list.add_child(_rule_row(RunState.run_rule), true)
 		"map":
@@ -200,6 +207,47 @@ func _core_row(id: String) -> Control:
 	left.add_child(nm)
 	Ui5Ellipsis.set_text(nm, UI3.title_case(UI3.player_text(String(def.name) if def != null else id)))
 	h.add_child(Parts.tier_chip(int(def.rarity) if def != null else 0))
+	return row
+
+
+## Owned ids that are neither a Core nor the Run rule (boss pacts, old relics); "__" ids are internal markers.
+func _other_ids(cores: Array) -> Array:
+	return RunState.owned_relic_ids.filter(func(x) -> bool:
+		var id := String(x)
+		return not id.begins_with("__") and not cores.has(id) and id != RunState.run_rule \
+			and not (RelicRegistry.get_def(id) != null and String(RelicRegistry.get_def(id).core_axis) == "run_rule"))
+
+
+## OwnedPact / OwnedRelic: name left, "Pact" (or the rarity) muted right, what it does muted below.
+func _other_row(id: String) -> Control:
+	var def = RelicRegistry.get_def(id)
+	var is_pact: bool = def != null and String(def.pact_group) != ""
+	var row := PanelParts.panel(PanelParts.cell_box(UI3Theme.space("8"), UI3Theme.space("16"), "s"), "OwnedPact" if is_pact else "OwnedRelic")
+	row.custom_minimum_size.y = UI3Theme.size_of("btn_s")
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", UI3Theme.space("4"))
+	row.add_child(col)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", UI3Theme.space("12"))
+	col.add_child(h)
+	var nm := PanelParts.text("", "text_body", "text", true)
+	nm.name = "Name"
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(nm)
+	Ui5Ellipsis.set_text(nm, UI3.title_case(UI3.player_text(String(def.name) if def != null else id)))
+	var names := ["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic"]
+	var tag := tr("Pact") if is_pact else (tr(names[clampi(int(def.rarity), 0, 5)]) if def != null else "")
+	var t := PanelParts.text(tag, "text_body", "text_muted")
+	t.name = "Kind"
+	h.add_child(t)
+	if def != null:
+		var d := UI3.describe(String(def.description))
+		var txt := ("MP %d · " % int(d["mp"]) if int(d["mp"]) >= 0 else "") + String(d["text"])
+		if txt.strip_edges() != "":
+			var body := PanelParts.text(txt, "text_body", "text_muted")
+			body.name = "Effect"
+			body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			col.add_child(body)
 	return row
 
 
@@ -327,25 +375,19 @@ func _ask_abandon() -> void:
 	keep.name = "KeepPlayingButton"
 	var cap := Ui5Keycap.make("Space", &"primary")
 	keep.add_child(cap)
-	var pad := UI3Theme.space("32")
-	var gap := UI3Theme.space("12")
-	# Cap sits after the centred label with a 12 gap (CSS .btn gap); the button is widened on both sides to hold it.
-	var place := func() -> void:
-		var font := keep.get_theme_font("font")
-		var fs := keep.get_theme_font_size("font_size")
-		var tw := font.get_string_size(keep.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		var cs := cap.get_combined_minimum_size()
-		keep.custom_minimum_size.x = tw + (gap + cs.x + pad) * 2
-		cap.size = cs
-		cap.position = Vector2((keep.size.x + tw) * 0.5 + gap, (keep.size.y - cs.y) * 0.5)   # text stays centred, cap after it
-	keep.resized.connect(place)
-	place.call_deferred()
 	var ab := Parts.danger_button(tr("Abandon run"), "AbandonButton")
 	keep.pressed.connect(_close_confirm)
 	ab.pressed.connect(func() -> void:
 		_close_confirm()
 		abandon_confirmed.emit())
 	_confirm("AbandonConfirm", tr("Abandon this run?"), "danger_text", body, stake, keep, ab)
+	# place_trailing needs the button in the tree: _confirm has just added the dialog.
+	var pad := UI3Theme.space("32")
+	var place := func() -> void:
+		if is_instance_valid(keep) and keep.is_inside_tree():
+			HudStyle.place_trailing(keep, cap, pad)
+	keep.resized.connect(place)
+	place.call_deferred()
 
 
 ## Esc = Resume (a confirm dialog's own Esc closes only the dialog: Cancel / Keep playing).

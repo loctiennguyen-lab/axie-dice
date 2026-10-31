@@ -21,7 +21,7 @@ func _ready() -> void:
 	UI3Theme.set_scale_override(2.0 / 3.0 if small else 1.0)
 	var team: Array[String] = ["plant1", "beast1", "aqua1", "reptile1", "bug1"]
 	RunState.start_new_run(780, team, "short", 0, false)
-	RunState.owned_relic_ids.assign(["c_backline_glow", "c_bastion", "c_blood_sign"])
+	RunState.owned_relic_ids.assign(["c_backline_glow", "c_bastion", "c_blood_sign", "r_ironvow"])
 	RunState.shards_this_run = 40
 	var m: Node = load("res://scenes/run_map/RunMap.tscn").instantiate()
 	add_child(m)

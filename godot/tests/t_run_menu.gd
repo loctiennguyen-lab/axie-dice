@@ -106,11 +106,12 @@ func _pause_menu() -> void:
 		_assert(ab.find_child("Underline", false, false) == null, "Abandon row has no underline")
 		_assert(ab.get_theme_color("font_color") == UI3Theme.color("danger_text"), "Abandon is red-8 text")
 		_assert(ab.theme_type_variation != &"ButtonPrimaryM" and ab.theme_type_variation != &"ButtonPrimaryL", "Abandon is not primary")
-		RunState.owned_relic_ids.assign(["r_claw"])
+		RunState.owned_relic_ids.assign(["c_bastion", "r_ironvow"])
 		pm.show_side("relics")
 		var small := pm.find_child("SidePanel", true, false).find_children("*", "Label", true, false).filter(
 			func(l): return (l as Label).get_theme_font_size("font_size") < 14)
 		_assert(small.is_empty(), "relic panel text is >= 14 px")
+		_assert(pm.find_child("OwnedPact", true, false) != null and pm.find_child("OwnedCore", true, false) != null, "panel lists the Core and the pact")
 		pm.show_side("settings")
 		_assert(pm.find_child("MusicRow", true, false) != null and pm.find_child("OpenSettingsButton", true, false) != null, "settings panel shows the rows that matter")
 		_assert((pm.find_child("OpenSettingsButton", true, false) as Button).theme_type_variation == &"ButtonSecondaryS", "Open Settings is secondary-S")
