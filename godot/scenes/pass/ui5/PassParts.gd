@@ -46,10 +46,26 @@ static func result_line(text: String) -> HBoxContainer:
 
 ## Tier of a cosmetic id from the manifest (0 = common).
 static func tier_of(cos_id: String) -> int:
-	var art_id := Cosmetics.art_id(cos_id)
 	var m: Dictionary = CosmeticArt.manifest()
-	var e: Variant = (m.get("dice", {}) as Dictionary).get(art_id, (m.get("frames", {}) as Dictionary).get(art_id, {}))
+	var art_id := Cosmetics.art_id(cos_id)
+	var e: Variant = (m.get("dice", {}) as Dictionary).get(art_id, (m.get("frames", {}) as Dictionary).get(art_id, (m.get("fx", {}) as Dictionary).get(cos_id, {})))
 	return int((e as Dictionary).get("tier", 0)) if e is Dictionary else 0
+
+
+## "die" | "frame" | "FX" for the line under the name ("Uncommon frame").
+static func kind_of(cos_id: String) -> String:
+	var m: Dictionary = CosmeticArt.manifest()
+	var art_id := Cosmetics.art_id(cos_id)
+	if (m.get("dice", {}) as Dictionary).has(art_id):
+		return "die"
+	if (m.get("frames", {}) as Dictionary).has(art_id):
+		return "frame"
+	return "FX"
+
+
+## "Uncommon frame" for a cosmetic id.
+static func tier_kind(cos_id: String) -> String:
+	return "%s %s" % [tier_word(tier_of(cos_id)), kind_of(cos_id)]
 
 
 static func tier_word(tier: int) -> String:
@@ -72,12 +88,17 @@ static func cosmetic_block(cos_id: String, art_px: float, node_name := "CosBlock
 		var cc := CenterContainer.new()
 		cc.add_child(art)
 		box.add_child(cc)
+	else:   # FX has no thumbnail: chip with the word FX (HTML .mini t-key)
+		var kl := Ui5Text.label("FX", "text_body", "text_muted", true)
+		kl.name = "FxKey"
+		kl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		box.add_child(kl)
 	h.add_child(box)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 0)
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	var nm := Ui5Text.label(CosmeticTile.display_name(cos_id), "text_body", "text")
+	var nm := Ui5Text.label(CosmeticTile.any_name(cos_id), "text_body", "text")
 	nm.name = "RewardName"
 	nm.clip_text = true
 	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS

@@ -107,7 +107,26 @@ func _pass(sc: float, tag: String) -> void:
 	var ca := s.find_child("ClaimAllButton", true, false) as Button
 	var n := s.claimable_count()
 	_check(n == 3 and not ca.disabled and ca.text == "Claim all · 3 levels", "%s: Claim all '%s'" % [tag, ca.text])
-	_check(get_viewport().gui_get_focus_owner() != null, "%s: initial focus exists" % tag)
+	var fo := get_viewport().gui_get_focus_owner()
+	_check(fo != null and fo.name == "ClaimAllButton", "%s: live: initial focus is ClaimAllButton (%s)" % [tag, fo.name if fo != null else "none"])
+	for lv in range(1, 8):   # every claimed tile reads "Claimed" in full (no clipping)
+		var cb := s.tile_button(lv)
+		var f := cb.get_theme_font("font")
+		var fsz := cb.get_theme_font_size("font_size")
+		var sbn := cb.get_theme_stylebox("disabled")
+		var need := f.get_string_size(cb.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x + cb.get_theme_constant("icon_max_width") \
+			+ cb.get_theme_constant("h_separation") + sbn.content_margin_left + sbn.content_margin_right
+		_check(cb.text == "Claimed" and not cb.clip_text and need <= cb.size.x + 0.5, "%s: tile %d: Claimed fits (%.0f of %.0f)" % [tag, lv, need, cb.size.x])
+	for fxlv in [5, 15]:
+		s.select_level(fxlv)
+		await _settle()
+		var rn := dp.find_child("RewardName", true, false) as Label
+		_check(rn != null and rn.text != "", "%s: Lv %d reward name not empty" % [tag, fxlv])
+		if fxlv == 15:
+			_check((dp.find_child("RewardTier", true, false) as Label).text == "Rare FX", "%s: Lv 15 tier '%s'" % [tag, (dp.find_child("RewardTier", true, false) as Label).text])
+	s.selected_lv = 0
+	s.refresh()
+	await _settle()
 	_check(s.tile_button(1).text == "Claimed" and s.tile_button(1).disabled and s.tile_button(1).icon != null, "%s: claimed = tick + Claimed" % tag)
 	_check(s.tile_button(8).text == "Claim" and not s.tile_button(8).disabled, "%s: ready tile says Claim" % tag)
 	_check(s.tile_button(8).theme_type_variation != &"ButtonPrimary", "%s: tile Claim is secondary while Claim all is live" % tag)
@@ -180,6 +199,8 @@ func _pass(sc: float, tag: String) -> void:
 		g.get_parent().queue_free()
 	var b := await _make(sc, "2026-10-12", 0, [])
 	_check(b.find_child("Banner", true, false) != null and (b.find_child("ClaimAllButton", true, false) as Button).disabled, "%s: before: banner, Claim all off" % tag)
+	var bf := get_viewport().gui_get_focus_owner()
+	_check(bf != null and bf.name == "BackButton", "%s: before: initial focus is BackButton" % tag)
 	_check((b.task_button("play_runs") as Button).text == "Claim · The season is not running", "%s: before: task reason" % tag)
 	_audit(b, sc, tag + " before")
 	b.get_parent().queue_free()

@@ -209,10 +209,10 @@ func claim_loop() -> int:
 	if is_remote():
 		MetaState.pass_claim_post30_async(func(r: Dictionary) -> void:
 			var sh := int((r.get("result", {}) as Dictionary).get("shards", 0))
-			_remote_done(r, "+%d Shards" % sh))
+			_remote_done(r, "+" + reward_text({"type": "shard", "value": sh})))
 		return 0
 	var s := PassV2.claim_post30(MetaState)
-	last_result = "+%d Shards" % s if s > 0 else "Nothing to claim"
+	last_result = "+" + reward_text({"type": "shard", "value": s}) if s > 0 else "Nothing to claim"
 	refresh()
 	return s
 
@@ -417,7 +417,9 @@ func _draw_detail() -> void:
 	var lv := selected_lv
 	var st := node_state(lv)
 	_detail.show_item("Level %d" % lv)
-	_detail.body.add_child(UI3Meta.tag(_state_word(st)))
+	var tg := UI3Meta.tag(_state_word(st))
+	tg.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_detail.body.add_child(tg)
 	for cid in _cos_ids(def):
 		var art := CosmeticTile.art(String(cid), 200.0)
 		if art != null:
@@ -427,9 +429,11 @@ func _draw_detail() -> void:
 			host.add_child(art)
 			_detail.body.add_child(host)
 		var tier := PassParts.tier_of(String(cid))
-		var nm := _detail.add_line(CosmeticTile.display_name(String(cid)), "text")
+		var nm := Ui5Text.label(CosmeticTile.any_name(String(cid)), "text_title", "text")
 		nm.name = "RewardName"
-		var tw := _detail.add_line(PassParts.tier_word(tier))
+		nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_detail.body.add_child(nm)
+		var tw := _detail.add_line(PassParts.tier_kind(String(cid)))
 		tw.name = "RewardTier"
 		tw.add_theme_color_override("font_color", DiceSkin.tier_text_color(tier))
 	for ln in reward_lines(def):
@@ -557,7 +561,7 @@ func _build_weekly() -> void:
 		b.name = "ClaimButton"
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b.custom_minimum_size.x = UI3Theme.space("32") * 6   # wraps a long reason inside the card (frame: max 55%), never char by char
+		b.custom_minimum_size = Vector2(UI3Theme.space("32") * 8, UI3Theme.size_of("btn_m"))   # wraps a long reason inside the card (frame: max 55%), never char by char
 		b.set_meta("task_id", id)
 		if bool(st["claimed"]):
 			Ui5ClaimButton.set_claimed(b)
@@ -653,8 +657,9 @@ func _tile(def: Dictionary) -> Control:
 			b.text = "Reach Level %d" % lv if season_phase() != "over" else "Not claimed"
 			b.disabled = true
 	# A long state ends in "…" with the whole text in the tooltip, so it never widens the column (B6).
-	b.clip_text = true
-	b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	if st != "claimed":   # "Claimed" is short and must always read in full
+		b.clip_text = true
+		b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	b.tooltip_text = b.text
 	b.focus_entered.connect(select_level.bind(lv))
 	b.mouse_entered.connect(select_level.bind(lv))

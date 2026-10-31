@@ -92,7 +92,7 @@ func _ready() -> void:
 		var info := PassSummary.info(ps)
 		_ok(int(info["level"]) == PassV2.level_for_xp(xp), "PassSummary level matches PassV2 at xp %d" % xp)
 		if xp == 0:
-			_ok(PassSummary.line(info).begins_with("0 / 500 XP to level 1") and PassSummary.line(info).contains("300 Shard"), "pre-start Result line: " + PassSummary.line(info))
+			_ok(PassSummary.line(info).begins_with("0 / 500 XP to level 1") and PassSummary.line(info).contains("300 Shards"), "pre-start Result line: " + PassSummary.line(info))
 
 	_guard.restore()
 	if _fail.is_empty():
