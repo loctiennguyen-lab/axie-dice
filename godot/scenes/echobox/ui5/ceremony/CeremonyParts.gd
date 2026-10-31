@@ -208,11 +208,13 @@ static func card(screen: Node, r: Dictionary, single: bool, flashy: bool) -> Pan
 		ic.texture = UI3.icon("cur_stone_reveal")
 		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		ic.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 		var sp := art_px * 0.615
-		ic.custom_minimum_size = Vector2(sp, sp)
-		ic.size = Vector2(sp, sp)
-		ic.position = (Vector2(art_px, art_px) - Vector2(sp, sp)) * 0.5
+		var m := (art_px - sp) * 0.5
+		ic.set_anchors_preset(Control.PRESET_FULL_RECT)
+		ic.offset_left = m
+		ic.offset_top = m
+		ic.offset_right = -m
+		ic.offset_bottom = -m
 		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		art.add_child(ic)
 		title = t("%s Stone") % UI3.fmt(int(r.get("amount", 0)))
