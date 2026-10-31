@@ -187,7 +187,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	var okb := h3.find_child("AbandonButton", true, false) as Button
 	_check(okb != null, "C4: mission new-run opens the abandon confirm")
-	_check(h3.find_child("Confirm", true, false) is UI3.ModalRoot, "UI3: the confirm is a UI3 modal (560 dialog, scrim)")
+	_check(h3.find_child("Confirm", true, false) is UI3.ModalRoot, "UI3: the confirm is a UI3 modal (760 dialog, scrim)")
 	_check(h3.find_child("AbandonMissionConfirm", true, false).custom_minimum_size.x == 760.0, "UI-05: confirm dialog 760 wide")
 	if okb != null:
 		_check(not MetaState.mission_escrow.is_empty(), "C4: escrow still open before confirming")

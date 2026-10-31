@@ -393,7 +393,11 @@ func show_toast(text: String, hold: float = 1.6, tone: StringName = &"ok") -> vo
 
 
 func layout_toasts() -> void:
-	var y := float(Ui5Toast.top_y(_l._offline_banner != null and is_instance_valid(_l._offline_banner) and _l._offline_banner.visible))
+	var ban: Control = _l._offline_banner
+	var up: bool = ban != null and is_instance_valid(ban) and ban.visible
+	var y := float(Ui5Toast.top_y(up))
+	if up:
+		y = maxf(y, ban.position.y + ban.size.y * ban.scale.y + 8.0)
 	for t in _l._toasts:
 		if not is_instance_valid(t) or t.is_queued_for_deletion():
 			continue

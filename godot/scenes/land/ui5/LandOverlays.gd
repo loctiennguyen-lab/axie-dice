@@ -62,8 +62,8 @@ static func spotlight(target: Control, radius_px: int) -> Panel:
 	return p
 
 
-## OfflineBanner: 600 wide plate with a warn rim, ToneDisc, Message and RetryButton (or a Spinner while reconnecting).
-static func banner(text: String, retry_text: String, on_retry: Callable, reconnecting := false) -> PanelContainer:
+## OfflineBanner: 600 wide plate with a warn rim, ToneDisc, Message and RetryButton.
+static func banner(text: String, retry_text: String, on_retry: Callable) -> PanelContainer:
 	var s8 := UI3Theme.space("8")
 	var box := UI3Theme.flat(UI3Theme.color("plate"), UI3Theme.radius("m"), UI3Theme.stroke("rim"), UI3Theme.color("notice_warn"),
 		Vector4(UI3Theme.space("16"), s8, s8, s8), PanelParts.lip(UI3Theme.color("plate_ink")))
@@ -81,13 +81,10 @@ static func banner(text: String, retry_text: String, on_retry: Callable, reconne
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	l.custom_minimum_size.x = 100
 	row.add_child(l)
-	if reconnecting:
-		row.add_child(Ui5Spinner.new())
-	else:
-		var b := UI3.button(retry_text, &"secondary", &"S")
-		b.name = "RetryButton"
-		b.pressed.connect(on_retry)
-		row.add_child(b)
+	var b := UI3.button(retry_text, &"secondary", &"S")
+	b.name = "RetryButton"
+	b.pressed.connect(on_retry)
+	row.add_child(b)
 	return p
 
 
@@ -144,7 +141,7 @@ static func loss_rows(label: String, line: String, with_shard := false) -> Panel
 	row.add_theme_constant_override("separation", UI3Theme.space("12"))
 	p.add_child(row)
 	if with_shard:
-		row.add_child(PanelParts.icon_rect(UI3.currency_icon("shard", UI3Theme.size_of("icon_l")), UI3Theme.size_of("icon_l")))
+		row.add_child(PanelParts.icon_rect(UI3.currency_icon("cur_shard", UI3Theme.size_of("icon_l")), UI3Theme.size_of("icon_l")))
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", UI3Theme.space("4"))
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL

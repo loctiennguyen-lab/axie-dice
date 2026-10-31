@@ -1380,7 +1380,12 @@ func _place_hud(f: float) -> void:
 	_offline_banner.reset_size()
 	var os := _offline_banner.get_combined_minimum_size()
 	_offline_banner.scale = sc
-	_offline_banner.position = Vector2((w - os.x * f) * 0.5, float(Ui5Toast.top_y(false)) * f)   # frame: top centre
+	var bx := (w - os.x * f) * 0.5
+	var by := float(UI3Theme.size_of("offline_banner_top"))   # frame token, already logical
+	var tl := Rect2(_hud_tl.position, _hud_tl.get_combined_minimum_size() * f)
+	if bx < tl.end.x + 8.0 and bx + os.x * f > tl.position.x:   # would sit on the Upgrade Land chip: go under it
+		by = maxf(by, tl.end.y + 8.0)
+	_offline_banner.position = Vector2(bx, by)   # frame: top centre
 
 
 # ================================================================ actions
@@ -1507,7 +1512,7 @@ func _on_new_run_pressed() -> void:
 		_open_confirm("Abandon this mission?",
 			"Starting a new run abandons Mission %s. The stake is not returned." % mid,
 			"Abandon · −%s" % _fmt(stake), _end_run_and_setup, true, "Keep playing",
-			["You lose %s Gene Shard" % _fmt(stake), "Mission %s stake · this run's progress is lost too" % mid],
+			["You lose %s Shards" % _fmt(stake), "Mission %s stake · this run's progress is lost too" % mid],
 			Color("A3261A"))
 	else:
 		_open_confirm("Start a new run?", "Your current run ends now and cannot be continued.",

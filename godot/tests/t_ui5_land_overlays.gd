@@ -93,7 +93,7 @@ func _pass(sc: float) -> void:
 	var sh := h.find_child("StartHint", true, false) as Control
 	_ok(sh.visible, tag + ": StartHint visible")
 	_inside(h, sh, tag)
-	_ok(Align.pairs(h) >= 0 and Align.check(h, 1.5, tag).is_empty(), tag + ": align first-visit")
+	_ok(Align.pairs(h) > 0 and Align.check(h, 1.5, tag).is_empty(), tag + ": align first-visit")
 	_ok(h.get_viewport().gui_get_focus_owner() == h.find_child("RunPlate", true, false), tag + ": focus on RunPlate")
 	_small(sh, tag + " coach", sc)
 	await _free(h)
@@ -113,15 +113,16 @@ func _pass(sc: float) -> void:
 	await _frames(h)
 	_names(h, ["OfflineBanner", "ToneDisc", "Message", "RetryButton"], tag + " offline")
 	var bn := h.find_child("OfflineBanner", true, false) as Control
-	_ok(bn.visible and is_equal_approx(bn.get_global_rect().size.x, 600.0 * bn.scale.x * 1.0 / maxf(1.0, 1.0)) or bn.size.x >= 600.0, tag + ": banner 600 wide")
-	_ok(bn.get_global_rect().position.y <= 24.0 * 1.4 + 1.0, tag + ": banner at the top (%s)" % str(bn.get_global_rect()))
+	_ok(bn.visible and bn.size.x >= float(UI3Theme.size_of("offline_banner_w")) - 0.5, tag + ": banner at least offline_banner_w wide (%s)" % str(bn.size))
+	_ok(bn.position.y >= float(UI3Theme.size_of("offline_banner_top")) - 0.5, tag + ": banner at or under the token top (%s)" % str(bn.get_global_rect()))
+	_ok(not bn.get_global_rect().intersects((h.find_child("TopLeft", true, false) as Control).get_global_rect()), tag + ": banner clear of TopLeft")
 	_inside(h, bn, tag)
 	_ok(Align.pairs(bn) > 0 and Align.check(bn, 1.5, tag).is_empty(), tag + ": align offline (pairs %d)" % Align.pairs(bn))
 	_small(bn, tag + " banner", sc)
 	h._hud.show_toast("Still offline", 1.6, &"error")   # what on_retry does while the probe still says offline (a real press would reload the scene)
 	await _frames(h)
 	var rt := h.find_child("Toast", true, false) as Control
-	_ok(rt != null and rt.position.y >= float(Ui5Toast.top_y(true)) - 0.5, tag + ": Still offline toast under the banner")
+	_ok(rt != null and rt.position.y >= bn.position.y + bn.size.y * bn.scale.y - 0.5 and rt.position.y >= float(Ui5Toast.top_y(true)) - 0.5, tag + ": Still offline toast under the banner")
 	await _free(h)
 	# reconnecting: RunPlate disabled with reason + info toast
 	h = await _hub(base, true)
@@ -158,7 +159,7 @@ func _pass(sc: float) -> void:
 	_ok(h.get_viewport().gui_get_focus_owner() == h.find_child("KeepPlayingButton", true, false), tag + ": abandon focus on Keep playing")
 	var lr := h.find_child("LossRows", true, false) as Control
 	var ico := lr.find_child("Icon", true, false) as Control
-	_ok(ico != null and absf(ico.get_global_rect().get_center().y - lr.find_child("Label", true, false).get_parent().get_global_rect().get_center().y) <= 1.5, tag + ": shard icon centred on its two lines")
+	_ok(ico != null and (ico as TextureRect).texture != null and absf(ico.get_global_rect().get_center().y - lr.find_child("Label", true, false).get_parent().get_global_rect().get_center().y) <= 1.5, tag + ": shard icon centred on its two lines")
 	_ok(Align.check(h.find_child("AbandonMissionConfirm", true, false), 1.5, tag).is_empty(), tag + ": align abandon")
 	_inside(h, h.find_child("AbandonMissionConfirm", true, false) as Control, tag)
 	_ok((h.find_child("AbandonButton", true, false) as Button).text.contains(UI3.fmt(100)), tag + ": stake from escrow, not the HTML")
