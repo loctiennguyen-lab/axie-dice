@@ -41,11 +41,11 @@ func setup(id: String) -> void:
 		sr.add_theme_constant_override("separation", UI3Theme.space("8"))
 		sr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		strip.add_child(sr)
-		sr.add_child(PanelParts.icon_rect(UI3.icon("ui_lock"), UI3Theme.size_of("icon_m"), "LockIcon"))
+		sr.add_child(PanelParts.icon_rect(UI3.icon("ui_lock"), UI3Theme.size_of("icon_s"), "LockIcon"))
 		var why := PanelParts.text(AnchorAdapter.reason_text(reason), "text_body", "disabled_text")
 		why.name = "Reason"
 		why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		why.custom_minimum_size.x = inner - 24 - UI3Theme.size_of("icon_m") - 8
+		why.custom_minimum_size.x = inner - 24 - UI3Theme.size_of("icon_s") - 8
 		why.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		sr.add_child(why)
 		column.add_child(strip)
@@ -90,7 +90,7 @@ func setup(id: String) -> void:
 
 	var summary := String(AnchorPick.SUMMARY.get(id, ""))
 	if summary != "":
-		var sm := PanelParts.text(tr(summary), "text_body", "text")
+		var sm := PanelParts.text(tr(summary), "text_body", "text", true)
 		sm.name = "Summary"
 		sm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		sm.custom_minimum_size.x = inner
@@ -100,16 +100,14 @@ func setup(id: String) -> void:
 	body.add_child(rb.get_parent())
 	if AnchorAdapter.price_text(id) != "":
 		var pb := _box("PriceBox", "Price", inner)
-		pb.add_child(_wrapped("PriceText", "− " + AnchorAdapter.price_text(id), "anchor_price", inner - 24))
+		pb.add_child(_wrapped("PriceText", "− " + AnchorAdapter.price_text(id), "anchor_price", inner - 24, true))
 		body.add_child(pb.get_parent())
 	var ab := _box("AwakensBox", "Awakens", inner)
 	var an := PanelParts.text(AnchorAdapter.awaken_name(id), "text_body", "anchor_awake", true)
 	an.name = "AwakenName"
 	ab.add_child(an)
 	ab.add_child(_wrapped("AwakenRule", AnchorAdapter.awaken_rule(id), "text", inner - 24))
-	var cond := _wrapped("AwakenCondition", TranslationServer.translate("Awakens when you hold 2 of these 5 Cores"), "text_muted", inner - 24)
-	cond.add_theme_font_size_override("font_size", UI3Theme.size_of("text_key"))
-	ab.add_child(cond)
+	ab.add_child(_wrapped("AwakenCondition", TranslationServer.translate("Awakens when you hold 2 of these 5 Cores"), "text_muted", inner - 24))
 	body.add_child(ab.get_parent())
 	var cap := PanelParts.text(tr("House Cores"), "text_key", "text_muted", true)
 	cap.name = "HouseCap"
@@ -143,8 +141,8 @@ static func _box(node_name: String, cap_word: String, inner: float) -> VBoxConta
 	return v
 
 
-static func _wrapped(node_name: String, t: String, col: String, w: float) -> Label:
-	var l := PanelParts.text(t, "text_body", col)
+static func _wrapped(node_name: String, t: String, col: String, w: float, display := false) -> Label:
+	var l := PanelParts.text(t, "text_body", col, display)
 	l.name = node_name
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l.custom_minimum_size.x = w
@@ -157,7 +155,7 @@ static func _core_chip(core_id: String) -> PanelContainer:
 	var chip := PanelParts.panel(UI3Theme.flat(UI3Theme.color("chip"), UI3Theme.radius("s"), UI3Theme.stroke("rim"),
 		UI3Theme.color("plate_rim"), Vector4(4, 0, 8, 0)), "HouseCoreChip")
 	chip.custom_minimum_size = Vector2(0, UI3Theme.size_of("tag_h"))
-	chip.mouse_filter = Control.MOUSE_FILTER_STOP
+	chip.mouse_filter = Control.MOUSE_FILTER_PASS   # tooltip only; a click still reaches the card
 	chip.focus_mode = Control.FOCUS_ALL
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", UI3Theme.space("4"))
@@ -194,6 +192,8 @@ func _draw() -> void:
 	var r := Rect2(Vector2.ZERO, size)
 	var sel_w := UI3Theme.stroke("selected")
 	if selected:
+		# html .is-selected: cream ring + a hard dark lip under it (shadow.lip)
+		draw_style_box(PanelParts.ring_style(UI3Theme.color("plate_ink"), sel_w, 0, rad), Rect2(Vector2(0, PanelParts.lip(Color.BLACK)["y"]), size))
 		draw_style_box(PanelParts.ring_style(UI3Theme.color("selected"), sel_w, 0, rad), r)
 	if has_focus():
 		var gap := UI3Theme.stroke("focus_gap") + (sel_w if selected else 0)

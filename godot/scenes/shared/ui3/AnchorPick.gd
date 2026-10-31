@@ -27,6 +27,7 @@ var reveal: GachaReveal
 var selected := -1
 var _ids: Array = []
 var _row: HBoxContainer
+var _cap: PanelContainer
 
 
 ## UI-05 48-anchor-pick: one column from offer_top, gap 32: Header (Title + ShardPill), SubLine, CardRow, Glossary, Footer
@@ -43,12 +44,18 @@ func setup(ids: Array, first_time := true) -> void:
 	col.add_theme_constant_override("separation", UI3Theme.space("32"))
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(col)
+	# html .offer-sub has margin-top -24: Header and SubLine sit 8 apart inside one block, not 32.
+	var top := VBoxContainer.new()
+	top.name = "TopBlock"
+	top.add_theme_constant_override("separation", UI3Theme.space("8"))
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(top)
 	var head := HBoxContainer.new()
 	head.name = "Header"
 	head.alignment = BoxContainer.ALIGNMENT_CENTER
 	head.add_theme_constant_override("separation", UI3Theme.space("20"))
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_child(head)
+	top.add_child(head)
 	var t := PanelParts.on_view(PanelParts.text(tr("Choose your Anchor"), "text_banner", "text", true))
 	t.name = "Title"
 	head.add_child(t)
@@ -56,7 +63,7 @@ func setup(ids: Array, first_time := true) -> void:
 	var sub := PanelParts.on_view(PanelParts.text(tr("Anchor = a rule that stays all run. Hold 2 of its House Cores to awaken it. Click a card to choose.")))
 	sub.name = "SubLine"
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	col.add_child(sub)
+	top.add_child(sub)
 	_row = HBoxContainer.new()
 	_row.name = "CardRow"
 	_row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -85,6 +92,9 @@ func setup(ids: Array, first_time := true) -> void:
 	take_button.name = "TakeButton"
 	take_button.pressed.connect(_take)
 	foot.add_child(take_button)
+	_cap = Ui5Keycap.make("Space", &"primary")
+	take_button.add_child(_cap)
+	take_button.resized.connect(_place_cap)
 	_refresh_take()
 	# Flip like the Core pick (no random tier: neutral moss look, first time = longer aura).
 	reveal = GachaReveal.new()
@@ -133,7 +143,11 @@ func _build_card(id: String, idx: int) -> PanelContainer:
 			select(idx)
 			card.grab_focus()
 		elif ev.is_action_pressed("ui_accept") and not ev.is_echo():
-			select(idx))
+			if selected == idx:
+				_take()   # Space / Enter on the card that is already chosen takes it
+			else:
+				select(idx)
+			card.accept_event())
 	return card
 
 
@@ -188,7 +202,14 @@ func select(i: int) -> void:
 	_refresh_take()
 
 
+func _place_cap() -> void:
+	if _cap != null and is_instance_valid(take_button):
+		Ui5HudStyle.place_trailing(take_button, _cap, UI3Theme.space("32"))
+
+
 func _refresh_take() -> void:
+	if _cap != null:
+		_cap.visible = selected >= 0   # no key cap on a disabled button
 	if selected < 0:
 		take_button.text = tr("Take")
 		take_button.disabled = true
@@ -197,6 +218,8 @@ func _refresh_take() -> void:
 		UI3.clear_disabled_reason(take_button)
 		take_button.disabled = false
 		take_button.text = tr("Take %s") % AnchorAdapter.name_of(String(_ids[selected]))
+	if _cap != null:
+		_place_cap.call_deferred()
 
 
 func _take() -> void:
@@ -211,6 +234,9 @@ func _unhandled_key_input(ev: InputEvent) -> void:
 	if not (ev is InputEventKey) or not ev.pressed or ev.echo:
 		return
 	var k := (ev as InputEventKey).keycode
-	if k in [KEY_1, KEY_2, KEY_3]:
+	if k == KEY_SPACE and selected >= 0:
+		_take()
+		get_viewport().set_input_as_handled()
+	elif k in [KEY_1, KEY_2, KEY_3]:
 		select(int(k - KEY_1))
 		get_viewport().set_input_as_handled()

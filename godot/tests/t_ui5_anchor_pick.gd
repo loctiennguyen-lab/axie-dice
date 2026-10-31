@@ -42,7 +42,10 @@ func _case(ids: Array, reasons: Dictionary, sc: float, tag: String) -> void:
 		_check(v.find_child(nm, true, false) != null or nm == "AnchorPick", "%s: node %s" % [tag, nm])
 	_check(v.selected == -1, "%s: nothing preselected" % tag)
 	_check(v.take_button.disabled and v.take_button.text == "Pick an Anchor", "%s: Take disabled, says why" % tag)
-	_check(v.find_child("Keycap", true, false) == null, "%s: no keycap on the disabled button" % tag)
+	var cap0 := v.take_button.find_child("KeyCap", true, false) as Control
+	_check(cap0 == null or not cap0.visible, "%s: no KeyCap on the disabled button" % tag)
+	var bottom := v.take_button.get_global_rect().end.y * sc
+	_check(bottom <= 1080.0 * sc - 13.0, "%s: Take inside the frame (bottom %.1f > %.1f)" % [tag, bottom, 1080.0 * sc - 13.0])
 	for c in v.cards:
 		_check(c.size.y <= UI3Theme.size_of("anchor_card_h") + 1.0, "%s: card not taller than anchor_card_h (%f)" % [tag, c.size.y])
 		_check(absf(c.size.x - UI3Theme.size_of("anchor_card_w")) < 1.0, "%s: card width %f" % [tag, c.size.x])
@@ -55,6 +58,11 @@ func _case(ids: Array, reasons: Dictionary, sc: float, tag: String) -> void:
 	v.select(sel)
 	await get_tree().process_frame
 	_check(v.selected == sel and not v.take_button.disabled and v.take_button.text.begins_with("Take "), "%s: pick enables Take" % tag)
+	var cap1 := v.take_button.find_child("KeyCap", true, false) as Control
+	_check(cap1 != null and cap1.visible and (cap1.find_child("Key", true, false) as Label).text == "Space", "%s: KeyCap Space once picked" % tag)
+	_check(cap1 != null and cap1.position.x + cap1.size.x <= v.take_button.size.x + 1.0, "%s: KeyCap inside the button" % tag)
+	bottom = v.take_button.get_global_rect().end.y * sc
+	_check(bottom <= 1080.0 * sc - 13.0, "%s: Take inside the frame after pick (%.1f)" % [tag, bottom])
 	_check((v.cards[sel] as Object).get("selected") == true, "%s: card marked selected" % tag)
 	_check(Align.pairs(v) > 0, "%s: align check measured pairs" % tag)
 	var probs := Align.check(v, 1.5, tag + " ")
@@ -64,8 +72,32 @@ func _case(ids: Array, reasons: Dictionary, sc: float, tag: String) -> void:
 	for t in acc:
 		_check(float(t[0]) >= 13.9, "%s: text '%s' is %.1f px" % [tag, t[1], t[0]])
 	_check(acc.size() > 10, "%s: texts measured" % tag)
+	var got := []
+	v.picked.connect(func(id: String) -> void: got.append(id))
+	var sp := InputEventKey.new()
+	sp.keycode = KEY_SPACE
+	sp.pressed = true
+	v._unhandled_key_input(sp)
+	_check(got == [String(ids[sel])], "%s: Space with a card chosen takes it" % tag)
 	host.queue_free()
 	await get_tree().process_frame
+
+
+func _fx_texts(sc: float, tag: String) -> void:
+	UI3Theme.set_scale_override(sc)
+	var h := Control.new()
+	add_child(h)
+	for extra in ["", "PAIR: X . MUTATION: Y"]:
+		var fx := AnchorFx.play(h, "a_kin", extra)
+		var acc: Array = []
+		_min_text(fx, sc, acc)
+		_check(acc.size() >= 5, "%s fx: texts measured (%d)" % [tag, acc.size()])
+		for t in acc:
+			_check(float(t[0]) >= 13.9, "%s fx: '%s' is %.1f px" % [tag, t[1], t[0]])
+		var col := fx.find_child("AwakenColumn", true, false) as Control
+		_check(col != null and col.get_minimum_size().y * sc <= 1080.0 * sc, "%s fx: column fits (%s)" % [tag, str(col.get_minimum_size() if col != null else "null")])
+	await get_tree().process_frame
+	h.queue_free()
 
 
 func _ready() -> void:
@@ -76,6 +108,8 @@ func _ready() -> void:
 		var tg := "1920" if sc == 1.0 else "1280"
 		await _case(["a_volley", "a_gambler", "a_mana_mine"], {"a_mana_mine": "stage_locked"}, sc, tg + " gambler")
 		await _case(["a_kin", "a_embers", "a_big_hand"], {}, sc, tg + " kin")
+	await _fx_texts(1.0, "1920")
+	await _fx_texts(2.0 / 3.0, "1280")
 	# awaken moment still carries its content
 	var host := Control.new()
 	add_child(host)

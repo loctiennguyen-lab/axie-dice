@@ -50,7 +50,7 @@ func _ready() -> void:
 	UI3Gacha.instant_override = 0
 	AnchorFx.play(host, "a_kin")
 	await _wait(1.2)
-	_snap("49-anchor-awaken")
+	_snap("anchorfx")
 	AnchorAdapter.test_state = null
 	UI3Theme.set_scale_override(-1.0)
 	UI3Gacha.instant_override = -1
