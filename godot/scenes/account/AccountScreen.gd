@@ -112,7 +112,8 @@ func _refresh() -> void:
 	for c in _host.get_children():
 		_host.remove_child(c)
 		c.queue_free()
-	_host.add_child(Parts.brand(String(ProjectSettings.get_setting("application/config/version", ""))))
+	var ver := String(ProjectSettings.get_setting("application/config/version", ""))
+	_host.add_child(Parts.brand(ver if ver.begins_with("v") or ver.is_empty() else "v" + ver))
 	_focus = null
 	match state:
 		"waiting":
