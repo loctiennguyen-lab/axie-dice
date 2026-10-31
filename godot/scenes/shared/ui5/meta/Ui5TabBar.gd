@@ -1,7 +1,8 @@
 class_name Ui5TabBar
 extends HBoxContainer
-## UI-05 TabBar: row of UI3.tab toggle buttons (one pressed at a time). Signal tab_selected(index) fires on click and on
-## select(). Tabs are named Tab0, Tab1 …; a disabled tab keeps its label (use set_tab_disabled with a reason tooltip).
+## UI-05 TabBar (meta1 .tab): each tab btn_m high, padding 0 / 20, radius m, bg plate_raised, Rowdies text_body. On =
+## btn_secondary + 3 px ring in `selected`. Tabs share the width equally unless `fit` (then they hug their text).
+## Signal tab_selected(index) on click and select(). Tabs are named Tab0, Tab1 …
 
 signal tab_selected(index: int)
 
@@ -9,13 +10,32 @@ var _group := ButtonGroup.new()
 var _tabs: Array[Button] = []
 
 
-func setup(labels: Array, selected := 0) -> void:
+func setup(labels: Array, selected := 0, fit := false) -> void:
 	name = "TabBar"
 	add_theme_constant_override("separation", UI3Theme.space("8"))
 	for i in labels.size():
-		var b := UI3.tab(String(labels[i]), i == selected)
+		var b := Button.new()
 		b.name = "Tab%d" % i
+		b.theme = UI3Theme.get_theme()
+		b.text = String(labels[i])
+		b.toggle_mode = true
 		b.button_group = _group
+		b.button_pressed = i == selected
+		b.focus_mode = Control.FOCUS_ALL
+		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		b.custom_minimum_size.y = UI3Theme.size_of("btn_m")
+		b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN if fit else Control.SIZE_EXPAND_FILL
+		b.add_theme_font_override("font", UI3Theme.font_display())
+		b.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
+		var pad := UI3Theme.space("20")
+		var off := UI3Theme.flat(UI3Theme.color("plate_raised"), UI3Theme.radius("m"), 0, Color.TRANSPARENT, Vector4(pad, 0, pad, 0))
+		var on := UI3Theme.flat(UI3Theme.color("btn_secondary"), UI3Theme.radius("m"), 3, UI3Theme.color("selected"), Vector4(pad, 0, pad, 0))
+		for st in ["normal", "hover", "disabled"]:
+			b.add_theme_stylebox_override(st, off)
+		for st in ["pressed", "hover_pressed"]:
+			b.add_theme_stylebox_override(st, on)
+		for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
+			b.add_theme_color_override(c, UI3Theme.color("text"))
 		b.pressed.connect(func() -> void: tab_selected.emit(i))
 		add_child(b)
 		_tabs.append(b)

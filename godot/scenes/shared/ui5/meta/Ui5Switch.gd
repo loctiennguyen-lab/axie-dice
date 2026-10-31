@@ -1,8 +1,8 @@
 class_name Ui5Switch
 extends Control
-## UI-05 Switch (Settings): track keycap_h high and 1.8x wide, knob = track height minus 2 x 3, On = toggle_on green, Off =
-## plate_raised. keycap_h is the token that shrinks at 1280, so the switch scales with it. Hit box >= hit_min. Space / Enter
-## toggle, focus ring when focused. Signal toggled(on). set_on() does not emit.
+## UI-05 Switch (data-name "SwitchButton", meta1 .switch): keycap_h high and keycap_h x 2 wide, padding 3, knob = height - 6 in
+## `text`. Off = `disabled` fill, On = `toggle_on`. keycap_h shrinks at 1280, so the switch scales with it. Hit box >= hit_min
+## (the track is drawn centred in it). Space / Enter / click toggle; focus ring when focused. Signal toggled(on). set_on() is silent.
 
 signal toggled(on: bool)
 
@@ -10,7 +10,7 @@ var on := false
 
 
 func setup(value: bool) -> void:
-	name = "Switch"
+	name = "SwitchButton"
 	focus_mode = Control.FOCUS_ALL
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	on = value
@@ -19,7 +19,7 @@ func setup(value: bool) -> void:
 
 func track_size() -> Vector2:
 	var h := UI3Theme.size_of("keycap_h")
-	return Vector2(int(round(h * 1.8)), h)
+	return Vector2(h * 2, h)
 
 
 func refresh() -> void:
@@ -45,13 +45,11 @@ func _gui_input(e: InputEvent) -> void:
 
 func _draw() -> void:
 	var t := track_size()
-	var o := (size - t) * 0.5
-	var rect := Rect2(o, t)
-	var sb := UI3Theme.flat(Ui5MetaTok.col("toggle_on", "#7ade61") if on else UI3Theme.color("plate_raised"),
-		UI3Theme.radius("pill"), UI3Theme.stroke("rim"), UI3Theme.color("plate_rim"))
+	var rect := Rect2((size - t) * 0.5, t)
+	var sb := UI3Theme.flat(UI3Theme.color("toggle_on") if on else UI3Theme.color("disabled"), UI3Theme.radius("pill"))
 	sb.anti_aliasing = true
 	draw_style_box(sb, rect)
-	var pad := float(UI3Theme.stroke("btn"))
+	var pad := 3.0
 	var d := t.y - 2.0 * pad
 	var kx := rect.end.x - pad - d * 0.5 if on else rect.position.x + pad + d * 0.5
 	draw_circle(Vector2(kx, rect.get_center().y), d * 0.5, UI3Theme.color("text"))

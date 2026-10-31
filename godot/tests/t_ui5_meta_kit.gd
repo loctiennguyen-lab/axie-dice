@@ -13,7 +13,7 @@ const Align := preload("res://tests/ui5_align_check.gd")
 const Keycap := preload("res://scenes/shared/ui5/Keycap.gd")
 const NAMES := ["CurrencyPlate", "CurrencyShard", "CurrencyStone", "CurrencyGem", "ToneDisc", "Toast", "DetailPlate",
 	"TabBar", "ListRow", "SaveCard", "Footer1Row", "Footer2Rows", "GemCost", "ClaimButton", "ClaimedButton", "LockReason",
-	"Spinner", "Switch", "Slider", "GiftButton"]
+	"Spinner", "SwitchButton", "Slider", "GiftButton", "DetailScroll", "PrimaryButton", "Sub", "Kv"]
 
 var _guard := SaveGuard.new()
 var _fails: Array[String] = []
@@ -61,8 +61,25 @@ func _pass(sc: float, tag: String) -> void:
 	for pr in probs:
 		_check(false, pr)
 	# 1280: switch + slider follow keycap_h
-	var sw := root.find_child("Switch", true, false) as Ui5Switch
-	_check(is_equal_approx(sw.track_size().y, float(UI3Theme.size_of("keycap_h"))), "%s: switch track = keycap_h" % tag)
+	var sw := root.find_child("SwitchButton", true, false) as Ui5Switch
+	_check(is_equal_approx(sw.track_size().y, float(UI3Theme.size_of("keycap_h"))), "%s: switch track height = keycap_h" % tag)
+	_check(is_equal_approx(sw.track_size().x, 2.0 * UI3Theme.size_of("keycap_h")), "%s: switch width = 2 x keycap_h" % tag)
+	var d0 := root.find_child("DetailPlate", true, false) as Ui5DetailPlate
+	var sbx := d0.get_theme_stylebox("panel") as StyleBoxFlat
+	_check(int(sbx.content_margin_left) == UI3Theme.space("16") and int(sbx.content_margin_top) == UI3Theme.space("16"), "%s: detail padding = space 16" % tag)
+	_check(d0.is_empty() and d0.title.text == "Pick a tier" and d0.body.get_child_count() > 0 and d0.primary != null and d0.primary.disabled and not d0.primary.text.is_empty(), "%s: empty detail = Title + Body + disabled primary with reason" % tag)
+	_check(d0.title.get_global_rect().position.y < d0.body.get_global_rect().position.y and d0.body.get_global_rect().position.y < d0.primary.get_global_rect().position.y, "%s: empty detail order Title, Body, primary" % tag)
+	_check(d0.primary.get_global_rect().end.y > d0.get_global_rect().end.y - UI3Theme.space("16") - 12, "%s: primary pinned to the plate foot" % tag)
+	_check(d0.primary.size.y >= UI3Theme.size_of("btn_l") - 1, "%s: primary min-h btn_l" % tag)
+	var sc0 := root.find_child("SaveCard", true, false)
+	_check(sc0.get_node("Col").get_child(1).name == "Sub" and sc0.get_node("Col").get_child(2).name == "Kv", "%s: SaveCard order Title, Sub, Kv" % tag)
+	_check((sc0.get_node("Col/Kv") as Control).size.y >= UI3Theme.size_of("btn_s") - 1, "%s: Kv min-h btn_s" % tag)
+	var lrow := root.find_children("*", "PanelContainer", true, false).filter(func(c: Node) -> bool: return c is Ui5ListRow)
+	var lsb := (lrow[1] as Control).get_theme_stylebox("panel") as StyleBoxFlat
+	_check(lsb.border_width_left == UI3Theme.stroke("selected") and lsb.border_color == UI3Theme.color("selected"), "%s: selected ListRow ring = stroke selected" % tag)
+	var slr := root.find_child("Slider", true, false) as Ui5Slider
+	_check(slr.track_height() == UI3Theme.size_of("hp_bar_h") and slr.size.x == 200.0 and slr.size.y >= UI3Theme.size_of("hit_min"), "%s: slider track hp_bar_h, width 200, hit >= hit_min" % tag)
+	_check(Ui5Toast.top_y(true) == UI3Theme.size_of("toast_under_banner") and (sc != 1.0 or Ui5Toast.top_y(true) == 140) and (sc == 1.0 or Ui5Toast.top_y(true) == 288), "%s: toast under banner (%d)" % [tag, Ui5Toast.top_y(true)])
 	_check(sw.size.x >= UI3Theme.size_of("hit_min") and sw.size.y >= UI3Theme.size_of("hit_min"), "%s: switch hit box >= hit_min" % tag)
 	_check(root.find_child("Row5", true, false).get_child_count() == 4, "%s: row 5 has spinner, 2 switches, slider" % tag)
 	layer.queue_free()
@@ -112,15 +129,15 @@ func _behaviour() -> void:
 	layer.add_child(box)
 	# DetailPlate
 	var d := Ui5DetailPlate.new()
-	d.setup("mission_detail_w", "Pick a tier", 420, 340)
+	d.setup("mission_detail_w", "Pick a tier", "Body", "Pick a tier first")
 	box.add_child(d)
-	_check(d.is_empty() and d.empty_label.text == "Pick a tier" and not d.footer.visible, "detail: starts empty, no footer / primary")
+	_check(d.is_empty() and d.title.text == "Pick a tier" and d.primary != null and d.primary.disabled and d.primary.text == "Pick a tier first", "detail: starts empty, disabled primary says why")
 	d.show_item("Tier 3")
 	d.add_line("x")
-	d.footer.add_child(Ui5ClaimButton.make("Claim"))
-	_check(not d.is_empty() and d.title.text == "Tier 3" and d.footer.get_child_count() == 1, "detail: item state")
+	d.set_primary("Go")
+	_check(not d.is_empty() and d.title.text == "Tier 3" and d.footer.get_child_count() == 1 and not d.primary.disabled, "detail: item state")
 	d.show_empty()
-	_check(d.is_empty() and d.footer.get_child_count() == 0 and d.empty_label.text == "Pick a tier", "detail: back to empty clears the footer")
+	_check(d.is_empty() and d.primary.disabled and d.title.text == "Pick a tier", "detail: back to empty restores title and disabled primary")
 	# TabBar
 	var tb := Ui5TabBar.new()
 	tb.setup(["A", "B", "C"], 0)
@@ -131,11 +148,11 @@ func _behaviour() -> void:
 	_check(tb.selected_index() == 2 and got[0] == 2, "tabs: select(2) presses tab 2 and emits")
 	# ListRow
 	var lr := Ui5ListRow.new()
-	lr.setup("T", "s", "r", "mission_row_h", 96)
+	lr.setup("T", "s", "r")
 	box.add_child(lr)
 	_check(lr.state == &"normal", "row: nothing selected by default")
 	lr.set_state(&"locked")
-	_check(lr.modulate.a < 1.0, "row: locked is dimmed")
+	_check(is_equal_approx(lr.modulate.a, 0.55), "row: locked alpha 0.55")
 	# Switch / Slider
 	var sw := Ui5Switch.new()
 	sw.setup(false)
@@ -187,5 +204,5 @@ func _behaviour() -> void:
 	var sp := Ui5Spinner.new()
 	box.add_child(sp)
 	await get_tree().process_frame
-	_check(sp.custom_minimum_size.x == UI3Theme.size_of("icon_m"), "spinner: icon_m box")
+	_check(sp.custom_minimum_size.x == UI3Theme.size_of("icon_l"), "spinner: icon_l box")
 	layer.queue_free()

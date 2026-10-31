@@ -26,11 +26,11 @@ static func lock_line(text: String) -> HBoxContainer:
 	var ic := TextureRect.new()
 	ic.name = "Icon"
 	ic.texture = UI3.icon("ui_lock")
-	ic.custom_minimum_size = Vector2.ONE * UI3Theme.size_of("icon_s")
+	ic.custom_minimum_size = Vector2.ONE * UI3Theme.size_of("text_body")
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	h.add_child(ic)
-	h.add_child(Ui5MetaTok.text(text, "text_body", "text_muted"))
+	h.add_child(Ui5Text.label(text, "text_body", "text_muted"))
 	return h

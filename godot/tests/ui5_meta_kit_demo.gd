@@ -55,31 +55,32 @@ static func build(host: Node) -> Control:
 	left.name = "ListCol"
 	var tabs := Ui5TabBar.new()
 	tabs.setup(["Overview", "Runs", "Cosmetics"], 0)
+	tabs.custom_minimum_size.x = 520
 	left.add_child(tabs)
 	var rows: Array[Ui5ListRow] = []
 	for i in 3:
 		var lr := Ui5ListRow.new()
-		lr.setup("Tier %d" % (i + 1), "Rule line %d" % (i + 1), "x%d" % (i + 1), "mission_row_h", 96)
+		lr.setup("Tier %d" % (i + 1), "Rule line %d" % (i + 1), "x%d" % (i + 1))
 		lr.custom_minimum_size.x = 520
 		left.add_child(lr)
 		rows.append(lr)
 	rows[1].set_state(&"selected")
 	rows[2].set_state(&"locked")
 	var d0 := Ui5DetailPlate.new()
-	d0.setup("mission_detail_w", "Pick a tier", 420, 340)
+	d0.setup("mission_detail_w", "Pick a tier", "Pick one of the tiers on the left to see its rules.", "Pick a tier first")
 	r2.add_child(d0)
 	var d1 := Ui5DetailPlate.new()
-	d1.setup("mission_detail_w", "Pick a tier", 420, 340)
+	d1.setup("mission_detail_w", "Pick a tier", "Pick one of the tiers on the left to see its rules.", "Pick a tier first")
 	r2.add_child(d1)
 	d1.show_item("Tier 2")
 	d1.add_line("Fixture rule line that is long enough to wrap onto a second line in the plate.")
-	d1.footer.add_child(Ui5ClaimButton.make("Claim", &"M"))
+	d1.set_primary("Start mission")
 	# row 3: save cards + footers
 	var r3 := _h(col, 24)
 	r3.name = "Row3"
 	for i in 2:
 		var sc := Ui5SaveCard.new()
-		sc.setup("Save %d" % (i + 1), [["Gene Shards", "100"], ["Vault", "3"], ["Runs", "2 / 1"]], "Saved just now")
+		sc.setup("Save %d" % (i + 1), "On this browser", [["Gene Shards", "100"], ["Vault", "3"], ["Runs", "2 / 1"]])
 		sc.custom_minimum_size.x = 340
 		sc.set_picked(i == 0)
 		r3.add_child(sc)
