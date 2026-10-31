@@ -209,6 +209,7 @@ func map_step(sc: Node) -> void:
 		else:
 			note("WARN reward cards freed/empty before select (overlay rebuilt)")
 		await frames(3)
+		sc._select_reward(0)
 		sc._take_selected_reward()
 		await frames(5)
 		await _handle_swap_sheet(sc)

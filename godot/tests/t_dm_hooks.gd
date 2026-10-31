@@ -41,6 +41,7 @@ func _ready() -> void:
 	rm._dm_core_hover()
 	_check(rm.dm_log.count("dm_core_hover") == 2, "a hover after 120 ms ticks again")
 	rm.dm_log.clear()
+	rm._select_reward(0)
 	rm._take_selected_reward()
 	_check(rm.dm_log.has("dm_core_pick"), "Take on a Core asks for dm_core_pick")
 	for k in ["dm_set4", "dm_land", "dm_pair", "dm_core_open", "dm_core_hover", "dm_core_pick"]:

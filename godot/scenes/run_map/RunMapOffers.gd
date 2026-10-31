@@ -116,7 +116,7 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	col.add_child(ctrl._overlay_vbox)
 
 	ctrl._reward_cards.clear()
-	ctrl._reward_sel = 0
+	ctrl._reward_sel = -1   # UI-05: nothing is chosen until the player picks (Take stays off)
 	for reward in RunState.pending_rewards:
 		_add_reward_card(reward)
 
@@ -175,7 +175,7 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 		chain[k].focus_next = chain[k].get_path_to(nxt)
 		chain[k].focus_previous = chain[k].get_path_to(prv)
 
-	_select_reward(0)
+	_select_reward(-1)
 	if not ctrl._reward_cards.is_empty():
 		ctrl._reward_cards[0].grab_focus.call_deferred()
 	else:
@@ -229,12 +229,34 @@ func _ask_skip_reward(col: VBoxContainer) -> void:
 
 
 func _select_reward(i: int) -> void:
-	ctrl._reward_sel = clampi(i, 0, maxi(ctrl._reward_cards.size() - 1, 0))
+	ctrl._reward_sel = -1 if i < 0 or ctrl._reward_cards.is_empty() else clampi(i, 0, ctrl._reward_cards.size() - 1)
 	for k in ctrl._reward_cards.size():
 		if is_instance_valid(ctrl._reward_cards[k]) and ctrl._reward_cards[k].has_method("set_selected"):   # rebuilt on reroll / chained offers
 			ctrl._reward_cards[k].call("set_selected", k == ctrl._reward_sel)
 	if ctrl._overlay_vbox != null and is_instance_valid(ctrl._overlay_vbox):
 		ctrl._overlay_vbox.queue_sort()
+	_refresh_take()
+
+
+## Take is off until a card is picked and says why; the label comes back on a pick. Chosen cards are never logged.
+func _refresh_take() -> void:
+	if ctrl._overlay_root == null or not is_instance_valid(ctrl._overlay_root):
+		return
+	var tb := ctrl._overlay_root.find_child("TakeButton", true, false) as Button
+	if tb == null or ctrl._reward_cards.is_empty():
+		return
+	if ctrl._reward_sel < 0:
+		if not tb.disabled:
+			var why := "Pick a card"
+			if tb.name == "TakeButton" and RunState.pending_rewards.size() > 0:
+				var r0: Dictionary = RunState.pending_rewards[0]
+				if bool(r0.get("rule", false)):
+					why = "Pick a rule"
+				elif ctrl._is_core_card(r0):
+					why = "Pick a Core"
+			UI3.set_disabled_reason(tb, tr(why))
+	elif tb.disabled and tb.has_meta("ui3_label"):
+		UI3.clear_disabled_reason(tb)
 
 
 ## The selected card sits 12 px above the row (design `.reward-card.is-selected{margin-top:-12px}`). Runs after
@@ -250,6 +272,8 @@ func _take_selected_reward() -> void:
 		return
 	if ctrl._reveal != null and is_instance_valid(ctrl._reveal):
 		ctrl._reveal.skip()
+	if ctrl._reward_sel < 0:
+		return   # nothing picked: Space / Enter / Take do nothing
 	if ctrl._reward_sel >= 0 and ctrl._reward_sel < RunState.pending_rewards.size():
 		var r: Dictionary = RunState.pending_rewards[ctrl._reward_sel]
 		if String(r.get("t", "")) in ["chaos", "curse"]:
@@ -408,7 +432,6 @@ func _add_reward_card(r: Dictionary, _wide := false) -> PanelContainer:
 	if is_core and not is_rule:
 		card.rarity_chip.mouse_filter = Control.MOUSE_FILTER_STOP
 		UI3Tooltip.bind(card.rarity_chip, tr(ctrl.CORE_TIER_HINT))
-	card.focus_entered.connect(_select_reward.bind(idx))
 	card.gui_input.connect(func(ev: InputEvent) -> void:
 		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
 			_select_reward(idx)

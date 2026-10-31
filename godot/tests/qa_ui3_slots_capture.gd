@@ -35,6 +35,7 @@ func _ready() -> void:
 		else:
 			scene.call("_show_reward_overlay", "CHOOSE ONE REWARD")
 		await get_tree().process_frame
+		scene.call("_select_reward", 0)
 		scene.call("_take_selected_reward")
 		await get_tree().process_frame
 		var sh := scene.find_child("SlotSwapSheet", true, false)
