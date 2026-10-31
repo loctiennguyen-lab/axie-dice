@@ -64,7 +64,7 @@ func _ready() -> void:
 
 
 func _shot(state: String, sfx: String, tab: int, pick := "", frames := false) -> void:
-	var v := ProfileView.new()
+	var v: ProfileView = (load("res://scenes/profile/Profile.tscn") as PackedScene).instantiate()
 	v.service = _svc
 	v.no_scene_change = true
 	add_child(v)

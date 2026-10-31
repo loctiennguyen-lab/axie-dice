@@ -62,7 +62,7 @@ func _ready() -> void:
 
 
 func _open() -> ProfileView:
-	var pv := ProfileView.new()
+	var pv: ProfileView = (load("res://scenes/profile/Profile.tscn") as PackedScene).instantiate()
 	pv.service = _svc
 	pv.no_scene_change = true
 	add_child(pv)
@@ -78,7 +78,7 @@ func _names(v: Node, names: Array, tag: String) -> void:
 
 ## Every visible control outside a scroll lies inside the 1920x1080 logical frame; texts are >= 14 real px at 1280.
 func _frame_checks(v: Node, sc: float, tag: String) -> void:
-	var win := Rect2(0, 0, 1920.0, 1080.0).grow(1.0)
+	var win := Rect2(0, 0, 1920.0, (v as Control).size.y).grow(1.0)   # headless window height is not 1080: use the view
 	var bad: Array[String] = []
 	var all := ""
 	for n in v.find_children("*", "Control", true, false):

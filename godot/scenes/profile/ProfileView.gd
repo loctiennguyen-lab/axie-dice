@@ -302,12 +302,20 @@ static func run_mode_text(e: Dictionary) -> String:
 	return "Normal · " + mode
 
 
+## "2026-10-31" -> "31 Oct" (frame format); anything else is shown as saved.
+static func _short_date(d: String) -> String:
+	var p := d.split("-")
+	if p.size() == 3 and p[1].is_valid_int() and int(p[1]) >= 1 and int(p[1]) <= 12:
+		return "%d %s" % [int(p[2]), ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][int(p[1]) - 1]]
+	return d
+
+
 func _run_row(e: Dictionary, i: int) -> Control:
 	var mission := bool(e.get("mission", false))
 	var aid := int(e.get("aid", 0))
 	var at := "no Aid (mission)" if mission else ("Aid %d" % aid if aid > 0 else "no Aid")
 	var won := bool(e.get("won", false))
-	return Parts.run_row(i, String(e.get("date", "")), run_mode_text(e), "A%d" % int(e.get("asc", 0)), won, at, aid == 0 and not mission)
+	return Parts.run_row(i, _short_date(String(e.get("date", ""))), run_mode_text(e), "A%d" % int(e.get("asc", 0)), won, at, aid == 0 and not mission)
 
 
 # ============================================================================ Cosmetics
@@ -451,6 +459,7 @@ func _cos_tile(id: String, owned: Array[String], eq_now: String, sel: String) ->
 	st.name = "Badge"
 	line.add_child(st)
 	v.add_child(line)
+	b.custom_minimum_size.y = maxf(b.custom_minimum_size.y, cs + float(UI3Theme.size_of("text_body")) * 3.4 + 48.0)   # strip + art + name + line + padding
 	var disc := Parts.equipped_disc()
 	disc.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	disc.position = Vector2(-disc.size.x - UI3Theme.space("8"), UI3Theme.space("12"))
@@ -497,8 +506,10 @@ func _preview_plate(owned: Array[String], sel: String) -> Control:
 		row.name = "FramePreview"
 		var hb := HBoxContainer.new()
 		hb.add_theme_constant_override("separation", UI3Theme.space("8"))
-		hb.add_child(_frame_preview(sel, 160.0))
-		hb.add_child(_frame_preview(sel, 64.0))
+		for px in [160.0, 64.0]:
+			var fp := _frame_preview(sel, px)
+			fp.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			hb.add_child(fp)
 		row.add_child(hb)
 		stage.add_child(row)
 		if not have:
@@ -520,7 +531,6 @@ func _preview_plate(owned: Array[String], sel: String) -> Control:
 		var sv := src.find_child("Value", true, false) as Label
 		sv.name = "SourceValue"
 		sv.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
-		sv.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		if not have:
 			sv.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
 		v.add_child(src)
