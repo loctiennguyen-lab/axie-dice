@@ -11,12 +11,34 @@ func _ready() -> void:
 	ProjectSettings.set_setting("axie/epoch_source", "local")
 	var small := get_window().size.x < 1600
 	UI3Theme.set_scale_override(2.0 / 3.0 if small else 1.0)
-	for id in Fx.IDS:
-		var s := Fx.make(id)
+	var ids: Array = Fx.IDS.duplicate()
+	if OS.get_environment("UI5_STATES") == "1":
+		ids = Fx.STATE_IDS.duplicate()
+	if OS.get_environment("UI5_IMPORT") == "1":
+		ids = ["ranked-import"]
+	for id in ids:
+		if id == "ranked-import":   # Ranked toggle with an imported (Vault) Axie in the party: reason label must wrap, not "..."
+			ContentDB.heroes["vault_dup1"] = (ContentDB.heroes["plant1"] as Dictionary).duplicate(true)
+			var si := Fx.make("ranked")
+			add_child(si)
+			for i in 8:
+				await get_tree().process_frame
+			si.set_slot(0, "vault_dup1")
+			for i in 8:
+				await get_tree().process_frame
+			await RenderingServer.frame_post_draw
+			Util.save(get_viewport(), "06-run-setup--ranked-import" + ("--1280" if small else ""))
+			si.queue_free()
+			ContentDB.heroes.erase("vault_dup1")
+			continue
+		var s := Fx.make_state(id) if id in Fx.STATE_IDS else Fx.make(id)
 		add_child(s)
 		for i in 8:
 			await get_tree().process_frame
-		Fx.apply_kind(s)
+		if id in Fx.STATE_IDS:
+			await Fx.apply_state(s, get_tree())
+		else:
+			Fx.apply_kind(s)
 		for i in 8:
 			await get_tree().process_frame
 		await RenderingServer.frame_post_draw

@@ -217,7 +217,7 @@ func _ready() -> void:
 
 func _banners(s: RunSetup) -> int:
 	var n := 0
-	for c in s.find_child("SetupColumn", true, false).find_children("Banner", "PanelContainer", true, false):
+	for c in s.find_children("Banner", "PanelContainer", true, false):
 		if not (c as Node).is_queued_for_deletion():
 			n += 1
 	return n
@@ -247,7 +247,7 @@ func _begin_error_tests() -> void:
 	# a saved run can resume the server run: route to the Continue card, no error banner
 	codes[0] = "run_in_progress"
 	await s.begin()
-	_ok(s.state == "open_run" and s.begin_error == "" and s.find_child("Continue", true, false) != null, "run_in_progress -> Continue card")
+	_ok(s.state == "open_run" and s.begin_error == "" and s.find_child("ContinueButton", true, false) != null, "run_in_progress -> Continue card")
 	_ok(_banners(s) == 0, "no error banner on the Continue card")
 	s.queue_free()
 	await get_tree().process_frame
