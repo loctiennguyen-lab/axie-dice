@@ -486,14 +486,26 @@ func _play_reveal_moment(tier: int, shake_host: Control) -> void:
 		tg["card%d" % (k + 1)] = card
 		var nm := card.find_child("CoreName", true, false)
 		if nm is CanvasItem:
-			(nm as Control).pivot_offset = (nm as Control).size * 0.5
+			var nc := nm as Control
+			nc.pivot_offset = nc.size * 0.5
+			# The card has not been laid out yet at this point: keep the pivot on the centre through every resize.
+			nc.resized.connect(func() -> void: nc.pivot_offset = nc.size * 0.5)
 			tg["name%d" % (k + 1)] = nm
 	var first_flip_ms: float = float((rv._plan["flips"] as Array)[0]) * 1000.0
-	UI3Motion.play_timeline("core-reveal", tg, {"host": rv, "tier": tier, "delay_ms": first_flip_ms - 840.0,
-		"tier_color": UI3Gacha.tier_color(tier), "only": ["name_1", "name_2", "name_3", "sparks_1", "sparks_2", "sparks_3", "shake_last"],
+	# A jackpot card is already shaken by GachaReveal: the table's Crystal shake would shake twice.
+	var only := ["name_1", "name_2", "name_3", "sparks_1", "sparks_2", "sparks_3"]
+	if not bool(rv._plan.get("jackpot", false)):
+		only.append("shake_last")
+	var tl := UI3Motion.play_timeline("core-reveal", tg, {"host": rv, "tier": tier, "delay_ms": first_flip_ms - 840.0,
+		"tier_color": UI3Gacha.tier_color(tier), "only": only,
 		"shake": func(px: float, sec: float) -> void:
 			if shake_host != null and is_instance_valid(shake_host):
 				UI3Motion.wobble(shake_host, px, sec)})
+	# click / Space skips GachaReveal ("skip" is logged before its `finished`); the timeline follows. A natural end must not
+	# cut the sparks that are still flying.
+	rv.finished.connect(func() -> void:
+		if tl != null and tl.running() and rv.events.has("skip"):
+			tl.skip())
 
 
 ## One UI-05 RewardCard (31-reward): Category + RarityChip, RewardArt (rarity edge), RewardName, then the body:

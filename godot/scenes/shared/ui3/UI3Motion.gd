@@ -731,6 +731,8 @@ static func play_timeline(id: String, targets: Dictionary, opts: Dictionary = {}
 	elif run._pending <= 0:
 		(func() -> void: run._finish()).call_deferred()
 	elif host != null and host.is_inside_tree():
+		# Watchdog deadline = table length + delay + WATCHDOG_SLACK_SEC. The slack covers the longest real overrun, one hit-stop
+		# (capped at HITSTOP_MAX_MS = 200 ms of real time, during which game time stands still) plus slow frames.
 		# Watchdog: a tween dies without `finished` when its node is freed (a plate rebuilt mid-moment). The moment
 		# still ends, so nothing waits on it forever (U5SkipCatcher would keep eating Space). Not ignore_time_scale: in 4.7 that
 		# flag made the timer fire early (160 ms of a 1.96 s timer) and cut moments short.

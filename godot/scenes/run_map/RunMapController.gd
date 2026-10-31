@@ -1253,7 +1253,7 @@ func _apply_and_finish(reward: Dictionary) -> void:
 	_finish_node()
 
 
-const TAKE_TWEEN_CAP_MS := 1000   ## longest core_take / reward_take beat is ~400 ms; this is the hard stop
+const TAKE_TWEEN_CAP_MS := 1000   ## hard stop for the take moment (`core-taken` / `reward-taken`, longest row ~0.5 s + a hit-stop); never waited on forever
 
 ## Same for a UI3Motion.Timeline (a freed host ends it through its watchdog; the cap is a second line of defence).
 func _wait_timeline_bounded(tl: UI3Motion.Timeline, cap_ms: int) -> void:
@@ -1261,16 +1261,6 @@ func _wait_timeline_bounded(tl: UI3Motion.Timeline, cap_ms: int) -> void:
 		return
 	var deadline := Time.get_ticks_msec() + cap_ms
 	while tl.running() and Time.get_ticks_msec() < deadline and is_inside_tree():
-		await get_tree().process_frame
-
-
-## Waits for `tw` but never forever: if the card the tween is bound to is freed mid-take the tween dies without
-## emitting `finished`, so a plain `await tw.finished` would leave `_taking` true and the node unfinished.
-func _wait_tween_bounded(tw: Tween, cap_ms: int) -> void:
-	if tw == null:
-		return
-	var deadline := Time.get_ticks_msec() + cap_ms
-	while tw.is_valid() and tw.is_running() and Time.get_ticks_msec() < deadline and is_inside_tree():
 		await get_tree().process_frame
 
 

@@ -282,8 +282,7 @@ func _animate() -> void:
 	_card.pivot_offset = _card.size * 0.5
 	_tw = create_tween()
 	if reduced:
-		_tw.tween_property(card_frame, "modulate:a", 1.0, 0.3)
-		_tw.tween_callback(_swap_frame)
+		_swap_frame()   # the double frame is "set at once" (round-2 spec), not on a timer
 		_tw.tween_property(card_frame, "modulate:a", 1.0, 0.3)
 		for n in _fade_nodes():
 			_tw.parallel().tween_property(n, "modulate:a", 1.0, 0.3)

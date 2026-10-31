@@ -30,11 +30,18 @@ Gate: `t_reduce_motion_rest` checks every row against the tables.
 - `boss_intro_band` (boss fight start, before Your turn; `U5BossBand`)
 - `victory`, `defeat`
 
-## 03-run-map / 47-core-offer / 48-anchor-pick / 49-anchor-awaken (run)
-- `core_reveal_moss`, `core_reveal_amber`, `core_reveal_crystal`
-- `gacha_flip`, `core_take`
-- `anchor_awaken`
-- `level_up`, `reward_take`, `treasure_open`
+## 03-run-map / 47-core-offer / 48-anchor-pick / 49-anchor-awaken (run) - UI-05 b23 lane M2
+Six timeline ids (`layers` rows from `round-2/motion-batch2.md`), played with `UI3Motion.play_timeline`:
+- `core-reveal` (47: name punch, sparks, Crystal shake; GachaReveal still owns backs / aura / flips; `RunMapOffers._play_reveal_moment`)
+- `core-taken` (47 take beat; `RunMapController._apply_and_finish`)
+- `reward-taken` (31 take beat; same hook)
+- `treasure-open` (treasure chest; `RunMapTreasure._build_treasure`)
+- `level-up` (level-up banner)
+- `anchor-awaken` (49; `AnchorFx`)
+Rows with `"flash": true` are dropped with Reduce flashing (sparks, shakes, rays, screen flash).
+Legacy (single-row ids, nobody calls them any more; kept only because tests read the table):
+`core_reveal_moss`, `core_reveal_amber`, `core_reveal_crystal`, `gacha_flip`, `core_take`, `anchor_awaken`,
+`level_up`, `reward_take`, `treasure_open`.
 
 ## 20-echo-box
 - `echo_idle`, `echo_open`, `echo_dupe`, `echo_rare`, `echo_open10`

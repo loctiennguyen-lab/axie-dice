@@ -3175,7 +3175,8 @@
      ],
      "tier_color": true
     },
-    "reduce": "removed"
+    "reduce": "removed",
+    "flash": true
    },
    {
     "name": "sparks_2",
@@ -3197,7 +3198,8 @@
      ],
      "tier_color": true
     },
-    "reduce": "removed"
+    "reduce": "removed",
+    "flash": true
    },
    {
     "name": "sparks_3",
@@ -3219,7 +3221,8 @@
      ],
      "tier_color": true
     },
-    "reduce": "removed"
+    "reduce": "removed",
+    "flash": true
    },
    {
     "name": "shake_last",
@@ -3229,6 +3232,7 @@
      "ms": 140
     },
     "reduce": "removed",
+    "flash": true,
     "crystal_only": true
    },
    {
@@ -3841,7 +3845,8 @@
      "px": 8,
      "ms": 200
     },
-    "reduce": "removed"
+    "reduce": "removed",
+    "flash": true
    },
    {
     "name": "shards",
