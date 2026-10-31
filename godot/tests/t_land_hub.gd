@@ -134,7 +134,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 		_check((h.find_child("Hit_gallery", true, false) != null) == (tier >= 5), "tier %d: Gallery built" % tier)
 		_check((h.find_child("Plot_gallery", true, false) != null) == (tier < 5), "tier %d: ô Gallery" % tier)
-		_check((h.find_child("UpgradeLand", true, false) != null) == (tier < 6), "tier %d: nút Upgrade" % tier)
+		_check((h.find_child("LandPlate", true, false) is Button) == (tier < 6), "tier %d: nút Upgrade" % tier)
 		_check((h.find_child("LandPlate", true, false) is PanelContainer) == (tier == 6), "tier %d: chip max tier" % tier)
 		_check(h.find_child("Hit_portal", true, false) != null, "tier %d: thiếu Portal" % tier)
 		LandNav.last_path = ""
