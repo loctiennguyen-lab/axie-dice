@@ -1344,8 +1344,13 @@ func _load_thumb(tr: TextureRect, id: String, live: bool, px: float) -> void:
 	st.setup(Vector2i(int(px), int(px)), id, faces, true)
 	st.mouse_filter = Control.MOUSE_FILTER_STOP
 	tr.add_child(st)
-	tr.texture = null
-	st.play_drop()
+	# The stage starts in the thumbnail pose, so it can replace the baked thumb with no blank in between: keep the thumb
+	# until the stage has drawn a frame, and do not auto-drop (the die would start above the frame = an empty square
+	# right after the card flips). A click still replays the drop.
+	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw
+	if is_instance_valid(tr):
+		tr.texture = null
 	st.gui_input.connect(func(ev: InputEvent) -> void:   # click the card to replay the drop
 		if ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed and is_instance_valid(st):
 			st.play_drop())
