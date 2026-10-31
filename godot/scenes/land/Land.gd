@@ -131,6 +131,7 @@ var _ui: Control
 var _hits := {}                      # id -> Button (clickable box)
 var _plot_marks := {}                # id -> Control
 var _house_defs := {}                # house_id -> dictionary from houses.json
+var _hud := LandHud.new(self)          # HUD pieces (plate, coach, banner, toast, confirm); state stays here
 var _run_plate: Button
 var _toast: PanelContainer
 var _toasts: Array = []
@@ -1473,134 +1474,35 @@ func _guest_blocked() -> bool:
 
 ## Primary "Start run" (guest on the server build: "Sign in to play"). Name stays RunPlate.
 func _build_run_button() -> Button:
-	var title := "Start run"
-	var tip := "Your first run" if _first else "Run Setup"
-	if _has_run:
-		if _mission_run:
-			title = "Continue mission"
-			tip = _mission_line()
-		else:
-			title = "Continue run"
-			tip = _continue_line()
-	elif _guest_blocked():
-		title = "Sign in to play"
-		tip = "Dice are rolled on the server, so runs need an account"
-	var plate := UI3.button(title, &"primary", &"L")
-	plate.name = "RunPlate"
-	plate.tooltip_text = tip
-	plate.pressed.connect(_on_run_pressed)
-	if _offline and not _has_run and not _guest_blocked():   # round 2: a new run needs a connection
-		UI3.set_disabled_reason(plate, "Start run · needs connection")
-	if _first and not _has_run:
-		plate.grab_focus.call_deferred()
-	# "Start here" coach card (640 wide, 32x20 arrow toward the Start run spotlight).
-	_start_hint = VBoxContainer.new()
-	_start_hint.name = "StartHint"
-	_start_hint.theme = UI3Theme.get_theme()
-	_start_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_start_hint.add_theme_constant_override("separation", 0)
-	var card := UI3.plate(&"dialog")
-	card.custom_minimum_size.x = 640
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var hv := VBoxContainer.new()
-	hv.add_child(UI3.label("Start here", "LabelTitle"))
-	var hb := UI3.label("Pick a mode and play your first run", "LabelMuted")
-	hb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hb.custom_minimum_size.x = 592   # card 640 minus 24 padding each side
-	hv.add_child(hb)
-	card.add_child(hv)
-	_start_hint.add_child(card)
-	var arrow := Control.new()
-	arrow.name = "HintArrow"
-	arrow.custom_minimum_size = Vector2(640, 20)
-	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	arrow.draw.connect(func() -> void:
-		var cx := 640.0 - plate.size.x * 0.5
-		arrow.draw_colored_polygon(PackedVector2Array([Vector2(cx - 16, 0), Vector2(cx + 16, 0), Vector2(cx, 20)]),
-			UI3Theme.color("panel")))
-	_start_hint.add_child(arrow)
-	_start_hint.visible = _first and not _has_run and not _guest
-	_ui.add_child(_start_hint)
-	return plate
+	return _hud.build_run_button()
 
 
 func _continue_line() -> String:
-	if not _has_run:
-		return ""
-	return "%s · Ascension %d" % [String(RunState.mode).capitalize(), int(RunState.ascension)]
+	return _hud.continue_line()
 
 
 func _mission_line() -> String:
-	var e: Dictionary = MetaState.mission_escrow
-	return "Mission %s · stake %s" % [String(e.get("mission_id", "N?")).to_upper(), _fmt(int(e.get("stake", 0)))]
+	return _hud.mission_line()
 
 
 func _build_banners() -> void:
-	_offline_banner = UI3.net_notice("Offline · Runs, Store, Pass, Echo Box, Daily and Leaderboard need a connection.",
-		"Retry", _on_retry)
-	_offline_banner.name = "OfflineBanner"
-	_offline_banner.custom_minimum_size = Vector2(600, 0)
-	var msg := _offline_banner.find_children("*", "Label", true, false)
-	if not msg.is_empty():
-		(msg[0] as Label).custom_minimum_size.x = 440
-	var rb := _offline_banner.find_child("Retry", true, false)
-	if rb != null:
-		rb.name = "RetryButton"
-	_offline_banner.visible = _offline
-	_ui.add_child(_offline_banner)
+	_hud.build_banners()
 
 
 func _on_retry() -> void:
-	if _detect_offline():
-		_show_toast("Still offline", 1.6, &"error")
-		return
-	qa.erase("offline")
-	get_tree().reload_current_scene()
+	_hud.on_retry()
 
 
 func _build_toast() -> void:
-	# UI-03 18-system: the toast is rebuilt per message by _show_toast (UI3.toast, top-centre 24 px down).
-	_toast = null
+	_hud.build_toast()
 
 
 func _show_toast(text: String, hold: float = 1.6, tone: StringName = &"ok") -> void:
-	# Stack of at most 3, top-centre, 24 px from the top, 8 px gap (UI-03 18-system).
-	_toasts = _toasts.filter(func(t: Variant) -> bool: return is_instance_valid(t))
-	# S4-14: one toast at a time (they stacked over the Upgrade Land chip); the rest wait their turn.
-	if not _toasts.is_empty() and not _draining:
-		_toast_queue.append([text, hold, tone])
-		return
-	var tw_node := UI3.toast(text, tone)
-	tw_node.name = "Toast"
-	tw_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_ui.add_child(tw_node)
-	_toasts.append(tw_node)
-	_toast = tw_node
-	_layout_toasts()
-	var tw := create_tween()
-	tw.tween_interval(hold)
-	tw.tween_property(tw_node, "modulate:a", 0.0, UI3Motion.REDUCED_MAX_SEC if UI3Motion.reduced() else 0.4)
-	tw.tween_callback(func() -> void:
-		if is_instance_valid(tw_node):
-			tw_node.queue_free()
-		_toasts.erase(tw_node)
-		_layout_toasts()
-		if not _toast_queue.is_empty() and _toasts.is_empty() and is_inside_tree():
-			var nx: Array = _toast_queue.pop_front()
-			_draining = true
-			_show_toast(String(nx[0]), float(nx[1]), nx[2])
-			_draining = false)
+	_hud.show_toast(text, hold, tone)
 
 
 func _layout_toasts() -> void:
-	var y := 24.0
-	for t in _toasts:
-		if not is_instance_valid(t) or t.is_queued_for_deletion():
-			continue
-		var c := t as Control
-		c.reset_size()
-		c.position = Vector2((_ui.size.x - c.size.x) * 0.5, y)
-		y += c.size.y + 8.0
+	_hud.layout_toasts()
 
 
 func _fmt(v: int) -> String:
@@ -1809,35 +1711,9 @@ func _end_run_and_setup() -> void:
 	LandNav.open(&"run_setup")
 
 
-func _open_confirm(title: String, body: String, ok_text: String, on_ok: Callable, _warning: bool = false,
-		cancel_text: String = "Cancel", loss: Array = [], _head: Color = Color(0, 0, 0, 0)) -> void:
-	if _modal != null:
-		return
-	# UI-03 18-system: UI3.modal (560 w dialog). Destructive (`loss` given) = red button + focus on Cancel;
-	# otherwise amber primary + focus on the primary action.
-	var destructive := loss.size() >= 2
-	var cancel := UI3.button(cancel_text, &"secondary")
-	cancel.name = "ConfirmCancel"
-	cancel.pressed.connect(_close_modal)
-	var ok := UI3.button(ok_text, &"danger" if destructive else &"primary")
-	ok.name = "ConfirmOk"
-	ok.pressed.connect(on_ok)
-	var m := UI3.modal(title, body, [cancel, ok], 0 if destructive else 1)
-	m.name = "Confirm"
-	m.cancelled.connect(_close_modal)
-	if destructive:
-		var row := ok.get_parent()
-		var lb := UI3.plate(&"row")
-		lb.name = "LossRow"
-		lb.custom_minimum_size = Vector2(0, 48)
-		var lv := VBoxContainer.new()
-		lv.add_child(UI3.label(String(loss[0])))
-		lv.add_child(UI3.label(String(loss[1]), "LabelMuted"))
-		lb.add_child(lv)
-		row.get_parent().add_child(lb)
-		row.get_parent().move_child(lb, row.get_index())
-	_modal = m
-	_ui.add_child(_modal)
+func _open_confirm(title: String, body: String, ok_text: String, on_ok: Callable, warning: bool = false,
+		cancel_text: String = "Cancel", loss: Array = [], head: Color = Color(0, 0, 0, 0)) -> void:
+	_hud.open_confirm(title, body, ok_text, on_ok, warning, cancel_text, loss, head)
 
 
 ## True while anything the hub shows over the land is open: the confirm dialog, the net notice (RunContinue
@@ -1856,9 +1732,7 @@ func has_modal() -> bool:
 
 
 func _close_modal() -> void:
-	if _modal != null:
-		_modal.queue_free()
-		_modal = null
+	_hud.close_modal()
 
 
 ## Hub shortcuts are InputMap actions (scripts/ui/key_bindings.gd, rebindable in Settings > Controls).

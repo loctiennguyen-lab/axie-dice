@@ -70,6 +70,7 @@ var _side_host: VBoxContainer
 var _tab_btns: Dictionary = {}
 var _modal_layer: Control
 var _skip := false
+var _cer_obj: EchoBoxCeremony   ## opening ceremony; state stays on this screen
 
 
 func _ready() -> void:
@@ -1248,115 +1249,19 @@ func _build_skeleton() -> void:
 
 # ---------------------------------------------------------------- ceremony
 
+## Lazy: tests build the screen with no tree, so this cannot wait for _ready.
+func _ceremony() -> EchoBoxCeremony:
+	if _cer_obj == null:
+		_cer_obj = EchoBoxCeremony.new(self)
+	return _cer_obj
+
+
 ## Idle -> pressed -> opening -> reveal -> (Open 10 grid) -> summary. Skip (Space / button)
 ## is available from the first frame. Mythic <= 2 s. Reduce flashing: static rim, 200 ms fade.
 func _play_ceremony(out: Array) -> void:
-	_skip = instant
-	var top := out[0] as Dictionary
-	for r in out:
-		if _rarity_idx(r) > _rarity_idx(top):
-			top = r
-	var m := _modal("Opening...", 600)
-	m.name = "Ceremony"
-	var v: VBoxContainer = m.find_child("V", true, false)
-	var skip := UI3.button("Skip", &"secondary", &"M")
-	skip.name = "Skip"
-	skip.tooltip_text = "Space"
-	skip.pressed.connect(func() -> void: _skip = true)
-	v.add_child(skip)
-	var rim := _rarity_color("common" if String(top.get("kind")) == "stone" else String(top.get("rarity", "common")))
-	var chest := UI3.label("%s chest" % _chest_tier(top), "LabelScreenTitle")
-	chest.name = "CeremonyChest"
-	v.add_child(chest)
-	if not _skip:
-		var t := create_tween()
-		var dur := 0.2 if (reduce_flashing or UI3Motion.reduced()) else (1.5 if _rarity_idx(top) >= 5 else 1.2)
-		t.tween_property(chest, "modulate", Color(rim.r, rim.g, rim.b, 1.0).lerp(Color.WHITE, 0.5), dur)
-		var elapsed := 0.0
-		while elapsed < dur and not _skip and is_inside_tree():
-			await get_tree().process_frame
-			elapsed += get_process_delta_time()
-		t.kill()
-	v.remove_child(chest)
-	chest.queue_free()
-	v.remove_child(skip)
-	skip.queue_free()
-	(v.get_child(0) as Label).text = "Reveal" if out.size() == 1 else "Open %d" % out.size()
-	var single := out.size() == 1
-	if not single:
-		(m.find_child("Card", true, false) as Control).custom_minimum_size.x = 1760.0
-	var grid := GridContainer.new()
-	grid.name = "RevealGrid"
-	grid.columns = 1 if single else 5
-	grid.add_theme_constant_override("h_separation", 24)
-	grid.add_theme_constant_override("v_separation", 24)
-	var order: Array = range(out.size())
-	order.sort_custom(func(x: int, y: int) -> bool: return _rarity_idx(out[x]) < _rarity_idx(out[y]))   # best last
-	var cards: Array = []
-	cards.resize(out.size())
-	for i in out.size():
-		var cd := _result_cell(out[i], "single" if single else "grid")
-		cards[i] = cd
-		grid.add_child(cd)
-	var gc := CenterContainer.new()
-	gc.add_child(grid)
-	v.add_child(gc)
-	var mls: Array[String] = _milestone_lines(out)
-	if not mls.is_empty():
-		var mrow := HBoxContainer.new()
-		mrow.name = "RevealMilestones"
-		mrow.alignment = BoxContainer.ALIGNMENT_CENTER
-		mrow.add_theme_constant_override("separation", UI3Theme.space("8"))
-		for t in mls:
-			mrow.add_child(UI3.chip(t))
-		v.add_child(mrow)
-	var btns := HBoxContainer.new()
-	btns.alignment = BoxContainer.ALIGNMENT_CENTER
-	btns.add_theme_constant_override("separation", UI3Theme.space("16"))
-	v.add_child(btns)
-	var first := out[0] as Dictionary
-	if single and String(first.get("kind")) == "cosmetic" and Cosmetics.art_id(String(first.get("item", ""))) != "":
-		var art_id := Cosmetics.art_id(String(first.get("item", "")))
-		var eqb := UI3.button("Equip now", &"secondary", &"M")
-		eqb.name = "EquipNow"
-		eqb.pressed.connect(func() -> void:
-			var why := MetaState.equip_cosmetic(art_id)
-			eqb.text = "Equipped" if why == "" else "Couldn't equip"
-			eqb.disabled = true)
-		btns.add_child(eqb)
-	var again_n := out.size()
-	var again := UI3.button("Open again" if single else "Open %d again" % again_n, &"primary", &"L")
-	again.name = "OpenAgain"
-	var ar := pull_block_reason(again_n)
-	if ar != "":
-		UI3.set_disabled_reason(again, ar)
-	again.pressed.connect(func() -> void:
-		close_modal()
-		pull(again_n))
-	btns.add_child(again)
-	if ar == "":
-		var cc := UI3.cost_chip(&"ticket", again_n * (season_cost() if tab == "seasonal" else 1))
-		cc.name = "AgainCost"
-		btns.add_child(cc)
-	var done := UI3.button("Done", &"secondary", &"M")
-	done.name = "Done"
-	done.pressed.connect(func() -> void:
-		close_modal()
-		_refresh_all())
-	btns.add_child(done)
-	if not (instant or reduce_flashing or MetaState.reduce_flash or UI3Motion.reduced() or DisplayServer.get_name() == "headless"):
-		_flip_in(cards, order)
-	_focus_later(done)
-	_refresh_all()
+	await _ceremony()._play_ceremony(out)
 
 
 ## Cards flip in (scale x 0 -> 1, 160 ms) 120 ms apart, the highest tier last. Reduce flashing: all at once.
 func _flip_in(cards: Array, order: Array) -> void:
-	for c in cards:
-		(c as Control).scale.x = 0.0
-	for k in order.size():
-		var c := cards[int(order[k])] as Control
-		var tw := create_tween()
-		tw.tween_interval(FLIP_GAP * k)
-		tw.tween_callback(func() -> void: c.pivot_offset = c.size / 2.0)
-		tw.tween_property(c, "scale:x", 1.0, FLIP_S).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_ceremony()._flip_in(cards, order)
