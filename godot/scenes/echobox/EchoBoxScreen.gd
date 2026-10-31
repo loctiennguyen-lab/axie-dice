@@ -64,7 +64,7 @@ var _shell: Dictionary
 var _col: VBoxContainer
 var _body: HBoxContainer
 var _banner_host: VBoxContainer
-var _bar_host: HBoxContainer
+var _bar_host: HFlowContainer
 var _stage_host: VBoxContainer
 var _side_host: VBoxContainer
 var _tab_btns: Dictionary = {}
@@ -79,6 +79,9 @@ func _ready() -> void:
 	if use_account:
 		state = account_state()
 	set_state(state)
+	# First focus: the selected tab, never a spending button (Open 1 / Open 10 spend tickets on a stray Space).
+	if _tab_btns.has(tab):
+		_focus_later(_tab_btns[tab])
 
 
 ## Echo Box state from the account: guest and expired sign-in cannot hold tickets (R3 M5l),
@@ -174,6 +177,15 @@ func season_cost() -> int:
 ## Cap N_t for a tier. Vault (doubled N) is not wired into the screen yet; flip this when it is.
 func _season_cap(tier: String) -> int:
 	return EchoBox.season_cap(tier, false)
+
+
+func season_full_set_pulls() -> int:
+	return int(EchoBox.season_cfg().get("full_set_pity", 80))
+
+
+## Daily cap on Shard-bought tickets (data: echobox.json tickets.buy_cap_day).
+func buy_cap_day() -> int:
+	return int((_Econ.get_table("echobox").get("tickets", {}) as Dictionary).get("buy_cap_day", 30))
 
 
 func season_cap_day() -> int:
@@ -310,38 +322,52 @@ func set_state(s: String) -> void:
 
 func open_rates() -> void:
 	close_modal()
-	var m := _modal("Rates", 760)
-	var v: VBoxContainer = m.find_child("V", true, false)
+	var v := VBoxContainer.new()
+	v.name = "V"
+	v.add_theme_constant_override("separation", UI3Theme.space("16"))
 	if tab == "seasonal":
 		_season_rates(v)
-		_modal_close_row(v)
-		return
-	v.add_child(UI3.label("Regular box · each pull is exactly one reward", "LabelMuted"))
-	var rows: Array = box_cfg().get("table", [])
-	var total := 0.0
-	for r in rows:
-		total += float((r as Dictionary).get("weight", 0))
-	var grid := GridContainer.new()
-	grid.name = "RatesTable"
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 40)
-	v.add_child(grid)
-	for r in rows:
-		var d: Dictionary = r
-		var nm := ("%s Stone" % int(d.get("amount", 0))) if String(d.get("kind")) == "stone" \
-			else ("%s cosmetic" % String(d.get("rarity", "")).capitalize())
-		grid.add_child(UI3.label(nm))
-		grid.add_child(UI3.label("%.3f%%" % (float(d.get("weight", 0)) / total * 100.0)))
-	var pt := UI3.label(_pity_text(), "LabelMuted")
-	pt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v.add_child(pt)
-	_modal_close_row(v)
+	else:
+		v.add_child(UI3.label("Regular box · each pull is exactly one reward", "LabelMuted"))
+		var rows: Array = box_cfg().get("table", [])
+		var total := 0.0
+		for r in rows:
+			total += float((r as Dictionary).get("weight", 0))
+		# frame 20-echo--rates: Stone rows on the left, cosmetic rows on the right (4 columns)
+		var stones: Array = []
+		var cosm: Array = []
+		for r in rows:
+			(stones if String((r as Dictionary).get("kind")) == "stone" else cosm).append(r)
+		var grid := GridContainer.new()
+		grid.name = "RatesTable"
+		grid.columns = 4
+		grid.add_theme_constant_override("h_separation", UI3Theme.space("24"))
+		v.add_child(grid)
+		for i in maxi(stones.size(), cosm.size()):
+			for side in [stones, cosm]:
+				if i < side.size():
+					var d: Dictionary = side[i]
+					var nm := ("%s Stone" % UI3.fmt(int(d.get("amount", 0)))) if String(d.get("kind")) == "stone" \
+						else ("%s cosmetic" % String(d.get("rarity", "")).capitalize())
+					grid.add_child(UI3.label(nm))
+					grid.add_child(UI3.label("%.3f%%" % (float(d.get("weight", 0)) / total * 100.0)))
+				else:
+					grid.add_child(Control.new())
+					grid.add_child(Control.new())
+		var pt := UI3.label(_pity_text(), "LabelMuted")
+		pt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v.add_child(pt)
+	var cl := UI3.button("Close", &"secondary", &"M")
+	cl.name = "CloseButton"
+	cl.pressed.connect(close_modal)
+	var m := Ui5EchoParts.dialog(_modal_layer, "RatesModal", "Rates", "", v, cl, null)
+	m.cancelled.connect(close_modal)
 
 
 func _season_rates(v: VBoxContainer) -> void:
 	var cfg := EchoBox.season_cfg()
 	v.add_child(UI3.label("Season box · each pull is exactly one reward", "LabelMuted"))
-	var txt := "Each pull tests Mythic, then Legendary, then Epic. The chance rises with every miss and resets on a hit: p(c) = (2c-1) / (N^2-(c-1)^2), certain at the cap."
+	var txt := "The chance of each tier rises with every pull that misses it, until it is certain."
 	for t in ["mythic", "legendary", "epic"]:
 		txt += "\n%s: cap %d" % [t.capitalize(), _season_cap(t)]
 	var l := UI3.label(txt)
@@ -355,7 +381,7 @@ func _season_rates(v: VBoxContainer) -> void:
 	var grid := GridContainer.new()
 	grid.name = "RatesTable"
 	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 40)
+	grid.add_theme_constant_override("h_separation", UI3Theme.space("24"))
 	v.add_child(grid)
 	for r in rows:
 		grid.add_child(UI3.label("%s Stone" % UI3.fmt(int((r as Dictionary).get("amount", 0)))))
@@ -363,18 +389,18 @@ func _season_rates(v: VBoxContainer) -> void:
 
 
 func open_confirm_buy() -> void:
+	close_modal()
 	var no := UI3.button("Cancel", &"secondary", &"M")
-	no.name = "Cancel"
+	no.name = "CancelButton"
 	no.pressed.connect(close_modal)
 	var yes := UI3.button("Buy", &"primary", &"M")
-	yes.name = "ConfirmBuy"
+	yes.name = "BuyButton"
 	yes.pressed.connect(func() -> void:
 		close_modal()
 		buy_ticket())
-	var m := UI3.modal("Buy a ticket?", "The next ticket costs %d Shards, more than twice today's first one." % next_price(),
-		[no, yes], 1)
+	var m := Ui5EchoParts.dialog(_modal_layer, "BuyTicketConfirm", "Buy a ticket?",
+		"The next ticket costs %d Shards, more than twice today's first one." % next_price(), null, no, yes, "defeat_panel_w")
 	m.cancelled.connect(close_modal)
-	_modal_layer.add_child(m)
 
 
 func close_modal() -> void:
@@ -390,33 +416,47 @@ func _build() -> void:
 	_col = _shell["col"]
 	_banner_host = _shell["banner_host"]
 	_modal_layer = _shell["modal_layer"]
-	for t in [["regular", "Regular"], ["seasonal", "Seasonal"]]:
-		var b := UI3Meta.tab(String(t[1]), t[0] == tab)
-		b.name = "Tab_" + String(t[0])
-		b.pressed.connect(select_tab.bind(String(t[0])))
-		(_shell["header_right"] as Control).add_child(b)
-		_tab_btns[t[0]] = b
+	(_shell["back"] as Control).name = "BackButton"
+	(_shell["sub"] as Control).name = "SubLine"
+	var cur := find_child("Currencies", true, false)
+	if cur != null:
+		cur.visible = false   # frame: the header plate holds Back, Title, SubLine and the tabs only
+	var hr: Control = _shell["header_right"]
+	var trow := (_shell["sub"] as Control).get_parent()
+	hr.get_parent().remove_child(hr)
+	hr.name = "Tabs"
+	trow.add_child(hr)
+	var tabs := Ui5TabBar.new()
+	tabs.setup(["Regular", "Seasonal"], 0 if tab == "regular" else 1, true)
+	hr.add_child(tabs)
+	var tkeys := ["regular", "seasonal"]
+	for i in 2:
+		var b := tabs.get_child(i) as Button
+		b.name = "RegularTab" if i == 0 else "SeasonalTab"
+		_tab_btns[tkeys[i]] = b
+	tabs.tab_selected.connect(func(i: int) -> void: select_tab(tkeys[i]))
 	_body = HBoxContainer.new()
 	_body.name = "Body"
 	_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_body.add_theme_constant_override("separation", UI3Meta.GAP)
 	_col.add_child(_body)
 	_stage_host = VBoxContainer.new()
-	_stage_host.name = "Stage"
+	_stage_host.name = "StageColumn"
 	_stage_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_stage_host.add_theme_constant_override("separation", UI3Theme.space("16"))
 	_body.add_child(_stage_host)
 	var bar := UI3.plate(&"plate")
 	bar.name = "TicketPlate"
-	_bar_host = HBoxContainer.new()
+	_bar_host = HFlowContainer.new()
 	_bar_host.name = "TicketBar"
-	_bar_host.add_theme_constant_override("separation", UI3Theme.space("24"))
+	_bar_host.add_theme_constant_override("h_separation", UI3Theme.space("24"))
+	_bar_host.add_theme_constant_override("v_separation", UI3Theme.space("8"))
 	bar.add_child(_bar_host)
 	_stage_host.add_child(bar)
 	_stage_host.move_child(bar, 0)
 	_side_host = VBoxContainer.new()
-	_side_host.name = "Side"
-	_side_host.custom_minimum_size = Vector2(DETAIL_W, 0)
+	_side_host.name = "SideColumn"
+	_side_host.custom_minimum_size = Vector2(UI3Theme.size_of("echo_side_w"), 0)
 	_side_host.add_theme_constant_override("separation", UI3Theme.space("16"))
 	_body.add_child(_side_host)
 
@@ -427,10 +467,13 @@ func _on_back() -> void:
 
 
 func _banner(msg: String, detail: String, with_retry: bool) -> void:
-	var btns: Array = []
-	if with_retry:
-		btns.append({"name": "TryAgain", "text": "Try again", "primary": true, "cb": func() -> void: set_state("normal")})
-	UI3Meta.banner(_banner_host, msg, detail, btns)
+	var tone := &"warn" if with_retry else &"info"
+	if state == "error":
+		tone = &"error"
+	var btn := "Try again" if with_retry else ("Sign in" if state == "guest" and remote_on else "")
+	var cb: Callable = (func() -> void: set_state("normal")) if with_retry else (func() -> void: AccountService.sign_in())
+	var bn := Ui5EchoParts.banner(tone, msg, detail, btn, cb)
+	_banner_host.add_child(bn)
 
 
 ## Dialog on a scrim in the modal layer: returns the scrim; the content VBox is "V" (first child = title).
@@ -501,7 +544,7 @@ func _refresh_bar() -> void:
 	tk.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	tk.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_bar_host.add_child(tk)
-	var t := UI3.label("Tickets  %d / 999" % tickets(), "LabelScreenTitle")
+	var t := UI3.label("Tickets %d / 999" % tickets(), "LabelScreenTitle")
 	t.name = "Tickets"
 	if state == "offline" and remote_on:
 		t.modulate.a = 0.6   # cached count
@@ -516,13 +559,15 @@ func _refresh_bar() -> void:
 	fi.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	fi.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_bar_host.add_child(fi)
-	var fl := UI3.label("Fragments  %d/%d" % [frags, per], "LabelMuted")
+	var fl := UI3.label("Fragments %d/%d" % [frags, per], "LabelMuted")
 	fl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	fl.name = "FragmentMeter"
 	_bar_host.add_child(fl)
 	var fb := ProgressBar.new()
 	fb.name = "Fragments"
 	fb.theme = UI3Theme.get_theme()
-	fb.custom_minimum_size = Vector2(220, 16)
+	fb.custom_minimum_size = Vector2(80, 16)
+	fb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	fb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	fb.max_value = per
 	fb.value = frags
@@ -532,24 +577,27 @@ func _refresh_bar() -> void:
 	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_bar_host.add_child(sp)
 	var price := next_price()
-	var pl := UI3.label("Next ticket  %s Shards" % (UI3.fmt(price) if price >= 0 else "-"), "LabelMuted")
-	pl.name = "NextPrice"
+	var pl := UI3.label("Next ticket %s Shards" % (UI3.fmt(price) if price >= 0 else "-"), "LabelMuted")
+	pl.name = "NextTicket"
 	pl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_bar_host.add_child(pl)
-	var buy := UI3.button("Buy ticket  %s" % (UI3.fmt(price) if price >= 0 else "max today"), &"secondary", &"S")
-	buy.name = "BuyTicket"
+	var buy := UI3.button("Buy ticket · %s" % (UI3.fmt(price) if price >= 0 else "max today"), &"secondary", &"S")
+	buy.name = "BuyTicketButton"
 	var why := ""
 	if _account_blocks() or state == "loading":
 		why = "Not available right now"
 	elif price < 0:
-		why = "Daily limit reached (30)"
+		why = "Daily limit reached (%d)" % buy_cap_day()
 	elif MetaState.shard_pool < price:
 		why = "Not enough Shards"
 	if why != "":
-		UI3.set_disabled_reason(buy, why)
-		buy.tooltip_text = why
+		Ui5DisabledReason.apply(buy, why)
+		if why == "Not available right now":
+			buy.text = "Buy ticket · " + why
 	buy.pressed.connect(_on_buy_pressed)
 	_bar_host.add_child(buy)
+	if why == "" and price >= 0:
+		Ui5EchoParts.shard_cluster(buy, "Buy ticket ·", UI3.fmt(price))
 
 
 func _on_buy_pressed() -> void:
@@ -569,43 +617,50 @@ func _refresh_stage() -> void:
 		c.queue_free()
 	var seasonal := tab == "seasonal"
 	var stage := UI3.plate(&"plate")
-	stage.name = "StagePlate"
-	stage.custom_minimum_size = Vector2(0, 360)
+	stage.name = "Stage"
+	stage.custom_minimum_size = Vector2(0, 0)
 	stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var cc := CenterContainer.new()
-	stage.add_child(cc)
 	var v := VBoxContainer.new()
+	v.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	v.add_theme_constant_override("separation", UI3Theme.space("16"))
-	cc.add_child(v)
+	v.add_theme_constant_override("separation", UI3Theme.space("16") if UI3Theme.layout_scale() >= 1.0 else UI3Theme.space("8"))
+	stage.add_child(v)
 	# Real chest art (assets/echobox/chests): Gold tier for the daily box, Mystic themed for the season box.
 	var chest := TextureRect.new()
 	chest.name = "Chest"
 	chest.texture = load("res://assets/echobox/chests/themed/mystic-chest.png" if seasonal else "res://assets/echobox/chests/tiers/chest_gold.png")
 	chest.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	chest.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	chest.custom_minimum_size = Vector2(240, 200)
+	# frame: .stage .chest { width: var(--size-echo-stage-chest) }; size_of already applies the 1280 scale/override.
+	var cs := float(UI3Theme.size_of("echo_stage_chest"))   # logical px: the 1280 canvas already scales it (no second multiply)
+	chest.custom_minimum_size = Vector2(cs, cs)
+	chest.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	chest.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	chest.tooltip_text = "Mystic Chest" if seasonal else "Gold Chest"
 	v.add_child(chest)
 	if seasonal:
-		var l := UI3.label("5 tickets per pull. A small set of rare items. A full set is guaranteed within 80 pulls (400 tickets). Max 8 pulls a day.", "LabelMuted")
+		var l := UI3.label("%d tickets per pull. A small set of rare items. A full set is guaranteed within %d pulls (%d tickets). Max %d pulls a day." % [
+			season_cost(), season_full_set_pulls(), season_full_set_pulls() * season_cost(), season_cap_day()], "LabelMuted")
 		l.name = "SeasonLine"
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		l.custom_minimum_size.x = 640
+		l.custom_minimum_size.x = UI3Theme.size_of("echo_stage_chest") * 2
 		v.add_child(l)
-		var left := UI3.label("Pulls left today  %d / %d" % [season_pulls_left(), season_cap_day()], "LabelTitle")
+		var left := UI3.label("Pulls left today %d / %d" % [season_pulls_left(), season_cap_day()], "LabelTitle")
 		left.name = "PullsLeft"
+		left.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		left.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		v.add_child(left)
-		var srow := HBoxContainer.new()
-		srow.alignment = BoxContainer.ALIGNMENT_CENTER
-		srow.add_theme_constant_override("separation", UI3Theme.space("16"))
+		var srow := HFlowContainer.new()
+		srow.alignment = FlowContainer.ALIGNMENT_CENTER
+		srow.add_theme_constant_override("h_separation", UI3Theme.space("16"))
+		srow.add_theme_constant_override("v_separation", UI3Theme.space("8"))
 		v.add_child(srow)
 		var n_big := clampi(season_pulls_left(), 1, PULL_N)
 		var ok1 := pull_block_reason(1) == ""
 		var okn := n_big > 1 and pull_block_reason(n_big) == ""
 		var so := UI3.button("Open 1", &"primary" if (ok1 and not okn) else &"secondary", &"L" if (ok1 and not okn) else &"M")
-		so.name = "SeasonOpen"
+		so.name = "Open1Button"
 		so.pressed.connect(_on_season_open.bind(1))
 		srow.add_child(so)
 		if not ok1:
@@ -613,11 +668,11 @@ func _refresh_stage() -> void:
 			so.tooltip_text = pull_block_reason(1)
 		else:
 			var cc1 := UI3.cost_chip(&"ticket", season_cost())
-			cc1.name = "SeasonCost"
+			cc1.name = "CostChip"
 			srow.add_child(cc1)
 		if n_big > 1:
 			var sn := UI3.button("Open %d" % n_big, &"primary" if okn else &"secondary", &"L" if okn else &"M")
-			sn.name = "SeasonOpenN"
+			sn.name = "OpenNButton"
 			sn.pressed.connect(_on_season_open.bind(n_big))
 			srow.add_child(sn)
 			if not okn:
@@ -625,30 +680,31 @@ func _refresh_stage() -> void:
 				sn.tooltip_text = pull_block_reason(n_big)
 			else:
 				var ccn := UI3.cost_chip(&"ticket", season_cost() * n_big)
-				ccn.name = "SeasonCostN"
+				ccn.name = "CostChipN"
 				srow.add_child(ccn)
 		var srt := UI3.button("Rates", &"secondary", &"S")
-		srt.name = "Rates"
+		srt.name = "RatesButton"
 		srt.pressed.connect(open_rates)
 		srow.add_child(srt)
 	else:
-		var row := HBoxContainer.new()
-		row.alignment = BoxContainer.ALIGNMENT_CENTER
-		row.add_theme_constant_override("separation", UI3Theme.space("16"))
+		var row := HFlowContainer.new()
+		row.alignment = FlowContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("h_separation", UI3Theme.space("16"))
+		row.add_theme_constant_override("v_separation", UI3Theme.space("8"))
 		v.add_child(row)
 		var n_big := PULL_N
 		# One primary: Open N when usable, else Open 1, else (below) the buy button.
 		var n_ok := pull_block_reason(n_big) == ""
 		var one_ok := pull_block_reason(1) == ""
 		var o1 := UI3.button(open_label(1), &"primary" if (one_ok and not n_ok) else &"secondary", &"L" if (one_ok and not n_ok) else &"M")
-		o1.name = "Open1"
+		o1.name = "Open1Button"
 		o1.pressed.connect(func() -> void: pull(1))
 		# A disabled reason must not be taller than "Open 1": only a usable Open N gets the big size.
 		var on := UI3.button(open_label(n_big), &"primary" if n_ok else &"secondary", &"L" if n_ok else &"M")
-		on.name = "OpenN"
+		on.name = "Open10Button"
 		on.pressed.connect(_on_open_many.bind(n_big))
 		var rt := UI3.button("Rates", &"secondary", &"S")   # a visible button, not a bare underline
-		rt.name = "Rates"
+		rt.name = "RatesButton"
 		rt.pressed.connect(open_rates)
 		for b in [o1, on]:
 			var why := pull_block_reason(1 if b == o1 else n_big)
@@ -656,27 +712,63 @@ func _refresh_stage() -> void:
 				UI3.set_disabled_reason(b, why)   # a disabled button says why
 				b.tooltip_text = why
 		row.add_child(o1)
-		row.add_child(on)
+		if pull_block_reason(1) == "":
+			row.add_child(on)
+		else:
+			on.free()   # frames no-tickets / offline / guest: only the one disabled Open 1 stands in the stage
 		row.add_child(rt)
 		var why1 := pull_block_reason(1)
+		if why1.begins_with("Not enough"):
+			o1.text = "Open 1 · " + why1   # frame 20-echo--no-tickets
 		# The reason lives inside the disabled buttons only (one place in every state).
 		if why1 != "":
 			if why1.begins_with("Not enough") and not _account_blocks():
 				var can_buy := not (next_price() < 0 or MetaState.shard_pool < next_price())
 				var sc := UI3.button("Buy enough for 1 pull", &"primary" if can_buy else &"secondary", &"M")
-				sc.name = "BuyEnough"
+				sc.name = "BuyPullButton"
 				sc.pressed.connect(buy_ticket)
 				sc.disabled = not can_buy
 				v.add_child(sc)
 	_stage_host.add_child(stage)
+	_fit_chest.call_deferred(chest, cs)
 	if not results.is_empty():
-		# the result list takes the room: the stage shrinks, the summary scrolls instead of overflowing
-		stage.custom_minimum_size = Vector2(0, 0)
-		stage.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		chest.custom_minimum_size = Vector2(0, 80)
+		# frame 20-echo--last-pull: Summary lives inside the Stage; the chest shrinks, the summary scrolls
+		# frame keeps the chest at its token size and adds the Summary under the buttons; the Stage never overflows,
+		# so the chest may give way only when the Summary would not fit
 		var sc := UI3Meta.scroll(_build_summary())
 		sc.name = "SummaryScroll"
-		_stage_host.add_child(sc)
+		sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		sc.size_flags_stretch_ratio = 1.0
+		v.add_child(sc)
+
+
+## Token-size chest unless the screen would overflow its frame (extra rows: banner, summary, season text): then the
+## chest alone gives up the overflow, never below 40% of the token size.
+func _fit_chest(chest: Control, cs: float) -> void:
+	if not is_instance_valid(chest) or not chest.is_inside_tree() or _shell.is_empty():
+		return
+	var host := _shell["panel"] as Control
+	var tries := 0
+	while size.y < 200.0 and tries < 4:   # not laid out yet: measuring now would shrink the chest for nothing
+		tries += 1
+		await get_tree().process_frame
+		if not is_instance_valid(chest) or not chest.is_inside_tree():
+			return
+	chest.custom_minimum_size = Vector2(cs, cs)
+	await get_tree().process_frame
+	if not is_instance_valid(chest) or not chest.is_inside_tree():
+		return
+	var over := host.get_combined_minimum_size().y - size.y
+	if over <= 0.0:
+		return
+	# Only the part of the overflow the Stage column causes can be won back by shrinking the chest: when the side
+	# column (pity, pool) is the taller one, a smaller chest changes nothing and would only look lost in the Stage.
+	var lead := over
+	if is_instance_valid(_stage_host) and is_instance_valid(_side_host):
+		lead = minf(over, _stage_host.get_combined_minimum_size().y - _side_host.get_combined_minimum_size().y)
+	if lead > 0.0:
+		var n := maxf(cs * 0.4, cs - lead - 2.0)
+		chest.custom_minimum_size = Vector2(n, n)
 
 
 ## Button text for a normal pull: the ticket cost is on the button ("Open 10 · 10 tickets").
@@ -689,37 +781,38 @@ func _on_open_many(n: int) -> void:
 	if _modal_layer.get_child_count() > 0:
 		return
 	var no := UI3.button("Cancel", &"secondary", &"M")
-	no.name = "CancelOpenN"
+	no.name = "CancelButton"
 	no.pressed.connect(close_modal)
 	var yes := UI3.button(open_label(n), &"primary", &"M")
-	yes.name = "ConfirmOpenN"
+	yes.name = "Open10Button"
 	yes.pressed.connect(func() -> void:
 		close_modal()
 		pull(n))
-	var m := UI3.modal("Open %d boxes?" % n, "This spends %d tickets and leaves you %d." % [n, tickets() - n], [no, yes], 1)
+	var m := Ui5EchoParts.dialog(_modal_layer, "Open10Confirm", "Open %d boxes?" % n,
+		"This spends %d tickets and leaves you %d." % [n, tickets() - n], null, no, yes)
 	m.cancelled.connect(close_modal)
-	_modal_layer.add_child(m)
 
 
 ## First season pull of the session confirms (tickets spent / left, pulls left); later ones go straight through.
 func _on_season_open(n: int) -> void:
+	if _modal_layer.get_child_count() > 0:
+		return
 	if season_confirmed:
 		pull(n)
 		return
 	var no := UI3.button("Cancel", &"secondary", &"M")
-	no.name = "Cancel"
+	no.name = "CancelButton"
 	no.pressed.connect(close_modal)
 	var yes := UI3.button("Open", &"primary", &"M")
-	yes.name = "ConfirmSeason"
+	yes.name = "OpenButton"
 	yes.pressed.connect(func() -> void:
 		season_confirmed = true
 		close_modal()
 		pull(n))
 	var cost := n * season_cost()
-	var m := UI3.modal("Open the season box?", "This spends %d tickets and leaves you %d. Pulls left today after this: %d of %d." % [
-		cost, tickets() - cost, season_pulls_left() - n, season_cap_day()], [no, yes], 1)
+	var m := Ui5EchoParts.dialog(_modal_layer, "SeasonConfirm", "Open the season box?", "This spends %d tickets and leaves you %d. Pulls left today after this: %d of %d." % [
+		cost, tickets() - cost, season_pulls_left() - n, season_cap_day()], null, no, yes)
 	m.cancelled.connect(close_modal)
-	_modal_layer.add_child(m)
 
 
 func _pity_text() -> String:
@@ -734,8 +827,11 @@ func _refresh_side() -> void:
 	if tab == "seasonal":
 		_refresh_side_season()
 		return
+	var scol := VBoxContainer.new()
+	scol.add_theme_constant_override("separation", UI3Theme.space("16"))
+	scol.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var pity := UI3.plate(&"plate")
-	pity.name = "PityPanel"
+	pity.name = "PityPlate"
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", UI3Theme.space("8"))
 	pity.add_child(v)
@@ -766,9 +862,9 @@ func _refresh_side() -> void:
 		r.add_child(pb)
 		r.add_child(UI3.label("%d/%d" % [have, need], "LabelMuted"))
 		v.add_child(r)
-	_side_host.add_child(pity)
+	scol.add_child(pity)
 	var pool := UI3.plate(&"plate")
-	pool.name = "PoolPanel"
+	pool.name = "PoolPlate"
 	var pv := VBoxContainer.new()
 	pv.add_theme_constant_override("separation", UI3Theme.space("8"))
 	pool.add_child(pv)
@@ -798,11 +894,15 @@ func _refresh_side() -> void:
 		tile.add_child(tl)
 		grid.add_child(tile)
 	pv.add_child(UI3.label("%d cosmetics in the pool" % total, "LabelMuted"))
-	_side_host.add_child(pool)
+	scol.add_child(pool)
 	var dup := UI3.label("A duplicate becomes Fragments; 10 Fragments = 1 ticket. Never Shards.", "LabelMuted")
 	dup.name = "DupLine"
 	dup.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_side_host.add_child(dup)
+	scol.add_child(dup)
+	var ssc := UI3Meta.scroll(scol)
+	ssc.name = "SideScroll"
+	ssc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_side_host.add_child(ssc)
 
 
 func _season_names() -> Dictionary:
@@ -815,11 +915,11 @@ func _refresh_side_season() -> void:
 	var owned: Array = st["owned"]
 	var items: Dictionary = cfg.get("items", {})
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", UI3Theme.space("16"))
+	col.add_theme_constant_override("separation", UI3Theme.space("16") if UI3Theme.layout_scale() >= 1.0 else UI3Theme.space("8"))
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	# progress per tier
 	var pp := UI3.plate(&"plate")
-	pp.name = "SeasonProgress"
+	pp.name = "ProgressPlate"
 	var pv := VBoxContainer.new()
 	pv.add_theme_constant_override("separation", UI3Theme.space("8"))
 	pp.add_child(pv)
@@ -864,7 +964,7 @@ func _refresh_side_season() -> void:
 	col.add_child(pp)
 	# milestones
 	var mp := UI3.plate(&"plate")
-	mp.name = "SeasonMilestones"
+	mp.name = "Milestones"
 	var mv := VBoxContainer.new()
 	mv.add_theme_constant_override("separation", UI3Theme.space("8"))
 	mp.add_child(mv)
@@ -891,7 +991,7 @@ func _refresh_side_season() -> void:
 	col.add_child(mp)
 	# the 11-item pool grid
 	var pool := UI3.plate(&"plate")
-	pool.name = "SeasonPool"
+	pool.name = "SeriesItems"
 	var gv := VBoxContainer.new()
 	gv.add_theme_constant_override("separation", UI3Theme.space("8"))
 	pool.add_child(gv)
@@ -933,9 +1033,10 @@ func _season_tile(item: String, tier: String, have: bool) -> Control:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 0)
 	tile.add_child(v)
-	var art := _cosmetic_art(item, 64.0, false)
+	var apx := 64.0 * minf(UI3Theme.layout_scale(), 1.0)
+	var art := _cosmetic_art(item, apx, false)
 	if art == null:
-		art = _fx_badge(64.0)
+		art = _fx_badge(apx)
 	v.add_child(art)
 	var nm := UI3.label(_reward_name(item) if have else "?")
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1064,7 +1165,10 @@ func _result_cell(r: Dictionary, mode := "summary") -> Control:
 	if String(r.get("kind")) != "stone":
 		tag = ("Duplicate +%d frag" % int(r.get("fragments", 0))) if bool(r.get("duplicate", false)) else "NEW"
 	v.add_child(UI3.label(tag, "LabelMuted"))
-	v.add_child(UI3.label(_chest_tier(r) + " chest", "LabelMuted"))
+	# frame 20-echo--last-pull: two lines (title, tag), centred under the art
+	for l in v.get_children():
+		if l is Label:
+			(l as Label).horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	return c
 
 
