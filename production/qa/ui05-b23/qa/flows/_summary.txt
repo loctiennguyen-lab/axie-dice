@@ -1,0 +1,1 @@
+win-1920 1920x1080 rc=0 102s pngs=       2 anomalies=125 result=QA_FLOW_RESULT {"anomalies":["unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"S
