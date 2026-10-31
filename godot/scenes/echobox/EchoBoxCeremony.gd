@@ -48,7 +48,7 @@ func _play_ceremony(out: Array) -> void:
 			_s._skip = true)
 	_focus(skip)
 	if not _s._skip:
-		var dur := 0.2 if not _flashy() else (1.5 if tier >= 5 else 1.2)
+		var dur := 0.2 if not _flashy() else float(UI3Motion.layer(_moment_id(tier), "chest_tint").get("ms", 1200.0)) / 1000.0
 		var tw := _s.create_tween()
 		tw.tween_method(func(k: float) -> void: Parts.set_tint(chest, k), 0.0, 1.0, dur).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		var elapsed := 0.0
@@ -155,19 +155,29 @@ func _focus(c: Control) -> void:
 			c.grab_focus()).call_deferred()
 
 
-## Cards flip in (scale x 0 -> 1) one after another, the highest tier last: single 360 ms, grid FLIP_S 160 ms every FLIP_GAP
-## 120 ms (TRANS_BACK). Epic+ last card pops 1 -> 1.08 -> 1. Reduce motion / flashing: all at once (caller skips this).
+## Echo moment id of a tier (UI-05 b23 lane M3): Mythic, Rare+ (Epic and up), else normal.
+static func _moment_id(tier: int) -> String:
+	return "echo-open-mythic" if tier >= 5 else ("echo-open-rare" if tier >= 3 else "echo-open-normal")
+
+
+## Cards flip in one after another, the highest tier last: the `echo-open-*` card_flip row (single) or the `open-10` rows
+## (cards_flip + Epic+ last_pop), played from motion_ui3.json. Reduce motion / flashing: all at once (caller skips this).
 func _flip_in(cards: Array, order: Array) -> void:
 	for c in cards:
-		(c as Control).scale.x = 0.0
-	var dur: float = 0.36 if cards.size() == 1 else _s.FLIP_S
-	for k in order.size():
-		var c := cards[int(order[k])] as Control
-		var last: bool = k == order.size() - 1
-		var tw := _s.create_tween()
-		tw.tween_interval(_s.FLIP_GAP * k)
-		tw.tween_callback(func() -> void: c.pivot_offset = c.size / 2.0)
-		tw.tween_property(c, "scale:x", 1.0, dur).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		if last and cards.size() > 1 and bool(c.get_meta("tier", 0) >= 3):
-			tw.tween_property(c, "scale", Vector2(1.08, 1.08), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-			tw.tween_property(c, "scale", Vector2.ONE, 0.15)
+		(c as Control).pivot_offset = (c as Control).size / 2.0
+	var host := _s as Node
+	if cards.size() == 1:
+		var t := int((cards[0] as Control).get_meta("tier", 0))
+		var id := _moment_id(t)
+		var lead := float(UI3Motion.layer(id, "chest_tint").get("ms", 1200.0))   # the tint already ran
+		UI3Motion.play_timeline(id, {"card": cards[0]}, {"host": host, "only": ["card_flip"], "delay_ms": -lead})
+		return
+	var seq: Array = []
+	for k in order:
+		seq.append(cards[int(k)])
+	var last := seq[seq.size() - 1] as Control
+	var only: Array = ["cards_flip"]
+	if int(last.get_meta("tier", 0)) >= 3:
+		only.append("last_pop")
+	UI3Motion.play_timeline("open-10", {"cards": seq, "last_card": last}, {"host": host, "only": only,
+		"delay_ms": -float(UI3Motion.layer("open-10", "cards_flip").get("delay_ms", 0.0))})

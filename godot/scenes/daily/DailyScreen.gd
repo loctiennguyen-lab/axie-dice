@@ -74,14 +74,35 @@ func claim_daily() -> bool:
 		MetaState.econ_remote().claim("daily", {}, func(r: Dictionary) -> void:
 			daily_result_ok = bool(r["ok"])
 			daily_result = "Claimed" if daily_result_ok else RemoteEcon.message_for(String(r["code"]))
-			_refresh())
+			_refresh()
+			if daily_result_ok:
+				_play_claim_moment())
 		return false
 	var ok := MetaState.claim_daily_mission()
 	var d: Dictionary = _Econ.get_table("daily").get("daily_reward", {})
 	daily_result_ok = ok
 	daily_result = "+%s Shards, +%s Stone, +%s Pass XP" % [UI3.fmt(int(d.get("shards", 0))), UI3.fmt(int(d.get("stone", 0))), UI3.fmt(int(d.get("xp", 0)))] if ok else "Already claimed today"
 	_refresh()
+	if ok:
+		_play_claim_moment()
 	return ok
+
+
+## UI-05 b23 lane M3: `daily-claim` (button press + reward rows pop). Only plays what exists here; the chip fly / count rows
+## need the shell chips and stay data. Not in instant / headless runs.
+func _play_claim_moment() -> void:
+	if not is_inside_tree() or _cards_host == null or UI3Gacha.is_instant() or DisplayServer.get_name() == "headless":
+		return
+	var rows: Array = []
+	var card := _cards_host.find_child("DailyCard", true, false)
+	var col := card.find_child("Col", true, false) if card != null else null
+	if col != null:
+		for i in range(1, mini(4, col.get_child_count())):
+			rows.append(col.get_child(i))
+	for r in rows:
+		(r as Control).pivot_offset = (r as Control).size / 2.0
+	UI3Motion.play_timeline("daily-claim", {"claim_btn": _cards_host.find_child("DailyClaim", true, false), "rows": rows},
+		{"host": self, "only": ["claim_press", "rows_pop"]})
 
 
 var _gift_pending := false

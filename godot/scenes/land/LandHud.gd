@@ -212,6 +212,14 @@ func show_tier_banner() -> void:
 	Plates.attach_space_cap(ok, UI3Theme.space("32"))
 	_l._modal = m
 	_l._ui.add_child(m)
+	if not UI3Gacha.is_instant() and DisplayServer.get_name() != "headless":
+		# UI-05 b23 lane M3: `land-tier-up`, the Land half (the Upgrade screen's rows are cut by the scene change). The diorama
+		# flash / swap and the title band have no node here; the banner rises, the Land shakes, Stone bursts, hit-stop.
+		var host: Control = _l._ui
+		UI3Motion.play_timeline("land-tier-up", {"shake": host, "diorama": host}, {"host": host, "delay_ms": -900.0,
+			"only": ["hitstop", "shake", "stone_burst"]})
+		UI3Motion.play_timeline("land-tier-up", {"scrim": m.find_child("Scrim", true, false), "banner": dlg}, {"host": host,
+			"delay_ms": -2200.0, "only": ["banner_scrim", "banner_rise"]})
 
 
 # ---- BuildingTooltip (frame 01-land--tooltip-building / -lock): plate to the right of the building, Title + Status
