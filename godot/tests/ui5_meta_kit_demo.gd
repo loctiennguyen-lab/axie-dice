@@ -118,4 +118,8 @@ static func build(host: Node) -> Control:
 	var sl := Ui5Slider.new()
 	sl.setup(0.6)
 	r5.add_child(sl)
+	for r in [r1, r3]:
+		for c in r.get_children():
+			if c is Control:
+				(c as Control).size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	return root
