@@ -128,8 +128,9 @@ func _card_checks() -> void:
 	await get_tree().process_frame
 	st.set_tab("cosmetics")
 	await get_tree().process_frame
-	var g := st.find_child("CosGrid", true, false)
-	_ok(g != null and st.cosmetic_items().size() > 0 and g.find_children("Art", "Control", true, false).size() == st.cosmetic_items().size() and g.find_children("Cos_*", "Button", true, false).size() == st.cosmetic_items().size(), "Store cosmetic tiles all show art")
+	# UI-05 S11b: the grid lives under GridHost and tiles are named CosmeticTile_<id> (data-name).
+	var g := st.find_child("GridHost", true, false)
+	_ok(g != null and st.cosmetic_items().size() > 0 and g.find_children("Art", "Control", true, false).size() == st.cosmetic_items().size() and g.find_children("CosmeticTile_*", "Button", true, false).size() == st.cosmetic_items().size(), "Store cosmetic tiles all show art")
 	st.queue_free()
 	# Pass node for a cosmetic reward with art
 	var pv: Node = load("res://scenes/pass/Pass.tscn").instantiate()
