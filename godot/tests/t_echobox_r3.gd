@@ -33,12 +33,12 @@ func _ready() -> void:
 	MetaState.echobox_pity = {}
 	MetaState.shard_pool = 5000
 	var s := await _make()
-	_ok(s.find_child("PityPanel", true, false) != null and s.find_child("PoolPanel", true, false) != null, "side panels")
+	_ok(s.find_child("PityPlate", true, false) != null and s.find_child("PoolPlate", true, false) != null, "side panels")
 	_ok(s.find_child("DupLine", true, false) != null, "duplicates line")
 	_ok(s.find_child("Pool_mythic", true, false) != null, "pool tiles")
 	# No tickets
-	_ok((s.find_child("Open1", true, false) as Button).disabled, "Open 1 disabled with 0 tickets")
-	_ok((s.find_child("Open1", true, false) as Button).text.begins_with("Not enough tickets") and (s.find_child("OpenN", true, false) as Button).text.begins_with("Not enough tickets"), "reason shown inside both disabled buttons")
+	_ok((s.find_child("Open1Button", true, false) as Button).disabled, "Open 1 disabled with 0 tickets")
+	_ok((s.find_child("Open1Button", true, false) as Button).text.begins_with("Not enough tickets") and (s.find_child("Open10Button", true, false) as Button).text.begins_with("Not enough tickets"), "reason shown inside both disabled buttons")
 	_ok(s.find_child("Reason", true, false) == null, "reason is not repeated on its own line")
 	var r0: Array = await s.pull(1)
 	_ok(r0.is_empty() and s.tickets() == 0, "pull without tickets does nothing")
@@ -46,7 +46,7 @@ func _ready() -> void:
 	var before := MetaState.shard_pool
 	var b: Dictionary = await s.buy_ticket()
 	_ok(b.ok and s.tickets() == 1 and MetaState.shard_pool == before - 200, "buy ticket spends 200 Shards")
-	_ok(not (s.find_child("Open1", true, false) as Button).disabled, "Open 1 enabled with a ticket")
+	_ok(not (s.find_child("Open1Button", true, false) as Button).disabled, "Open 1 enabled with a ticket")
 	# Real pull
 	s.rng.seed = 7
 	var r1: Array = await s.pull(1)
@@ -71,7 +71,7 @@ func _ready() -> void:
 	# Seasonal locked
 	s.select_tab("seasonal")
 	_ok(s.find_child("ComingLater", true, false) == null, "seasonal is live, no coming-later label")
-	_ok(s.find_child("SeasonOpen", true, false) != null, "seasonal has its Open button")
+	_ok(s.find_child("Open1Button", true, false) != null, "seasonal has its Open button")
 	s.select_tab("regular")
 	# States
 	for st in ["loading", "offline", "guest", "error", "last_pull", "normal"]:
@@ -80,7 +80,7 @@ func _ready() -> void:
 		_ok(s.state == st, "state " + st)
 	s.set_state("offline")
 	_ok(s.pull_block_reason(1).begins_with("Needs a connection"), "offline reason")
-	_ok((s.find_child("BuyTicket", true, false) as Button).disabled, "offline disables buy")
+	_ok((s.find_child("BuyTicketButton", true, false) as Button).disabled, "offline disables buy")
 	s.set_state("guest")
 	_ok(s.pull_block_reason(1) != "", "guest blocked")
 	# Server error: hook returns nothing, tickets untouched
