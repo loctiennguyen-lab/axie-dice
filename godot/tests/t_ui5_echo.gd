@@ -135,6 +135,13 @@ func _pass(sc: float, tag: String) -> void:
 	_check(String(_btn(s, "Open10Button").theme_type_variation).begins_with("ButtonPrimary") and not _btn(s, "Open10Button").disabled, tag + ": Open 10 is live and the primary")
 	_check(not String(_btn(s, "Open1Button").theme_type_variation).begins_with("ButtonPrimary"), tag + ": Open 1 is not a second primary")
 	var fo := s.get_viewport().gui_get_focus_owner()
+	_check(fo != null and fo.name == "RegularTab", tag + ": idle: first focus is the selected tab (%s)" % (fo.name if fo else "none"))
+	var ch := s.find_child("Chest", true, false) as Control
+	var stg0 := s.find_child("Stage", true, false) as Control
+	var want := float(UI3Theme.size_of("echo_stage_chest")) * UI3Theme.layout_scale()
+	_check(ch != null and ch.get_global_rect().size.x >= want - 1.0, tag + ": chest is the token size (%.0f real vs %.0f)" % [ch.get_global_rect().size.x if ch else 0.0, want])
+	var cluster := ch.get_global_rect().merge(_btn(s, "Open10Button").get_global_rect()) if ch else Rect2()
+	_check(stg0 != null and stg0.get_global_rect().grow(1.0).encloses(cluster), tag + ": chest + buttons sit inside the Stage")
 	_check(fo == null or (fo.name != "Open1Button" and fo.name != "Open10Button"), tag + ": idle: no Open button is preselected (focus: %s)" % (fo.name if fo else "none"))
 	_check(Align.pairs(s) > 0, tag + ": idle align check measures > 0 pairs (%d)" % Align.pairs(s))
 	_check(s.find_child("Tickets", true, false).text == "Tickets 24 / 999", tag + ": ticket text comes from MetaState")

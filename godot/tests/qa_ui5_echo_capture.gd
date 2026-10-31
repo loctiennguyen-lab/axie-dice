@@ -55,6 +55,10 @@ func _ready() -> void:
 	s.open_confirm_buy()
 	await _shot("20-echo--buy-confirm")
 	s.close_modal()
+	# every frame starts from a clean fixture: undo the buy-count that made "Next ticket 415"
+	MetaState.echobox_pity["buy_count"] = 0
+	MetaState.echobox_pity["buy_day"] = ""
+	s._refresh_all()
 	s.select_tab("seasonal")
 	await _shot("20-echo--seasonal")
 	s.open_rates()

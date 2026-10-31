@@ -79,6 +79,9 @@ func _ready() -> void:
 	if use_account:
 		state = account_state()
 	set_state(state)
+	# First focus: the selected tab, never a spending button (Open 1 / Open 10 spend tickets on a stray Space).
+	if _tab_btns.has(tab):
+		_focus_later(_tab_btns[tab])
 
 
 ## Echo Box state from the account: guest and expired sign-in cannot hold tickets (R3 M5l),
@@ -628,8 +631,8 @@ func _refresh_stage() -> void:
 	chest.texture = load("res://assets/echobox/chests/themed/mystic-chest.png" if seasonal else "res://assets/echobox/chests/tiers/chest_gold.png")
 	chest.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	chest.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	var cs := float(UI3Theme.size_of("echo_stage_chest")) * 0.75 * minf(UI3Theme.layout_scale(), 1.0)
-	cs = float(UI3Theme.size_of("echo_stage_chest")) * (1.0 if UI3Theme.layout_scale() >= 1.0 else 0.4)   # frame: 320 square at 1920, never stretched; 1280 gives room to the season block
+	# frame: .stage .chest { width: var(--size-echo-stage-chest) }; size_of already applies the 1280 scale/override.
+	var cs := float(UI3Theme.size_of("echo_stage_chest")) * minf(UI3Theme.layout_scale(), 1.0)   # logical token -> real px
 	chest.custom_minimum_size = Vector2(cs, cs)
 	chest.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	chest.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -727,15 +730,38 @@ func _refresh_stage() -> void:
 				sc.disabled = not can_buy
 				v.add_child(sc)
 	_stage_host.add_child(stage)
+	_fit_chest.call_deferred(chest, cs)
 	if not results.is_empty():
 		# frame 20-echo--last-pull: Summary lives inside the Stage; the chest shrinks, the summary scrolls
-		chest.custom_minimum_size = Vector2(0, 80)
-		chest.size_flags_stretch_ratio = 0.4
+		# frame keeps the chest at its token size and adds the Summary under the buttons; the Stage never overflows,
+		# so the chest may give way only when the Summary would not fit
 		var sc := UI3Meta.scroll(_build_summary())
 		sc.name = "SummaryScroll"
 		sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		sc.size_flags_stretch_ratio = 1.6
+		sc.size_flags_stretch_ratio = 1.0
 		v.add_child(sc)
+
+
+## Token-size chest unless the screen would overflow its frame (extra rows: banner, summary, season text): then the
+## chest alone gives up the overflow, never below 40% of the token size.
+func _fit_chest(chest: Control, cs: float) -> void:
+	if not is_instance_valid(chest) or not chest.is_inside_tree() or _shell.is_empty():
+		return
+	var host := _shell["panel"] as Control
+	var tries := 0
+	while size.y < 200.0 and tries < 4:   # not laid out yet: measuring now would shrink the chest for nothing
+		tries += 1
+		await get_tree().process_frame
+		if not is_instance_valid(chest) or not chest.is_inside_tree():
+			return
+	chest.custom_minimum_size = Vector2(cs, cs)
+	await get_tree().process_frame
+	if not is_instance_valid(chest) or not chest.is_inside_tree():
+		return
+	var over := host.get_combined_minimum_size().y - size.y
+	if over > 0.0:
+		var n := maxf(cs * 0.4, cs - over - 2.0)
+		chest.custom_minimum_size = Vector2(n, n)
 
 
 ## Button text for a normal pull: the ticket cost is on the button ("Open 10 · 10 tickets").
