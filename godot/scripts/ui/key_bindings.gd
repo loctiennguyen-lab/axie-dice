@@ -178,6 +178,12 @@ static func key_name(keycode: int) -> String:
 			return "Num Enter"
 		KEY_ESCAPE:
 			return "Esc"
+	match keycode:
+		KEY_KP_ADD: return "Num +"
+		KEY_KP_SUBTRACT: return "Num -"
+		KEY_KP_MULTIPLY: return "Num *"
+		KEY_KP_DIVIDE: return "Num /"
+		KEY_KP_PERIOD: return "Num ."
 	var s := OS.get_keycode_string(keycode as Key)
 	if keycode >= KEY_KP_0 and keycode <= KEY_KP_9:
 		return "Num " + str(keycode - KEY_KP_0)

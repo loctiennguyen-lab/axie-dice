@@ -172,14 +172,14 @@ static func switch_cell(on: bool) -> Dictionary:
 	return {"cell": h, "switch": sw, "word": word}
 
 
-## Right-hand cell: Ui5Slider (200) + "80%" value (56 wide, right aligned).
+## Right-hand cell: Ui5Slider (300, HTML .s-row .slider) + "80%" value (56 wide, right aligned).
 static func slider_cell(value: float) -> Dictionary:
 	var h := HBoxContainer.new()
 	h.name = "SliderCell"
 	h.add_theme_constant_override("separation", UI3Theme.space("12"))
 	h.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var sl := Ui5Slider.new()
-	sl.setup(value, 0.0, 1.0, 0.05, 200)
+	sl.setup(value, 0.0, 1.0, 0.05, 300)
 	h.add_child(sl)
 	var v := Ui5Text.label("%d%%" % roundi(value * 100.0), "text_body", "text", true)
 	v.name = "Value"

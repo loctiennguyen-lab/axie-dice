@@ -73,6 +73,10 @@ func _ready() -> void:
 	_check(hub.call("_tip_text", "portal").contains("1"), "portal tooltip shows its key")
 	hub.queue_free()
 	await get_tree().process_frame
+	_check(KeyBindings.key_name(KEY_KP_ENTER) == "Num Enter", "key_name KP Enter is Num Enter")
+	_check(KeyBindings.key_name(KEY_KP_ADD) == "Num +" and KeyBindings.key_name(KEY_KP_SUBTRACT) == "Num -"
+		and KeyBindings.key_name(KEY_KP_MULTIPLY) == "Num *" and KeyBindings.key_name(KEY_KP_DIVIDE) == "Num /"
+		and KeyBindings.key_name(KEY_KP_PERIOD) == "Num .", "key_name keypad operators")
 
 	# Settings > Controls
 	KeyBindings.reset_all()

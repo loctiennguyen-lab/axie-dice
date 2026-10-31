@@ -236,6 +236,8 @@ func _build_index(order: Array[String], host: Control) -> void:
 			_sync_tabs(sec))
 		host.add_child(b, true)
 		_tabs[sec] = b
+	if not order.is_empty():
+		_first_focus = _tabs[order[0]]   # keyboard / gamepad start on the first IndexRow ("Run" in-run)
 
 
 func _sync_tabs(forced := "") -> void:

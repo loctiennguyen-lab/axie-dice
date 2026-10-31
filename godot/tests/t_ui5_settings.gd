@@ -91,7 +91,20 @@ func _screen(sc: float) -> void:
 			if sc < 1.0:
 				_check(float((n as Label).get_theme_font_size("font_size")) * sc >= 14.0 - 0.01,
 					"1280: '%s' >= 14 real px" % (n as Label).text.left(24))
-	_check(all.contains("Enter, Num Enter") or v.find_child("KeyButton", true, false) != null, "[%s] keys listed" % tag)
+	var key_texts: Array[String] = []
+	for b in keys:
+		key_texts.append((b as Button).text)
+	_check(key_texts.has("Enter, Num Enter") and key_texts.has("Space, Enter, Num Enter") and key_texts.has("1, Num 1")
+		and key_texts.has("Space, E"), "[%s] KeyButtons list every key incl. keypad: %s" % [tag, key_texts.slice(0, 3)])
+	var sl := v._sliders[&"music"] as Control
+	if sc >= 1.0:
+		_check(sl != null and absf(sl.size.x - 300.0) < 0.6, "[1920] slider is 300 wide (%s)" % (sl.size.x if sl != null else -1.0))
+	var fo := get_viewport().gui_get_focus_owner()
+	_check(fo != null and String(fo.name).begins_with("IndexRow"), "[%s] initial focus is the first IndexRow (%s)" % [tag, fo.name if fo != null else "none"])
+	for n in v.find_children("*", "BaseButton", true, false):
+		var bt := n as BaseButton
+		if bt.is_visible_in_tree() and sc < 1.0:
+			_check(float(bt.get_theme_font_size("font_size")) * sc >= 14.0 - 0.01, "1280: button '%s' >= 14 real px (%d logical)" % [bt.get("text"), bt.get_theme_font_size("font_size")])
 	for bad in ["liam@gmail.com", "Saved just now", "800 Shards", "Liam"]:
 		_check(not all.contains(bad), "[%s] no illustrative value '%s'" % [tag, bad])
 	_check(v.abandon_check != null and v.abandon_button != null, "[%s] ConfirmRow checkbox + button" % tag)
