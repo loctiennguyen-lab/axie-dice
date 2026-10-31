@@ -157,6 +157,8 @@ func _on_event_choice(index: int) -> void:
 	if index < 0:
 		return
 	var res: Dictionary = await RunState.request_choose_event_option(index)
+	if not is_instance_valid(ctrl):
+		return   # the run map was freed while waiting (scene change); the old Node coroutine stopped here
 	if not bool(res["ok"]):
 		if String(res["code"]) not in ["illegal", "busy"]:
 			NetNotice.show(ctrl, String(res["code"]), _on_event_choice.bind(index))

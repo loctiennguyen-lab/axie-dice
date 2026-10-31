@@ -445,7 +445,7 @@ func _add_reward_card(r: Dictionary, _wide := false) -> PanelContainer:
 		chips.add_child(CorePanel.word_chip(tr(String(CorePanel.AXIS_NAME.get(axis, "Core"))),
 			String(CorePanel.AXIS_ICON.get(axis, "face_buff")), UI3Theme.color("text_muted"), "AxisChip"))
 		_add_combo_labels(col, String(r.get("key", "")), chips)
-		ctrl._add_house_chip(card, chips, String(r.get("key", "")))
+		RunMapController._add_house_chip(card, chips, String(r.get("key", "")))
 		col.add_child(chips)
 	if t in ["chaos", "curse"]:
 		var tp := _trade_parts(r)
@@ -551,6 +551,8 @@ func _dm_core_hover() -> void:
 func _on_core_card_reroll(idx: int) -> void:
 	var old_card: Control = ctrl._reward_cards[idx] if idx >= 0 and idx < ctrl._reward_cards.size() else null
 	var res: Dictionary = await RunState.request_reroll_pending_rewards(idx)
+	if not is_instance_valid(ctrl):
+		return   # the run map was freed while waiting (scene change); the old Node coroutine stopped here
 	if not bool(res["ok"]):
 		if String(res["code"]) not in ["illegal", "busy"]:
 			NetNotice.show(ctrl, String(res["code"]), _on_core_card_reroll.bind(idx), "Could not reroll the Cores")
@@ -563,6 +565,8 @@ func _on_core_card_reroll(idx: int) -> void:
 		tw.tween_property(old_card, "position:y", old_card.position.y - 120.0, out)
 		tw.tween_property(old_card, "modulate:a", 0.0, out)
 		await tw.finished
+	if not is_instance_valid(ctrl):
+		return   # the run map was freed while waiting (scene change); the old Node coroutine stopped here
 	ctrl._reroll_slot = idx
 	_show_reward_overlay("x")
 
@@ -570,7 +574,7 @@ func _on_core_card_reroll(idx: int) -> void:
 ## The "Won't come back" line above the new card, fades after a moment.
 func _reroll_note(card: Control) -> void:
 	await ctrl.get_tree().process_frame
-	if not is_instance_valid(card) or ctrl._overlay_root == null:
+	if not is_instance_valid(ctrl) or not is_instance_valid(card) or ctrl._overlay_root == null:
 		return
 	var l := UI3.label(tr("Won't come back this run"), "LabelMuted")
 	l.name = "RerollNote"
@@ -589,6 +593,8 @@ func _reroll_note(card: Control) -> void:
 
 func _on_reward_reroll(title: String) -> void:
 	var res: Dictionary = await RunState.request_reroll_pending_rewards()
+	if not is_instance_valid(ctrl):
+		return   # the run map was freed while waiting (scene change); the old Node coroutine stopped here
 	if not bool(res["ok"]):
 		if String(res["code"]) not in ["illegal", "busy"]:
 			NetNotice.show(ctrl, String(res["code"]), _on_reward_reroll.bind(title))

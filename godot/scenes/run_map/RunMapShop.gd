@@ -321,6 +321,8 @@ func _on_shop_buy(index: int) -> void:
 	# `bought` is marked inside try_buy_shop_item() now. Marking it here meant a replay, which
 	# has no screen, left every item buyable forever.
 	var res: Dictionary = await RunState.request_buy_shop_item(index)
+	if not is_instance_valid(ctrl):
+		return   # the run map was freed while waiting (scene change); the old Node coroutine stopped here
 	if not bool(res["ok"]) and String(res["code"]) not in ["illegal", "busy"]:
 		NetNotice.show(ctrl, String(res["code"]), _on_shop_buy.bind(index))
 	_render_shop()   # rebuild so shard total / afford/bought states stay in sync
