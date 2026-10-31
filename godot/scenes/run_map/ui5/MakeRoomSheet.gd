@@ -1,8 +1,8 @@
 extends RefCounted
 ## UI-05 b23 lane R4: MakeRoomSheet (round-2 ui05-run-screens.html, 47-core-offer--make-room). Build with
 ## MakeRoomSheet.build(...). Tree: SlotSwapSheet (ModalRoot) > Scrim + MakeRoomSheet > [Head(Title, Line), OwnedList >
-## SellRow(CoreSlot, CoreName, TierChip, SellButton)*, Footer(Taking(Label, TakingName), BackButton, ConfirmButton)].
-## Nothing is preselected: ConfirmButton is disabled and says why until a SellButton is picked. Esc = Back.
+## SellRow(CoreSlot, CoreName, TierChip, SellButton)*, Footer(Taking(Label, TakingName), BackButton)].
+## Each SellButton is the explicit action: pressing it sells that Core and takes the new one. Esc = Back (frame has no confirm).
 ## Every size is a token. `cells` = [{id, name, kind, sell, eternal}] (as RunMapSlotSwap builds them).
 
 const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
@@ -50,20 +50,14 @@ static func build(new_title: String, new_tier: int, line: String, cells: Array, 
 	list.add_theme_constant_override("separation", UI3Theme.space("8"))
 	col.add_child(list)
 
-	var state := {"sel": ""}
 	var sells: Array[Button] = []
-	var rows := {}
-	var confirm := UI3.button(TranslationServer.translate("Pick one to sell"), &"primary", &"M")
-	confirm.name = "ConfirmButton"
-	UI3.set_disabled_reason(confirm, TranslationServer.translate("Pick one to sell"))
+	var fired := [false]
 	var back := UI3.button(TranslationServer.translate("Back"), &"secondary", &"M")
 	back.name = "BackButton"
 	var refresh_actions := func() -> void:
 		var a: Array = []
 		a.append_array(sells.filter(func(x: Button) -> bool: return not x.disabled))
 		a.append(back)
-		if not confirm.disabled:
-			a.append(confirm)
 		root.actions = a
 		root.focus_index = sells.filter(func(x: Button) -> bool: return not x.disabled).size()   # Back, as the frame
 	for c in cells:
@@ -89,27 +83,21 @@ static func build(new_title: String, new_tier: int, line: String, cells: Array, 
 		sb.name = "SellButton"
 		sb.set_meta("relic_id", id)
 		sb.icon = UI3.icon("cur_shard")
+		sb.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		sb.add_theme_constant_override("icon_max_width", UI3Theme.size_of("icon_s"))
 		h.add_child(sb)
 		list.add_child(row)
-		rows[id] = row
 		sells.append(sb)
 		if eternal:
 			UI3.set_disabled_reason(sb, TranslationServer.translate("Can't sell"))
 			sb.icon = null
 			row.modulate.a = 0.6
 			continue
-		sb.toggle_mode = true
-		var cname := String(cell.get("name", ""))
 		sb.pressed.connect(func() -> void:
-			state["sel"] = id
-			for o in sells:
-				var on := String(o.get_meta("relic_id")) == id
-				o.set_pressed_no_signal(on)
-				(rows[String(o.get_meta("relic_id"))] as PanelContainer).add_theme_stylebox_override("panel", _row_box(on))
-			UI3.clear_disabled_reason(confirm)
-			confirm.text = TranslationServer.translate("Sell %s and take") % cname
-			refresh_actions.call())
+			if fired[0]:
+				return   # one sale per sheet: a double click must not log a second swap
+			fired[0] = true
+			on_confirm.call(id))
 	var foot := HBoxContainer.new()
 	foot.name = "Footer"
 	foot.add_theme_constant_override("separation", UI3Theme.space("16"))
@@ -127,18 +115,14 @@ static func build(new_title: String, new_tier: int, line: String, cells: Array, 
 	taking.add_child(tn)
 	foot.add_child(taking)
 	foot.add_child(back)
-	foot.add_child(confirm)
 	back.pressed.connect(func() -> void: on_back.call())
 	root.cancelled.connect(func() -> void: on_back.call())
-	confirm.pressed.connect(func() -> void:
-		if String(state["sel"]) != "":
-			on_confirm.call(String(state["sel"])))
 	refresh_actions.call()
 	return root
 
 
 ## `.room-row`: plate_raised, radius m, padding 8 8 8 16; the picked row gets the selected ring.
-static func _row_box(picked: bool) -> StyleBoxFlat:
+static func _row_box(_picked: bool) -> StyleBoxFlat:
 	var p8 := UI3Theme.space("8")
-	return UI3Theme.flat(UI3Theme.color("plate_raised"), UI3Theme.radius("m"), UI3Theme.stroke("selected") if picked else 0,
+	return UI3Theme.flat(UI3Theme.color("plate_raised"), UI3Theme.radius("m"), 0,
 		UI3Theme.color("selected_outline"), Vector4(UI3Theme.space("16"), p8, p8, p8))

@@ -69,12 +69,11 @@ func _room(sc: float) -> void:
 	if sheet == null:
 		m.queue_free()
 		return
-	for n in ["MakeRoomSheet", "Title", "Line", "OwnedList", "SellRow", "CoreSlot", "TierChip", "SellButton", "Footer", "BackButton", "ConfirmButton"]:
+	for n in ["MakeRoomSheet", "Title", "Line", "OwnedList", "SellRow", "CoreSlot", "TierChip", "SellButton", "Footer", "BackButton"]:
 		_ok(sheet.find_child(n, true, false) != null, "%s: node %s" % [tag, n])
-	var conf := sheet.find_child("ConfirmButton", true, false) as Button
-	_ok(conf.disabled and conf.text == "Pick one to sell", tag + ": confirm off, says why")
+	_ok(sheet.find_child("ConfirmButton", true, false) == null, tag + ": no confirm step (frame has none)")
 	for b in sheet.find_children("SellButton", "Button", true, false):
-		_ok(not (b as Button).button_pressed, tag + ": nothing preselected")
+		_ok(not (b as Button).button_pressed and (b as Button).icon_alignment == HORIZONTAL_ALIGNMENT_RIGHT or (b as Button).disabled, tag + ": nothing preselected, shard icon after text")
 	_ok(get_viewport().gui_get_focus_owner() == sheet.find_child("BackButton", true, false), tag + ": initial focus on Back")
 	_ok(Align.pairs(sheet) > 0, tag + ": align pairs measured")
 	_ok(Align.check(sheet).is_empty(), tag + ": icon/label centred %s" % str(Align.check(sheet)))
@@ -83,8 +82,13 @@ func _room(sc: float) -> void:
 	for b in sheet.find_children("SellButton", "Button", true, false):
 		if String((b as Button).get_meta("relic_id")) == "r_claw":
 			pick = b
+	var shards0 := RunState.shards_this_run
 	pick.pressed.emit()
-	_ok(not conf.disabled, tag + ": pick enables confirm")
+	pick.pressed.emit()
+	await _frames(2)
+	_ok(RunState.owned_relic_ids.has("r_seedling") and not RunState.owned_relic_ids.has("r_claw"), tag + ": Sell took the new Core, sold r_claw")
+	_ok(RunState.owned_relic_ids.count("r_seedling") == 1, tag + ": exactly one acquire")
+	_ok(RunState.shards_this_run == shards0 + RelicSlots.sell_price("r_claw", RunState.ascension), tag + ": sale paid")
 	await _frames(1)
 	m.queue_free()
 	await _frames(2)

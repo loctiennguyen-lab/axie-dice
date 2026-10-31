@@ -459,8 +459,7 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 	var sheet := runmap.find_child("SlotSwapSheet", true, false)
 	_assert(sheet != null, "full passive slots open the swap sheet")
 	if sheet != null:
-		var conf: Button = sheet.find_child("ConfirmButton", true, false)
-		_assert(conf.disabled, "swap confirm disabled until a cell is picked")
+		_assert(sheet.find_child("ConfirmButton", true, false) == null, "no confirm step: Sell is the action")
 		_assert(_sell(sheet, "r_heart").disabled, "Eternal cell can't be picked")
 		var shards0 := RunState.shards_this_run
 		(sheet.find_child("BackButton", true, false) as Button).pressed.emit()
@@ -471,8 +470,6 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 		await get_tree().process_frame
 		sheet = runmap.find_child("SlotSwapSheet", true, false)
 		_sell(sheet, "r_claw").pressed.emit()
-		_assert(not (sheet.find_child("ConfirmButton", true, false) as Button).disabled, "pick enables confirm")
-		(sheet.find_child("ConfirmButton", true, false) as Button).pressed.emit()
 		await get_tree().process_frame
 		_assert(RunState.owned_relic_ids.has("r_seedling") and not RunState.owned_relic_ids.has("r_claw"), "swap sold r_claw, took r_seedling")
 		_assert(RunState.shards_this_run == shards0 + RelicSlots.sell_price("r_claw", RunState.ascension), "sale paid shards")

@@ -41,6 +41,7 @@ func _ready() -> void:
 	m.call("_close_overlay")
 	var layer: Node = m.get("_overlay_layer")
 	preload("res://scenes/run_map/ui5/ComboBand.gd").build(layer, "full", UI3Gacha.combo_name(cid), house, house != "")
+	await get_tree().create_timer(1.5).timeout
 	await _shot("47-core-offer--combo-banner", small)
 	_guard.restore()
 	get_tree().quit(0)
