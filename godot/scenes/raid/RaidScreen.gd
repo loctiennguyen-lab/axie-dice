@@ -39,6 +39,7 @@ var _view: Node = null
 var _challenge: Dictionary = {}
 var _busy := false
 var _req := 0
+var _focus_fight := -1
 
 
 func _ready() -> void:
@@ -85,6 +86,8 @@ func team_name() -> String:
 
 
 func cycle_team() -> void:
+	if _busy:
+		return
 	var n := (MetaState.team_presets as Array).size()
 	if n > 1:
 		team_index = (team_index + 1) % n
@@ -290,7 +293,7 @@ func _build() -> void:
 	var tp := Ui5RaidParts.top_plate()
 	body.add_child(tp["plate"])
 	var txt: VBoxContainer = tp["txt"]
-	_points_lbl = Ui5RaidParts.wrap_label("PointsLine", "", "text_title", "text")
+	_points_lbl = Ui5RaidParts.wrap_label("PointsLine", "", "text_title", "text", true)
 	txt.add_child(_points_lbl)
 	txt.add_child(Ui5RaidParts.wrap_label("RuleLine", "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You can always fight more, they just don't score. Nobody loses anything.", "text_body", "text_muted"))
 	_info_line = Ui5RaidParts.info_line()
@@ -327,17 +330,24 @@ func _defence_min_w() -> float:
 func _redraw() -> void:
 	if _list == null:
 		return
+	var fo := get_viewport().gui_get_focus_owner() if is_inside_tree() else null
+	_focus_fight = int(fo.get_meta("ghost_idx", -1)) if fo != null and _list.is_ancestor_of(fo) else -1
 	UI3Meta.clear(_list)
 	_points_lbl.text = "Raid points %d · %s" % [points, next_badge_text()]
-	_team_btn.text = "Team: %s" % team_name()
+	var team_full := "Team: %s" % team_name()
+	var tf: Font = _team_btn.get_theme_font("font")
+	var tfs: int = _team_btn.get_theme_font_size("font_size")
+	_team_btn.text = Ui5Ellipsis.fit(team_full, tf, tfs, UI3Theme.size_of("tooltip_w") - UI3Theme.space("24") * 2 - 8.0)
+	_team_btn.clip_text = true
+	_team_btn.tooltip_text = team_full if _team_btn.text != team_full else ""
 	var presets_n := (MetaState.team_presets as Array).size()
-	_team_btn.disabled = presets_n < 2 or _busy
+	_team_btn.disabled = presets_n < 2   # busy is guarded in cycle_team: a disabled button would drop the keyboard focus
 	var why := block_reason()
 	if why != "":
 		Ui5DisabledReason.apply(_def_btn, why)
 	else:
 		Ui5DisabledReason.clear(_def_btn)
-		_def_btn.disabled = _busy
+		_def_btn.disabled = false   # busy is guarded in save_defense: a disabled button would drop the keyboard focus
 	match status:
 		"loading":
 			for _i in 2:
@@ -360,8 +370,12 @@ func _redraw() -> void:
 		_:
 			for i in opponents.size():
 				_list.add_child(_ghost_row(i), true)
-	if is_inside_tree():
-		_ensure_focus.call_deferred()
+	if is_inside_tree() and _view == null:
+		var back := _list.find_children("FightButton", "Button", true, false)
+		if _focus_fight >= 0 and _focus_fight < back.size():
+			(back[_focus_fight] as Button).grab_focus()   # the list was rebuilt under the player's focus: give it back
+		else:
+			_ensure_focus.call_deferred()
 
 
 func _ghost_row(i: int) -> Control:
@@ -372,7 +386,7 @@ func _ghost_row(i: int) -> Control:
 		names.append(String((ContentDB.heroes.get(key, {}) as Dictionary).get("n", key.capitalize())))
 	var parts := Ui5RaidParts.ghost_row("%s · power %d" % [String(o.get("name", "Player")), int(o.get("power_hint", 0))], ", ".join(names))
 	var b: Button = parts["fight"]
-	b.disabled = _busy
+	b.set_meta("ghost_idx", i)
 	b.pressed.connect(challenge.bind(i))
 	return parts["row"]
 

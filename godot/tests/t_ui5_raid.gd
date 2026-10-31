@@ -160,6 +160,19 @@ func _pass(sc: float, tag: String) -> void:
 	_check(_btn(s, "DefenceButton").theme_type_variation == "ButtonPrimaryL" and _btn(s, "TeamButton").theme_type_variation == "ButtonSecondary", "%s r01: Defence primary L, Team secondary" % tag)
 	_check(_btn(s, "BackButton").text == "←", "%s r01: back arrow" % tag)
 	_check(s._points_lbl.text == "Raid points 8 · Next badge at 10 points", "%s r01: PointsLine from data '%s'" % [tag, s._points_lbl.text])
+	_check(s._points_lbl.theme_type_variation == "LabelDisplay" and s._points_lbl.get_theme_font("font") != (s.find_child("RuleLine", true, false) as Label).get_theme_font("font"), "%s r01: PointsLine in the display font (Rowdies)" % tag)
+	# long preset name: TeamButton is cut with an ellipsis within its token width and does not push the buttons
+	var tb0 := _btn(s, "TeamButton")
+	var tx0 := tb0.global_position.x
+	var db0 := _btn(s, "DefenceButton").size.x
+	MetaState.team_presets[0]["name"] = "P".repeat(80)
+	s._redraw()
+	await _settle()
+	_check(tb0.text.ends_with("…") and tb0.size.x <= UI3Theme.size_of("tooltip_w") + 1.0 and tb0.tooltip_text.contains("PPPP"), "%s r01: long preset name cut with an ellipsis, width %.0f" % [tag, tb0.size.x])
+	_check(absf(_btn(s, "DefenceButton").size.x - db0) < 1.0 and tb0.global_position.x + tb0.size.x <= _btn(s, "DefenceButton").global_position.x, "%s r01: long preset name does not push the buttons (x %.0f -> %.0f)" % [tag, tx0, tb0.global_position.x])
+	MetaState.team_presets[0]["name"] = "Preset A"
+	s._redraw()
+	await _settle()
 	_check(_btn(s, "TeamButton").text == "Team: Preset A" and not _btn(s, "TeamButton").disabled, "%s r01: TeamButton from presets" % tag)
 	var g0 := s.find_child("GhostName", true, false) as Label
 	_check(Ui5Ellipsis.full_text(g0).begins_with("Zed0 · power 100"), "%s r01: ghost name + power from data" % tag)
@@ -189,6 +202,7 @@ func _pass(sc: float, tag: String) -> void:
 	s.save_defense()
 	await _settle()
 	_names(s, ["InfoLine", "ToneDisc"], tag + " r02")
+	_check(get_viewport().gui_get_focus_owner() == _btn(s, "DefenceButton"), "%s r02: focus still on DefenceButton after saving" % tag)
 	_check(s._info.text == "Defence team set: Preset A." and (s.find_child("ToneDisc", true, false) as Control).get_meta("tone") == &"ok", "%s r02: ok disc + text" % tag)
 	_audit(s, sc, tag + " r02", true)
 	# r03 win
@@ -271,11 +285,17 @@ func _pass(sc: float, tag: String) -> void:
 	s._show_result()
 	await _settle()
 	_audit(s, sc, tag + " r10", true)
+	# focus on a FightButton survives the list rebuild
+	(s.find_children("FightButton", "Button", true, false)[2] as Button).grab_focus()
+	s._redraw()
+	await _settle()
+	_check(get_viewport().gui_get_focus_owner() == s.find_children("FightButton", "Button", true, false)[2], "%s r10: focus on the 3rd FightButton kept after a redraw" % tag)
 	# Fight still goes through the same call path
 	_sent.clear()
 	_answers["/api/raid/start"] = [500, '{"error":"server"}']
 	s.challenge(0)
 	await _settle()
+	_check(get_viewport().gui_get_focus_owner() == s.find_children("FightButton", "Button", true, false)[0] or get_viewport().gui_get_focus_owner() == s.find_children("FightButton", "Button", true, false)[2], "%s r10: focus kept after Fight" % tag)
 	_check(not _sent.is_empty() and _sent[0]["p"] == "/api/raid/start" and s._info.text == "Server error. Try again.", "%s r10: Fight calls /api/raid/start, error shown" % tag)
 	await _free(s)
 	MetaState.team_presets = []
