@@ -252,6 +252,9 @@ func _sync_tabs(forced := "") -> void:
 				active = String(sec)
 		if active == "" and not _sections.is_empty():
 			active = String(_sections.keys()[0])
+		var vb := _scroll.get_v_scroll_bar()
+		if vb.value >= vb.max_value - vb.page - 1.0 and vb.max_value > vb.page and not _sections.is_empty():
+			active = String(_sections.keys()[-1])   # scrolled to the end: the last section is the one in view
 	for sec in _tabs:
 		Parts.style_index_row(_tabs[sec] as Button, sec == active)
 
@@ -323,9 +326,8 @@ func _build_abandon_section() -> void:
 		(r["h"] as Control).add_child(btn)
 		return
 	var cr := Parts.row("ConfirmRow")
-	var confirm := CheckBox.new()
-	confirm.name = "Checkbox"
-	confirm.text = "Yes, I want to abandon the saved run"
+	var confirm := Ui5SettingsCheck.new()
+	confirm.setup("Yes, I want to abandon the saved run")
 	abandon_check = confirm
 	(cr["txt"] as Control).add_child(confirm)
 	btn.disabled = true
@@ -521,8 +523,6 @@ func _toggle(id: StringName, label: String, desc: String, pressed: bool, on_togg
 	(r["h"] as Control).add_child(c["cell"])
 	_add(r["row"])
 	_switches[id] = sw
-	if _first_focus == null:
-		_first_focus = sw
 
 
 ## A slider with its value on screen.
@@ -534,5 +534,3 @@ func _slider(id: StringName, label: String, value: float, on_change: Callable) -
 	(r["h"] as Control).add_child(c["cell"])
 	_add(r["row"])
 	_sliders[id] = sl
-	if _first_focus == null:
-		_first_focus = sl

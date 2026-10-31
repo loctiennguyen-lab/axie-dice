@@ -34,6 +34,8 @@ func _ready() -> void:
 		await _screen(sc)
 	RunState.clear_saved_run()
 	UI3Theme.set_scale_override(1.0)
+	await _accounts()
+	UI3Theme.set_scale_override(1.0)
 	var v := await _open()
 	_check(v.abandon_button != null and v.abandon_button.disabled, "no run: AbandonButton shown and disabled")
 	v.queue_free()
@@ -99,3 +101,85 @@ func _screen(sc: float) -> void:
 	_check(probs.is_empty(), "[%s] icon/label alignment: %s" % [tag, "; ".join(probs)])
 	v.queue_free()
 	await get_tree().process_frame
+
+
+## Account states of the real AccountService, set by field (no server: transport is a stub that records the path).
+func _accounts() -> void:
+	var svc := AccountService
+	var keep := [svc.enabled, svc.status, svc.account, svc.transport, svc.last_synced, svc.desktop_enabled_override]
+	var calls: Array[String] = []
+	svc.transport = func(_m: String, path: String, _b: String, _cb: Callable) -> void: calls.append(path)
+	for sc in [1.0, 2.0 / 3.0]:
+		UI3Theme.set_scale_override(sc)
+		var tag := "acct %.2f" % sc
+		# signed out: desktop button, web button
+		svc.enabled = false
+		svc.account = {}
+		svc.desktop_enabled_override = true
+		var v := await _open()
+		_check(v.find_child("SignedOutRow*", true, false) != null and v.find_child("AccountButton", true, false) != null, "[%s] signed out (desktop): SignedOutRow + AccountButton" % tag)
+		v.queue_free()
+		await get_tree().process_frame
+		svc.enabled = true
+		v = await _open()
+		var si := v.find_child("SignInButton", true, false) as Button
+		_check(si != null and si.text == "Continue with Google", "[%s] signed out (web copy): Continue with Google" % tag)
+		v.queue_free()
+		await get_tree().process_frame
+		# signed in
+		svc.status = AccountService.Status.SAVED
+		svc.account = {"name": "Test Player", "email": "test.player@example.test", "sky_mavis": true}
+		svc.last_synced = int(Time.get_unix_time_from_system())
+		v = await _open()
+		var all := _texts(v)
+		_check(v.find_child("Avatar", true, false) != null, "[%s] account-in: Avatar" % tag)
+		_check(all.contains("Test Player") and all.contains("SKY MAVIS") and all.contains("test.player@example.test · Google"), "[%s] account-in: name, SKY MAVIS tag, email" % tag)
+		_check(all.contains("Cloud save: Saved"), "[%s] account-in: Cloud save line" % tag)
+		var sw := v.find_children("SwitchButton*", "Button", true, false)
+		var out := v.find_child("SignOutButton", true, false) as Button
+		_check(sw.size() == 1 and (sw[0] as Button).theme_type_variation == &"ButtonSecondaryS", "[%s] Switch account is secondary S" % tag)
+		_check(out != null and out.theme_type_variation == &"ButtonSecondaryS" and out.text == "Sign out", "[%s] Sign out is secondary S" % tag)
+		calls.clear()
+		out.pressed.emit()
+		_check(out.text == "Confirm sign out" and out.theme_type_variation == &"ButtonDanger", "[%s] account-confirm: Confirm sign out, danger" % tag)
+		var note := v.find_child("SignOutNote", true, false) as Label
+		_check(note != null and note.visible and note.text.begins_with("You will need to sign in again"), "[%s] account-confirm: warning line" % tag)
+		_check(calls.is_empty(), "[%s] first press does not sign out" % tag)
+		out.pressed.emit()
+		_check(calls.has("/auth/logout"), "[%s] second press signs out (stub got %s)" % [tag, calls])
+		v.queue_free()
+		await get_tree().process_frame
+		# expired
+		svc.status = AccountService.Status.EXPIRED
+		v = await _open()
+		var disc := v.find_child("ToneDisc", true, false) as Control
+		var row := v.find_child("ExpiredRow*", true, false)
+		var lbl: Label = null
+		for l in row.find_children("*", "Label", true, false):
+			if (l as Label).text.begins_with("Your session expired"):
+				lbl = l
+		_check(disc != null and lbl != null and v.find_child("SignInButton", true, false) != null, "[%s] account-expired: ToneDisc + text + SignInButton" % tag)
+		_check(v.find_child("SignOutButton", true, false) == null, "[%s] account-expired: no sign out row (frame)" % tag)
+		if disc != null and lbl != null:
+			var dy := disc.get_global_rect().get_center().y
+			var ty: float = Align.text_center(lbl).y
+			_check(absf(dy - ty) <= 1.5 or lbl.get_visible_line_count() > 1, "[%s] ToneDisc centred on the text (%.1f vs %.1f)" % [tag, dy, ty])
+		# Align checker: the error disc carries a "!" label, not an icon, so it is measured by hand above; the checker still runs.
+		_check(Align.check(v).is_empty(), "[%s] expired: align_check clean" % tag)
+		print("t_ui5_settings: align pairs expired [%s] = %d" % [tag, Align.pairs(v)])
+		v.queue_free()
+		await get_tree().process_frame
+	svc.enabled = keep[0]
+	svc.status = keep[1]
+	svc.account = keep[2]
+	svc.transport = keep[3]
+	svc.last_synced = keep[4]
+	svc.desktop_enabled_override = keep[5]
+
+
+func _texts(root: Node) -> String:
+	var all := ""
+	for n in root.find_children("*", "Label", true, false):
+		if (n as Label).is_visible_in_tree():
+			all += (n as Label).text + "\n"
+	return all
