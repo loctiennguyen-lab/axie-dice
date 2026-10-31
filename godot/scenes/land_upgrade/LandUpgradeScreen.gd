@@ -26,19 +26,24 @@ const ADDS_WHERE: Dictionary = {
 	6: "New decor set: Edit Land",
 }
 
+const Parts := preload("res://scenes/land_upgrade/ui5/LandUpgradeParts.gd")
+
 var no_scene_change := false
 var _shell: Dictionary
 var _rows: VBoxContainer
-var _head: PanelContainer
-var _detail: PanelContainer
+var _head_host: VBoxContainer
+var _detail: Ui5DetailPlate
 var _sel := 0
 var _toast_host: VBoxContainer
 var _modal: Control
+var _stone_value: Label
 var _done := false   # set after a successful upgrade so a double tap cannot toast an error
 
 
 func _ready() -> void:
 	_shell = UI3Meta.build(self, "Land upgrade", "", _on_back)
+	(_shell["panel"] as Control).name = "PlateHost"   # t_ui_laws L0
+	_stone_value = Parts.header(_shell, MetaState.stone)
 	var col: VBoxContainer = _shell["col"]
 	var body := HBoxContainer.new()
 	body.name = "Body"
@@ -46,24 +51,26 @@ func _ready() -> void:
 	body.add_theme_constant_override("separation", UI3Meta.GAP)
 	col.add_child(body)
 	var left := VBoxContainer.new()
+	left.name = "TierList"
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.add_theme_constant_override("separation", UI3Meta.GAP)
+	left.add_theme_constant_override("separation", UI3Theme.space("12"))
 	body.add_child(left)
-	_head = UI3.plate(&"plate")
-	_head.name = "HeaderPlate"
-	left.add_child(_head)
-	_toast_host = VBoxContainer.new()
-	_toast_host.name = "ToastHost"
-	left.add_child(_toast_host)
+	_head_host = VBoxContainer.new()
+	left.add_child(_head_host)
 	_rows = VBoxContainer.new()
 	_rows.name = "Rows"
 	_rows.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_rows.add_theme_constant_override("separation", UI3Theme.space("8"))
+	_rows.add_theme_constant_override("separation", UI3Theme.space("12"))
 	left.add_child(UI3Meta.scroll(_rows))
-	_detail = UI3.plate(&"plate")
-	_detail.name = "DetailPlate"
-	_detail.custom_minimum_size = Vector2(440, 0)
+	_detail = Ui5DetailPlate.new()
+	_detail.setup("upgrade_detail_w", "", "", "", 12)
 	body.add_child(_detail)
+	_toast_host = VBoxContainer.new()
+	_toast_host.name = "ToastHost"
+	_toast_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_toast_host.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	_toast_host.offset_top = UI3Theme.space("24")
+	add_child(_toast_host)
 	_sel = _default_sel()
 	_redraw()
 
@@ -71,6 +78,17 @@ func _ready() -> void:
 ## Row shown in the detail plate by default: the next tier to buy, or the top one.
 func _default_sel() -> int:
 	return mini(MetaState.land_tier + 1, _Eco.land_max_tier())
+
+
+## Display name of tier n ("Luna Landing", not the id).
+## "Savannah Land", but "Luna Landing" already says it.
+static func land_title(n: int) -> String:
+	var nm := tier_name(n)
+	return nm if nm.ends_with("Landing") else nm + " Land"
+
+
+static func tier_name(n: int) -> String:
+	return TIER_NAMES[clampi(n, 1, 6) - 1].replace("LunaLanding", "Luna Landing")
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
@@ -110,40 +128,46 @@ func row_state(tier: int) -> String:
 func _redraw() -> void:
 	UI3Meta.clear(_rows)
 	var max_t := _Eco.land_max_tier()
-	for tier in range(1, max_t + 1):
-		_rows.add_child(_row(tier))
-	if MetaState.land_tier >= max_t:
-		var l := UI3.label("Top tier reached. Nothing to buy.", "LabelMuted")
-		l.name = "MaxNote"
-		_rows.add_child(l)
 	_sel = clampi(_sel, 1, max_t)
+	for tier in range(1, max_t + 1):
+		var r := _row(tier)
+		_rows.add_child(r, true)
+		r.focus_entered.connect(_select.bind(tier))
+		r.gui_input.connect(_row_input.bind(tier))
+		r.mouse_entered.connect(_select.bind(tier))
+	_stone_value.text = fmt(MetaState.stone)
 	_draw_head()
 	_draw_detail()
+	call_deferred("_focus_first")
 
 
-## Header plate: title + Stone progress toward the next tier.
+func _focus_first() -> void:
+	if not is_inside_tree():
+		return
+	var tgt := find_child("UpgradeButton", true, false) as Button
+	if tgt == null or tgt.disabled:
+		tgt = null
+		var rr := find_child("TierRow%d" % _sel, true, false)
+		if rr != null:
+			tgt = rr.find_child("RowButton", true, false) as Button
+	if tgt == null or tgt.focus_mode == Control.FOCUS_NONE:
+		tgt = find_child("BackButton", true, false) as Button
+	if tgt != null:
+		tgt.grab_focus()
+
+
+## TierHeader: "<Land> · tier n of 6", the Stone bar and the progress line.
 func _draw_head() -> void:
-	UI3Meta.clear(_head)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", UI3Theme.space("8"))
-	_head.add_child(v)
+	UI3Meta.clear(_head_host)
 	var cur := MetaState.land_tier
-	v.add_child(UI3.label("%s Land · tier %d of %d" % [TIER_NAMES[clampi(cur, 1, 6) - 1], cur, _Eco.land_max_tier()], "LabelTitle"))
-	if cur >= _Eco.land_max_tier():
-		v.add_child(UI3.label("Top tier reached.", "LabelMuted"))
+	var max_t := _Eco.land_max_tier()
+	var title := "%s · tier %d of %d" % [land_title(cur), cur, max_t]
+	if cur >= max_t:
+		_head_host.add_child(Parts.tier_header(title, 1, 1, "Top tier reached."))
 		return
 	var need := _Eco.land_tier_cost(cur)
-	var bar := ProgressBar.new()
-	bar.name = "StoneBar"
-	bar.show_percentage = false
-	bar.min_value = 0
-	bar.max_value = maxf(need, 1)
-	bar.value = clampf(MetaState.stone, 0, need)
-	bar.custom_minimum_size = Vector2(0, 16)
-	v.add_child(bar)
-	var l := UI3.label("%s / %s Land Stone for %s" % [fmt(MetaState.stone), fmt(need), TIER_NAMES[cur]], "LabelMuted")
-	l.name = "StoneLine"
-	v.add_child(l)
+	_head_host.add_child(Parts.tier_header(title, MetaState.stone, need,
+		"%s / %s Land Stone for %s" % [fmt(MetaState.stone), fmt(need), tier_name(cur + 1)]))
 
 
 func _select(tier: int) -> void:
@@ -151,67 +175,67 @@ func _select(tier: int) -> void:
 		return
 	_sel = tier
 	for r in _rows.get_children():
-		if r.name.begins_with("Tier"):
-			r.theme_type_variation = "PanelCardSelected" if r.name == "Tier%d" % tier else "PanelRow"
+		if r.name.begins_with("TierRow"):
+			var n := int(String(r.name).substr(7))
+			(r as PanelContainer).add_theme_stylebox_override("panel", _row_box(n == tier))
 	_draw_detail()
 
 
-## Detail plate for row `_sel`: art, name + status, what it adds, cost rows, reason, primary Upgrade.
+func _row_box(ring: bool) -> StyleBoxFlat:
+	var probe := Parts.tier_row(1, "", "", "", "", Button.new(), ring, false)
+	var sb := probe.get_theme_stylebox("panel") as StyleBoxFlat
+	probe.free()
+	return sb
+
+
+## DetailPlate for row `_sel`: TierArt, Name + StateTag, Adds, cost rows, then the wide UpgradeButton (disabled = its reason).
 func _draw_detail() -> void:
-	UI3Meta.clear(_detail)
 	var tier := _sel
 	var st := row_state(tier)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", UI3Theme.space("16"))
-	_detail.add_child(v)
+	_detail.show_item("")
+	_detail.title.visible = false
 	var art := Panel.new()
-	art.custom_minimum_size = Vector2(0, 200)
-	art.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	art.add_theme_stylebox_override("panel", UI3Theme.flat(_tint(tier), UI3Theme.radius("s")))
-	v.add_child(art)
+	art.name = "TierArt"
+	art.custom_minimum_size.y = UI3Theme.size_of("upgrade_art_h")
+	art.add_theme_stylebox_override("panel", UI3Theme.flat(Parts.tint(tier), UI3Theme.radius("m")))
+	_detail.body.add_child(art)
 	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", UI3Theme.space("8"))
-	v.add_child(head)
-	var t := UI3.label("%s Land" % TIER_NAMES[tier - 1], "LabelScreenTitle")
-	t.name = "DetailTitle"
-	t.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	head.name = "NameRow"
+	head.add_theme_constant_override("separation", UI3Theme.space("12"))
+	_detail.body.add_child(head)
+	var t := Ui5Text.label(land_title(tier), "text_screen_title", "text", true)
+	t.name = "Name"
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	head.add_child(t)
-	var badge := _badge(st)
-	if badge != "":
-		var tg := UI3Meta.tag(badge)
-		tg.name = "DetailBadge"
-		head.add_child(tg)
-	var adds := UI3.label(String(ADDS.get(tier, "Starting Land")))
-	adds.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	adds.custom_minimum_size.x = 392
-	v.add_child(adds)
-	if tier > 1:
-		var cost := _Eco.land_tier_cost(tier - 1)
-		v.add_child(_info_row("Cost", "%s Stone" % fmt(cost), "Cost"))
-		if tier > MetaState.land_tier:
-			v.add_child(_info_row("Total from here", "%s Stone" % fmt(cumulative(tier)), "Cumulative"))
-			if MetaState.stone >= cost:
-				v.add_child(_info_row("Stone after", fmt(MetaState.stone - cost), "After"))
-	var up := UI3.button("Upgrade", &"primary", &"L")
-	up.name = "DetailUpgrade"
-	up.pressed.connect(_ask.bind(tier))
+	head.add_child(Parts.state_tag(_badge(st)))
+	_detail.add_line(String(ADDS.get(tier, "Starting Land")), "text_muted").name = "Adds"
+	var cost := _Eco.land_tier_cost(tier - 1) if tier > 1 else 0
+	if tier > MetaState.land_tier:
+		_detail.body.add_child(Parts.kv("CostRow", "Cost", "%s Stone" % fmt(cost)))
+		if true:
+			_detail.body.add_child(Parts.kv("TotalRow", "Total from here", "%s Stone" % fmt(cumulative(tier))))
+			if st == "afford":
+				_detail.body.add_child(Parts.kv("AfterRow", "Stone after", "%s Stone" % fmt(MetaState.stone - cost)))
+	if MetaState.land_tier >= _Eco.land_max_tier():
+		_detail.add_line("Top tier reached. Nothing to buy.").name = "TopLine"
+		return
+	var up: Button
 	match st:
 		"afford":
-			pass
+			up = _detail.set_primary("Upgrade")
+			up.pressed.connect(_ask.bind(tier))
 		"short":
-			var why := UI3.label("Need %s more Stone" % fmt(_Eco.land_tier_cost(tier - 1) - MetaState.stone))
-			why.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
-			why.name = "Reason"
-			v.add_child(why)
-			UI3.set_disabled_reason(up, "Need %s Stone" % fmt(_Eco.land_tier_cost(tier - 1) - MetaState.stone))
+			var why := "Need %s more Stone" % fmt(cost - MetaState.stone)
+			up = _detail.set_primary(why, why)
 		"locked":
-			UI3.set_disabled_reason(up, "Not in this build")
+			up = _detail.set_primary("Not in this build", "Not in this build")
 		"later":
-			UI3.set_disabled_reason(up, "Upgrade %s first" % TIER_NAMES[tier - 2])
+			var why2 := "Upgrade %s first" % tier_name(tier - 1)
+			up = _detail.set_primary(why2, why2)
 		_:
-			UI3.set_disabled_reason(up, _button_text(tier, st))
-	v.add_child(up)
+			up = _detail.set_primary(_button_text(tier, st), _button_text(tier, st))
+	up.name = "UpgradeButton"
 
 
 ## Detail badge: Current / Owned / Next (the tier to buy) / Locked (later tiers, or L1 switch off).
@@ -223,77 +247,22 @@ func _badge(st: String) -> String:
 	return "Locked"
 
 
-func _info_row(k: String, val: String, nm: String) -> Control:
-	var r := UI3.plate(&"row")
-	r.custom_minimum_size = Vector2(0, 48)
-	var h := HBoxContainer.new()
-	r.add_child(h)
-	var a := UI3.label(k, "LabelMuted")
-	a.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	h.add_child(a)
-	var b := UI3.label(val, "LabelTitle")
-	b.name = nm
-	h.add_child(b)
-	return r
-
-
-## Thumbnail colour per tier (the Land's ground tone); the Land itself draws the real look.
-static func _tint(tier: int) -> Color:
-	return [Color("#c9a24e"), Color("#5f9a4a"), Color("#9cc4d6"), Color("#7a5bb0"), Color("#b0793f"), Color("#d8d0e8")][clampi(tier, 1, 6) - 1]
-
-
 func _row(tier: int) -> Control:
 	var st := row_state(tier)
-	var p := UI3.plate(&"card_selected" if tier == _sel else &"row")
-	p.name = "Tier%d" % tier
-	p.custom_minimum_size = Vector2(0, 96)
-	p.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	p.focus_mode = Control.FOCUS_ALL   # reachable by keyboard even when Upgrade is disabled
-	p.focus_entered.connect(_select.bind(tier))
-	p.gui_input.connect(_row_input.bind(tier))
-	if st == "done":
-		p.modulate.a = 0.5   # claimed / owned
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", UI3Theme.space("16"))
-	p.add_child(h)
-	var thumb := Panel.new()
-	thumb.custom_minimum_size = Vector2(96, 64)
-	thumb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	thumb.add_theme_stylebox_override("panel", UI3Theme.flat(_tint(tier), UI3Theme.radius("s")))
-	h.add_child(thumb)
-	var mid := VBoxContainer.new()
-	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mid.alignment = BoxContainer.ALIGNMENT_CENTER
-	h.add_child(mid)
-	var nl := UI3.label("%s Land" % TIER_NAMES[tier - 1], "LabelTitle")
-	nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mid.add_child(nl)
-	var adds := UI3.label(String(ADDS.get(tier, "Starting Land")), "LabelMuted")
-	adds.name = "Adds"
-	mid.add_child(adds)
-	var cost_box := VBoxContainer.new()
-	cost_box.custom_minimum_size = Vector2(200, 0)
-	cost_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	h.add_child(cost_box)
-	if tier > 1:
-		var c := UI3.label("%s Stone" % fmt(_Eco.land_tier_cost(tier - 1)), "LabelTitle")
-		c.name = "Cost"
-		cost_box.add_child(c)
-		if tier > MetaState.land_tier:
-			var cu := UI3.label("%s total from here" % fmt(cumulative(tier)), "LabelMuted")
-			cu.name = "Cumulative"
-			cost_box.add_child(cu)
+	var cost := ""
+	var cum := ""
+	if tier > 1 and tier > MetaState.land_tier:
+		cost = "%s Stone" % fmt(_Eco.land_tier_cost(tier - 1))
+		cum = "%s total from here" % fmt(cumulative(tier))
 	var b := UI3.button(_button_text(tier, st), &"secondary", &"S")
-	b.name = "Btn"
 	b.disabled = st != "afford"
 	b.custom_minimum_size.x = 200
-	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	b.pressed.connect(_ask.bind(tier))
 	b.focus_entered.connect(_select.bind(tier))
 	b.mouse_entered.connect(_select.bind(tier))
-	h.add_child(b)
-	return p
+	if b.disabled:
+		b.tooltip_text = b.text
+	return Parts.tier_row(tier, land_title(tier), String(ADDS.get(tier, "Starting Land")), cost, cum, b, tier == _sel, st == "done")
 
 
 func _row_input(ev: InputEvent, tier: int) -> void:
@@ -311,17 +280,59 @@ func _button_text(tier: int, st: String) -> String:
 		"afford": return "Upgrade"
 		"short":
 			return "Need %s more" % fmt(_Eco.land_tier_cost(tier - 1) - MetaState.stone)
-	return "Upgrade %s first" % TIER_NAMES[tier - 2]
+	return "Upgrade %s first" % tier_name(tier - 1)
 
 
 func _ask(tier: int) -> void:
 	if _modal != null or row_state(tier) != "afford":
 		return
 	var cost := _Eco.land_tier_cost(tier - 1)
-	_modal = UI3Meta.confirm(_shell["modal_layer"], "Spend %s Stone?" % fmt(cost),
-		"%s becomes %s. This cannot be undone.\nStone after: %s." % [
-			TIER_NAMES[tier - 2], TIER_NAMES[tier - 1], fmt(MetaState.stone - cost)],
-		"Keep Stone", "Upgrade to %s" % TIER_NAMES[tier - 1], confirm_upgrade.bind(tier), _close_modal, false)
+	var keep := UI3.button("Keep Stone", &"secondary", &"M")
+	keep.name = "KeepStoneButton"
+	keep.pressed.connect(_close_modal)
+	var yes := UI3.button("Upgrade to %s" % tier_name(tier), &"primary", &"M")
+	yes.name = "UpgradeToButton"
+	yes.pressed.connect(confirm_upgrade.bind(tier))
+	var root := UI3.ModalRoot.new()
+	root.theme = UI3Theme.get_theme()
+	root.name = "Confirm"
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.add_to_group("ui3_modal")
+	var scrim := ColorRect.new()
+	scrim.name = "Scrim"
+	scrim.color = UI3Theme.color("scrim")
+	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(scrim)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(center)
+	var dlg := Parts.PanelParts.panel(Parts.PanelParts.plate_box("xl", UI3Theme.space("32")), "UpgradeConfirm")
+	dlg.custom_minimum_size.x = UI3Theme.size_of("modal_s_w")
+	center.add_child(dlg)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", UI3Theme.space("20"))
+	dlg.add_child(v)
+	var ttl := Ui5Text.label("Spend %s Stone?" % fmt(cost), "text_banner", "text", true)
+	ttl.name = "Title"
+	ttl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(ttl)
+	var bd := Ui5Text.label("%s becomes %s. This cannot be undone.\nStone after: %s." % [
+		tier_name(tier - 1), tier_name(tier), fmt(MetaState.stone - cost)], "text_body", "text")
+	bd.name = "Body"
+	bd.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(bd)
+	v.add_child(Ui5ModalFooter.make(yes, keep))
+	root.actions = [keep, yes]
+	root.focus_index = 0   # focus starts on the safe choice
+	root.cancelled.connect(_close_modal)
+	_shell["modal_layer"].add_child(root)
+	_modal = root
+	var cap := Ui5Keycap.make("Space")
+	keep.add_child(cap)   # Space presses the focused Keep Stone; no keycap on Upgrade
+	Ui5HudStyle.place_trailing(keep, cap, UI3Theme.space("16"))
+	keep.resized.connect(func() -> void: Ui5HudStyle.place_trailing(keep, cap, UI3Theme.space("16")))
 
 
 func _close_modal() -> void:
@@ -345,13 +356,11 @@ func confirm_upgrade(target: int) -> bool:
 			LandNav.back_to_land()   # Land reads the new tier in _ready and shows the banner once
 			return true
 	else:
-		_toast("Could not upgrade")
+		_toast("Could not upgrade", &"error")
 	_redraw()
 	return ok
 
 
-func _toast(msg: String) -> void:
+func _toast(msg: String, tone := &"ok") -> void:
 	UI3Meta.clear(_toast_host)
-	var l := UI3.label(msg, "LabelTitle")
-	l.name = "Toast"
-	_toast_host.add_child(l)
+	_toast_host.add_child(Ui5Toast.make(msg, tone))

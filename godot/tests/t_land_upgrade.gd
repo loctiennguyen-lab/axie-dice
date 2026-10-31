@@ -102,11 +102,11 @@ func _ready() -> void:
 	MetaState.stone = 3860
 	_switch(false)
 	var s := await _screen()
-	_ok(s.find_child("Tier6", true, false) != null, "six rows")
-	_ok((s.find_child("Btn", true, false) as Button).disabled, "L1: buttons disabled")
+	_ok(s.find_child("TierRow6", true, false) != null, "six rows")
+	_ok((s.find_child("RowButton", true, false) as Button).disabled, "L1: buttons disabled")
 	var texts: Array[String] = []
 	for r in 6:
-		texts.append((s.find_child("Tier%d" % (r + 1), true, false).find_child("Btn", true, false) as Button).text)
+		texts.append((s.find_child("TierRow%d" % (r + 1), true, false).find_child("RowButton", true, false) as Button).text)
 	_ok(texts[1] == "Not in this build" and texts[5] == "Not in this build", "L1 words: Not in this build")
 	s.queue_free()
 	await get_tree().process_frame
@@ -114,9 +114,9 @@ func _ready() -> void:
 	_switch(true)
 	MetaState.stone = 21200
 	s = await _screen()
-	var b2 := s.find_child("Tier2", true, false).find_child("Btn", true, false) as Button
+	var b2 := s.find_child("TierRow2", true, false).find_child("RowButton", true, false) as Button
 	_ok(not b2.disabled and b2.text == "Upgrade", "can afford: Upgrade enabled")
-	_ok((s.find_child("Tier3", true, false).find_child("Btn", true, false) as Button).disabled, "tier 3 not reachable yet")
+	_ok((s.find_child("TierRow3", true, false).find_child("RowButton", true, false) as Button).disabled, "tier 3 not reachable yet")
 	b2.pressed.emit()
 	await get_tree().process_frame
 	_ok(s.find_child("Confirm", true, false) != null, "confirm shown")
@@ -128,11 +128,11 @@ func _ready() -> void:
 	s.call("_redraw")
 	await get_tree().process_frame
 	_ok(s.find_child("Toast", true, false) != null, "toast")
-	_ok((s.find_child("Tier3", true, false).find_child("Btn", true, false) as Button).text.begins_with("Need"), "tier 3 shows shortfall")
+	_ok((s.find_child("TierRow3", true, false).find_child("RowButton", true, false) as Button).text.begins_with("Need"), "tier 3 shows shortfall")
 	MetaState.land_tier = 6
 	s.call("_redraw")
 	await get_tree().process_frame
-	_ok(s.find_child("MaxNote", true, false) != null, "max tier note")
+	_ok(s.find_child("TopLine", true, false) != null, "max tier note")
 	s.queue_free()
 
 	_ok(LandNav.resolve(&"land_upgrade") == "res://scenes/land_upgrade/LandUpgrade.tscn", "LandNav land_upgrade")

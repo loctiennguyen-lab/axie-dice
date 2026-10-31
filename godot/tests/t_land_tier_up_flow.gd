@@ -40,7 +40,7 @@ func _ready() -> void:
 	_check(s.confirm_upgrade(2) and MetaState.land_tier == 2, "upgrade to tier 2")
 	_check(MetaState.stone == 0 and MetaState.ledger.size() == 1, "Stone spent exactly once")
 	_check(not s.confirm_upgrade(2) and MetaState.land_tier == 2 and MetaState.stone == 0, "second confirm refused, nothing spent")
-	_check(s.find_child("Toast", true, false) != null and (s.find_child("Toast", true, false) as Label).text.begins_with("Your Land is now"), "no error toast after double press")
+	_check(s.find_child("Toast", true, false) != null and (s.find_child("Toast", true, false).find_child("Text", true, false) as Label).text.begins_with("Your Land is now"), "no error toast after double press")
 	# The back_to_land() branch is skipped under no_scene_change (the screen is a child node here);
 	# LandNav.back_to_land itself is covered by t_land_nav (dry_run).
 	s.queue_free()
