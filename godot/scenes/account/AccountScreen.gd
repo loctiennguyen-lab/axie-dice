@@ -7,13 +7,15 @@ extends Control
 ## The screen only shows what the service says and calls it; it never owns sign-in state.
 ## `service` is injectable so tests can stub it (no browser, no network).
 
-const PANEL_W := 560.0
+const Parts := preload("res://scenes/account/ui5/AccountParts.gd")
 
 var service: Node
 var no_scene_change := false
 ## "signed_out" | "waiting" | "finishing" | "signed_in" | "error" | "expired"
 var state := ""
 var _host: VBoxContainer
+var _back: Button
+var _focus: Button
 var _sign_out_armed := false
 
 
@@ -77,7 +79,7 @@ func _on_back() -> void:
 
 
 func _build() -> void:
-	# UI-03 16-boot: dusk backdrop, centred column (title, 560 w plate pad 32 gap 20), version bottom-right.
+	# UI-05 a01-a08: dusk backdrop, Header plate top-left (screen margin), AccountPanel centred.
 	theme = UI3Theme.get_theme()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var bg := ColorRect.new()
@@ -86,39 +88,20 @@ func _build() -> void:
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(bg)
-	var back := UI3.button("← Back  Esc", &"quiet")
-	back.name = "Back"
-	back.position = Vector2(40, 40)
-	back.pressed.connect(_on_back)
-	add_child(back)
 	var center := CenterContainer.new()
+	center.name = "Center"
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(center)
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 48)
-	center.add_child(col)
-	var logo := UI3.label("AXIE DICE", "LabelScreenTitle")
-	logo.name = "Logo"
-	logo.add_theme_font_size_override("font_size", 64)
-	logo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	col.add_child(logo)
-	var panel := UI3.plate(&"dialog")
-	panel.name = "Panel"
-	panel.custom_minimum_size = Vector2(PANEL_W, 0)
-	col.add_child(panel)
-	_host = VBoxContainer.new()
-	_host.add_theme_constant_override("separation", 20)
-	panel.add_child(_host)
-	var ver := UI3.label(String(ProjectSettings.get_setting("application/config/version", "")), "LabelMuted")
-	ver.name = "Version"
-	ver.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	ver.offset_left = -240
-	ver.offset_right = -24
-	ver.offset_top = -40
-	ver.offset_bottom = -16
-	ver.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	add_child(ver)
+	var bx: Dictionary = Parts.box("AccountPanel")
+	center.add_child(bx["panel"])
+	_host = bx["col"]
+	var m := UI3Theme.space("screen_margin")
+	var h: Dictionary = Parts.header("Account", _on_back)
+	var hd := h["header"] as Control
+	hd.position = Vector2(m, m)
+	add_child(hd)
+	_back = h["back"]
 
 
 func _refresh() -> void:
@@ -129,12 +112,15 @@ func _refresh() -> void:
 	for c in _host.get_children():
 		_host.remove_child(c)
 		c.queue_free()
+	_host.add_child(Parts.brand(String(ProjectSettings.get_setting("application/config/version", ""))))
+	_focus = null
 	match state:
 		"waiting":
 			_draw_waiting()
 		"finishing":
-			_title("Signing you in…")
-			_text("Google said yes. Checking your account.")
+			_host.add_child(Parts.banner("Signing you in…"))
+			_host.add_child(Parts.body("Google said yes. Checking your account."))
+			_host.add_child(_spinner())
 		"signed_in":
 			_draw_signed_in()
 			# the flow result has been shown; let the service forget it
@@ -146,73 +132,67 @@ func _refresh() -> void:
 			_draw_expired()
 		_:
 			_draw_signed_out()
-	# focus order: primary first, then the secondary (Esc handled in _unhandled_key_input)
-	for c in _host.get_children():
-		if c is Button:
-			(c as Button).grab_focus.call_deferred()
-			break
+	# initial focus: the primary of the state (or the sign-out button); states with no button keep Back
+	(_focus if _focus != null else _back).grab_focus.call_deferred()
+
+
+func _spinner() -> Control:
+	var s := Ui5Spinner.new()
+	s.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	return s
+
+
+func _add_btn(b: Button, cb: Callable, focus := false) -> Button:
+	b.pressed.connect(cb)
+	if focus:
+		_focus = b
+	return b
 
 
 func _draw_signed_out() -> void:
 	# Round 2: sign-in is required to play (dice are rolled on the server). No guest, no offline play.
-	_title("Sign in to play")
-	_text("Dice are rolled on our server, so you need an account to start a run.")
-	_row_btn("SignInButton", "Sign in", true, func() -> void: service.sign_in())
+	_host.add_child(Parts.banner("Sign in to play"))
+	_host.add_child(Parts.body("Dice are rolled on our server, so you need an account to start a run."))
+	_host.add_child(_add_btn(Parts.btn("SignInButton", "Sign in", &"primary", &"L", true), func() -> void: service.sign_in(), true))
 
 
 func _draw_waiting() -> void:
-	_title("Finish signing in in your browser")
-	_text("We opened a browser window. Come back here when it says you are done.")
-	var sp := UI3.Spinner.new()
-	sp.name = "Spinner"
-	_host.add_child(sp)
-	_row_btn("OpenAgainButton", "Open browser again", false, func() -> void: service.reopen_desktop_browser())
-	_row_btn("CancelButton", "Cancel", false, func() -> void: service.cancel_desktop_sign_in())
+	_host.add_child(Parts.banner("Finish signing in in your browser"))
+	_host.add_child(Parts.body("We opened a browser window. Come back here when it says you are done."))
+	var cancel := _add_btn(Parts.btn("CancelButton", "Cancel"), func() -> void: service.cancel_desktop_sign_in())
+	var again := _add_btn(Parts.btn("OpenBrowserButton", "Open browser again", &"primary", &"M"), func() -> void: service.reopen_desktop_browser(), true)
+	_host.add_child(Parts.foot_row(cancel, again))
 
 
 func _draw_signed_in() -> void:
-	_title("Signed in")
-	var who := HBoxContainer.new()
-	who.add_theme_constant_override("separation", 12)
-	var av := UI3.chip(String(service.display_name()).left(1).to_upper())
-	av.name = "Avatar"
-	who.add_child(av)
-	var col := VBoxContainer.new()
-	var nm := _text(String(service.display_name()))
-	nm.name = "AccountName"
-	nm.get_parent().remove_child(nm)
-	col.add_child(nm)
-	var mail := _text("%s · Google" % String(service.account.get("email", "")), true)
-	mail.get_parent().remove_child(mail)
-	col.add_child(mail)
+	_host.add_child(Parts.banner("Signed in"))
+	_host.add_child(Parts.who(String(service.display_name()), "%s · Google" % String(service.account.get("email", ""))))
 	var line: Array = AccountUI.status_line(service)
-	var st := _text("Cloud save: " + String(line[0]), true)
-	st.name = "SaveStatus"
-	st.get_parent().remove_child(st)
-	col.add_child(st)
-	who.add_child(col)
-	_host.add_child(who)
+	_host.add_child(Parts.kv("Cloud save: " + String(line[0])))
 	if _sign_out_armed:
-		var warn := _text("You will need to sign in again to start a run. Your progress stays saved.")
-		warn.name = "SignOutWarn"
-	_row_btn("SignOutButton", "Press again to sign out" if _sign_out_armed else "Sign out", false, _press_sign_out)
+		_host.add_child(Parts.body("You will need to sign in again to start a run. Your progress stays saved.", false, "SignOutWarn"))
+	var b := Parts.btn("SignOutButton", "Press again to sign out" if _sign_out_armed else "Sign out",
+		&"danger" if _sign_out_armed else &"secondary", &"M")
+	_host.add_child(_add_btn(b, _press_sign_out, true))
 
 
 func _draw_error() -> void:
 	var code := String(service.get("desktop_error"))
 	var copy := error_copy(code)
-	_title(String(copy[0])).add_theme_color_override("font_color", UI3Theme.color("danger_text"))
-	_text(String(copy[1]))
-	var ec := _text("Error code: %s" % code, true)
-	ec.name = "ErrorCode"
-	_row_btn("RetryButton", String(copy[2]), true, func() -> void: service.sign_in(code in ["admin_policy_enforced", "org_internal"]))
+	_host.add_child(Parts.banner(String(copy[0]), &"error"))
+	_host.add_child(Parts.body(String(copy[1])))
+	_host.add_child(Parts.body("Error code: %s" % code, true, "ErrorCode"))
+	var other := code in ["admin_policy_enforced", "org_internal"]
+	_host.add_child(_add_btn(Parts.btn("UseAnotherButton" if other else "TryAgainButton", String(copy[2]), &"primary", &"L", true),
+		func() -> void: service.sign_in(other), true))
 
 
 func _draw_expired() -> void:
-	_title("Session expired")
-	_text("Your session expired. Sign in again to continue this run.")
-	_row_btn("SignInButton", "Sign in", true, func() -> void: service.sign_in())
-	_row_btn("BackToMenuButton", "Back to menu", false, _on_back)
+	_host.add_child(Parts.banner("Session expired", &"warn"))
+	_host.add_child(Parts.body("Your session expired. Sign in again to continue this run."))
+	var back := _add_btn(Parts.btn("BackToMenuButton", "Back to menu"), _on_back)
+	var si := _add_btn(Parts.btn("SignInButton", "Sign in", &"primary", &"M"), func() -> void: service.sign_in(), true)
+	_host.add_child(Parts.foot_row(back, si))
 
 
 func _press_sign_out() -> void:
@@ -222,27 +202,3 @@ func _press_sign_out() -> void:
 		return
 	_sign_out_armed = false
 	service.sign_out()
-
-
-func _title(t: String) -> Label:
-	var l := UI3.label(t, "LabelScreenTitle")
-	l.name = "Title"
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_host.add_child(l)
-	return l
-
-
-func _text(t: String, muted := false) -> Label:
-	var l := UI3.label(t, "LabelMuted" if muted else "")
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.custom_minimum_size = Vector2(PANEL_W - 64, 0)
-	_host.add_child(l)
-	return l
-
-
-func _row_btn(btn_name: String, text: String, primary: bool, cb: Callable) -> Button:
-	var b := UI3.button(text, &"primary" if primary else &"secondary", &"L" if primary else &"M")
-	b.name = btn_name
-	b.pressed.connect(cb)
-	_host.add_child(b)
-	return b
