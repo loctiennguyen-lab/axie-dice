@@ -202,6 +202,7 @@ func _build_topics(host: HBoxContainer) -> void:
 	for pair in CodexContent.TABS + BOOK_TABS:
 		var key: String = pair[0]
 		var b := Ui5SettingsParts.index_row(String(pair[1]))
+		b.name = "Topic"
 		b.set_meta("topic_key", key)
 		b.pressed.connect(_on_topic.bind(key))
 		_topic_col.add_child(b, true)
