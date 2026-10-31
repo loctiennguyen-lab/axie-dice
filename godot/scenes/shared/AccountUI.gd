@@ -17,75 +17,70 @@ const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 
 # ============================================================================ A · welcome
 
-## UI-03 (round 2, screen 16 / 26): plate dialog on a scrim, UI3 labels and buttons. One primary.
+## UI-05 a14: WelcomePanel on the scrim over the Land. SkyMavisTag, three Points, GoogleButton (the one primary),
+## GuestButton (quiet). Same service calls as before: sign_in() / play_as_guest(), overlay freed first.
 static func show_welcome(layer: CanvasLayer) -> Control:
 	var service: Node = layer.get_parent()
 	var overlay := _overlay(layer)
 	overlay.name = "AccountWelcome"
-	var box := _modal(overlay, WELCOME_W)
+	var box: VBoxContainer = Parts.centered(overlay, "WelcomePanel", "welcome")["col"]
 
-	var t := UI3.label("Save your progress", "LabelScreenTitle")
-	t.name = "Title"
-	box.add_child(t)
-	box.add_child(_prose("Sign in with Google to keep your Axies, Shards and runs on any device. "
-		+ "Your Sky Mavis work account works too. No new registration needed."))
+	var tag := UI3Meta.tag("SKY MAVIS")
+	tag.name = "SkyMavisTag"
+	tag.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	box.add_child(tag)
+	var title := Ui5Text.label("Save your progress", "text_banner", "text", true)
+	title.name = "Title"
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(title)
+	box.add_child(Parts.body("Sign in with Google to keep your Axies, Shards and runs on any device. "
+		+ "Your Sky Mavis work account works too. No new registration needed.", false, "Body"))
 
 	var perks := HBoxContainer.new()
-	perks.add_theme_constant_override("separation", UI3Theme.space("16"))
+	perks.name = "Points"
+	perks.add_theme_constant_override("separation", UI3Theme.space("12"))
 	for p in [["Vault", "your imported Axies"], ["Shards & Pass", "every unlock you earned"],
 			["Continue", "pick up a run on another device"]]:
-		var well := UI3.plate(&"card")
-		well.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var col := VBoxContainer.new()
-		col.add_theme_constant_override("separation", UI3Theme.space("8"))
-		var pt := UI3.label(p[0], "LabelTitle")
-		pt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		col.add_child(pt)
-		var c := _prose(p[1], "LabelMuted")
-		c.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		col.add_child(c)
-		well.add_child(col)
-		perks.add_child(well)
+		perks.add_child(Parts.point(p[0], p[1]), true)
 	box.add_child(perks)
 
-	var google := UI3.button("Continue with Google", &"primary", &"L")
-	google.name = "ContinueWithGoogle"
-	google.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var google := Parts.btn("GoogleButton", "Continue with Google", &"primary", &"L", true)
 	google.pressed.connect(func() -> void:
 		overlay.queue_free()
 		service.sign_in())
 	box.add_child(google)
 
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", UI3Theme.space("16"))
-	var hint := _prose("No Google account? You can create one on the next screen.", "LabelMuted")
-	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hint.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(hint)
-	var guest := UI3.button("Continue without signing in", &"secondary", &"M")
-	guest.name = "PlayAsGuest"
+	var hint := Parts.body("No Google account? You can create one on the next screen.", true, "Hint")
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(hint)
+	var guest := UI3.button("Continue without signing in", &"quiet", &"S")
+	guest.name = "GuestButton"
+	guest.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	guest.pressed.connect(func() -> void:
 		overlay.queue_free()
 		service.play_as_guest())
-	row.add_child(guest)
-	box.add_child(row)
+	box.add_child(guest)
 	google.call_deferred("grab_focus")
 	return overlay
 
 
-## B4: the game cannot open without the server. One primary (Try again); no way around it by design.
+## UI-05 a13: BootOfflineGate. The game cannot open without the server: one primary (TryAgainButton), no way around it.
 static func show_offline_gate(layer: CanvasLayer, service: Node) -> Control:
 	var overlay := _overlay(layer)
 	overlay.name = "OnlineGate"
-	var box := _modal(overlay, WELCOME_W)
-	var t := UI3.label("Can't reach the game server", "LabelScreenTitle")
-	t.name = "Title"
-	box.add_child(t)
-	box.add_child(_prose("Axie Dice needs an internet connection for every mode. Check your connection and try again. "
-		+ "Nothing is lost: your progress is kept on the server."))
-	var retry := UI3.button("Try again", &"primary", &"L")
-	retry.name = "TryAgain"
-	retry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var gate: Dictionary = Parts.box("BootOfflineGate")   # .acct: radius l, pad 32, gap 16, account_w
+	var center := CenterContainer.new()
+	center.name = "Center"
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(center)
+	center.add_child(gate["panel"])
+	var box := gate["col"] as VBoxContainer
+	box.add_child(Parts.brand(Parts.version_text()))
+	box.add_child(Parts.banner("Can't reach the game server", &"warn", "Title"))
+	box.add_child(Parts.body("Axie Dice needs an internet connection for every mode. Check your connection and try again. "
+		+ "Nothing is lost: your progress is kept on the server.", false, "Body"))
+	var retry := Parts.btn("TryAgainButton", "Try again", &"primary", &"L", true)
 	retry.pressed.connect(func() -> void: service.check())
 	box.add_child(retry)
 	retry.call_deferred("grab_focus")
@@ -323,77 +318,65 @@ static func sky_mavis_badge() -> PanelContainer:
 ## kind: "move" (account empty, guest save here), "choose" (both have a save, first sign-in on
 ## this device) or "conflict" (the account moved on elsewhere since this device last synced).
 ## done(choice) gets "move"/"fresh" or "local"/"cloud". The dialog cannot be dismissed without
-## choosing — the whole point is that nothing is decided for the player.
-## UI-03: "Choose a save" shows two cards; exactly one primary (the newer save), the other secondary.
+## choosing: the whole point is that nothing is decided for the player.
+## UI-05 a15/a16: MoveGuestProgress (Start fresh, Move progress with Space and focus) and ChooseSave (two Ui5SaveCards,
+## nothing picked, one Keep button under each; primary goes to the save with more XP, a tie keeps the cloud).
 static func show_choice(layer: CanvasLayer, kind: String, info: Dictionary, done: Callable) -> Control:
 	var overlay := _overlay(layer)
-	var box := _modal(overlay, MOVE_W if kind == "move" else CHOICE_W)
 
 	if kind == "move":
-		box.add_child(UI3.label("Move your guest progress?", "LabelScreenTitle"))
-		box.add_child(_prose("This browser has progress from before you signed in, and your account "
-			+ "is empty. Move it to your account to keep it on every device."))
-		box.add_child(_save_card("This device (guest)", "", info.get("local", {})))
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", UI3Theme.space("16"))
-		var move := UI3.button("Move progress", &"primary", &"M")
-		move.name = "MoveProgress"
-		move.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		move.pressed.connect(func() -> void:
-			overlay.queue_free()
-			done.call("move"))
-		var fresh := UI3.button("Start fresh", &"secondary", &"M")
-		fresh.name = "StartFresh"
-		fresh.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var mbox: VBoxContainer = Parts.centered(overlay, "MoveGuestProgress")["col"]
+		mbox.add_child(Parts.dialog_head("Move your guest progress?", "This browser has progress from before you signed in, "
+			+ "and your account is empty. Move it to your account to keep it on every device."))
+		var fresh := Parts.btn("StartFreshButton", "Start fresh")
 		fresh.pressed.connect(func() -> void:
 			overlay.queue_free()
 			done.call("fresh"))
-		row.add_child(move)
-		row.add_child(fresh)
-		box.add_child(row)
+		var move := Parts.btn("MoveButton", "Move progress", &"primary", &"M")
+		move.pressed.connect(func() -> void:
+			overlay.queue_free()
+			done.call("move"))
+		mbox.add_child(Parts.save_card("This device (guest)", "On this browser", info.get("local", {}), move))
+		mbox.add_child(Ui5ModalFooter.make(move, fresh))
+		_space_cap(move)
 		move.call_deferred("grab_focus")
 		return overlay
 
-	var title := "This device has guest progress" if kind == "choose" \
+	var box: VBoxContainer = Parts.centered(overlay, "ChooseSave")["col"]
+	var heading := "This device has guest progress" if kind == "choose" \
 		else "This account was played somewhere else"
 	var body := ("Your account already has a save. Pick the one to keep on your account. The "
 		+ "other one stays on this device for %d days in case you change your mind.") if kind == "choose" \
 		else ("This device and your account both changed since they last matched. Pick the one "
 		+ "to keep. The other one stays on this device for %d days in case you change your mind.")
-	var tl := UI3.label("Choose a save", "LabelScreenTitle")
-	tl.name = "Title"
-	box.add_child(tl)
-	box.add_child(UI3.label(title, "LabelTitle"))
-	box.add_child(_prose(body % AccountServiceScript.BACKUP_DAYS, "LabelMuted"))
+	box.add_child(Parts.dialog_head("Choose a save", body % AccountServiceScript.BACKUP_DAYS, heading))
 
-	var cards := HBoxContainer.new()
-	cards.add_theme_constant_override("separation", UI3Theme.space("16"))
 	var local_title := "This device (guest)" if kind == "choose" else "This device"
 	var cloud: Dictionary = info.get("cloud", {})
 	var cloud_when := ""
 	if int(cloud.get("updated_at", 0)) > 0:
 		cloud_when = "Saved " + ago(int(cloud["updated_at"]))
-	# Primary goes to the save with more XP (the further-along one); a tie keeps the account's cloud save.
 	var local_xp := int((info.get("local", {}) as Dictionary).get("xp", 0))
 	var cloud_xp := int(cloud.get("xp", 0))
 	var local_primary := local_xp > cloud_xp
-	for side in [["local", local_title, "On this browser", "Keep this device", local_primary],
-			["cloud", "Cloud (your account)", cloud_when, "Keep cloud", not local_primary]]:
-		var col := VBoxContainer.new()
-		col.add_theme_constant_override("separation", UI3Theme.space("16"))
-		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		col.add_child(_save_card(side[1], side[2], info.get(side[0], {})))
-		var b := UI3.button(side[3], &"primary" if side[4] else &"secondary", &"M")
-		b.name = "Keep" + String(side[0]).capitalize()
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var cards := HBoxContainer.new()
+	cards.name = "CardRow"
+	cards.add_theme_constant_override("separation", UI3Theme.space("16"))
+	var foot := HBoxContainer.new()
+	foot.name = "Footer"
+	foot.add_theme_constant_override("separation", UI3Theme.space("16"))
+	for side in [["local", local_title, "On this browser", "Keep this device", local_primary, "KeepLocalButton"],
+			["cloud", "Cloud (your account)", cloud_when, "Keep cloud", not local_primary, "KeepCloudButton"]]:
+		var b := Parts.btn(String(side[5]), String(side[3]), &"primary" if side[4] else &"secondary", &"M", true)
 		var choice: String = side[0]
 		b.pressed.connect(func() -> void:
 			overlay.queue_free()
 			done.call(choice))
-		col.add_child(b)
-		cards.add_child(col)
+		cards.add_child(Parts.save_card(side[1], side[2], info.get(side[0], {}), b), true)
+		foot.add_child(b)
 		# No auto-focus: either button overwrites the other save, so Enter must never pick one by itself.
 	box.add_child(cards)
+	box.add_child(foot)
 	return overlay
 
 
