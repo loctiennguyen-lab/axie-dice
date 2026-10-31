@@ -356,6 +356,13 @@ func test_reward_step_completes_tutorial_and_persists_the_flag() -> void:
 
 	t.call("_on_reward_pressed", 0)
 	_assert(_phase(t) == TutorialView.Step.DONE, "taking a reward did not advance to DONE")
+	# Replay from Settings (tutorial already seen): the replay-end curtain has no Skip tutorial (UI-05 frame).
+	MetaState.tutorial_seen = true
+	t.call("_render", false)
+	await _tick(3)
+	var skip_btn := t.find_child("SkipTutorialButton", true, false) as Control
+	_assert(skip_btn == null or not skip_btn.is_visible_in_tree(), "replay-end curtain still shows Skip tutorial")
+	MetaState.tutorial_seen = false
 
 	# _finish_tutorial(), not _on_finish_pressed() — the latter also calls
 	# change_scene_to_file(), which would tear down this test's own scene tree (see that

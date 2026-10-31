@@ -311,7 +311,7 @@ func _render(_first: bool) -> void:
 			if MetaState.tutorial_seen:
 				_coach.show_curtain("Nice work. You're ready.",
 					"That's the whole tutorial again. Your starter pack is already in your wallet.",
-					"Go to the Land")
+					"Go to the Land", false)   # replay-end frame has no Skip tutorial
 				return
 			var st := _starter_pack()
 			var entries: Array = []
