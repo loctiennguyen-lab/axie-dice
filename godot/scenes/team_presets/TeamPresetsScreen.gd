@@ -36,6 +36,8 @@ var _orig_party: Array = []
 var _pick_slot := -1
 var _pick_sel := ""
 var _pick_class := ""
+## What to focus after the picker body is rebuilt: a hero key (its tile) or "" (the active class tab).
+var _pick_focus := ""
 var _focus_name := false
 var _put_btn: Button
 var _pick_grid_host: VBoxContainer
@@ -55,6 +57,10 @@ func _derive_guest() -> bool:
 
 func _build() -> void:
 	_shell = UI3Meta.build(self, "Team presets", "", _on_back)
+	var cur := (_shell["col"] as Control).find_child("Currencies", true, false)
+	if cur != null:   # the frames draw no wallet in this header
+		cur.get_parent().remove_child(cur)
+		cur.free()
 	(_shell["panel"] as Control).name = "PlateHost"   # t_ui_laws L0
 	(_shell["back"] as Control).name = "BackButton"
 	(_shell["sub"] as Control).name = "SubLine"
@@ -707,6 +713,7 @@ func _show_picker(slot: int) -> void:
 	_pick_slot = slot
 	_pick_sel = ""
 	_pick_class = ""
+	_pick_focus = "-"
 	var c := Ui5PresetParts.modal_root(_shell["modal_layer"], &"picker")
 	var p := UI3.plate(&"dialog")
 	p.name = "PresetPicker"
@@ -763,6 +770,7 @@ func _put_in_slot() -> void:
 
 func set_pick_class(cls: String) -> void:
 	_pick_class = cls
+	_pick_focus = ""
 	_draw_picker_body()
 
 
@@ -809,6 +817,29 @@ func _draw_picker_body() -> void:
 	if shown == 0:
 		_pick_grid_host.add_child(Ui5Text.label("No Axies of this class yet", "text_body", "text_muted"))
 	_refresh_put()
+	_focus_picker_after_rebuild.call_deferred(bar, g)
+
+
+## The rebuild drops the focused control: put the focus back on the tile just chosen, or on the active class tab.
+func _focus_picker_after_rebuild(bar: Control, g: Control) -> void:
+	if _pick_grid_host == null or not is_instance_valid(bar) or not bar.is_inside_tree() or _pick_focus == "-":
+		return
+	if _pick_focus != "":
+		for t in g.get_children():
+			if String(t.get_meta("hero", "")) == _pick_focus:
+				(t as Control).grab_focus()
+				return
+	var i := 0 if _pick_class == "" else 1 + _pick_classes().find(_pick_class)
+	(bar.get_child(i) as Control).grab_focus()
+
+
+func _pick_classes() -> Array[String]:
+	var out: Array[String] = []
+	for k in _pick_keys():
+		var cl := String((ContentDB.heroes[k] as Dictionary).get("cls", ""))
+		if not out.has(cl):
+			out.append(cl)
+	return out
 
 
 func _refresh_put() -> void:
@@ -870,5 +901,6 @@ func _pick_tile(k: String, def: Dictionary) -> Control:
 	Ui5Ellipsis.set_text(sub, sub.text)
 	b.pressed.connect(func() -> void:
 		_pick_sel = k
+		_pick_focus = k
 		_draw_picker_body())
 	return b

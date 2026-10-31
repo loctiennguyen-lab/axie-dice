@@ -190,6 +190,23 @@ func _pass(sc: float, tag: String) -> void:
 		_check(not (t as Button).button_pressed, "%s t05: no tile preselected" % tag)
 	_check(pk.find_child("PlantTab", true, false) != null, "%s t05: class tab from data" % tag)
 	_audit(s, sc, tag + " t05", true)
+	# focus survives the rebuild after a tile press and after a class tab press; Esc closes the picker
+	(pk.find_children("AxieTile*", "Button", true, false)[1] as Button).pressed.emit()
+	await _settle()
+	var fo := get_viewport().gui_get_focus_owner()
+	_check(fo != null and pk.is_ancestor_of(fo) and fo is Button and (fo as Button).button_pressed, "%s t05: focus on the chosen tile after the rebuild (got %s)" % [tag, str(fo)])
+	_check(not _btn(s, "PutButton").disabled, "%s t05: Put enabled once a tile is chosen" % tag)
+	(pk.find_child("PlantTab", true, false) as Button).pressed.emit()
+	await _settle()
+	fo = get_viewport().gui_get_focus_owner()
+	_check(fo != null and pk.is_ancestor_of(fo) and fo.name == "PlantTab", "%s t05: focus on the active class tab after the rebuild (got %s)" % [tag, str(fo)])
+	var esc := InputEventKey.new()
+	esc.pressed = true
+	esc.keycode = KEY_ESCAPE
+	esc.physical_keycode = KEY_ESCAPE
+	s._unhandled_key_input(esc)
+	await _settle()
+	_check(s.find_child("PresetPicker", true, false) == null and s.view == "editor", "%s t05: Esc closes the picker, editor stays" % tag)
 	# t06 discard
 	s._close_picker()
 	s.set_edit_name("Changed")
