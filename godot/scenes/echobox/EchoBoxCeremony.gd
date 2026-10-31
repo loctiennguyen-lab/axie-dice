@@ -47,6 +47,7 @@ func _play_ceremony(out: Array) -> void:
 		if ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed:
 			_s._skip = true)
 	_focus(skip)
+	var warm := _prewarm_art(out)   # bake the die thumbnails while the chest tint runs, so the flip never shows an empty square
 	if not _s._skip:
 		var dur := 0.2 if not _flashy() else float(UI3Motion.layer(_moment_id(tier), "chest_tint").get("ms", 1200.0)) / 1000.0
 		var tw := _s.create_tween()
@@ -58,10 +59,44 @@ func _play_ceremony(out: Array) -> void:
 		tw.kill()
 	if not is_instance_valid(scrim) or not scrim.is_inside_tree():
 		return   # closed (Esc) during the opening
+	await _await_art(warm)
+	if not is_instance_valid(scrim) or not scrim.is_inside_tree():
+		return
 	for n in [chest, footer]:
 		col.remove_child(n)
 		n.queue_free()
 	_reveal(out, col, title)
+
+
+## Starts the thumbnail bake of every die in the pull. Returns the ids (frames are drawn from code, nothing to wait for).
+func _prewarm_art(out: Array) -> Array:
+	var ids: Array = []
+	for r in out:
+		if String(r.get("kind")) != "cosmetic":
+			continue
+		var a := Cosmetics.art_id(String(r.get("item", "")))
+		if a != "" and Cosmetics.slot_of(a) == Cosmetics.SLOT_DIE and not ids.has(a) and DiceThumb.cached_texture(a) == null:
+			ids.append(a)
+	for a in ids:
+		DiceThumb.get_thumb(_s, a)   # not awaited: runs during the tint (the bake queue serialises them)
+	return ids
+
+
+## Waits (max ~3 s) until every prewarmed die is in the thumbnail cache. Headless: no bake, no wait.
+func _await_art(ids: Array) -> void:
+	if DisplayServer.get_name() == "headless" or ids.is_empty():
+		return
+	var t := 0.0
+	# Capped at 3 s; a Skip (or the screen going away) stops the wait at once.
+	while t < 3.0 and is_instance_valid(_s) and _s.is_inside_tree() and not _s._skip:
+		var ready := true
+		for a in ids:
+			if DiceThumb.cached_texture(a) == null and DiceSkin.has(a):
+				ready = false
+		if ready:
+			return
+		await _s.get_tree().process_frame
+		t += _s.get_process_delta_time()
 
 
 func _reveal(out: Array, col: VBoxContainer, title: Label) -> void:

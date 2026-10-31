@@ -36,7 +36,9 @@ func setup(labels: Array, selected := 0, fit := false) -> void:
 			b.add_theme_stylebox_override(st, on)
 		for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
 			b.add_theme_color_override(c, UI3Theme.color("text"))
-		b.pressed.connect(func() -> void: tab_selected.emit(i))
+		b.pressed.connect(func() -> void:
+			_focus_follow(i)
+			tab_selected.emit(i))
 		add_child(b)
 		_tabs.append(b)
 
@@ -44,7 +46,18 @@ func setup(labels: Array, selected := 0, fit := false) -> void:
 func select(i: int) -> void:
 	if i >= 0 and i < _tabs.size():
 		_tabs[i].button_pressed = true
+		_focus_follow(i)
 		tab_selected.emit(i)
+
+
+## The focus ring must not stay on the old tab: if focus is inside the bar it moves to the tab just chosen.
+func _focus_follow(i: int) -> void:
+	if not is_inside_tree() or _tabs[i].has_focus():
+		return
+	for t in _tabs:
+		if t.has_focus():
+			_tabs[i].grab_focus()
+			return
 
 
 func selected_index() -> int:

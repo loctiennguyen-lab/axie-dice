@@ -119,6 +119,12 @@ func _pass(sc: float) -> void:
 	await _frames()
 	var stone := {"ok": true, "kind": "stone", "amount": 500, "rarity": "", "item": "", "duplicate": false, "fragments": 0}
 	s.pull_hook = func(_n: int) -> Array: return [stone]
+	var warm_s := _screen(true)
+	var die_pull := _cos("rare")
+	if String(die_pull.get("item", "")) != "":
+		var ids: Array = EchoBoxCeremony.new(warm_s)._prewarm_art([die_pull])
+		_ok(ids.has(Cosmetics.art_id(String(die_pull.item))), "%s: ceremony prewarms the die art before the flip (%s)" % [tag, str(ids)])
+	warm_s.queue_free()
 	var done_flag := [false]
 	(func() -> void:
 		await s.pull(1)

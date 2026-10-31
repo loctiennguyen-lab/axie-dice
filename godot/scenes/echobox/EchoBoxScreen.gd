@@ -1040,9 +1040,12 @@ func _season_tile(item: String, tier: String, have: bool) -> Control:
 	v.add_child(art)
 	var nm := UI3.label(_reward_name(item) if have else "?")
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nm.name = "ItemName"
+	nm.autowrap_mode = TextServer.AUTOWRAP_OFF   # one line, ellipsis; the tile tooltip carries the full name
 	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	nm.custom_minimum_size.x = 80
 	nm.clip_text = true
+	nm.tooltip_text = tile.tooltip_text
 	v.add_child(nm)
 	if not have:
 		art.modulate = Color(0.1, 0.1, 0.12, 0.9)   # named silhouette, nothing hidden
@@ -1313,7 +1316,12 @@ func _load_thumb(tr: TextureRect, id: String, live: bool, px: float) -> void:
 	fb.set_anchors_preset(Control.PRESET_FULL_RECT)
 	fb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	fb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	fb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if px < 120.0:   # small tiles (Series items): one line + ellipsis, the tile tooltip has the full name
+		fb.autowrap_mode = TextServer.AUTOWRAP_OFF
+		fb.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		fb.clip_text = true
+	else:
+		fb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	fb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tr.add_child(fb)
 	var tex: Texture2D = DiceThumb.cached_texture(id)
@@ -1336,6 +1344,12 @@ func _load_thumb(tr: TextureRect, id: String, live: bool, px: float) -> void:
 	st.setup(Vector2i(int(px), int(px)), id, faces, true)
 	st.mouse_filter = Control.MOUSE_FILTER_STOP
 	tr.add_child(st)
+	# Keep the baked thumb until the 3D stage has drawn (building it takes a moment: no blank square after the flip),
+	# then hand over and drop the die as the UI-03 spec says (drop from 3.2 m, one bounce, settle).
+	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw
+	if not is_instance_valid(tr) or not is_instance_valid(st):
+		return   # the ceremony was closed during those two frames
 	tr.texture = null
 	st.play_drop()
 	st.gui_input.connect(func(ev: InputEvent) -> void:   # click the card to replay the drop
