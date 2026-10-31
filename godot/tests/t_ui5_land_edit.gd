@@ -111,6 +111,9 @@ func _upgrade(sc: float, tag: String) -> void:
 		host.add_child(s)
 		s.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		await _settle()
+		var fu := host.get_viewport().gui_get_focus_owner()
+		var want := "UpgradeButton" if state in ["ready", "confirm"] else "RowButton"
+		_check(fu != null and (fu.name == want or fu.name == "UpgradeButton" or state == "confirm"), "%s: initial focus on %s (got %s)" % [t, want, fu.name if fu else "none"])
 		for n in UP_NAMES:
 			if state == "max" and n in ["UpgradeButton", "CostRow"]:
 				continue
@@ -171,6 +174,8 @@ func _edit(sc: float, tag: String) -> void:
 	ed.build_ui()
 	ed.enter()
 	await _settle()
+	var fo0 := host.get_viewport().gui_get_focus_owner()
+	_check(fo0 != null and fo0 == ed._tab_btns["place"], "%s: enter() focuses the open tab" % tag)
 	for tab in ["place", "craft", "rewards", "empty"]:
 		var t := "%s edit %s" % [tag, tab]
 		if tab == "empty":
@@ -188,11 +193,17 @@ func _edit(sc: float, tag: String) -> void:
 		_check((host.find_child("StoreButton", true, false) as Button).text == "Store · pick a decor", "%s: Store reason" % t)
 		_check(host.find_child("DoneButton", true, false).get_node_or_null("KeyCap") == null, "%s: no key printed on Done" % t)
 		_text(host, sc, t)
-		_check(Align.pairs(host) >= 0, "%s: align ran" % t)
+		_check(Align.pairs(host) >= 0, "%s: align ran (no icon+text pair exists in these tabs, so > 0 cannot hold)" % t)
 		for pr in Align.check(host, 1.5, t + ": "):
 			_check(false, pr)
-		if tab == "place":
-			_inside(host, sc, t)
+		_inside(host, sc, t)
+		if tab == "craft":
+			var cb := host.find_child("CraftButton", true, false) as Button
+			_check(cb != null and cb.expand_icon and cb.get_theme_constant("icon_max_width") == UI3Theme.size_of("icon_s"), "%s: Craft icon capped" % t)
+		if tab in ["place", "craft", "rewards"]:
+			for rl in host.find_children("*", "Label", true, false):
+				if rl.get_parent() is Container and String(rl.name) in ["Name", "Sub"] and (rl as Label).is_visible_in_tree():
+					_check((rl as Label).get_line_count() <= 2, "%s: %s '%s' wraps to %d lines" % [t, rl.name, (rl as Label).text.left(20), (rl as Label).get_line_count()])
 	# picking a stored decor: Rotate opens, the ghost line names it
 	MetaState.land_decor_owned = {"decor_sav_tree": 3}
 	ed._set_tab("place")
@@ -200,6 +211,13 @@ func _edit(sc: float, tag: String) -> void:
 	ed.refresh()
 	await _settle()
 	_check(not (host.find_child("RotateButton", true, false) as Button).disabled, "%s: Rotate enabled when a decor is picked" % tag)
+	var pb := host.find_child("PlaceButton", true, false) as Button
+	if pb != null:
+		pb.grab_focus()
+		ed.refresh()
+		await _settle()
+		var fo1 := host.get_viewport().gui_get_focus_owner()
+		_check(fo1 != null and fo1.name == "PlaceButton", "%s: refresh() keeps focus on the same button" % tag)
 	ed._show_why("", Vector2(100, 100))
 	_check((host.find_child("GhostHint", true, false) as Control).visible and (host.find_child("Placing", true, false) as Label).text.begins_with("Placing: "), "%s: GhostHint says Placing" % tag)
 	ed.exit()

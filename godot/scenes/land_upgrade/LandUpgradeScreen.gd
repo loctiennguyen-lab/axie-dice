@@ -81,6 +81,12 @@ func _default_sel() -> int:
 
 
 ## Display name of tier n ("Luna Landing", not the id).
+## "Savannah Land", but "Luna Landing" already says it.
+static func land_title(n: int) -> String:
+	var nm := tier_name(n)
+	return nm if nm.ends_with("Landing") else nm + " Land"
+
+
 static func tier_name(n: int) -> String:
 	return TIER_NAMES[clampi(n, 1, 6) - 1].replace("LunaLanding", "Luna Landing")
 
@@ -132,6 +138,22 @@ func _redraw() -> void:
 	_stone_value.text = fmt(MetaState.stone)
 	_draw_head()
 	_draw_detail()
+	call_deferred("_focus_first")
+
+
+func _focus_first() -> void:
+	if not is_inside_tree():
+		return
+	var tgt := find_child("UpgradeButton", true, false) as Button
+	if tgt == null or tgt.disabled:
+		tgt = null
+		var rr := find_child("TierRow%d" % _sel, true, false)
+		if rr != null:
+			tgt = rr.find_child("RowButton", true, false) as Button
+	if tgt == null or tgt.focus_mode == Control.FOCUS_NONE:
+		tgt = find_child("BackButton", true, false) as Button
+	if tgt != null:
+		tgt.grab_focus()
 
 
 ## TierHeader: "<Land> · tier n of 6", the Stone bar and the progress line.
@@ -139,7 +161,7 @@ func _draw_head() -> void:
 	UI3Meta.clear(_head_host)
 	var cur := MetaState.land_tier
 	var max_t := _Eco.land_max_tier()
-	var title := "%s Land · tier %d of %d" % [tier_name(cur), cur, max_t]
+	var title := "%s · tier %d of %d" % [land_title(cur), cur, max_t]
 	if cur >= max_t:
 		_head_host.add_child(Parts.tier_header(title, 1, 1, "Top tier reached."))
 		return
@@ -181,7 +203,7 @@ func _draw_detail() -> void:
 	head.name = "NameRow"
 	head.add_theme_constant_override("separation", UI3Theme.space("12"))
 	_detail.body.add_child(head)
-	var t := Ui5Text.label("%s Land" % tier_name(tier), "text_screen_title", "text", true)
+	var t := Ui5Text.label(land_title(tier), "text_screen_title", "text", true)
 	t.name = "Name"
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -189,9 +211,9 @@ func _draw_detail() -> void:
 	head.add_child(Parts.state_tag(_badge(st)))
 	_detail.add_line(String(ADDS.get(tier, "Starting Land")), "text_muted").name = "Adds"
 	var cost := _Eco.land_tier_cost(tier - 1) if tier > 1 else 0
-	if tier > 1:
+	if tier > MetaState.land_tier:
 		_detail.body.add_child(Parts.kv("CostRow", "Cost", "%s Stone" % fmt(cost)))
-		if tier > MetaState.land_tier:
+		if true:
 			_detail.body.add_child(Parts.kv("TotalRow", "Total from here", "%s Stone" % fmt(cumulative(tier))))
 			if st == "afford":
 				_detail.body.add_child(Parts.kv("AfterRow", "Stone after", "%s Stone" % fmt(MetaState.stone - cost)))

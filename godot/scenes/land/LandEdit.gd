@@ -218,6 +218,18 @@ func refresh() -> void:
 	var nxt := LandDecor.next_milestone(score)
 	_head_score.text = "Aesthetic %d" % score + ("" if nxt.is_empty() else " · next reward at %d" % int(nxt["points"]))
 	_head_cap.text = "Placed %d of %d (Land tier %d)" % [placed.size(), LandDecor.tier_cap(MetaState.land_tier), MetaState.land_tier]
+	# remember which row/button had focus, so the rebuild below can give it back
+	var fo := get_viewport().gui_get_focus_owner() if is_inside_tree() else null
+	var f_row := -1
+	var f_id := ""
+	var f_btn := ""
+	if fo != null and _list.is_ancestor_of(fo):
+		var rw: Node = fo
+		while rw.get_parent() != _list:
+			rw = rw.get_parent()
+		f_row = rw.get_index()
+		f_id = String(rw.get_meta("decor_id", ""))
+		f_btn = String(fo.name)
 	for c in _list.get_children():
 		c.queue_free()
 		_list.remove_child(c)
@@ -241,6 +253,8 @@ func refresh() -> void:
 		_rotate_btn.tooltip_text = "Rotate · R"
 	if has_sel:
 		_store_btn.tooltip_text = "Store · Del"
+	if f_row >= 0:
+		call_deferred("_restore_focus", f_row, f_id, f_btn)
 
 
 func _rarity_word(r: String) -> String:
@@ -290,6 +304,8 @@ func _build_craft() -> void:
 		var b := _sbtn("Craft · %d" % int(d["shard_cost"]))
 		b.name = "CraftButton"
 		b.icon = UI3.currency_icon("cur_shard", UI3Theme.size_of("icon_s"))
+		b.expand_icon = true
+		b.add_theme_constant_override("icon_max_width", UI3Theme.size_of("icon_s"))
 		b.custom_minimum_size.x = 136
 		var rr := String(d["rarity"])
 		var sub := " · own %d of %d" % [int(MetaState.land_decor_owned.get(id, 0)), int(d["max_own"])]
@@ -302,6 +318,12 @@ func _build_craft() -> void:
 		var crow := Parts.row("CraftRow", String(d["name"]), _rarity_word(rr), _rarity_token(rr), sub, b)
 		crow.set_meta("decor_id", id)
 		_list.add_child(crow, true)
+
+
+## Frame e04 writes "N points · Label"; a long label would wrap to 3 lines in the 320 px panel, so it shortens to "pts".
+func _reward_title(pts: int, label: String) -> String:
+	var full := "%d points · %s" % [pts, label]
+	return full if full.length() <= 28 else "%d pts · %s" % [pts, label]
 
 
 func _build_rewards() -> void:
@@ -318,7 +340,7 @@ func _build_rewards() -> void:
 			Ui5DisabledReason.apply(b, "Need %d" % pts)
 		else:
 			b.pressed.connect(_claim.bind(id))
-		var wrow := Parts.row("RewardRow", "%d points · %s" % [pts, String(m["label"])], "", "", "No Stone, no power.", b)
+		var wrow := Parts.row("RewardRow", _reward_title(pts, String(m["label"])), "", "", "No Stone, no power.", b)
 		wrow.set_meta("milestone_id", id)
 		_list.add_child(wrow, true)
 
@@ -359,6 +381,41 @@ func _pick_stored(id: String) -> void:
 
 # ================================================================ enter / leave
 
+func _restore_focus(row: int, id: String, btn: String) -> void:
+	if not active or _list.get_child_count() == 0:
+		return
+	var rw: Node = null
+	for c in _list.get_children():
+		if id != "" and String(c.get_meta("decor_id", "")) == id:
+			rw = c
+	if rw == null:
+		rw = _list.get_child(mini(row, _list.get_child_count() - 1))
+	var bs := rw.find_children("*", "Button", true, false)
+	for b in bs:
+		if String(b.name) == btn and (b as Button).focus_mode != Control.FOCUS_NONE:
+			(b as Button).grab_focus()
+			return
+	for b in bs:
+		if (b as Button).focus_mode != Control.FOCUS_NONE:
+			(b as Button).grab_focus()
+			return
+	var tb := _tab_btns.get(_tab) as Button
+	if tb != null:
+		tb.grab_focus()
+
+
+func _focus_tab() -> void:
+	var tb := _tab_btns.get(_tab) as Button
+	if active and tb != null and tb.is_visible_in_tree():
+		tb.grab_focus()
+
+
+func _focus_hud_button() -> void:
+	var eb := get_tree().root.find_child("EditLandButton", true, false) as Control
+	if eb != null and eb.is_visible_in_tree():
+		eb.grab_focus()
+
+
 func enter() -> void:
 	if active:
 		return
@@ -368,6 +425,7 @@ func enter() -> void:
 	layout()
 	refresh()
 	mode_changed.emit(true)
+	call_deferred("_focus_tab")
 
 
 func exit() -> void:
@@ -383,6 +441,7 @@ func exit() -> void:
 	_panel.visible = false
 	_hide_wallet_cells(false)
 	mode_changed.emit(false)
+	call_deferred("_focus_hud_button")
 
 
 ## Frame e01: while editing, the CurrencyPlate shows only the settings button (cells hidden, put back on exit).

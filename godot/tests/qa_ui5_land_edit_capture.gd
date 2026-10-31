@@ -51,11 +51,18 @@ func _ready() -> void:
 	ed.enter()
 	for fr in [["e01-edit-land--place", "place", ""], ["e02-edit-land--placing", "place", "decor_sav_shrub"],
 			["e03-edit-land--craft", "craft", ""], ["e04-edit-land--rewards", "rewards", ""], ["e05-edit-land--empty", "empty", ""]]:
+		ed._cancel_drag()
+		ed._sel_id = ""
+		ed._sel_idx = -1
+		ed._drop_ghost()
+		ed._hide_ring()
+		ed._why_tip.visible = false
 		if fr[1] == "empty":
 			MetaState.land_decor_owned = {}
 			ed._set_tab("place")
 		else:
 			ed._set_tab(fr[1])
+		ed.refresh()
 		if fr[2] != "":
 			ed._pick_stored(fr[2])
 			ed._on_motion(Vector2(1000, 760))
