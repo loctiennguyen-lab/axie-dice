@@ -27,7 +27,8 @@ func _chip_in_button(root: Node, t: String) -> void:
 	_ok(br.grow(0.5).encloses(cr), "%s: CostChip inside OpenAgainButton %s vs %s" % [t, str(cr), str(br)])
 	var font := b.get_theme_font("font")
 	var tw := font.get_string_size(b.text, HORIZONTAL_ALIGNMENT_LEFT, -1, b.get_theme_font_size("font_size")).x
-	var text_right := br.position.x + (br.size.x - tw) * 0.0 + b.get_theme_stylebox("normal").content_margin_left + tw
+	# the label starts at the left content margin, so its right edge is margin + text width
+	var text_right := br.position.x + b.get_theme_stylebox("normal").content_margin_left + tw
 	_ok(cr.position.x >= text_right - 0.5, "%s: CostChip clear of the text (%f >= %f)" % [t, cr.position.x, text_right])
 
 
@@ -76,6 +77,25 @@ func _cos(rarity: String, dup := false) -> Dictionary:
 	return {"ok": true, "kind": "cosmetic", "item": best, "rarity": rarity, "duplicate": dup, "fragments": 3 if dup else 0}
 
 
+## First manifest cosmetic of `kind` ("fx" = no 3D die/frame art, a badge; "frame") in any rarity, or {} when absent.
+func _cos_kind(kind: String) -> Dictionary:
+	if kind == "fx":
+		for id in (CosmeticArt.manifest().get("fx", {}) as Dictionary):
+			if CosmeticTile.any_name(String(id)) != "":
+				return {"ok": true, "kind": "cosmetic", "item": String(id), "rarity": "rare", "duplicate": false, "fragments": 0}
+		return {}
+	var box: Dictionary = ((EchoBox._cfg().get("boxes", {}) as Dictionary).get("normal", {})) as Dictionary
+	for rar in EchoBox.RARITIES:
+		for id in EchoBox.pool_ids(box, rar):
+			var a := Cosmetics.art_id(String(id))
+			if CosmeticTile.any_name(String(id)) == "":
+				continue
+			var ok := (a == "") if kind == "fx" else (a != "" and Cosmetics.slot_of(a) == Cosmetics.SLOT_FRAME)
+			if ok:
+				return {"ok": true, "kind": "cosmetic", "item": String(id), "rarity": rar, "duplicate": false, "fragments": 0}
+	return {}
+
+
 func _inside(s: Node, tag: String) -> void:
 	var vp := Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
 	for n in s.find_children("*", "Control", true, false):
@@ -116,20 +136,26 @@ func _pass(sc: float) -> void:
 	ev.physical_keycode = KEY_SPACE
 	ev.pressed = true
 	get_viewport().push_input(ev)
+	var ev_up := ev.duplicate() as InputEventKey
+	ev_up.pressed = false
+	get_viewport().push_input(ev_up)
 	await _frames(8)
 	_ok(done_flag[0], "%s: Space skipped the opening" % tag)
+	_ok(s.find_child("Ceremony", true, false) != null and s.find_child("DoneButton", true, false) != null, "%s: Space (down+up) did not also press Done" % tag)
 	_ok(s.find_child("SkipButton", true, false) == null and s.find_child("RevealCard", true, false) != null, "%s: reveal replaced opening" % tag)
 	_ok(not (s.find_child("Ceremony", true, false).find_child("Title", true, false) as Label).text.begins_with("Opening"), "%s: title Reveal" % tag)
 	s.queue_free()
 	await _frames(2)
 	# --- reveal per tier (instant) + stone + duplicate
 	var cases: Array = [["stone", stone], ["common", _cos("common")], ["rare", _cos("rare")], ["epic", _cos("epic")],
-		["legendary", _cos("legendary")], ["mythic", _cos("mythic")], ["dup", _cos("rare", true)]]
+		["legendary", _cos("legendary")], ["mythic", _cos("mythic")], ["dup", _cos("rare", true)],
+		["fx", _cos_kind("fx")], ["frame", _cos_kind("frame")]]
 	for cs in cases:
 		var name_: String = cs[0]
 		var res: Dictionary = cs[1]
-		if String(res.get("kind")) == "cosmetic" and String(res.get("item")) == "":
-			continue   # no cosmetic of that rarity in the manifest
+		if String(res.get("kind", "")) != "stone" and String(res.get("item", "")) == "":
+			_ok(false, "%s %s: no cosmetic of this kind/rarity in the manifest (case cannot run)" % [tag, name_])
+			continue
 		var sc_ := _screen(true)
 		await _frames()
 		sc_.pull_hook = func(_n: int) -> Array: return [res]
@@ -141,15 +167,28 @@ func _pass(sc: float) -> void:
 		var card := sc_.find_child("RevealCard", true, false) as Control
 		var tier := Parts_tier(res)
 		_ok(int(card.get_meta("tier")) == tier, "%s: card tier" % t2)
-		var strip := sc_.find_child("TierStrip", true, false) as ColorRect
-		_ok(strip.color.is_equal_approx(DiceSkin.tier_color(tier)), "%s: strip is the tier token colour" % t2)
+		var strip := sc_.find_child("TierStrip", true, false) as Panel
+		var sbx := strip.get_theme_stylebox("panel") as StyleBoxFlat
+		_ok(sbx.bg_color.is_equal_approx(DiceSkin.tier_color(tier)), "%s: strip is the tier token colour" % t2)
+		var cbox := (card as PanelContainer).get_theme_stylebox("panel") as StyleBoxFlat
+		_ok(sbx.corner_radius_top_left == UI3Theme.radius("xl") - cbox.border_width_top and sbx.corner_radius_top_right == sbx.corner_radius_top_left, "%s: strip corners = card radius minus border" % t2)
+		var amg := sc_.find_child("ArtMargin", true, false) as MarginContainer
+		_ok(amg != null and amg.get_theme_constant("margin_top") == UI3Theme.space("12"), "%s: 12 px token above the Art" % t2)
 		var nm := sc_.find_child("Name", true, false) as Label
 		if String(res.get("kind")) == "cosmetic":
 			_ok(Ui5Ellipsis.full_text(nm) == CosmeticTile.any_name(String(res["item"])), "%s: name from manifest" % t2)
-			_ok(sc_.find_child("EquipButton", true, false) != null or bool(res.get("duplicate")), "%s: equip on a new cosmetic" % t2)
+			_ok((sc_.find_child("EquipButton", true, false) != null) == (Cosmetics.art_id(String(res["item"])) != ""), "%s: equip iff the cosmetic has art (owned duplicates included)" % t2)
 			_ok((sc_.find_child("NewChip", true, false) != null) != bool(res.get("duplicate")), "%s: New chip xor dup badge" % t2)
 			_ok((sc_.find_child("FragmentBadge", true, false) != null) == bool(res.get("duplicate")), "%s: FragmentBadge on dup" % t2)
-			_ok(sc_.find_child("RaysProposal", true, false) == null or not CeremonyPartsRef.PROPOSAL_FX, "%s: no visible rays (PROPOSAL off)" % t2)
+			_ok(sc_.find_child("RaysProposal", true, false) == null, "%s: no RaysProposal (not approved)" % t2)
+			var item_ := String(res["item"])
+			if name_ == "fx":
+				_ok(sc_.find_child("FxArt", true, false) != null and sc_.find_child("DiceSkinArt", true, false) == null, "%s: FxArt badge" % t2)
+			elif name_ == "frame":
+				_ok(sc_.find_child("FrameArt", true, false) != null, "%s: FrameArt" % t2)
+			else:
+				_ok(sc_.find_child("DiceSkinArt", true, false) != null, "%s: DiceSkinArt" % t2)
+			_ok(nm.text != "" and Ui5Ellipsis.full_text(nm) == CosmeticTile.any_name(item_), "%s: name via any_name" % t2)
 			_ok(((card as PanelContainer).get_theme_stylebox("panel") as StyleBoxFlat).border_width_left == (3 if tier >= 3 else 2), "%s: epic+ 3 px border" % t2)
 		else:
 			_ok(sc_.find_child("StoneIcon", true, false) != null and sc_.find_child("EquipButton", true, false) == null, "%s: stone art, no equip" % t2)
@@ -170,8 +209,47 @@ func _pass(sc: float) -> void:
 				_ok(eq.disabled and (eq.text == "Equipped" or eq.text == "Couldn't equip"), "%s: Equip now pressed" % t2)
 				var art_id := Cosmetics.art_id(String(res["item"]))
 				_ok((MetaState.equipped_die_skin == art_id) == (eq.text == "Equipped"), "%s: Equip now result matches MetaState" % t2)
+		if name_ == "common":
+			# Open again: closes the modal and pulls again, a fresh reveal appears
+			var before := sc_.find_child("RevealCard", true, false)
+			(sc_.find_child("OpenAgainButton", true, false) as Button).pressed.emit()
+			await _frames(8)
+			var after := sc_.find_child("RevealCard", true, false)
+			_ok(after != null and after != before, "%s: Open again shows a new reveal" % t2)
 		sc_.queue_free()
 		await _frames(2)
+	# --- Esc (close_modal) in the middle of the opening: no error, nothing left behind
+	var se := _screen(false)
+	await _frames()
+	se.pull_hook = func(_n: int) -> Array: return [stone]
+	var esc_done := [false]
+	(func() -> void:
+		await se.pull(1)
+		esc_done[0] = true).call()
+	await _frames(3)
+	se.close_modal()
+	await get_tree().create_timer(2.0).timeout   # the opening's own wait (<= 1.5 s) runs out
+	_ok(esc_done[0] and se.find_child("Ceremony", true, false) == null, "%s: closing mid-opening ends cleanly" % tag)
+	se.queue_free()
+	await _frames(2)
+	# --- Reduce flashing: short opening, no rays, grid cards not flipped
+	var sr := _screen(false)
+	await _frames()
+	sr.reduce_flashing = true
+	var ten_r: Array = []
+	for i in 10:
+		ten_r.append(_cos("epic") if i == 9 else stone)
+	sr.pull_hook = func(_n: int) -> Array: return ten_r
+	await sr.pull(10)
+	await _frames(4)
+	var rc := sr.find_children("RevealCard*", "Control", true, false)
+	var all_flat := rc.size() == 10
+	for c in rc:
+		all_flat = all_flat and is_equal_approx((c as Control).scale.x, 1.0)
+	_ok(all_flat, "%s: reduce flashing shows all 10 cards at once" % tag)
+	_ok(sr.find_child("RaysProposal", true, false) == null, "%s: no rays under reduce flashing" % tag)
+	sr.queue_free()
+	await _frames(2)
 	# --- open 10 grid
 	var ten: Array = []
 	for i in 10:

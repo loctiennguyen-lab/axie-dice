@@ -31,9 +31,10 @@ func _shot(id: String, res: Array, instant := true, opening := false) -> void:
 		s.pull(res.size())
 	else:
 		await s.pull(res.size())
-	for i in 150:
+	# opening runs ~1.2 s (tint): shoot mid-tint; reveals wait for the 3D thumbnail
+	for i in (18 if opening else 150):
 		await get_tree().process_frame
-	for i in 4:
+	for i in (1 if opening else 4):
 		await RenderingServer.frame_post_draw
 	Util.save(get_viewport(), id)
 	s.queue_free()

@@ -175,24 +175,38 @@ static func card(screen: Node, r: Dictionary, single: bool, flashy: bool) -> Pan
 		box = Ui5HudStyle.plate_box(UI3Theme.radius("xl"), Vector4(0, 0, 0, pad_b))
 	var card := PanelParts.panel(box, "RevealCard")
 	card.custom_minimum_size = Vector2(card_w, card_h)
-	card.clip_contents = true
+	card.clip_contents = false   # the rounded TierStrip fits the corner; clipping would square off the glow
 	card.set_meta("tier", tier)
 	card.set_meta("single", single)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", sp12)
 	card.add_child(v)
-	var strip := ColorRect.new()
+	# TierStrip: rounded top corners = card radius minus the border, so it never pokes past the card's corner.
+	var strip := Panel.new()
 	strip.name = "TierStrip"
-	strip.color = col
+	var bw := box.border_width_top
+	var cr := maxi(UI3Theme.radius("xl") - bw, 0)
+	var strip_box := StyleBoxFlat.new()
+	strip_box.bg_color = col
+	strip_box.corner_radius_top_left = cr
+	strip_box.corner_radius_top_right = cr
+	strip.add_theme_stylebox_override("panel", strip_box)
 	strip.custom_minimum_size = Vector2(0, 8 if single else 4)
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(strip)
+	# frame: .reveal .art margin-top space-12, on top of the column gap.
+	var art_margin := MarginContainer.new()
+	art_margin.name = "ArtMargin"
+	art_margin.add_theme_constant_override("margin_top", UI3Theme.space("12"))
+	art_margin.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	v.add_child(art_margin)
 	var art := Panel.new()
 	art.name = "Art"
 	art.custom_minimum_size = Vector2(art_px, art_px)
 	art.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	art.clip_contents = true
 	art.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("chip"), UI3Theme.radius("l")))
-	v.add_child(art)
+	art_margin.add_child(art)
 	var title := ""
 	var line := ""
 	var line_col := DiceSkin.tier_text_color(tier)
