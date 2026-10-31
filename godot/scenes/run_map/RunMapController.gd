@@ -76,6 +76,7 @@ const _DOUBLE_PRESS_MS := 400
 ## Tests: stop _on_node_pressed before it asks RunState to enter the node.
 var no_travel := false
 signal travel_requested(node_id: String)
+var _combo: ComboBanner = ComboBanner.new(self)
 var _swap: RunMapSlotSwap = RunMapSlotSwap.new(self)
 var _shop: RunMapShop = RunMapShop.new(self)
 var _event: RunMapEvent = RunMapEvent.new(self)
@@ -1932,20 +1933,9 @@ func _on_anchor_awakened(id: String) -> void:
 	AnchorFx.arm(id)
 
 
-## Shows the strongest newly formed combo (Full beats Pair) as a big centre panel above the overlay layer.
+## -> ComboBanner._combo_banner
 func _combo_banner(formed: Array) -> GachaFx:
-	if formed.is_empty() or _overlay_layer == null:
-		return null
-	var best: Dictionary = formed[0]
-	for f in formed:
-		if String(f["tier"]) == "full":
-			best = f
-			break
-	gacha_log.append("banner:%s" % String(best["tier"]))
-	var house := AnchorAdapter.house_of_combo(String(best["id"]))
-	var mut := {"house": house} if house != "" and not AnchorAdapter.mutation_of(house)["name"].is_empty() else {}
-	return GachaFx.banner(_overlay_layer, String(best["tier"]), UI3Gacha.combo_name(String(best["id"])),
-		UI3Gacha.combo_members(String(best["id"]), String(best["tier"])), mut) as GachaFx
+	return _combo._combo_banner(formed)
 
 
 ## -> RunMapSlotSwap.open_slot_swap
