@@ -338,7 +338,6 @@ func _redraw() -> void:
 	var tf: Font = _team_btn.get_theme_font("font")
 	var tfs: int = _team_btn.get_theme_font_size("font_size")
 	_team_btn.text = Ui5Ellipsis.fit(team_full, tf, tfs, UI3Theme.size_of("tooltip_w") - UI3Theme.space("24") * 2 - 8.0)
-	_team_btn.clip_text = true
 	_team_btn.tooltip_text = team_full if _team_btn.text != team_full else ""
 	var presets_n := (MetaState.team_presets as Array).size()
 	_team_btn.disabled = presets_n < 2   # busy is guarded in cycle_team: a disabled button would drop the keyboard focus

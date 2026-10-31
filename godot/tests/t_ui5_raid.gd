@@ -115,6 +115,12 @@ func _inside(s: Node, frame: Rect2, tag: String) -> void:
 	_check(bad.is_empty(), "%s: all inside the %.0fx%.0f frame (%s)" % [tag, frame.size.x, frame.size.y, str(bad.slice(0, 4))])
 
 
+## The button is at least as wide as its text (measured with its font) plus the side padding: the text is never blank or clipped.
+func _team_text_fits(_s: Node, b: Button, tag: String) -> void:
+	var w := b.get_theme_font("font").get_string_size(b.text, HORIZONTAL_ALIGNMENT_LEFT, -1, b.get_theme_font_size("font_size")).x
+	_check(b.text != "" and b.size.x >= w + 2.0, "%s: TeamButton %.0f px wide holds its text %.0f px ('%s')" % [tag, b.size.x, w, b.text.left(20)])
+
+
 func _in_scroll(c: Node) -> bool:
 	var p := c.get_parent()
 	while p != null:
@@ -163,11 +169,13 @@ func _pass(sc: float, tag: String) -> void:
 	_check(s._points_lbl.theme_type_variation == "LabelDisplay" and s._points_lbl.get_theme_font("font") != (s.find_child("RuleLine", true, false) as Label).get_theme_font("font"), "%s r01: PointsLine in the display font (Rowdies)" % tag)
 	# long preset name: TeamButton is cut with an ellipsis within its token width and does not push the buttons
 	var tb0 := _btn(s, "TeamButton")
+	await _team_text_fits(s, tb0, tag + " r01 short name")
 	var tx0 := tb0.global_position.x
 	var db0 := _btn(s, "DefenceButton").size.x
 	MetaState.team_presets[0]["name"] = "P".repeat(80)
 	s._redraw()
 	await _settle()
+	await _team_text_fits(s, tb0, tag + " r01 80-char name")
 	_check(tb0.text.ends_with("…") and tb0.size.x <= UI3Theme.size_of("tooltip_w") + 1.0 and tb0.tooltip_text.contains("PPPP"), "%s r01: long preset name cut with an ellipsis, width %.0f" % [tag, tb0.size.x])
 	_check(absf(_btn(s, "DefenceButton").size.x - db0) < 1.0 and tb0.global_position.x + tb0.size.x <= _btn(s, "DefenceButton").global_position.x, "%s r01: long preset name does not push the buttons (x %.0f -> %.0f)" % [tag, tx0, tb0.global_position.x])
 	MetaState.team_presets[0]["name"] = "Preset A"
