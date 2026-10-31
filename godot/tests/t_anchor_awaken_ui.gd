@@ -98,6 +98,7 @@ func _ready() -> void:
 	var fr := AnchorFx.play(host, "a_volley")
 	await _frames(2)
 	_check(fr._card.get_node("AwakenName").modulate.a < 1.0 and fr._waves.get_parent() == fr, "reduced: runs (fades only, no waves drawn)")
+	_check(fr.card_frame.get_node_or_null("InnerFrame") != null, "reduced: the double frame is set at once (no timer)")
 	fr.skip()
 	MetaState.reduce_flash = false
 	await _frames(2)

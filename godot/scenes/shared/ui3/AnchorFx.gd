@@ -161,6 +161,7 @@ func _build(extra_line: String) -> void:
 	aw.custom_minimum_size = Vector2(mark, mark)
 	aw.size = Vector2(mark, mark)
 	aw.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	aw.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED   # else the icon draws at native size, bigger than the disc
 	aw.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	aw.visible = false
 	# Gold disc (56) behind the glyph: html #mark, right -18 / top -18 of the tile.
@@ -176,7 +177,12 @@ func _build(extra_line: String) -> void:
 	holder.position = Vector2(tile - mark + UI3Theme.space("16") + 2, -UI3Theme.space("16") - 2)
 	holder.add_child(disc)
 	holder.add_child(aw)
-	card_frame.add_child(holder)
+	# card_frame is a PanelContainer: it would stretch a direct child over the whole tile and ignore `position`.
+	var mark_layer := Control.new()
+	mark_layer.name = "AwakenMarkLayer"
+	mark_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mark_layer.add_child(holder)
+	card_frame.add_child(mark_layer)
 	var an := Ps.text(AnchorAdapter.awaken_name(anchor_id), "text_hero", "anchor_awake", true)
 	an.name = "AwakenName"
 	an.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

@@ -114,6 +114,16 @@ func _ready() -> void:
 	var tlfl := UI3Motion.play_timeline("treasure-open", {"flash": fl, "rays": _node("rays")}, {"host": _host})
 	await _wait(tlfl, 3.0)
 	_ok(tlfl.done and fl.modulate.a == 0.0, "reduce flashing: the screen flash never shows")
+	var shk := [0]
+	var rk := _node("rk")
+	var tlk := UI3Motion.play_timeline("core-reveal", {"card1": rk}, {"host": _host, "tier": 2, "delay_ms": -840.0 + 100.0,
+		"only": ["sparks_1", "sparks_2", "sparks_3", "shake_last"], "shake": func(_px: float, _s: float) -> void: shk[0] += 1})
+	await _wait(tlk, 3.0)
+	_ok(shk[0] == 0 and _burst_count(rk) == 0, "reduce flashing: core-reveal has no Crystal shake and no sparks (%d, %d)" % [shk[0], _burst_count(rk)])
+	var tt2 := _node("tt2")
+	var tlt2 := UI3Motion.play_timeline("treasure-open", {"card1": tt2}, {"host": _host, "only": ["shake"], "shake": func(_px: float, _s: float) -> void: shk[0] += 1})
+	await _wait(tlt2, 3.0)
+	_ok(shk[0] == 0, "reduce flashing: treasure-open does not shake")
 	MetaState.reduce_flash = false
 	# 9 a node freed mid-moment never hangs the timeline
 	var gone := _node("gone")
