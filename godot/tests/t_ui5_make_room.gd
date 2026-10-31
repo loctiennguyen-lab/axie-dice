@@ -63,6 +63,7 @@ func _room(sc: float) -> void:
 	RunState.pending_rewards = [{"t": "relic", "key": "r_seedling", "rar": 0, "title": "RELIC", "desc": "Seedling", "sub": ""}]
 	m.call("_show_reward_overlay", "CHOOSE A REWARD")
 	await _frames(2)
+	m.call("_select_reward", 0)   # no preselect since R2a: pick the card, then Take
 	m.call("_take_selected_reward")
 	await _frames(4)
 	var sheet := m.find_child("SlotSwapSheet", true, false)
@@ -165,6 +166,7 @@ func _core_room(sc: float) -> void:
 	RunState.pending_rewards = [{"t": "relic", "key": nk, "rar": 0, "title": "RELIC", "desc": "x", "sub": ""}]
 	m.call("_show_reward_overlay", "CHOOSE A REWARD")
 	await _frames(2)
+	m.call("_select_reward", 0)   # no preselect since R2a: pick the card, then Take
 	m.call("_take_selected_reward")
 	await _frames(4)
 	var sheet := m.find_child("SlotSwapSheet", true, false)
