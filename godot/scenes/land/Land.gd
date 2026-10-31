@@ -1591,6 +1591,8 @@ func _handle_key_event(ev: InputEventKey) -> bool:
 	elif ev.is_action_pressed(KeyBindings.LAND_RUN):
 		if get_viewport().gui_get_focus_owner() != null:
 			return false
+		if _run_plate != null and _run_plate.disabled:
+			return true   # Loading… / needs connection: the RunPlate is off and shows no Space cap, so Space does nothing
 		_on_run_pressed()
 	else:
 		return false

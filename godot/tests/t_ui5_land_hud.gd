@@ -63,6 +63,10 @@ func _small(root: Node, tag: String, sc: float) -> void:
 		var lab := l as Label
 		if lab.is_visible_in_tree() and lab.text != "" and float(lab.get_theme_font_size("font_size")) * sc < 13.99:
 			bad.append(lab.text)
+	for b in root.find_children("*", "BaseButton", true, false):
+		var btn := b as BaseButton
+		if btn.is_visible_in_tree() and btn is Button and (btn as Button).text != "" and float(btn.get_theme_font_size("font_size")) * sc < 13.99:
+			bad.append((btn as Button).text)
 	_ok(bad.is_empty(), "%s: text >= 14 real px (%s)" % [tag, str(bad)])
 
 
