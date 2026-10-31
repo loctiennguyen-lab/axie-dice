@@ -75,7 +75,7 @@ func _ready() -> void:
 	var a := _mk("2026-11-03")
 	await get_tree().process_frame
 	_ok(a.season_phase() == "active", "3/11 phase active")
-	_ok(a.season_text() == "Season 1 · ends 29 Dec 2026", "active header: " + a.season_text())
+	_ok(a.season_text() == "Season 1 · ends 28 Dec 2026", "active header: " + a.season_text())
 	_ok(not _banner_text(a).contains("has not started"), "no 'not started' banner on 3/11")
 	_ok(a.week_reset_text() == "resets Mon 9 Nov 2026, 00:00 UTC", "3/11 week resets Mon 9 Nov: " + a.week_reset_text())
 	a.queue_free()

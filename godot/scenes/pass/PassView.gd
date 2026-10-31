@@ -236,12 +236,18 @@ func week_reset_text() -> String:
 	return "resets Mon %s, 00:00 UTC" % fmt_day(nxt)
 
 
+## Last day of the season: `end_day` in pass_v2.json is the first day AFTER it (exclusive).
+func last_day() -> String:
+	var e := String(cfg().get("end_day", ""))
+	return GemWallet.utc_day(int(Time.get_unix_time_from_datetime_string(e + "T00:00:00")) - 86400)
+
+
 func season_text() -> String:
 	var c := cfg()
 	match season_phase():
 		"before": return "Season 1 · starts %s" % fmt_day(String(c.get("start_day", "")))
-		"over": return "Season 1 · ended %s" % fmt_day(String(c.get("end_day", "")))
-	return "Season 1 · ends %s" % fmt_day(String(c.get("end_day", "")))
+		"over": return "Season 1 · ended %s" % fmt_day(last_day())
+	return "Season 1 · ends %s" % fmt_day(last_day())
 
 
 static func reward_text(r: Dictionary) -> String:

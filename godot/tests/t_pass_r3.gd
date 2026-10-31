@@ -31,7 +31,7 @@ func _ready() -> void:
 	var s := _mk("2026-11-10")              # Tuesday of season week 2
 	await get_tree().process_frame
 	_ok(s.season_phase() == "active", "phase active")
-	_ok(s.season_text() == "Season 1 · ends 29 Dec 2026", "header text: " + s.season_text())
+	_ok(s.season_text() == "Season 1 · ends 28 Dec 2026", "header text: " + s.season_text())
 	_ok(s.level() == 5, "level 5")
 	_ok(s.find_children("TileButton*", "Button", true, false).size() == 30, "30 nodes")
 	_ok(s.node_state(5) == "claimable" and s.node_state(6) == "next" and s.node_state(9) == "locked", "node states")
