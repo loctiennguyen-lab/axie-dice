@@ -67,7 +67,7 @@ func _ready() -> void:
 	rm.call("_show_reward_overlay", "x")
 	await get_tree().process_frame
 	_check(rm._overlay_root.find_child("Title", true, false).text == "Choose a run rule", "rule title")
-	_check(rm._overlay_root.find_child("RewardCard1", true, false) != null and rm._overlay_root.find_child("RewardCard2", true, false) == null, "2 rule cards")
+	_check(rm._overlay_root.find_child("RuleCard1", true, false) != null and rm._overlay_root.find_child("RuleCard2", true, false) == null, "2 rule cards")
 	var rb: Button = rm._overlay_root.find_child("RerollButton", true, false)
 	_check(rb == null or not rb.visible, "no reroll on rules")
 	RunState.pending_rewards.assign([])

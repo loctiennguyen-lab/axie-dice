@@ -40,7 +40,7 @@ func _cards(rm: Node) -> int:
 	if rm._overlay_root == null or not rm._overlay_root.visible:
 		return 0
 	for i in 8:
-		if rm._overlay_root.find_child("RewardCard%d" % i, true, false) != null:
+		if rm._overlay_root.find_child("RewardCard%d" % i, true, false) != null or rm._overlay_root.find_child("RuleCard%d" % i, true, false) != null:
 			n += 1
 	return n
 

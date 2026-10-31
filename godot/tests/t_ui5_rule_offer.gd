@@ -1,0 +1,132 @@
+extends Node
+## UI-05 b23 lane R2b: the Run rule offer against 05-run-rule-offer--offer / --picked (names, fixed card size, PriceBox vs "No Rule",
+## no preselect, two different house colours, 1920 + 1280, align pairs measured, text >= 14 real px, initial focus on card 0).
+const Align := preload("res://tests/ui5_align_check.gd")
+const NAMES_SAMPLE := ["Upside Down", "Hard Shell", "Pack Alpha"]   # mockup samples must not be hard-coded in the scene
+var _guard := SaveGuard.new()
+var _fails: Array[String] = []
+var _checks := 0
+var rm: Node
+
+
+func _ok(c: bool, m: String) -> void:
+	_checks += 1
+	if not c:
+		_fails.append(m)
+
+
+func _frames(n: int) -> void:
+	for _i in n:
+		await get_tree().process_frame
+
+
+func _ready() -> void:
+	print("=== t_ui5_rule_offer: start ===")
+	_guard.capture()
+	ProjectSettings.set_setting("axie/epoch_source", "local")
+	RunState.start_new_run_seeded(424242, {"team_keys": ["plant1", "beast1", "aqua1", "reptile1", "bug1"],
+		"mode": "short", "ascension": 0, "ranked": false, "rules_on": true})
+	await _frames(2)
+	rm = load("res://scenes/run_map/RunMap.tscn").instantiate()
+	add_child(rm)
+	await _frames(8)
+	_ok(RunState._rule_offer_active and RunState.pending_rewards.size() == 2, "a real rule offer with 2 cards is open")
+	for sc in [1.0, 2.0 / 3.0]:
+		UI3Theme.set_scale_override(sc)
+		rm._show_reward_overlay("x")
+		await _frames(4)
+		_frame(sc, false)
+	UI3Theme.set_scale_override(1.0)
+	rm._show_reward_overlay("x")
+	await _frames(3)
+	_ok(rm._reward_cards[0].has_focus() and int(rm._reward_sel) == -1 and not bool(rm._reward_cards[0].get("selected")),
+		"initial focus is card 0, nothing selected")
+	rm._select_reward(0)
+	await _frames(3)
+	_ok(bool(rm._reward_cards[0].get("selected")) and not bool(rm._reward_cards[1].get("selected")), "picking card 0 selects only it")
+
+	# "No Rule" next to a real rule: no PriceBox on it (frame --picked).
+	var real: Dictionary = (RunState.pending_rewards[0] as Dictionary).duplicate(true)
+	var none: Dictionary = (RunState.pending_rewards[0] as Dictionary).duplicate(true)
+	none["key"] = CoreOffer.NO_RULE_ID
+	var nd = RelicRegistry.get_def(CoreOffer.NO_RULE_ID)
+	if nd != null:
+		none = CoreOffer.rule_card_of(nd, 1)
+	RunState.pending_rewards.assign([real, none])
+	for sc in [1.0, 2.0 / 3.0]:
+		UI3Theme.set_scale_override(sc)
+		rm._show_reward_overlay("x")
+		await _frames(4)
+		_frame(sc, true)
+		rm._select_reward(1)
+		await _frames(3)
+		_ok(bool(rm._reward_cards[1].get("selected")), "no-rule card can be picked @%.2f" % sc)
+		var tk := rm._overlay_root.find_child("TakeButton", true, false) as Button
+		_ok(tk != null and not tk.disabled and tk.text == "Take", "pick turns Take on @%.2f (got '%s')" % [sc, tk.text if tk != null else "-"])
+	UI3Theme.set_scale_override(-1.0)
+	RunState.pending_rewards.assign([])
+	rm.queue_free()
+	_guard.restore()
+	print("=== t_ui5_rule_offer: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
+	if _fails.is_empty():
+		print("t_ui5_rule_offer: PASS — %d checks OK" % _checks)
+		get_tree().quit(0)
+	else:
+		for f in _fails:
+			print("FAIL: " + f)
+		get_tree().quit(1)
+
+
+func _frame(sc: float, with_none: bool) -> void:
+	var tag := "rule%s @%.2f" % [" +none" if with_none else "", sc]
+	var root: Node = rm._overlay_root.find_child("RunRuleOffer", true, false)
+	_ok(root != null, "%s: RunRuleOffer" % tag)
+	if root == null:
+		return
+	for n in ["Header", "Title", "ShardPill", "CardRow", "Footer", "TakeButton"]:
+		_ok(root.find_child(n, true, false) != null, "%s: node %s" % [tag, n])
+	for n in ["RerollButton", "RerollCounter", "SkipButton", "TierLadder"]:
+		_ok(root.find_child(n, true, false) == null, "%s: no %s" % [tag, n])
+	_ok((root.find_child("Title", true, false) as Label).text == "Choose a run rule", "%s: title" % tag)
+	var tk := root.find_child("TakeButton", true, false) as Button
+	_ok(tk.disabled and tk.text == "Pick a rule" and tk.get_node_or_null("KeyCap") == null, "%s: Take off, 'Pick a rule', no keycap (got '%s')" % [tag, tk.text])
+	var want := Vector2(UI3Theme.size_of("rule_card_w"), UI3Theme.size_of("rule_card_h"))
+	_ok(rm._reward_cards.size() == 2, "%s: 2 cards" % tag)
+	var tints: Array[Color] = []
+	for i in rm._reward_cards.size():
+		var c: Control = rm._reward_cards[i]
+		_ok(c.name == "RuleCard%d" % i and c.size.is_equal_approx(want), "%s card %d: RuleCard %s (got %s)" % [tag, i, want, c.size])
+		for n in ["Kind", "ArtBox", "RuleName", "RuleText"]:
+			_ok(c.find_child(n, true, false) != null, "%s card %d: %s" % [tag, i, n])
+		var is_none: bool = String((RunState.pending_rewards[i] as Dictionary).get("key", "")) == CoreOffer.NO_RULE_ID
+		var pb := c.find_child("PriceBox", true, false)
+		_ok((pb == null) == is_none, "%s card %d: PriceBox only on a real rule (none=%s)" % [tag, i, str(is_none)])
+		_ok(pb == null or c.find_child("PriceLine", true, false) != null, "%s card %d: PriceLine" % [tag, i])
+		_ok(not bool(c.get("selected")), "%s card %d: not preselected" % [tag, i])
+		_ok(String((c.find_child("Kind", true, false) as Label).text) == "Run rule", "%s card %d: Kind" % [tag, i])
+		var rn := (c.find_child("RuleName", true, false) as Label).text
+		_ok(rn != "" and not NAMES_SAMPLE.has(rn) or String((RunState.pending_rewards[i] as Dictionary).get("title", "")) != "", "%s card %d: name from data" % [tag, i])
+		tints.append((c.find_child("ArtBox", true, false).get_child(0) as CanvasItem).modulate)
+		var col := c.get("column") as Control
+		_ok(col.get_combined_minimum_size().y <= c.size.y - 2.0 * UI3Theme.space("20") + 0.5, "%s card %d: content fits (%.0f of %.0f)" % [tag, i,
+			col.get_combined_minimum_size().y, c.size.y - 40.0])
+	_ok(tints.size() == 2 and not tints[0].is_equal_approx(tints[1]), "%s: two cards never share a house colour" % tag)
+	_ok(Align.pairs(root) > 0, "%s: align check measured pairs" % tag)
+	var al: Array[String] = Align.check(root, 1.5, tag)
+	_ok(al.is_empty(), "%s: aligned %s" % [tag, str(al.slice(0, 4))])
+	for bn in root.find_children("*", "Button", true, false):
+		var bt := bn as Button
+		if bt.is_visible_in_tree():
+			_ok(float(bt.get_theme_font_size("font_size")) * sc >= 13.99, "%s: button '%s' >= 14 real px" % [tag, bt.text.left(20)])
+	var vp := Vector2(1920, 1080)
+	for cn in root.find_children("*", "Control", true, false):
+		var ct := cn as Control
+		if ct.is_visible_in_tree() and ct.size.x > 0.0:
+			var rr := ct.get_global_rect()
+			if rr.end.x > vp.x + 0.5 or rr.position.x < -0.5:
+				_ok(false, "%s: %s outside 1920 (%s)" % [tag, ct.name, str(rr)])
+	_ok(tk.get_global_rect().end.y <= 1080.0 - 13.0 + 0.5, "%s: Take bottom %.0f inside the safe area" % [tag, tk.get_global_rect().end.y])
+	for l in root.find_children("*", "Label", true, false):
+		var lab := l as Label
+		if lab.is_visible_in_tree() and lab.text != "":
+			_ok(float(lab.get_theme_font_size("font_size")) * sc >= 13.99, "%s: '%s' >= 14 real px" % [tag, lab.text.left(20)])
