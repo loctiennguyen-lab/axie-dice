@@ -157,16 +157,17 @@ func _build(extra_line: String) -> void:
 	var mark := UI3Theme.size_of("r3_fx_mark")
 	var aw := TextureRect.new()
 	aw.name = "AwakenGlyph"
-	aw.texture = UI3.icon(CorePanel.AWAKEN_ICON)
 	var gl := roundf(mark * 0.6)   # glyph sits inside the disc, centred on it
+	# expand/stretch BEFORE the texture: with the default KEEP_SIZE the texture's native size (256) becomes the
+	# minimum size and the rect can no longer shrink to `gl`.
+	aw.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	aw.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	aw.custom_minimum_size = Vector2(gl, gl)
+	aw.texture = UI3.icon(CorePanel.AWAKEN_ICON)
 	aw.size = Vector2(gl, gl)
 	aw.position = Vector2(mark - gl, mark - gl) * 0.5
-	aw.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	aw.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED   # else the icon draws at native size, bigger than the disc
 	aw.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	aw.visible = false
-	aw.size = Vector2(gl, gl)   # again, after expand_mode: the texture's native size had already stretched the rect
 	# Gold disc (56) behind the glyph: html #mark, right -18 / top -18 of the tile.
 	var disc := Panel.new()
 	disc.name = "AwakenDisc"
@@ -277,7 +278,10 @@ func _show_final() -> void:
 	card_frame.modulate.a = 1.0
 	for n in _fade_nodes():
 		n.modulate.a = 1.0
-	(card_frame.find_child("AwakenGlyph", true, false) as Control).modulate.a = 1.0
+	var gly := card_frame.find_child("AwakenGlyph", true, false) as Control
+	gly.modulate.a = 1.0
+	gly.scale = Vector2.ONE   # the timeline's glyph layer starts at scale 2 / -20 deg: the end state is 1 / 0
+	gly.rotation = 0.0
 	_swap_frame()
 	_card.scale = Vector2.ONE
 
