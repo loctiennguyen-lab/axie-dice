@@ -218,8 +218,8 @@ func show_tier_banner() -> void:
 		var host: Control = _l._ui
 		UI3Motion.play_timeline("land-tier-up", {"shake": host, "diorama": host}, {"host": host, "delay_ms": -900.0,
 			"only": ["hitstop", "shake", "stone_burst"]})
-		UI3Motion.play_timeline("land-tier-up", {"scrim": m.find_child("Scrim", true, false), "banner": dlg}, {"host": host,
-			"delay_ms": -2200.0, "only": ["banner_scrim", "banner_rise"]})
+		UI3Motion.play_timeline("land-tier-up", {"banner": m}, {"host": host,
+			"delay_ms": -2200.0, "only": ["banner_rise"]})
 
 
 # ---- BuildingTooltip (frame 01-land--tooltip-building / -lock): plate to the right of the building, Title + Status
