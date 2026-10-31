@@ -149,6 +149,16 @@ func _coach_pass(sc: float, aligned: Array) -> void:
 	cards[1].gui_input.emit(click)
 	await _frames(2)
 	_ok(_picked == -1, "reward %s: a second click does not take again" % tag)
+	# Keyboard: Space / Enter (ui_accept) on the focused card takes it too.
+	coach.show_rewards("You won.", "Pick one.", [{"title": "One", "desc": "d1"}, {"title": "Two", "desc": "d2"}])
+	await _frames(3)
+	var kcards: Array = coach.find_children("RewardCard*", "PanelContainer", true, false)
+	var acc := InputEventAction.new()
+	acc.action = "ui_accept"
+	acc.pressed = true
+	(kcards[1] as Control).gui_input.emit(acc)
+	await _frames(2)
+	_ok(_picked == 1, "reward %s: Space/Enter on a card takes it" % tag)
 	# Skip confirm.
 	coach.show_curtain("Done", "Body.", "Go to the Land", false)
 	await _frames(3)
