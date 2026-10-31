@@ -134,7 +134,10 @@ func skip() -> void:
 	events.append("skip")
 	if _tween != null:
 		_tween.kill()
-	if _label != null:   # ComboBanner has no spin label
+	if name == "ComboBanner":   # a banner has no spin label: skipping it is the same as a click (emit + free)
+		_banner_end()
+		return
+	if _label != null:
 		_label.text = _final
 	_done()
 

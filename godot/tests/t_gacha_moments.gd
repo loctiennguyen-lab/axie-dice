@@ -175,12 +175,16 @@ func _banner() -> void:
 	_check(ban.find_child("MutationBox", true, false) != null and ban.find_child("MutationName", true, false) != null, "pair banner carries the MUTATION box")
 	await _wait(3.2)
 	_check(rm._overlay_layer.find_child("ComboBanner", true, false) != null, "UI-05: no timer, the band waits for a click")
-	var lone := GachaFx.new()   # F2: a banner has no spin label; skip() must not crash on it
+	var lone := GachaFx.new()   # F2: a banner has no spin label; skip() ends it like a click (emit finished + free)
 	lone.name = "ComboBanner"
+	add_child(lone)
 	lone.running = true
+	var fired := [false]
+	lone.finished.connect(func() -> void: fired[0] = true)
 	lone.skip()
-	_check(not lone.running, "F2: skip() on a label-less banner ends it without error")
-	lone.free()
+	_check(not lone.running and fired[0], "F2: skip() on a label-less banner ends it and emits finished")
+	await _frames(2)
+	_check(not is_instance_valid(lone), "F2: a skipped banner is freed")
 	(ban as GachaFx)._banner_end()
 	await _frames(2)
 	_check(rm._overlay_layer.find_child("ComboBanner", true, false) == null, "click dismisses the pair banner")
