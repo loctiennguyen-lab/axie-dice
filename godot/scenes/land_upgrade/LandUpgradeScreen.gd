@@ -262,7 +262,7 @@ func _row(tier: int) -> Control:
 	b.mouse_entered.connect(_select.bind(tier))
 	if b.disabled:
 		b.tooltip_text = b.text
-	return Parts.tier_row(tier, "%s Land" % tier_name(tier), String(ADDS.get(tier, "Starting Land")), cost, cum, b, tier == _sel, st == "done")
+	return Parts.tier_row(tier, land_title(tier), String(ADDS.get(tier, "Starting Land")), cost, cum, b, tier == _sel, st == "done")
 
 
 func _row_input(ev: InputEvent, tier: int) -> void:
