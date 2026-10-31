@@ -209,14 +209,14 @@ func _ready() -> void:
 	var flow: Node = _svc._ui_layer().get_node_or_null("DesktopSignInFlow")
 	_check(flow != null, "waiting overlay is on screen")
 	_check(flow != null and (flow.find_child("Title", true, false) as Label).text.begins_with("Waiting for the browser"), "overlay says Waiting for the browser")
-	_check(flow != null and flow.find_child("Cancel", true, false) != null and flow.find_child("OpenAgain", true, false) != null, "overlay has Cancel and Open browser again")
-	(flow.find_child("OpenAgain", true, false) as Button).pressed.emit()
+	_check(flow != null and flow.find_child("CancelButton", true, false) != null and flow.find_child("OpenBrowserButton", true, false) != null, "overlay has Cancel and Open browser again")
+	(flow.find_child("OpenBrowserButton", true, false) as Button).pressed.emit()
 	_check(_opened.size() == 2 and _opened[0] == _opened[1], "Open browser again re-opens the same URL, no new flow")
 
 	# cancel closes it, a new flow can start
 	var first_port := _port_of(String(_opened[0]))
 	var first_state := String(_opened[0]).split("state=")[1]
-	(flow.find_child("Cancel", true, false) as Button).pressed.emit()
+	(flow.find_child("CancelButton", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_check(OS.low_processor_usage_mode, "service flow: low_processor_usage_mode restored after Cancel")
@@ -275,7 +275,7 @@ func _ready() -> void:
 	_svc.menu_entered()   # ... which applies it: the reconcile runs now
 	await get_tree().process_frame
 	_check(not _svc.reconciling and int(_svc.status) in [AccountService.Status.SAVED, AccountService.Status.SAVING], "reconcile done (SAVED, or SAVING while the first upload runs)")
-	(flow.find_child("Continue", true, false) as Button).pressed.emit()
+	(flow.find_child("ContinueButton", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_check(rs.state == "normal" and rs.begin_block_reason() == "", "Run Setup unblocked after reconcile + overlay closed, Begin allowed")

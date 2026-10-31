@@ -10,8 +10,9 @@ extends RefCounted
 const WELCOME_W := 760.0
 const CHOICE_W := 980.0
 const MOVE_W := 760.0
-const TOAST_W := 860.0
 const TOAST_SECONDS := 10.0
+const Parts := preload("res://scenes/account/ui5/AccountParts.gd")
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 
 
 # ============================================================================ A · welcome
@@ -99,7 +100,13 @@ static func show_offline_gate(layer: CanvasLayer, service: Node) -> Control:
 static func show_desktop_flow(layer: CanvasLayer, service: Node, auto_dismiss_s: float = 1.6) -> Control:
 	var overlay := _overlay(layer)
 	overlay.name = "DesktopSignInFlow"
-	var box := _modal(overlay, 640.0)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(center)
+	var dlg: Dictionary = Parts.box("DesktopSignIn", true)   # .dialog.s: radius xl, pad 32, gap 20, modal_s_w
+	center.add_child(dlg["panel"])
+	var box := dlg["col"] as VBoxContainer
 	var dismissed := [false]
 	var refresh := Callable()
 	refresh = func() -> void:
@@ -109,33 +116,31 @@ static func show_desktop_flow(layer: CanvasLayer, service: Node, auto_dismiss_s:
 			box.remove_child(c)
 			c.queue_free()
 		var phase := String(service.get("desktop_phase"))
+		var focus: Button = null
 		match phase:
 			"waiting":
-				var t := UI3.label("Waiting for the browser…", "LabelScreenTitle")
-				t.name = "Title"
-				box.add_child(t)
-				box.add_child(_prose("Finish signing in in your browser. Then come back here; the game picks it up by itself."))
-				var again := UI3.button("Open browser again", &"primary", &"M")
-				again.name = "OpenAgain"
+				box.add_child(Parts.banner("Waiting for the browser…", &"", "Title"))
+				box.add_child(Parts.body("Finish signing in in your browser. Then come back here; the game picks it up by itself.", false, "Body"))
+				var again := Parts.btn("OpenBrowserButton", "Open browser again", &"primary", &"L", true)
 				again.pressed.connect(func() -> void: service.reopen_desktop_browser())
 				box.add_child(again)
-				var cancel := UI3.button("Cancel", &"secondary", &"M")
-				cancel.name = "Cancel"
+				var cancel := Parts.btn("CancelButton", "Cancel")
 				cancel.pressed.connect(func() -> void: service.cancel_desktop_sign_in())
 				box.add_child(cancel)
+				focus = again
 			"finishing":
-				var t := UI3.label("Signing you in…", "LabelScreenTitle")
-				t.name = "Title"
-				box.add_child(t)
-				box.add_child(_prose("Google said yes. Checking your account."))
+				box.add_child(Parts.banner("Signing you in…", &"", "Title"))
+				box.add_child(Parts.body("Google said yes. Checking your account.", false, "Body"))
+				var sp := Ui5Spinner.new()
+				sp.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+				box.add_child(sp)
 			"signed_in":
-				var t := UI3.label("Signed in as %s" % String(service.display_name()), "LabelScreenTitle")
-				t.name = "Title"
-				box.add_child(t)
-				var go := UI3.button("Continue", &"primary", &"M")
-				go.name = "Continue"
+				box.add_child(Parts.banner("Signed in as %s" % String(service.display_name()), &"ok", "Title"))
+				var go := Parts.btn("ContinueButton", "Continue", &"primary", &"L", true)
 				go.pressed.connect(func() -> void: service.dismiss_desktop_result())
 				box.add_child(go)
+				_space_cap(go)
+				focus = go
 				if auto_dismiss_s > 0.0 and not dismissed[0] and overlay.is_inside_tree():
 					dismissed[0] = true
 					overlay.get_tree().create_timer(auto_dismiss_s).timeout.connect(func() -> void:
@@ -143,29 +148,47 @@ static func show_desktop_flow(layer: CanvasLayer, service: Node, auto_dismiss_s:
 							service.dismiss_desktop_result())
 			"error":
 				var copy: Array = AccountScreen.error_copy(String(service.get("desktop_error")))
-				var t := UI3.label(String(copy[0]), "LabelScreenTitle")
-				t.name = "Title"
-				t.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
-				box.add_child(t)
-				box.add_child(_prose(String(copy[1])))
-				var retry := UI3.button(String(copy[2]), &"primary", &"M")
-				retry.name = "Retry"
+				box.add_child(Parts.banner(String(copy[0]), &"error", "Title"))
+				box.add_child(Parts.body(String(copy[1]), false, "Body"))
+				var retry := Parts.btn("TryAgainButton", String(copy[2]), &"primary", &"L", true)
 				retry.pressed.connect(func() -> void:
 					service.clear_desktop_error()
 					service.sign_in())
 				box.add_child(retry)
-				var close := UI3.button("Close", &"secondary", &"M")
-				close.name = "Close"
+				var close := Parts.btn("CloseButton", "Close")
 				close.pressed.connect(func() -> void: service.clear_desktop_error())
 				box.add_child(close)
+				focus = retry
 			_:
 				overlay.queue_free()
+		if focus != null:
+			focus.grab_focus.call_deferred()
 	service.changed.connect(refresh)
 	overlay.tree_exiting.connect(func() -> void:
 		if is_instance_valid(service) and service.changed.is_connected(refresh):
 			service.changed.disconnect(refresh))
 	refresh.call()
 	return overlay
+
+
+## Space keycap trailing the label of the primary button (as RunPauseMenu): pins the variation's styles as overrides,
+## then HudStyle.place_trailing once the button is in the tree and again on every resize.
+static func _space_cap(b: Button) -> void:
+	var cap := Ui5Keycap.make("Space", &"primary")
+	b.add_child(cap)
+	var pad := UI3Theme.space("32")
+	var place := func() -> void:
+		if not is_instance_valid(b) or not b.is_inside_tree():
+			return
+		if not b.has_meta("styles_pinned"):
+			b.set_meta("styles_pinned", true)
+			for st in ["normal", "hover", "pressed", "disabled", "hover_pressed", "focus"]:
+				var src: StyleBox = UI3Theme.get_theme().get_stylebox(st, b.theme_type_variation)
+				if src != null:
+					b.add_theme_stylebox_override(st, src.duplicate())
+		Ui5HudStyle.place_trailing(b, cap, pad)
+	b.resized.connect(place)
+	place.call_deferred()
 
 
 # ============================================================================ B · chip
@@ -406,66 +429,70 @@ static func _save_card(title: String, when: String, s: Dictionary) -> PanelConta
 static func show_toast(layer: CanvasLayer, code: String) -> Control:
 	var service: Node = layer.get_parent()
 	for c in layer.get_children():
-		if c.name == "AccountToast":
+		if c.name == "AccountToastHost":
 			c.queue_free()
 	var holder := Control.new()
-	holder.name = "AccountToast"
+	holder.name = "AccountToastHost"
 	holder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(holder)
 
 	var warn := code in ["session_expired", "save_failed", "sign_out_failed"]
-	var panel := UI3.plate(&"notice")
+	var tw := float(UI3Theme.size_of("toast_max_w"))
+	var st := UI3Theme.flat(UI3Theme.color("plate"), UI3Theme.radius("l"), UI3Theme.stroke("rim"), UI3Theme.color("plate_rim"),
+		Vector4(UI3Theme.space("12"), UI3Theme.space("12"), UI3Theme.space("20"), UI3Theme.space("12")),
+		PanelParts.lip(UI3Theme.color("plate_ink")))
+	var panel := PanelParts.panel(st, "AccountToast")
 	panel.anchor_left = 0.5
 	panel.anchor_right = 0.5
 	panel.anchor_top = 1.0
 	panel.anchor_bottom = 1.0
 	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	panel.custom_minimum_size = Vector2(TOAST_W, 0)
-	panel.offset_left = -TOAST_W / 2.0
-	panel.offset_right = TOAST_W / 2.0
-	panel.offset_bottom = -UI3Theme.space("24")
+	panel.custom_minimum_size = Vector2(tw, 0)
+	panel.offset_left = -tw / 2.0
+	panel.offset_right = tw / 2.0
+	panel.offset_bottom = -float(UI3Theme.space("screen_margin") + UI3Theme.size_of("btn_l") + UI3Theme.space("24"))
 	holder.add_child(panel)
 
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", UI3Theme.space("16"))
+	row.add_theme_constant_override("separation", UI3Theme.space("12"))
 	panel.add_child(row)
-	# Status dot, then the message in words (red only for a real failure of sign-in).
-	var dot := ColorRect.new()
-	dot.custom_minimum_size = Vector2(8, 8)
-	dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	dot.color = UI3Theme.color("accent") if warn else UI3Theme.color("danger")
-	row.add_child(dot)
-	var msg := _prose(AccountServiceScript.error_message(code))
+	row.add_child(Ui5ToneDisc.make(&"warn" if warn else &"error"))
+	var msg := Parts.body(AccountServiceScript.error_message(code), false, "Text")
 	msg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	msg.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	msg.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(msg)
+	var acts := HBoxContainer.new()
+	acts.name = "Acts"
+	acts.add_theme_constant_override("separation", UI3Theme.space("8"))
+	row.add_child(acts)
 
 	var actions: Array = []
 	match code:
 		"access_denied", "network":
 			actions = [["Try again" if code == "access_denied" else "Retry", true,
-					func() -> void: service.sign_in()],
-				["Continue without signing in", false, func() -> void: service.play_as_guest()]]
+					func() -> void: service.sign_in(), "TryAgainButton" if code == "access_denied" else "RetryButton"],
+				["Continue without signing in", false, func() -> void: service.play_as_guest(), "ContinueWithoutSigningInButton"]]
 		"admin_policy_enforced", "org_internal":
-			actions = [["Use another account", true, func() -> void: service.sign_in(true)]]
+			actions = [["Use another account", true, func() -> void: service.sign_in(true), "UseAnotherButton"]]
 		"session_expired":
-			actions = [["Sign in", true, func() -> void: service.sign_in()]]
+			actions = [["Sign in", true, func() -> void: service.sign_in(), "SignInButton"]]
 		"save_failed":
-			actions = [["Sync now", false, func() -> void: service.sync_now()]]
+			actions = [["Sync now", false, func() -> void: service.sync_now(), "SyncNowButton"]]
 		"sign_out_failed":
 			actions = []
 		_:
-			actions = [["Try again", true, func() -> void: service.sign_in()]]
+			actions = [["Try again", true, func() -> void: service.sign_in(), "TryAgainButton"]]
 	for a in actions:
-		var b := UI3.button(a[0], &"primary" if a[1] else &"secondary", &"M")
+		var b := Parts.btn(String(a[3]), String(a[0]), &"secondary", &"S")   # a17/a18: every toast action is secondary
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		var act: Callable = a[2]
 		b.pressed.connect(func() -> void:
 			holder.queue_free()
 			act.call())
-		row.add_child(b)
+		acts.add_child(b)
 
 	var timer := holder.get_tree().create_timer(TOAST_SECONDS)
 	timer.timeout.connect(func() -> void:
