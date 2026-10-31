@@ -38,11 +38,9 @@ func open_slot_swap(reward: Dictionary, chk: Dictionary) -> void:
 	var rule := ""
 	var title_text := ""
 	if RelicSlots.is_core(nd):
-		# Real Core: the 6 Core slots are what is full (frame make-room: "Make room (6 of 6)" + "All 6 Core slots full").
-		var n := RelicSlots.owned_cores(RunState.owned_relic_ids).size()
-		var m := RelicSlots.tuning().core_slots
-		title_text = tr("Make room (%d of %d)") % [n, m]
-		rule = tr("All %d Core slots full. Sell one; the sold Core gives Shards.") % m
+		# Real Core: the 6 Core slots are what is full. Frame body: title "Make room", "Passive slots are full (6 of 6)...".
+		rule = tr("Passive slots are full (%d of %d). Sell one to take the new Core.") % [
+			RelicSlots.owned_cores(RunState.owned_relic_ids).size(), RelicSlots.tuning().core_slots]
 	else:
 		var kind_owned := 0
 		for oid in RunState.owned_relic_ids:

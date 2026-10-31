@@ -20,13 +20,19 @@ func _ready() -> void:
 	UI3Theme.set_scale_override(2.0 / 3.0 if small else 1.0)
 	var team: Array[String] = ["plant1", "beast1", "aqua1", "reptile1", "bug1"]
 	RunState.start_new_run(798, team, "short", 0, false)
-	RunState.owned_relic_ids.assign(["r_claw", "r_carapace", "r_pierceall", "r_cleaveall", "r_bloodmouth", "r_gorehook", "r_barbedhide", "r_heart"])
-	RunState.relic_stickers = {"r_heart": "eternal"}
+	var ids: Array[String] = []
+	for f in DirAccess.get_files_at("res://resources/relics"):
+		var d = RelicRegistry.get_def(f.get_basename()) if f.begins_with("c_") and f.ends_with(".tres") else null
+		if d != null and String(d.core_axis) != "" and String(d.core_axis) != "run_rule":
+			ids.append(f.get_basename())
+	var slots := RelicSlots.tuning().core_slots
+	RunState.owned_relic_ids.assign(ids.slice(0, slots))
+	RunState.relic_stickers = {}
 	var m: Node = load("res://scenes/run_map/RunMap.tscn").instantiate()
 	add_child(m)
 	for _i in 8:
 		await get_tree().process_frame
-	RunState.pending_rewards = [{"t": "relic", "key": "r_seedling", "rar": 0, "title": "RELIC", "desc": "Seedling", "sub": ""}]
+	RunState.pending_rewards = [{"t": "relic", "key": ids[slots], "rar": 0, "title": "RELIC", "desc": "Seedling", "sub": ""}]
 	m.call("_show_reward_overlay", "CHOOSE A REWARD")
 	await get_tree().process_frame
 	m.call("_take_selected_reward")
