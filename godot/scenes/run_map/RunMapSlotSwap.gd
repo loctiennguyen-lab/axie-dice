@@ -4,6 +4,8 @@ extends RefCounted
 ## The controller keeps a same-name forwarder for every method here.
 
 
+const MakeRoomSheet := preload("res://scenes/run_map/ui5/MakeRoomSheet.gd")
+
 var ctrl: RunMapController
 
 
@@ -32,16 +34,19 @@ func open_slot_swap(reward: Dictionary, chk: Dictionary) -> void:
 		cells.append({"id": id, "name": UI3.title_case(UI3.player_text(String(od.name))),
 			"kind": tr("Active") if RelicSlots._is_active(od) else tr("Passive"),
 			"sell": RelicSlots.sell_price(id, RunState.ascension), "eternal": eternal})
+	var kind_owned := 0
+	for oid in RunState.owned_relic_ids:
+		var kd = RelicRegistry.get_def(String(oid))
+		if kd != null and not String(oid).begins_with("__") and RelicSlots._is_active(kd) == active:
+			kind_owned += 1
 	var rule := (tr("Active slots are full (%d of %d). Sell one to take the new Core.") if active
 		else tr("Passive slots are full (%d of %d). Sell one to take the new Core.")) % [
-		cells.size(), int(cap["active"] if active else cap["passive"])]
-	var dsc := UI3.describe(RewardGenerator.relic_desc(nd))
-	var sheet := UI3.slot_swap_sheet(tr("Make room"), UI3.title_case(UI3.player_text(String(nd.name))),
-		("MP %d · " % int(dsc["mp"]) if int(dsc["mp"]) >= 0 else "") + String(dsc["text"]), rule, cells,
-		false, func(sell_id: String) -> void:
+		kind_owned, int(cap["active"] if active else cap["passive"])]
+	var sheet := MakeRoomSheet.build(UI3.title_case(UI3.player_text(String(nd.name))), int(nd.rarity), rule, cells,
+		func(sell_id: String) -> void:
 			var ok := RunState.acquire_relic(key, "reward", sell_id)
 			sheet_closed(ok, reward),
-		func() -> void: sheet_closed(false, {}, true), 3 if active else 4)
+		func() -> void: sheet_closed(false, {}, true))
 	sheet.name = "SlotSwapSheet"
 	ctrl._overlay_root.add_child(sheet)
 
