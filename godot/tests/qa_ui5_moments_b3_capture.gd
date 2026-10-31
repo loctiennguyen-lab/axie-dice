@@ -127,4 +127,5 @@ func _ready() -> void:
 	await _wait(0.3)
 	await _shot("daily-claim-mid")
 	d.queue_free()
+	_guard.restore()   # the Result / Pass / Daily moments write the save; put it back (t_vault)
 	get_tree().quit(0)
