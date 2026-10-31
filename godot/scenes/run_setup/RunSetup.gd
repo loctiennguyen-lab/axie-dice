@@ -384,6 +384,7 @@ func _refresh_kind() -> void:
 		b.disabled = why != ""
 		b.tooltip_text = why
 		b.icon = UI3.icon("ui_lock") if why != "" else null
+		b.add_theme_constant_override("icon_max_width", 18)
 		b.text = "%s · %s" % [String(k).capitalize(), _kind_sub(k)]
 		b.set_pressed_no_signal(kind == k)
 		_mark_selected(b, kind == k)
@@ -864,7 +865,7 @@ func _refresh_party() -> void:
 		c.queue_free()
 	_party_label.text = tr("Party · %d of %d") % [filled_count(), PARTY_SIZE]
 	for i in PARTY_SIZE:
-		_party_row.add_child(_build_slot(i))
+		_party_row.add_child(_build_slot(i), true)
 	_refresh_kind()
 
 
@@ -880,15 +881,18 @@ func _build_slot(i: int) -> Control:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", UI3Theme.space("8"))
 	card.add_child(v)
-	var ar := AspectRatioContainer.new()
+	var ar := Control.new()
 	ar.name = "PortraitBox"
-	ar.ratio = 1.0
+	ar.resized.connect(func() -> void:   # square: height follows the column width
+		if absf(ar.custom_minimum_size.y - ar.size.x) > 0.5:
+			ar.custom_minimum_size.y = ar.size.x)
 	v.add_child(ar)
 	var preview := Panel.new()
 	preview.name = "Preview"
 	var psb := StyleBoxFlat.new()
 	psb.set_corner_radius_all(UI3Theme.radius("m"))
 	preview.add_theme_stylebox_override("panel", psb)
+	preview.set_anchors_preset(Control.PRESET_FULL_RECT)
 	ar.add_child(preview)
 	if key == "":
 		psb.draw_center = false
@@ -965,6 +969,8 @@ func _build_mode_col() -> void:
 		var b := UI3.button(String(k).capitalize(), &"secondary", &"M")
 		b.name = String(k).capitalize() + "Toggle"
 		b.toggle_mode = true
+		b.clip_text = true
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.pressed.connect(select_kind.bind(k))
 		_kind_btns[k] = b
 		_body.add_child(b)
@@ -976,6 +982,7 @@ func _build_mode_col() -> void:
 	_short_btn = UI3.button(tr("Short"), &"secondary", &"M")
 	_short_btn.name = "ShortToggle"
 	_short_btn.toggle_mode = true
+	_short_btn.clip_text = true
 	_short_btn.button_group = grp
 	_short_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_short_btn.pressed.connect(select_length.bind("short"))
@@ -983,6 +990,7 @@ func _build_mode_col() -> void:
 	_full_btn = UI3.button(tr("Full"), &"secondary", &"M")
 	_full_btn.name = "FullToggle"
 	_full_btn.toggle_mode = true
+	_full_btn.clip_text = true
 	_full_btn.button_group = grp
 	_full_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_full_btn.pressed.connect(func() -> void:
@@ -1024,6 +1032,7 @@ func _refresh_mode() -> void:
 	_full_lock.text = "" if full_ok else tr("Full is locked. Win a Short run to unlock Full.")
 	_full_lock.visible = not full_ok
 	_full_btn.icon = null if full_ok else UI3.icon("ui_lock")
+	_full_btn.add_theme_constant_override("icon_max_width", 18)
 	_full_btn.disabled = false
 
 
