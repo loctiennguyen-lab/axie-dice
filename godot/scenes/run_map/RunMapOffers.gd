@@ -585,10 +585,9 @@ func _add_reward_card(r: Dictionary, _wide := false) -> PanelContainer:
 func _add_rule_card(r: Dictionary) -> PanelContainer:
 	var idx := ctrl._reward_cards.size()
 	var key := String(r.get("key", ""))
-	var name_text := UI3.title_case(UI3.player_text(String(r.get("title", ""))))
-	var body_text := String(r.get("desc", ""))
-	if String(r.get("sub", "")) != "":
-		body_text += "\n" + String(r.get("sub", ""))
+	# Offer shape (like a relic offer): title = "RUN RULE", desc = the rule name, sub = its effect.
+	var name_text := UI3.title_case(UI3.player_text(String(r.get("desc", ""))))
+	var body_text := String(r.get("sub", ""))
 	if key == "rule_none":
 		body_text = tr("Play this run with the base rules.")
 	var dsc := UI3.describe(body_text)

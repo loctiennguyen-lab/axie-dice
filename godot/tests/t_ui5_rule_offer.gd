@@ -2,7 +2,6 @@ extends Node
 ## UI-05 b23 lane R2b: the Run rule offer against 05-run-rule-offer--offer / --picked (names, fixed card size, PriceBox vs "No Rule",
 ## no preselect, two different house colours, 1920 + 1280, align pairs measured, text >= 14 real px, initial focus on card 0).
 const Align := preload("res://tests/ui5_align_check.gd")
-const NAMES_SAMPLE := ["Upside Down", "Hard Shell", "Pack Alpha"]   # mockup samples must not be hard-coded in the scene
 var _guard := SaveGuard.new()
 var _fails: Array[String] = []
 var _checks := 0
@@ -129,7 +128,9 @@ func _frame(sc: float, with_none: bool) -> void:
 		_ok(not bool(c.get("selected")), "%s card %d: not preselected" % [tag, i])
 		_ok(String((c.find_child("Kind", true, false) as Label).text) == "Run rule", "%s card %d: Kind" % [tag, i])
 		var rn := (c.find_child("RuleName", true, false) as Label).text
-		_ok(rn != "" and not NAMES_SAMPLE.has(rn) or String((RunState.pending_rewards[i] as Dictionary).get("title", "")) != "", "%s card %d: name from data" % [tag, i])
+		var want_name := UI3.title_case(UI3.player_text(String((RunState.pending_rewards[i] as Dictionary).get("desc", ""))))
+		_ok(rn == want_name and rn != "" and rn.to_lower() != "run rule", "%s card %d: name is the rule's own (%s)" % [tag, i, rn])
+		_ok(not (c.find_child("RuleText", true, false) as Label).text.begins_with(rn), "%s card %d: text does not repeat the name" % [tag, i])
 		tints.append((c.find_child("ArtBox", true, false).get_child(0) as CanvasItem).modulate)
 		var col := c.get("column") as Control
 		_ok(col.get_combined_minimum_size().y <= c.size.y - 2.0 * UI3Theme.space("20") + 0.5, "%s card %d: content fits (%.0f of %.0f)" % [tag, i,
