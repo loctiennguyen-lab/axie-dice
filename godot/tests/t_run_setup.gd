@@ -98,14 +98,14 @@ func _ready() -> void:
 	_ok((s.find_child("StartButton", true, false) as Button).disabled, "Begin disabled with 4")
 	s.open_picker(4)
 	await get_tree().process_frame
-	_ok(s.find_child("Picker", true, false) != null, "picker renders")
-	_ok(not (s.find_child("Tile_%s" % s.party[0], true, false) as Button).disabled, "taken tile stays pickable (swaps)")
-	(s.find_child("Tile_bird1", true, false) as Button).pressed.emit()
+	_ok(s.find_child("PickerModal", true, false) != null, "picker renders")
+	_ok(not _tile(s, s.party[0]).disabled, "taken tile stays pickable (swaps)")
+	_tile(s, "bird1").pressed.emit()
 	_ok(s.party.size() < 5 or s.party[4] != "bird1", "tile only selects")
-	(s.find_child("PutInSlot", true, false) as Button).pressed.emit()
+	(s.find_child("PutButton", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
 	_ok(s.party[4] == "bird1" and s.filled_count() == 5, "picker fills slot")
-	_ok(s.find_child("Picker", true, false) == null or s.find_child("Picker", true, false).is_queued_for_deletion(), "picker closed")
+	_ok(s.find_child("PickerModal", true, false) == null or s.find_child("PickerModal", true, false).is_queued_for_deletion(), "picker closed")
 	var a0: String = s.party[0]
 	var a4: String = s.party[4]
 	_ok(s.swap_into_slot(4, a0) and s.party[4] == a0 and s.party[0] == a0 and s.filled_count() == 5, "picking a starter copies it")
@@ -346,13 +346,13 @@ func _leaderboard_popup_tests() -> void:
 	s.open_leaderboard()
 	await get_tree().process_frame
 	_ok(s.find_child("LeaderboardPopup", true, false) != null, "lb popup opens")
-	_ok(s.find_child("LbRows", true, false).get_child_count() == 1 and s.find_child("LbError", true, false) == null, "lb loading state")
-	_ok(s.find_child("LbRetry", true, false) == null, "no retry while loading")
+	_ok(s.find_child("Skeleton", true, false) != null and s.find_child("ErrorLine", true, false) == null, "lb loading state")
+	_ok(s.find_child("TryAgainButton", true, false) == null, "no retry while loading")
 	st.release()
 	await get_tree().process_frame
-	_ok(s.find_child("LbMe", true, false) != null, "lb ok shows own row")
-	_ok(s.find_child("LbRetry", true, false) == null, "ok state has no retry")
-	_ok(s.find_child("FullLeaderboard", true, false).theme_type_variation == &"ButtonPrimaryM", "ok: Full Leaderboard primary")
+	_ok(_own_row(s) != null, "lb ok shows own row")
+	_ok(s.find_child("TryAgainButton", true, false) == null, "ok state has no retry")
+	_ok(s.find_child("FullLeaderboardButton", true, false).theme_type_variation == &"ButtonSecondary", "ok: Full Leaderboard secondary (UI-05)")
 	s.close_modal()
 	await get_tree().process_frame
 	st.pending = false
@@ -360,15 +360,29 @@ func _leaderboard_popup_tests() -> void:
 	s.open_leaderboard()
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_ok(s.find_child("LbError", true, false) != null, "lb error state")
-	var retry: Button = s.find_child("LbRetry", true, false)
-	_ok(retry != null and retry.theme_type_variation == &"ButtonPrimaryM", "error: Try again primary")
-	_ok(s.find_child("FullLeaderboard", true, false).theme_type_variation == &"ButtonSecondary", "error: Full Leaderboard secondary")
+	_ok(s.find_child("ErrorLine", true, false) != null, "lb error state")
+	var retry: Button = s.find_child("TryAgainButton", true, false)
+	_ok(retry != null and retry.theme_type_variation == &"ButtonSecondary", "error: Try again (UI-05: secondary, focused)")
+	_ok(s.find_child("FullLeaderboardButton", true, false) != null, "error: Full Leaderboard still there")
 	st.fail_reason = ""
 	var n := st.calls.size()
 	retry.pressed.emit()
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_ok(st.calls.size() == n + 1, "Try again refetches")
-	_ok(s.find_child("LbError", true, false) == null and s.find_child("LbMe", true, false) != null, "retry shows the board")
+	_ok(s.find_child("ErrorLine", true, false) == null and _own_row(s) != null, "retry shows the board")
 	s.queue_free()
+
+
+func _tile(s: Node, key: String) -> Button:
+	for b in s.find_children("AxieTile*", "Button", true, false):
+		if String(b.get_meta("hero_key", "")) == key:
+			return b
+	return null
+
+
+func _own_row(s: Node) -> Node:
+	for r in s.find_children("Row*", "PanelContainer", true, false):
+		if bool(r.get_meta("own", false)):
+			return r
+	return null

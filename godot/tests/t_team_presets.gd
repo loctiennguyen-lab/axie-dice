@@ -225,16 +225,16 @@ func _ready() -> void:
 	_ok(rs.load_preset(0) and rs.filled_count() == 5, "load fills party")
 	rs.open_save_preset()
 	await get_tree().process_frame
-	var sv := rs.find_child("ConfirmSavePreset", true, false) as Button
+	var sv := rs.find_child("SaveButton", true, false) as Button
 	_ok(sv != null and not sv.disabled, "save modal ready with full party")
 	rs.close_modal()
 	rs.clear_slot(0)
 	rs.open_save_preset()
 	await get_tree().process_frame
-	_ok((rs.find_child("ConfirmSavePreset", true, false) as Button).disabled, "save modal disabled with a gap")
+	_ok((rs.find_child("SaveButton", true, false) as Button).disabled, "save modal disabled with a gap")
 	rs.open_load_presets()
 	await get_tree().process_frame
-	_ok(rs.find_child("Preset0", true, false) != null, "load modal lists the preset")
+	_ok(rs.find_child("TeamButton", true, false) != null, "load modal lists the preset")
 	rs.queue_free()
 	# newcomer: Leaderboard stays locked
 	MetaState.runs = 0
