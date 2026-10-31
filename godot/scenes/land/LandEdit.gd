@@ -296,9 +296,7 @@ func _build_place() -> void:
 
 
 ## "[shard icon] Craft · 40" centred in the button: the button text stays (it sizes the button) but is drawn transparent.
-func _shard_cluster(b: Button, cost: int) -> void:
-	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color", "font_disabled_color"]:
-		b.add_theme_color_override(c, Color.TRANSPARENT)
+func _shard_cluster(cost: int) -> HBoxContainer:
 	var h := HBoxContainer.new()
 	h.name = "ShardCluster"
 	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -313,7 +311,20 @@ func _shard_cluster(b: Button, cost: int) -> void:
 	l.name = "ShardText"
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	h.add_child(l)
+	return h
+
+
+func _attach_cluster(b: Button, h: Control) -> void:
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color", "font_disabled_color"]:
+		b.add_theme_color_override(c, Color.TRANSPARENT)
 	b.add_child(h)
+	# the label's font is only known once it is in the tree, so size the button from the cluster then
+	_fit_craft_button.call_deferred(b, h)
+
+
+func _fit_craft_button(b: Button, h: Control) -> void:
+	if is_instance_valid(b) and is_instance_valid(h):
+		b.custom_minimum_size.x = h.get_combined_minimum_size().x + 2.0 * UI3Theme.space("12")
 
 
 func _build_craft() -> void:
@@ -324,15 +335,16 @@ func _build_craft() -> void:
 		var why := LandDecor.craft_block(id, MetaState.land_tier, MetaState.land_decor_owned, MetaState.shard_pool)
 		var b := _sbtn("Craft · %d" % int(d["shard_cost"]))
 		b.name = "CraftButton"
-		b.custom_minimum_size.x = 136
+		var cl := _shard_cluster(int(d["shard_cost"]))
 		var rr := String(d["rarity"])
 		var sub := " · own %d of %d" % [int(MetaState.land_decor_owned.get(id, 0)), int(d["max_own"])]
 		if why != "":
 			Ui5DisabledReason.apply(b, "Locked")
 			sub += " · " + why
+			cl.free()
 		else:
 			b.pressed.connect(_craft.bind(id))
-			_shard_cluster(b, int(d["shard_cost"]))
+			_attach_cluster(b, cl)
 		var crow := Parts.row("CraftRow", String(d["name"]), _rarity_word(rr), _rarity_token(rr), sub, b)
 		crow.set_meta("decor_id", id)
 		_list.add_child(crow, true)

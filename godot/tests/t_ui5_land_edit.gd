@@ -212,6 +212,8 @@ func _edit(sc: float, tag: String) -> void:
 				_check(ir.size.x <= UI3Theme.size_of("icon_s") * sc * 0 + UI3Theme.size_of("icon_s") + 1.0, "%s: icon capped" % t)
 				var mid := (ir.position.x + tr.end.x) * 0.5
 				_check(absf(mid - (br.position.x + br.end.x) * 0.5) <= 3.0, "%s: cluster centred in button" % t)
+				var cw := (cb.find_child("ShardCluster", true, false) as Control).get_combined_minimum_size().x * sc
+				_check(cw <= br.size.x - 2.0 * UI3Theme.space("12") * sc + 0.5, "%s: cluster %.1f fits button %.1f minus 2x12 padding" % [t, cw, br.size.x])
 				_check(br.encloses(ir) and br.encloses(tr), "%s: cluster inside button" % t)
 		if tab in ["place", "craft", "rewards"]:
 			for rl in host.find_children("*", "Label", true, false):
