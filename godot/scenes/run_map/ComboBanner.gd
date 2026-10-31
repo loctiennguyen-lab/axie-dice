@@ -4,6 +4,8 @@ extends RefCounted
 ## The controller keeps a same-name forwarder for every method here.
 
 
+const ComboBand := preload("res://scenes/run_map/ui5/ComboBand.gd")
+
 var ctrl: RunMapController
 
 
@@ -22,5 +24,5 @@ func _combo_banner(formed: Array) -> GachaFx:
 	ctrl.gacha_log.append("banner:%s" % String(best["tier"]))
 	var house := AnchorAdapter.house_of_combo(String(best["id"]))
 	var mut := {"house": house} if house != "" and not AnchorAdapter.mutation_of(house)["name"].is_empty() else {}
-	return GachaFx.banner(ctrl._overlay_layer, String(best["tier"]), UI3Gacha.combo_name(String(best["id"])),
-		UI3Gacha.combo_members(String(best["id"]), String(best["tier"])), mut) as GachaFx
+	return ComboBand.build(ctrl._overlay_layer, String(best["tier"]), UI3Gacha.combo_name(String(best["id"])), house,
+		not mut.is_empty()) as GachaFx

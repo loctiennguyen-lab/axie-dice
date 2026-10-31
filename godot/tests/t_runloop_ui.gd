@@ -459,20 +459,17 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 	var sheet := runmap.find_child("SlotSwapSheet", true, false)
 	_assert(sheet != null, "full passive slots open the swap sheet")
 	if sheet != null:
-		var conf: Button = sheet.find_child("SwapConfirm", true, false)
-		_assert(conf.disabled, "swap confirm disabled until a cell is picked")
-		_assert((sheet.find_child("SlotCell_r_heart", true, false) as Button).disabled, "Eternal cell can't be picked")
+		_assert(sheet.find_child("ConfirmButton", true, false) == null, "no confirm step: Sell is the action")
+		_assert(_sell(sheet, "r_heart").disabled, "Eternal cell can't be picked")
 		var shards0 := RunState.shards_this_run
-		(sheet.find_child("SwapLeave", true, false) as Button).pressed.emit()
+		(sheet.find_child("BackButton", true, false) as Button).pressed.emit()
 		await get_tree().process_frame
 		await get_tree().process_frame
 		_assert(runmap.find_child("SlotSwapSheet", true, false) == null and not RunState.owned_relic_ids.has("r_seedling"), "Leave it takes nothing")
 		runmap.call("_take_selected_reward")
 		await get_tree().process_frame
 		sheet = runmap.find_child("SlotSwapSheet", true, false)
-		(sheet.find_child("SlotCell_r_claw", true, false) as Button).pressed.emit()
-		_assert(not (sheet.find_child("SwapConfirm", true, false) as Button).disabled, "pick enables confirm")
-		(sheet.find_child("SwapConfirm", true, false) as Button).pressed.emit()
+		_sell(sheet, "r_claw").pressed.emit()
 		await get_tree().process_frame
 		_assert(RunState.owned_relic_ids.has("r_seedling") and not RunState.owned_relic_ids.has("r_claw"), "swap sold r_claw, took r_seedling")
 		_assert(RunState.shards_this_run == shards0 + RelicSlots.sell_price("r_claw", RunState.ascension), "sale paid shards")
@@ -635,3 +632,10 @@ func test_player_text_strips_internal_tags() -> void:
 		var t2 := UI3.player_text(String(def.description))
 		_assert(not t2.contains("RULE:") and not t2.contains("["), "relic %s leaks a tag: %s" % [rid, t2])
 	_done("test_player_text_strips_internal_tags")
+
+
+func _sell(sheet: Node, id: String) -> Button:
+	for b in sheet.find_children("SellButton", "Button", true, false):
+		if String(b.get_meta("relic_id")) == id:
+			return b
+	return null
