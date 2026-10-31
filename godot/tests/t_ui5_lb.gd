@@ -21,6 +21,12 @@ func _check(ok: bool, msg: String) -> void:
 		_fails.append(msg)
 
 
+## Text of a named Label under `n`, or "" when either is missing (a null here would stop the coroutine: headless hang).
+func _txt(n: Node, child: String) -> String:
+	var l := n.find_child(child, true, false) as Label if n != null else null
+	return l.text if l != null else ""
+
+
 func _rows(n: int) -> Array:
 	var out: Array = []
 	for i in n:
@@ -135,10 +141,15 @@ func _pass(sc: float, tag: String) -> void:
 	_check(wr != null and wr.disabled and s.find_child("CloseButton", true, false) != null and s.find_child("WatchReplayReason", true, false) != null, "%s: detail has disabled WatchReplayButton, reason, CloseButton" % tag)
 	_check(Ui5Keycap.all_under(wr).is_empty(), "%s: no keycap on the disabled button" % tag)
 	_check(is_instance_valid(s.get_viewport().gui_get_focus_owner()), "%s: focus survives a pick" % tag)
+	var cb := s.find_child("CloseButton", true, false) as Button
+	if cb != null:
+		cb.grab_focus()
 	_check(Align.pairs(s) > 0, "%s: centring check measured an icon / label pair" % tag)
 	_audit(s, sc, tag + " detail")
 	s.close_detail()
 	await _settle()
+	var fo1 := s.get_viewport().gui_get_focus_owner()
+	_check(fo1 != null and fo1.name == "Row1", "%s: Close hands focus back to the row (%s)" % [tag, str(fo1)])
 	# today, locked, empty
 	s.set_period("today")
 	await _settle()
@@ -159,7 +170,7 @@ func _pass(sc: float, tag: String) -> void:
 	s.set_asc(6)
 	await _settle()
 	var heads: Array = s.find_child("Head", true, false).find_children("*", "Label", true, false).map(func(l): return (l as Label).text)
-	_check(heads == ["RANK", "PLAYER", "SCORE", "RESULT"] or heads.size() == 4, "%s: Head has 4 columns while loading %s" % [tag, str(heads)])
+	_check(heads == ["RANK", "PLAYER", "SCORE", "RESULT"], "%s: Head has the 4 default columns while loading %s" % [tag, str(heads)])
 	_check(s.find_child("Skeleton", true, false) != null and s.find_child("PinnedRow", true, false) == null, "%s: loading skeleton, no pinned row" % tag)
 	_audit(s, sc, tag + " loading")
 	stub.release()
@@ -172,7 +183,15 @@ func _pass(sc: float, tag: String) -> void:
 	_check(s.find_child("Banner", true, false) != null and s.find_child("TryAgainButton", true, false) != null and s.find_child("BackToLandButton", true, false) != null and s.find_child("PinnedRow", true, false) != null, "%s: offline banner buttons, PinnedRow" % tag)
 	_check(s.find_child("Banner", true, false).find_child("ToneDisc", true, false) != null, "%s: banner ToneDisc" % tag)
 	_check(is_equal_approx((s.find_child("Row0", true, false) as Control).modulate.a, 0.55), "%s: cached rows grey" % tag)
+	var fo2 := s.get_viewport().gui_get_focus_owner()
+	_check(fo2 != null and fo2.name == "AscChipA6", "%s: focus back on the chip after Try again (%s)" % [tag, str(fo2)])
 	_audit(s, sc, tag + " offline")
+	# still offline, another board: no rows of the A6 season board under the "A6 · Today" caption
+	s.set_period("today")
+	await _settle()
+	_check(s.find_child("ErrorState", true, false) != null and s.find_child("Row0", true, false) == null and s.find_child("PinnedRow", true, false) == null, "%s: offline on another board: error card, not the old rows" % tag)
+	s.set_period("season")
+	await _settle()
 	stub.fail_reason = ""
 	s.retry()
 	await _settle()
@@ -203,13 +222,20 @@ func _pass(sc: float, tag: String) -> void:
 	AccountService.account = {"name": "Zed", "email": "z@example.test"}
 	var a1 := await _make(sc, ns)
 	var pr1 := a1.find_child("PinnedRow", true, false)
-	_check((pr1.find_child("Name", true, false) as Label).text == "Zed" and pr1.find_child("YouTag", true, false) != null, "%s: pinned row shows the account name + You tag" % tag)
+	_check(_txt(pr1, "Name") == "Zed" and pr1 != null and pr1.find_child("YouTag", true, false) != null, "%s: pinned row shows the account name + You tag" % tag)
 	a1.get_parent().queue_free()
 	AccountService.account = {}
 	var a2 := await _make(sc, ns)
 	var pr2 := a2.find_child("PinnedRow", true, false)
-	_check((pr2.find_child("Name", true, false) as Label).text == "You" and pr2.find_child("YouTag", true, false) == null, "%s: no account name: 'You' and no tag" % tag)
+	_check(_txt(pr2, "Name") == "You" and pr2 != null and pr2.find_child("YouTag", true, false) == null, "%s: no account name: 'You' and no tag" % tag)
 	a2.get_parent().queue_free()
+	# signed in with an email but no name: never the email on a public board
+	AccountService.account = {"email": "nobody@example.test"}
+	var a3 := await _make(sc, ns)
+	var pr3 := a3.find_child("PinnedRow", true, false)
+	var shown: Array = a3.find_children("*", "Label", true, false).filter(func(l): return "@" in (l as Label).text)
+	_check(_txt(pr3, "Name") == "You" and pr3 != null and pr3.find_child("YouTag", true, false) == null and shown.is_empty(), "%s: email-only account: 'You', no tag, no email on screen" % tag)
+	a3.get_parent().queue_free()
 	AccountService.account = saved_acc
 	# a scrolling list keeps Head / Row / Pinned columns in line
 	var big := LeaderboardSourceStub.new()
@@ -218,9 +244,10 @@ func _pass(sc: float, tag: String) -> void:
 	await _settle()
 	var sx: Array = []
 	for nd in [b.find_child("Head", true, false), b.find_child("Row0", true, false), b.find_child("PinnedRow", true, false)]:
-		var lbls: Array = nd.find_children("*", "Label", true, false).filter(func(l): return (l as Label).visible and (l as Label).horizontal_alignment == HORIZONTAL_ALIGNMENT_RIGHT)
-		sx.append((lbls[0] as Label).global_position.x + (lbls[0] as Label).size.x)
-	_check(abs(sx[0] - sx[1]) <= 1.0 and abs(sx[1] - sx[2]) <= 1.0, "%s: Score column right edge in line Head/Row0/Pinned %s" % [tag, str(sx)])
+		var lbls: Array = nd.find_children("*", "Label", true, false).filter(func(l): return (l as Label).visible and (l as Label).horizontal_alignment == HORIZONTAL_ALIGNMENT_RIGHT) if nd != null else []
+		if not lbls.is_empty():
+			sx.append((lbls[0] as Label).global_position.x + (lbls[0] as Label).size.x)
+	_check(sx.size() == 3 and abs(sx[0] - sx[1]) <= 1.0 and abs(sx[1] - sx[2]) <= 1.0, "%s: Score column right edge in line Head/Row0/Pinned %s" % [tag, str(sx)])
 	_audit(b, sc, tag + " scrolling")
 	b.get_parent().queue_free()
 	# long names do not move the columns

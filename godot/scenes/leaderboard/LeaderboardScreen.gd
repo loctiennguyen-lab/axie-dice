@@ -43,6 +43,7 @@ var me: Dictionary = {}
 var updated := ""
 var fail_reason := ""
 var detail_index := -1
+var _rows_key := ""   ## query key the cached rows / me belong to: a failed load only greys rows of the SAME board
 
 var _req := 0
 var _shell: Dictionary
@@ -107,6 +108,10 @@ func query() -> Dictionary:
 	return {"asc": asc, "period": period}
 
 
+func _query_key() -> String:
+	return "%d|%s" % [asc, period]
+
+
 ## Asks the source for the current board. Cached rows stay on screen (greyed) if it fails.
 func reload() -> void:
 	_req += 1
@@ -124,6 +129,7 @@ func reload() -> void:
 
 func retry() -> void:
 	reload()
+	_refocus_chip()
 
 
 func open_detail(i: int) -> void:
@@ -134,9 +140,21 @@ func open_detail(i: int) -> void:
 
 
 func close_detail() -> void:
+	var was := detail_index
 	detail_index = -1
 	_update_rows()
 	_draw_detail()
+	# The footer (Close) was just cleared: give focus back to the row that was open, or the chip.
+	if was >= 0 and was < _row_nodes.size() and is_instance_valid(_row_nodes[was]) and _row_nodes[was].is_inside_tree():
+		_row_nodes[was].grab_focus()
+	else:
+		_refocus_chip()
+
+
+## Keyboard / pad focus back on the chip of the board on screen (after the banner holding it was cleared).
+func _refocus_chip() -> void:
+	if is_inside_tree() and asc >= 0 and asc < _chips.size():
+		_chips[asc].grab_focus()
 
 
 ## Columns drawn for the current rows: always rank / name / score, others only if a row has them. With no rows yet
@@ -154,11 +172,16 @@ func _finish(res: Dictionary) -> void:
 	if bool(res.get("ok", false)):
 		rows = (res.get("rows", []) as Array)
 		me = res.get("me", {})
+		_rows_key = _query_key()
 		updated = String(res.get("updated", ""))
 		fail_reason = ""
 		status = "ok" if not rows.is_empty() else "empty"
 	else:
 		fail_reason = String(res.get("reason", "error"))
+		if _rows_key != _query_key():   # rows of another Ascension / period: show the error card, not them
+			rows = []
+			me = {}
+			updated = ""
 		updated = String(res.get("updated", updated))
 		status = "failed"
 	_redraw()
@@ -455,18 +478,18 @@ func _pinned() -> Control:
 		p.setup_row("PinnedRow", _cols, cells)
 	else:
 		var row: Dictionary = me.duplicate()
-		var nm := String(row.get("name", ""))
-		row["name"] = nm if nm != "" else _own_label()
+		row["name"] = _own_label()
 		if not row.has("rank"):
 			row["rank"] = "—"
-		p.setup_row("PinnedRow", _cols, _cells_for(row, true, String(row["name"]) != "You"))
+		p.setup_row("PinnedRow", _cols, _cells_for(row, true, _my_name() != ""))
 	p.set_pinned()
 	return p
 
 
-## The signed-in account name, or "" (a guest has none: the row then says "You" with no tag).
+## The signed-in account's name, or "" (a guest, or an account with no name: the row then says "You" with no tag).
+## Not AccountService.display_name(): that falls back to the email, which must not show on a public board.
 func _my_name() -> String:
-	return AccountService.display_name() if AccountService.is_signed_in() else ""
+	return String(AccountService.account.get("name", "")).strip_edges() if AccountService.is_signed_in() else ""
 
 
 ## DetailPlate (always shown): the selected row's facts + Watch replay. No selection = "Pick a run".
