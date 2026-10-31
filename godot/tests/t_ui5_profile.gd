@@ -145,6 +145,9 @@ func _screens(sc: float) -> void:
 		if (b as Button).button_pressed:
 			pressed += 1
 	_check(pressed == 1 and (v.find_child("CosmeticTile_default_die", true, false) as Button).button_pressed, "[%s] only the equipped Default tile is picked" % tag)
+	var p3 := v.find_child("Preview3D", true, false) as Control
+	var side := ProfileView.stage_side(p3.size)
+	_check(p3 != null and float(side) <= minf(p3.size.x, p3.size.y) - 2.0 * UI3Theme.space("8") + 0.5 and side >= 64, "[%s] DiceStage side %d fits Preview3D %s" % [tag, side, p3.size])
 	var pw := v.find_child("PreviewPlate", true, false) as Control
 	_check(pw != null and absf(pw.size.x - float(UI3Theme.size_of("preview_w"))) < 1.0, "[%s] PreviewPlate wide preview_w" % tag)
 	_frame_checks(v, sc, tag + " cosmetics")

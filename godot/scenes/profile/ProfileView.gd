@@ -596,17 +596,26 @@ func _build_die_preview(art: Control, id: String) -> void:
 	add_child(roller)
 	await roller.prepare(faces, id)
 	roller.queue_free()
+	for _i in 2:
+		await get_tree().process_frame   # the box has its final size after layout
 	if gen != _preview_gen or not is_instance_valid(art):
 		return
 	var st := DiceStage.new()
 	st.name = "DiceStage"
-	var side := int(UI3Theme.size_of("preview_w")) - 2 * int(UI3Theme.space("16"))
+	var side := stage_side(art.size if art.size.y > 0.0 else Vector2(UI3Theme.size_of("preview_w") - 2.0 * UI3Theme.space("16"), 200.0))
 	st.setup(Vector2i(side, side), id, faces, true)
-	st.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	art.add_child(st)
+	var cc := CenterContainer.new()   # a PanelContainer would stretch the stage to its whole rect (zoomed, clipped die)
+	cc.name = "StageCenter"
+	cc.add_child(st)
+	art.add_child(cc)
 	st.start_spin()
 	_stage = st
 	tr.visible = false
+
+
+## Square side of the live die: the smaller side of the Preview3D box minus its padding (space-8 a side).
+static func stage_side(box: Vector2) -> int:
+	return maxi(int(minf(box.x, box.y)) - 2 * int(UI3Theme.space("8")), 64)
 
 
 ## 49-equip-moment. Equip on the Default tile = back to the plain die / no frame.

@@ -87,6 +87,10 @@ func _shot(state: String, sfx: String, tab: int, pick := "", frames := false) ->
 		await get_tree().process_frame
 	if tab == 1:
 		await get_tree().create_timer(2.5).timeout   # thumbnails bake
+	var stg := v.find_child("DiceStage", true, false) as Control
+	var p3 := v.find_child("Preview3D", true, false) as Control
+	if stg != null and p3 != null:
+		print("QA_STAGE %s inside=%s stage=%s box=%s" % [state, p3.get_global_rect().encloses(stg.get_global_rect()), stg.get_global_rect(), p3.get_global_rect()])
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png("%s/24-profile--%s%s.png" % [_out, state, sfx])
 	v.queue_free()
