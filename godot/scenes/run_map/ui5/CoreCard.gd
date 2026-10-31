@@ -53,6 +53,7 @@ func setup_core(core_tier: int, tier_word: String, icon: Texture2D, title: Strin
 
 	name_label = PanelParts.text(title, "text_banner" if tier >= 2 else "text_screen_title", "text", true)
 	name_label.name = "CoreName"
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER   # Liam 29/10: text under an icon is centred on it
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name_label.max_lines_visible = 2
 	name_label.custom_minimum_size.x = UI3Theme.size_of("core_card_w") - 2 * pad

@@ -87,7 +87,7 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	host.add_child(col)
 
 	var head := HBoxContainer.new()
-	head.name = "Head"
+	head.name = "Header"
 	head.alignment = BoxContainer.ALIGNMENT_CENTER
 	head.add_theme_constant_override("separation", UI3Theme.space("20"))
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE

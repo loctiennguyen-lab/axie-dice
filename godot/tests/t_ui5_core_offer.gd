@@ -184,7 +184,8 @@ func _core_frame(sc: float) -> void:
 		_ok(col.get_combined_minimum_size().y <= c.size.y - 2.0 * UI3Theme.space("20") + 0.5, "%s card %d: content fits (%.0f of %.0f)" % [tag, i,
 			col.get_combined_minimum_size().y, c.size.y - 40.0])
 	_ok(Align.pairs(root) > 0, "%s: align check measured pairs" % tag)
-	_ok(Align.check(root, 1.5, tag).is_empty(), "%s: aligned" % tag)
+	var al: Array[String] = Align.check(root, 1.5, tag)
+	_ok(al.is_empty(), "%s: aligned %s" % [tag, str(al.slice(0, 4))])
 	for l in root.find_children("*", "Label", true, false):
 		var lab := l as Label
 		if lab.is_visible_in_tree() and lab.text != "":
