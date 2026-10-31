@@ -297,6 +297,14 @@ func _handle_defeat(v: CombatView) -> void:
 # ------------------------------------------------------------------ map / screens
 
 func _map_tick(m: Node) -> void:
+	# Moments that wait for a click / Space (combo band, awakening, spin): shoot once, then dismiss like a click would.
+	for fx in m.find_children("*", "GachaFx", true, false):
+		if (fx as GachaFx).running:
+			await _wait(0.7)
+			if is_instance_valid(fx) and (fx as GachaFx).running:
+				_shot_once("moment-%s" % String(fx.name).to_lower())
+				(fx as GachaFx).skip()
+			return
 	if m.get("_taking"):
 		return
 	var ov: Control = m.get("_overlay_root")
