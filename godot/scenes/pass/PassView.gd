@@ -561,7 +561,7 @@ func _build_weekly() -> void:
 		b.name = "ClaimButton"
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b.custom_minimum_size = Vector2(UI3Theme.space("32") * 8, UI3Theme.size_of("btn_m"))   # wraps a long reason inside the card (frame: max 55%), never char by char
+		b.custom_minimum_size = Vector2(UI3Theme.space("32") * 6, UI3Theme.size_of("btn_m"))   # wraps a long reason inside the card (frame: max 55%), never char by char
 		b.set_meta("task_id", id)
 		if bool(st["claimed"]):
 			Ui5ClaimButton.set_claimed(b)
@@ -657,6 +657,7 @@ func _tile(def: Dictionary) -> Control:
 			b.text = "Reach Level %d" % lv if season_phase() != "over" else "Not claimed"
 			b.disabled = true
 	# A long state ends in "…" with the whole text in the tooltip, so it never widens the column (B6).
+	Ui5HudStyle.reserve_trailing(b, null, UI3Theme.space("4"))   # slim side padding so "Claimed" fits a 1280 column
 	if st != "claimed":   # "Claimed" is short and must always read in full
 		b.clip_text = true
 		b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
