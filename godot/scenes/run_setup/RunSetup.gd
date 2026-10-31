@@ -368,7 +368,7 @@ func select_kind(k: String) -> bool:
 
 
 ## Disabled look as in the frame (grey plate, lock icon + text as an HBox, no Button.icon). Not-locked: plain text.
-func _set_lock_look(b: Button, locked: bool, txt: String, icon_px := 18, gap := 8) -> void:
+func _set_lock_look(b: Button, locked: bool, txt: String, icon_px := 18, gap := 8, wrap := true) -> void:
 	var old := b.get_node_or_null("LockRow")
 	if old != null:
 		b.remove_child(old)
@@ -410,12 +410,12 @@ func _set_lock_look(b: Button, locked: bool, txt: String, icon_px := 18, gap := 
 	lb.add_theme_font_size_override("font_size", b.get_theme_font_size("font_size"))
 	lb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# Long reasons ("Imported Axies can't play Ranked") wrap and grow the toggle instead of being cut with "…".
-	lb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if wrap else TextServer.AUTOWRAP_OFF
 	lb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.offset_left = UI3Theme.space("8")
-	row.offset_right = -UI3Theme.space("8")
+	row.offset_left = UI3Theme.space("8") if wrap else 2
+	row.offset_right = -row.offset_left
 	row.add_child(lb)
 	b.add_child(row, true)
 	var base_h := b.custom_minimum_size.y if b.has_meta("lock_base_h") == false else float(b.get_meta("lock_base_h"))
@@ -640,7 +640,7 @@ func _show_leaderboard_popup() -> void:
 	_picker()._show_leaderboard_popup()
 
 
-## Fetches the board into rows_box. On error "Try again" becomes the primary and "Full Leaderboard" drops to secondary.
+## Fetches the board into rows_box. On error a secondary "Try again" is added next to "Full Leaderboard" (frame lb-error).
 func _lb_load(rows_box: VBoxContainer, acts: HBoxContainer, full: Button, loading: Control) -> void:
 	_picker()._lb_load(rows_box, acts, full, loading)
 
@@ -1188,7 +1188,7 @@ func _refresh_asc() -> void:
 	for n in _asc_chips.size():
 		var b := _asc_chips[n]
 		var locked := n > ceil
-		_set_lock_look(b, locked, "A%d" % n, 14, 4)
+		_set_lock_look(b, locked, "A%d" % n, 14, 4, false)
 		_mark_selected(b, n == ascension)
 		b.modulate.a = 1.0
 		b.tooltip_text = tr("Win a run at A%d to unlock A%d") % [n - 1, n] if locked else ""

@@ -103,6 +103,13 @@ func _frame(id: String, sc: float, tag: String) -> void:
 			_check(tb.icon == null and tb.text == "", "%s: %s lock drawn as HBox, no Button.icon" % [tag, tn])
 			_check(tb.get_node("LockRow/LockIcon") is TextureRect and (tb.get_node("LockRow/LockText") as Label).text != "", "%s: %s has icon + reason text" % [tag, tn])
 	# nothing outside the 1920 frame
+	# locked toggles wrap long reasons: the label is never cut (no clip, whole text fits its box)
+	for tn in ["DailyToggle", "RankedToggle", "FullToggle"]:
+		var tb := s.find_child(tn, true, false) as Button
+		var lt := tb.get_node_or_null("LockRow/LockText") as Label
+		if lt != null:
+			_check(not lt.clip_text and lt.size.y + 0.5 >= lt.get_minimum_size().y and tb.size.y + 0.5 >= lt.get_minimum_size().y,
+					"%s: %s label '%s' fits (label %s min %s, button %s)" % [tag, tn, lt.text, str(lt.size), str(lt.get_minimum_size()), str(tb.size)])
 	var lim := Rect2(Vector2.ZERO, Vector2(1920, 1080)).grow(1.0)
 	for c in s.find_children("*", "Control", true, false):
 		var ctl := c as Control

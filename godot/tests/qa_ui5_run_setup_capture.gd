@@ -11,12 +11,18 @@ func _ready() -> void:
 	ProjectSettings.set_setting("axie/epoch_source", "local")
 	var small := get_window().size.x < 1600
 	UI3Theme.set_scale_override(2.0 / 3.0 if small else 1.0)
-	for id in Fx.IDS:
-		var s := Fx.make(id)
+	var ids: Array = Fx.IDS.duplicate()
+	if OS.get_environment("UI5_STATES") == "1":
+		ids = Fx.STATE_IDS.duplicate()
+	for id in ids:
+		var s := Fx.make_state(id) if id in Fx.STATE_IDS else Fx.make(id)
 		add_child(s)
 		for i in 8:
 			await get_tree().process_frame
-		Fx.apply_kind(s)
+		if id in Fx.STATE_IDS:
+			await Fx.apply_state(s, get_tree())
+		else:
+			Fx.apply_kind(s)
 		for i in 8:
 			await get_tree().process_frame
 		await RenderingServer.frame_post_draw
