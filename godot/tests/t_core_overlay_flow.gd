@@ -23,6 +23,8 @@ func _cards(rm: Node) -> Array:
 	for i in 8:
 		var c: Node = rm._overlay_root.find_child("CoreCard%d" % i, true, false)
 		if c == null:
+			c = rm._overlay_root.find_child("RuleCard%d" % i, true, false)
+		if c == null:
 			c = rm._overlay_root.find_child("RewardCard%d" % i, true, false)
 		if c != null:
 			out.append(c)
