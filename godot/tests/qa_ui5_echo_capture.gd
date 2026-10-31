@@ -46,6 +46,12 @@ func _ready() -> void:
 	s.open_rates()
 	await _shot("20-echo--rates")
 	s.close_modal()
+	var k := 1
+	while EchoBox.ticket_price(k) != 415 and k < 60:
+		k += 1
+	MetaState.echobox_pity["buy_day"] = s.today()
+	MetaState.echobox_pity["buy_count"] = k - 1
+	s._refresh_all()
 	s.open_confirm_buy()
 	await _shot("20-echo--buy-confirm")
 	s.close_modal()
@@ -63,11 +69,16 @@ func _ready() -> void:
 	for m in EchoBox.season_cfg().get("milestones", []):
 		ms_id = String((m as Dictionary).get("reward", ""))
 		break
+	var sid0 := String(EchoBox.season_cfg().get("series_id", "s1"))
+	var sbm: Dictionary = (MetaState.season_box as Dictionary).duplicate(true)
+	sbm[sid0] = {"opens": 12, "c_epic": 0, "c_legendary": 0, "c_mythic": 0, "owned": [], "milestones": ["m12"], "day": "", "day_pulls": 1}
+	MetaState.season_box = sbm
 	s.results = [{"kind": "stone", "amount": 500, "milestones": [ms_id] if ms_id != "" else []}]
 	s.select_tab("regular")
 	s.select_tab("seasonal")
 	await _shot("20-echo--seasonal-milestone")
 	s.results = []
+	sbm[sid0]["day_pulls"] = 0
 	var sid := String(EchoBox.season_cfg().get("series_id", "s1"))
 	var sb: Dictionary = (MetaState.season_box as Dictionary).duplicate(true)
 	var ent: Dictionary = sb.get(sid, {})
@@ -86,8 +97,8 @@ func _ready() -> void:
 		s = _make(14, st, true)
 		s.set_state(st)
 		if st == "last_pull":
-			s.results = [{"kind": "stone", "amount": 250}, {"kind": "cosmetic", "rarity": "common", "item": "x", "duplicate": false},
-				{"kind": "cosmetic", "rarity": "rare", "item": "y", "duplicate": true, "fragments": 10}]
+			s.results = [{"kind": "stone", "amount": 250}, {"kind": "cosmetic", "rarity": "common", "item": String(EchoBox.pool_ids(s.box_cfg(), "common")[0]), "duplicate": false},
+				{"kind": "cosmetic", "rarity": "rare", "item": String(EchoBox.pool_ids(s.box_cfg(), "rare")[0]), "duplicate": true, "fragments": 10}]
 			s.set_state(st)
 		await _shot("20-echo--" + st.replace("_", "-"))
 		await _drop(s)

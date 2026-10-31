@@ -176,6 +176,15 @@ func _season_cap(tier: String) -> int:
 	return EchoBox.season_cap(tier, false)
 
 
+func season_full_set_pulls() -> int:
+	return int(EchoBox.season_cfg().get("full_set_pity", 80))
+
+
+## Daily cap on Shard-bought tickets (data: echobox.json tickets.buy_cap_day).
+func buy_cap_day() -> int:
+	return int((_Econ.get_table("echobox").get("tickets", {}) as Dictionary).get("buy_cap_day", 30))
+
+
 func season_cap_day() -> int:
 	return int(EchoBox.season_cfg().get("pull_cap_day", 8))
 
@@ -369,7 +378,7 @@ func _season_rates(v: VBoxContainer) -> void:
 	var grid := GridContainer.new()
 	grid.name = "RatesTable"
 	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 40)
+	grid.add_theme_constant_override("h_separation", UI3Theme.space("24"))
 	v.add_child(grid)
 	for r in rows:
 		grid.add_child(UI3.label("%s Stone" % UI3.fmt(int((r as Dictionary).get("amount", 0)))))
@@ -575,7 +584,7 @@ func _refresh_bar() -> void:
 	if _account_blocks() or state == "loading":
 		why = "Not available right now"
 	elif price < 0:
-		why = "Daily limit reached (30)"
+		why = "Daily limit reached (%d)" % buy_cap_day()
 	elif MetaState.shard_pool < price:
 		why = "Not enough Shards"
 	if why != "":
@@ -611,7 +620,7 @@ func _refresh_stage() -> void:
 	var v := VBoxContainer.new()
 	v.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	v.add_theme_constant_override("separation", UI3Theme.space("16"))
+	v.add_theme_constant_override("separation", UI3Theme.space("16") if UI3Theme.layout_scale() >= 1.0 else UI3Theme.space("8"))
 	stage.add_child(v)
 	# Real chest art (assets/echobox/chests): Gold tier for the daily box, Mystic themed for the season box.
 	var chest := TextureRect.new()
@@ -620,16 +629,19 @@ func _refresh_stage() -> void:
 	chest.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	chest.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	var cs := float(UI3Theme.size_of("echo_stage_chest")) * 0.75 * minf(UI3Theme.layout_scale(), 1.0)
-	chest.custom_minimum_size = Vector2(cs * 0.6, 48)
-	chest.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	cs = float(UI3Theme.size_of("echo_stage_chest")) * (1.0 if UI3Theme.layout_scale() >= 1.0 else 0.4)   # frame: 320 square at 1920, never stretched; 1280 gives room to the season block
+	chest.custom_minimum_size = Vector2(cs, cs)
+	chest.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	chest.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	chest.tooltip_text = "Mystic Chest" if seasonal else "Gold Chest"
 	v.add_child(chest)
 	if seasonal:
-		var l := UI3.label("5 tickets per pull. A small set of rare items. A full set is guaranteed within 80 pulls (400 tickets). Max 8 pulls a day.", "LabelMuted")
+		var l := UI3.label("%d tickets per pull. A small set of rare items. A full set is guaranteed within %d pulls (%d tickets). Max %d pulls a day." % [
+			season_cost(), season_full_set_pulls(), season_full_set_pulls() * season_cost(), season_cap_day()], "LabelMuted")
 		l.name = "SeasonLine"
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		l.custom_minimum_size.x = UI3Theme.size_of("echo_stage_chest") * 2
+		l.custom_minimum_size.x = UI3Theme.size_of("echo_stage_chest") * 2 * minf(UI3Theme.layout_scale(), 1.0)
 		v.add_child(l)
 		var left := UI3.label("Pulls left today %d / %d" % [season_pulls_left(), season_cap_day()], "LabelTitle")
 		left.name = "PullsLeft"
@@ -697,9 +709,14 @@ func _refresh_stage() -> void:
 				UI3.set_disabled_reason(b, why)   # a disabled button says why
 				b.tooltip_text = why
 		row.add_child(o1)
-		row.add_child(on)
+		if pull_block_reason(1) == "":
+			row.add_child(on)
+		else:
+			on.free()   # frames no-tickets / offline / guest: only the one disabled Open 1 stands in the stage
 		row.add_child(rt)
 		var why1 := pull_block_reason(1)
+		if why1.begins_with("Not enough"):
+			o1.text = "Open 1 · " + why1   # frame 20-echo--no-tickets
 		# The reason lives inside the disabled buttons only (one place in every state).
 		if why1 != "":
 			if why1.begins_with("Not enough") and not _account_blocks():
@@ -745,6 +762,8 @@ func _on_open_many(n: int) -> void:
 
 ## First season pull of the session confirms (tickets spent / left, pulls left); later ones go straight through.
 func _on_season_open(n: int) -> void:
+	if _modal_layer.get_child_count() > 0:
+		return
 	if season_confirmed:
 		pull(n)
 		return
@@ -863,7 +882,7 @@ func _refresh_side_season() -> void:
 	var owned: Array = st["owned"]
 	var items: Dictionary = cfg.get("items", {})
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", UI3Theme.space("16"))
+	col.add_theme_constant_override("separation", UI3Theme.space("16") if UI3Theme.layout_scale() >= 1.0 else UI3Theme.space("8"))
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	# progress per tier
 	var pp := UI3.plate(&"plate")
@@ -981,9 +1000,10 @@ func _season_tile(item: String, tier: String, have: bool) -> Control:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 0)
 	tile.add_child(v)
-	var art := _cosmetic_art(item, 64.0, false)
+	var apx := 64.0 * minf(UI3Theme.layout_scale(), 1.0)
+	var art := _cosmetic_art(item, apx, false)
 	if art == null:
-		art = _fx_badge(64.0)
+		art = _fx_badge(apx)
 	v.add_child(art)
 	var nm := UI3.label(_reward_name(item) if have else "?")
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

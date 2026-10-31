@@ -132,7 +132,11 @@ func _pass(sc: float, tag: String) -> void:
 	# idle: 24 tickets -> Open 10 is the one primary; frame names; Open 1 not preselected
 	var s := await _make(sc, 24)
 	_names(s, SHELL, tag + " idle")
-	_check(_btn(s, "Open10Button").theme_type_variation == &"ButtonPrimary" or not _btn(s, "Open10Button").disabled, tag + ": Open 10 live")
+	_check(String(_btn(s, "Open10Button").theme_type_variation).begins_with("ButtonPrimary") and not _btn(s, "Open10Button").disabled, tag + ": Open 10 is live and the primary")
+	_check(not String(_btn(s, "Open1Button").theme_type_variation).begins_with("ButtonPrimary"), tag + ": Open 1 is not a second primary")
+	var fo := s.get_viewport().gui_get_focus_owner()
+	_check(fo == null or (fo.name != "Open1Button" and fo.name != "Open10Button"), tag + ": idle: no Open button is preselected (focus: %s)" % (fo.name if fo else "none"))
+	_check(Align.pairs(s) > 0, tag + ": idle align check measures > 0 pairs (%d)" % Align.pairs(s))
 	_check(s.find_child("Tickets", true, false).text == "Tickets 24 / 999", tag + ": ticket text comes from MetaState")
 	_check(_btn(s, "RegularTab").button_pressed, tag + ": Regular tab on")
 	_audit(s, sc, tag + " idle")
@@ -151,11 +155,35 @@ func _pass(sc: float, tag: String) -> void:
 	if c != null:
 		var cancel := c.find_child("CancelButton", true, false) as Button
 		var yes := c.find_child("Open10Button", true, false) as Button
-		_check(cancel != null and yes != null and cancel.get_index() < yes.get_index() or cancel.get_parent() == yes.get_parent() and cancel.get_index() < yes.get_index(), tag + ": safe button stands first")
+		_check(cancel != null and yes != null, tag + ": both confirm buttons exist")
+		_check(cancel.get_parent() == yes.get_parent() and cancel.get_index() < yes.get_index(), tag + ": safe button stands first")
 		_check(cancel.find_child("KeyCap", true, false) != null or Ui5Keycap.all_under(cancel).size() > 0, tag + ": Cancel has the Space keycap")
 		_check(Ui5Keycap.all_under(yes).is_empty(), tag + ": spending button has no keycap")
 		_check(cancel.has_focus(), tag + ": Cancel has focus")
 		_audit(s, sc, tag + " open10-confirm")
+		# Space on the focused Cancel closes the confirm and spends nothing
+		var ev := InputEventKey.new()
+		ev.keycode = KEY_SPACE
+		ev.physical_keycode = KEY_SPACE
+		ev.pressed = true
+		Input.parse_input_event(ev)
+		var ev2 := ev.duplicate() as InputEventKey
+		ev2.pressed = false
+		Input.parse_input_event(ev2)
+		await _settle()
+		_check(s.find_child("Open10Confirm", true, false) == null, tag + ": Space on Cancel closes the confirm")
+		_check(int(MetaState.tickets["normal"]) == before, tag + ": Cancel spent nothing")
+		# Confirm spends exactly 10
+		_btn(s, "Open10Button").emit_signal("pressed")
+		await _settle()
+		(s.find_child("Open10Confirm", true, false).find_child("Open10Button", true, false) as Button).emit_signal("pressed")
+		await _settle()
+		var tn := int(MetaState.tickets["normal"])
+		_check(tn == before - 10 or tn == before - 9, tag + ": Confirm spends 10 tickets (%d -> %d; a duplicate may refund 1)" % [before, tn])
+		MetaState.tickets["normal"] = before
+		s.results = []
+		s._refresh_all()
+		await _settle()
 	s.close_modal()
 	# rates
 	s.open_rates()
@@ -180,6 +208,19 @@ func _pass(sc: float, tag: String) -> void:
 	_audit(s, sc, tag + " seasonal")
 	_check(String(_btn(s, "Open1Button").theme_type_variation).begins_with("ButtonPrimary"), tag + ": seasonal Open 1 is the primary")
 	_check(s.find_child("CostChip", true, false) != null, tag + ": season CostChip")
+	# a taken milestone reads "Done"
+	var sid0 := String(EchoBox.season_cfg().get("series_id", "s1"))
+	var sbm: Dictionary = (MetaState.season_box as Dictionary).duplicate(true)
+	sbm[sid0] = {"opens": 12, "c_epic": 0, "c_legendary": 0, "c_mythic": 0, "owned": [], "milestones": ["m12"], "day": "", "day_pulls": 0}
+	MetaState.season_box = sbm
+	s.select_tab("regular")
+	s.select_tab("seasonal")
+	await _settle()
+	var m12 := s.find_child("Milestone_12", true, false) as Label
+	_check(m12 != null and m12.text.begins_with("Done 12 pulls"), tag + ": Milestone_12 reads Done ('%s')" % (m12.text if m12 else "none"))
+	var m40 := s.find_child("Milestone_40", true, false) as Label
+	_check(m40 != null and m40.text.begins_with("At 40 pulls"), tag + ": Milestone_40 still reads At")
+	MetaState.season_box = {}
 	# rates (season)
 	s.open_rates()
 	await _settle()
@@ -227,7 +268,10 @@ func _pass(sc: float, tag: String) -> void:
 	# no tickets
 	s = await _make(sc, 0)
 	_names(s, ["Open1Button", "BuyPullButton"], tag + " no-tickets")
-	_check(_btn(s, "Open1Button").disabled and _btn(s, "Open1Button").text.begins_with("Open 1 ·") or _btn(s, "Open1Button").disabled, tag + ": Open 1 disabled and says why")
+	_check(_btn(s, "Open1Button").disabled, tag + ": Open 1 disabled")
+	_check(_btn(s, "Open1Button").text == "Open 1 · Not enough tickets (0 of 1)", tag + ": Open 1 says why ('%s')" % _btn(s, "Open1Button").text)
+	_check(s.find_child("Open10Button", true, false) == null, tag + ": no Open 10 when even one pull is blocked")
+	_check(Ui5Keycap.all_under(_btn(s, "Open1Button")).is_empty(), tag + ": no keycap on the disabled Open 1")
 	_audit(s, sc, tag + " no-tickets")
 	await _free(s)
 	# offline / guest (remote wallet) / error / loading / last pull
