@@ -1,0 +1,695 @@
+# S7a: Leaderboard
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-meta1-screens.html
+# So frame: 20 (10 id, tinh ca ban 1920 va 1280)
+# Tien to: lb--
+# Id frame:
+#   lb--season
+#   lb--season--1280
+#   lb--detail
+#   lb--detail--1280
+#   lb--today
+#   lb--today--1280
+#   lb--locked
+#   lb--locked--1280
+#   lb--empty
+#   lb--empty--1280
+#   lb--offline
+#   lb--offline--1280
+#   lb--error
+#   lb--error--1280
+#   lb--guest
+#   lb--guest--1280
+#   lb--newcomer
+#   lb--newcomer--1280
+#   lb--loading
+#   lb--loading--1280
+
+=== lb--season (1920)
+  # godot: LeaderboardScreen. A-chip row is a filter: your best stays preselected. Rows are not preselected: the detail plate starts at "Pick a run".
+  Header
+    BackButton "←"
+    Title "Leaderboard"
+    SeasonTab "Season"
+    TodayTab "Today"
+  Body
+    AscRow
+      AscChipA0 "A0"
+      AscChipA1 "A1"
+      AscChipA2 "A2"
+      AscChipA3 "A3"
+      AscChipA4 "A4"
+      AscChipA5 "A5"
+      AscChipA6 "A6"
+      AscChipA7 "A7"
+      AscChipA8 "A8"
+      AscChipA9 "A9"
+      AscChipA10 "A10"
+    Caption "A6 · Season Quit runs count as losses. Last updated 14:02"
+    Rows
+      Row "1 Kito 4,210 Won"
+      Row "2 Mara 4,073 Won"
+      Row "3 Tuan Anh 3,936 Won"
+      Row "4 Bao 3,799 Lost"
+      Row "5 Linh 3,662 Won"
+      Row "6 Hana 3,525 Won"
+      Row "7 Duc 3,388 Won"
+      Row "8 Mira 3,251 Lost"
+      Row "9 Tomo 3,114 Won"
+      Row "10 Ana 2,977 Won"
+    PinnedRow "23 Liam You 1,612 Won"
+    DetailPlate
+      Title "Pick a run"
+
+=== lb--season--1280 (1280)
+  # godot: LeaderboardScreen. A-chip row is a filter: your best stays preselected. Rows are not preselected: the detail plate starts at "Pick a run".
+  Header
+    BackButton "←"
+    Title "Leaderboard"
+    SeasonTab "Season"
+    TodayTab "Today"
+  Body
+    AscRow
+      AscChipA0 "A0"
+      AscChipA1 "A1"
+      AscChipA2 "A2"
+      AscChipA3 "A3"
+      AscChipA4 "A4"
+      AscChipA5 "A5"
+      AscChipA6 "A6"
+      AscChipA7 "A7"
+      AscChipA8 "A8"
+      AscChipA9 "A9"
+      AscChipA10 "A10"
+    Caption "A6 · Season Quit runs count as losses. Last updated 14:02"
+    Rows
+      Row "1 Kito 4,210 Won"
+      Row "2 Mara 4,073 Won"
+      Row "3 Tuan Anh 3,936 Won"
+      Row "4 Bao 3,799 Lost"
+      Row "5 Linh 3,662 Won"
+      Row "6 Hana 3,525 Won"
+      Row "7 Duc 3,388 Won"
+      Row "8 Mira 3,251 Lost"
+      Row "9 Tomo 3,114 Won"
+      Row "10 Ana 2,977 Won"
+    PinnedRow "23 Liam You 1,612 Won"
+    DetailPlate
+      Title "Pick a run"
+
+=== lb--detail (1920)
+  # godot: LeaderboardScreen. A-chip row is a filter: your best stays preselected. Rows are not preselected: the detail plate starts at "Pick a run".
+  Header
+    BackButton "←"
+    Title "Leaderboard"
+    SeasonTab "Season"
+    TodayTab "Today"
+  Body
+    AscRow
+      AscChipA0 "A0"
+      AscChipA1 "A1"
+      AscChipA2 "A2"
+      AscChipA3 "A3"
+      AscChipA4 "A4"
+      AscChipA5 "A5"
+      AscChipA6 "A6"
+      AscChipA7 "A7"
+      AscChipA8 "A8"
+      AscChipA9 "A9"
+      AscChipA10 "A10"
+    Caption "A6 · Season Quit runs count as losses. Last updated 14:02"
+    Rows
+      Row "1 Kito 4,210 Won"
+      Row "2 Mara 4,073 Won"
+      Row "3 Tuan Anh 3,936 Won"
+      Row "4 Bao 3,799 Lost"
+      Row "5 Linh 3,662 Won"
+      Row "6 Hana 3,525 Won"
+      Row "7 Duc 3,388 Won"
+      Row "8 Mira 3,251 Lost"
+      Row "9 Tomo 3,114 Won"
+      Row "10 Ana 2,977 Won"
+    PinnedRow "23 Liam You 1,612 Won"
+    DetailPlate
+      Title "#2 · Mara"
+      WatchReplayButton "Watch replay"
+      CloseButton "Close"
+
+=== lb--detail--1280 (1280)
+  # godot: LeaderboardScreen. A-chip row is a filter: your best stays preselected. Rows are not preselected: the detail plate starts at "Pick a run".
+  Header
+    BackButton "←"
+    Title "Leaderboard"
+    SeasonTab "Season"
+    TodayTab "Today"
+  Body
+    AscRow
+      AscChipA0 "A0"
+      AscChipA1 "A1"
+      AscChipA2 "A2"
+      AscChipA3 "A3"
+      AscChipA4 "A4"
+      AscChipA5 "A5"
+      AscChipA6 "A6"
+      AscChipA7 "A7"
+      AscChipA8 "A8"
+      AscChipA9 "A9"
+      AscChipA10 "A10"
+    Caption "A6 · Season Quit runs count as losses. Last updated 14:02"
+    Rows
+      Row "1 Kito 4,210 Won"
+      Row "2 Mara 4,073 Won"
+      Row "3 Tuan Anh 3,936 Won"
+      Row "4 Bao 3,799 Lost"
+      Row "5 Linh 3,662 Won"
+      Row "6 Hana 3,525 Won"
+      Row "7 Duc 3,388 Won"
+      Row "8 Mira 3,251 Lost"
+      Row "9 Tomo 3,114 Won"
+      Row "10 Ana 2,977 Won"
+    PinnedRow "23 Liam You 1,612 Won"
+    DetailPlate
+      Title "#2 · Mara"
+      WatchReplayButton "Watch replay"
+      CloseButton "Close"
+
+=== lb--today (1920)
+  # godot: LeaderboardScreen. A-chip row is a filter: your best stays preselected. Rows are not preselected: the detail plate starts at "Pick a run".
+  Header
+    BackButton "←"
+    Title "Leaderboard"
+    SeasonTab "Season"
+    TodayTab "Today"
+  Body
+    AscRow
+      AscChipA0 "A0"
+      AscChipA1 "A1"
+      AscChipA2 "A2"
+      AscChipA3 "A3"
+      AscChipA4 "A4"
+      AscChipA5 "A5"
+      AscChipA6 "A6"
+      AscChipA7 "A7"
+      AscChipA8 "A8"
+      AscChipA9 "A9"
+      AscChipA10 "A10"
+    Caption "A6 · Today Quit runs count as losses. Last updated 14:02"
+    Rows
+      Row "1 Mara 3,980 Won"
+      Row "2 Kito 3,702 Won"
+      Row "3 Hana 3,310 Lost"
+      Row "4 Liam You 2,844 Won"
+      Row "5 Duc 2,605 Won"
+    DetailPlate
+      Title "Pick a run"
+
+=== lb--today--1280 (1280)
+  # godot: LeaderboardScreen. A-chip row is a filter: your best stays preselected. Rows are not preselected: the detail plate starts at "Pick a run".
+  Header
+    BackButton "←"
+    Title "Leaderboard"
+    SeasonTab "Season"
+    TodayTab "Today"
+  Body
+    AscRow
+      AscChipA0 "A0"
+      AscChipA1 "A1"
+      AscChipA2 "A2"
+      AscChipA3 "A3"
+      AscChipA4 "A4"
+      AscChipA5 "A5"
+      AscChipA6 "A6"
+      AscChipA7 "A7"
+      AscChipA8 "A8"
+      AscChipA9 "A9"
+      AscChipA10 "A10"
+    Caption "A6 · Today Quit runs count as losses. Last updated 14:02"
+    Rows
+      Row "1 Mara 3,980 Won"
+      Row "2 Kito 3,702 Won"
+      Row "3 Hana 3,310 Lost"
+      Row "4 Liam You 2,844 Won"
+      Row "5 Duc 2,605 Won"
+    DetailPlate
+      Title "Pick a run"
+
+=== lb--locked (1920)
+  # godot: LeaderboardScreen. A-chip row is a filter: your best stays preselected. Rows are not preselected: the detail plate starts at "Pick a run".
+  Header
+    BackButton "←"
+    Title "Leaderboard"
+    SeasonTab "Season"
+    TodayTab "Today"
+  Body
+    AscRow
+      AscChipA0 "A0"
+      AscChipA1 "A1"
+      AscChipA2 "A2"
+      AscChipA3 "A3"
+      AscChipA4 "A4"
+      AscChipA5 "A5"
+      AscChipA6 "A6"
+      AscChipA7 "A7"
+      AscChipA8 "A8"
+      AscChipA9 "A9"
+      AscChipA10 "A10"
+    Caption "A9 · Season Locked for you: win a run at A8 to unlock A9. Y…"
+    Rows
+      Row "1 Kito 4,210 Won"
+      Row "2 Mara 4,073 Won"
+      Row "3 Tuan Anh 3,936 Won"
+      Row "4 Bao 3,799 Lost"
+      Row "5 Linh 3,662 Won"
+      Row "6 Hana 3,525 Won"
+      Row "7 Duc 3,388 Won"
+      Row "8 Mira 3,251 Lost"
+      Row "9 Tomo 3,114 Won"
+      Row "10 Ana 2,977 Won"
+    PinnedRow "— Liam You"
+    DetailPlate
+      Title "Pick a run"
+
+=== lb--locked--1280 (1280)
+  # godot: LeaderboardScreen. A-chip row is a filter: your best stays preselected. Rows are not preselected: the detail plate starts at "Pick a run".
+  Header
+    BackButton "←"
+    Title "Leaderboard"
+    SeasonTab "Season"
+    TodayTab "Today"
+  Body
+    AscRow
+      AscChipA0 "A0"
+      AscChipA1 "A1"
+      AscChipA2 "A2"
+      AscChipA3 "A3"
+      AscChipA4 "A4"
+      AscChipA5 "A5"
+      AscChipA6 "A6"
+      AscChipA7 "A7"
+      AscChipA8 "A8"
+      AscChipA9 "A9"
+      AscChipA10 "A10"
+    Caption "A9 · Season Locked for you: win a run at A8 to unlock A9. Y…"
+    Rows
+      Row "1 Kito 4,210 Won"
+      Row "2 Mara 4,073 Won"
+      Row "3 Tuan Anh 3,936 Won"
+      Row "4 Bao 3,799 Lost"
+      Row "5 Linh 3,662 Won"
+      Row "6 Hana 3,525 Won"
+      Row "7 Duc 3,388 Won"
+      Row "8 Mira 3,251 Lost"
+      Row "9 Tomo 3,114 Won"
+      Row "10 Ana 2,977 Won"
+    PinnedRow "— Liam You"
+    DetailPlate
+      Title "Pick a run"
+
+=== lb--empty (1920)
+  # godot: LeaderboardScreen. A-chip row is a filter: your best stays preselected. Rows are not preselected: the detail plate starts at "Pick a run".
+  Header
+    BackButton "←"
+    Title "Leaderboard"
+    SeasonTab "Season"
+    TodayTab "Today"
+  Body
+    AscRow
+      AscChipA0 "A0"
+      AscChipA1 "A1"
+      AscChipA2 "A2"
+      AscChipA3 "A3"
+      AscChipA4 "A4"
+      AscChipA5 "A5"
+      AscChipA6 "A6"
+      AscChipA7 "A7"
+      AscChipA8 "A8"
+      AscChipA9 "A9"
+      AscChipA10 "A10"
+    Caption "A2 · Season Quit runs count as losses. Last updated 14:02"
+    Rows
+      EmptyState "No runs here yet Nobody has finished a ranked run at this A…"
+    DetailPlate
+      Title "Pick a run"
+
+=== lb--empty--1280 (1280)
+  # godot: LeaderboardScreen. A-chip row is a filter: your best stays preselected. Rows are not preselected: the detail plate starts at "Pick a run".
+  Header
+    BackButton "←"
+    Title "Leaderboard"
+    SeasonTab "Season"
+    TodayTab "Today"
+  Body
+    AscRow
+      AscChipA0 "A0"
+      AscChipA1 "A1"
+      AscChipA2 "A2"
+      AscChipA3 "A3"
+      AscChipA4 "A4"
+      AscChipA5 "A5"
+      AscChipA6 "A6"
+      AscChipA7 "A7"
+      AscChipA8 "A8"
+      AscChipA9 "A9"
+      AscChipA10 "A10"
+    Caption "A2 · Season Quit runs count as losses. Last updated 14:02"
+    Rows
+      EmptyState "No runs here yet Nobody has finished a ranked run at this A…"
+    DetailPlate
+      Title "Pick a run"
+
+=== lb--offline (1920)
+  # godot: LeaderboardScreen. A-chip row is a filter: your best stays preselected. Rows are not preselected: the detail plate starts at "Pick a run".
+  Header
+    BackButton "←"
+    Title "Leaderboard"
+    SeasonTab "Season"
+    TodayTab "Today"
+  Body
+    AscRow
+      AscChipA0 "A0"
+      AscChipA1 "A1"
+      AscChipA2 "A2"
+      AscChipA3 "A3"
+      AscChipA4 "A4"
+      AscChipA5 "A5"
+      AscChipA6 "A6"
+      AscChipA7 "A7"
+      AscChipA8 "A8"
+      AscChipA9 "A9"
+      AscChipA10 "A10"
+    Banner
+      ToneDisc "!"
+      TryAgainButton "Try again"
+      BackToLandButton "Back to Land"
+    Caption "A6 · Season Quit runs count as losses. Last updated 14:02"
+    Rows
+      Row "1 Kito 4,210 Won"
+      Row "2 Mara 4,073 Won"
+      Row "3 Tuan Anh 3,936 Won"
+      Row "4 Bao 3,799 Lost"
+      Row "5 Linh 3,662 Won"
+      Row "6 Hana 3,525 Won"
+      Row "7 Duc 3,388 Won"
+      Row "8 Mira 3,251 Lost"
+      Row "9 Tomo 3,114 Won"
+      Row "10 Ana 2,977 Won"
+    PinnedRow "23 Liam You 1,612 Won"
+    DetailPlate
+      Title "Pick a run"
+
+=== lb--offline--1280 (1280)
+  # godot: LeaderboardScreen. A-chip row is a filter: your best stays preselected. Rows are not preselected: the detail plate starts at "Pick a run".
+  Header
+    BackButton "←"
+    Title "Leaderboard"
+    SeasonTab "Season"
+    TodayTab "Today"
+  Body
+    AscRow
+      AscChipA0 "A0"
+      AscChipA1 "A1"
+      AscChipA2 "A2"
+      AscChipA3 "A3"
+      AscChipA4 "A4"
+      AscChipA5 "A5"
+      AscChipA6 "A6"
+      AscChipA7 "A7"
+      AscChipA8 "A8"
+      AscChipA9 "A9"
+      AscChipA10 "A10"
+    Banner
+      ToneDisc "!"
+      TryAgainButton "Try again"
+      BackToLandButton "Back to Land"
+    Caption "A6 · Season Quit runs count as losses. Last updated 14:02"
+    Rows
+      Row "1 Kito 4,210 Won"
+      Row "2 Mara 4,073 Won"
+      Row "3 Tuan Anh 3,936 Won"
+      Row "4 Bao 3,799 Lost"
+      Row "5 Linh 3,662 Won"
+      Row "6 Hana 3,525 Won"
+      Row "7 Duc 3,388 Won"
+      Row "8 Mira 3,251 Lost"
+      Row "9 Tomo 3,114 Won"
+      Row "10 Ana 2,977 Won"
+    PinnedRow "23 Liam You 1,612 Won"
+    DetailPlate
+      Title "Pick a run"
+
+=== lb--error (1920)
+  # godot: LeaderboardScreen. A-chip row is a filter: your best stays preselected. Rows are not preselected: the detail plate starts at "Pick a run".
+  Header
+    BackButton "←"
+    Title "Leaderboard"
+    SeasonTab "Season"
+    TodayTab "Today"
+  Body
+    AscRow
+      AscChipA0 "A0"
+      AscChipA1 "A1"
+      AscChipA2 "A2"
+      AscChipA3 "A3"
+      AscChipA4 "A4"
+      AscChipA5 "A5"
+      AscChipA6 "A6"
+      AscChipA7 "A7"
+      AscChipA8 "A8"
+      AscChipA9 "A9"
+      AscChipA10 "A10"
+    Caption "A6 · Season Quit runs count as losses."
+    Rows
+      ErrorState
+        ToneDisc "!"
+        TryAgainButton "Try again"
+        BackToLandButton "Back to Land"
+    DetailPlate
+      Title "Pick a run"
+
+=== lb--error--1280 (1280)
+  # godot: LeaderboardScreen. A-chip row is a filter: your best stays preselected. Rows are not preselected: the detail plate starts at "Pick a run".
+  Header
+    BackButton "←"
+    Title "Leaderboard"
+    SeasonTab "Season"
+    TodayTab "Today"
+  Body
+    AscRow
+      AscChipA0 "A0"
+      AscChipA1 "A1"
+      AscChipA2 "A2"
+      AscChipA3 "A3"
+      AscChipA4 "A4"
+      AscChipA5 "A5"
+      AscChipA6 "A6"
+      AscChipA7 "A7"
+      AscChipA8 "A8"
+      AscChipA9 "A9"
+      AscChipA10 "A10"
+    Caption "A6 · Season Quit runs count as losses."
+    Rows
+      ErrorState
+        ToneDisc "!"
+        TryAgainButton "Try again"
+        BackToLandButton "Back to Land"
+    DetailPlate
+      Title "Pick a run"
+
+=== lb--guest (1920)
+  # godot: LeaderboardScreen. A-chip row is a filter: your best stays preselected. Rows are not preselected: the detail plate starts at "Pick a run".
+  Header
+    BackButton "←"
+    Title "Leaderboard"
+    SeasonTab "Season"
+    TodayTab "Today"
+  Body
+    AscRow
+      AscChipA0 "A0"
+      AscChipA1 "A1"
+      AscChipA2 "A2"
+      AscChipA3 "A3"
+      AscChipA4 "A4"
+      AscChipA5 "A5"
+      AscChipA6 "A6"
+      AscChipA7 "A7"
+      AscChipA8 "A8"
+      AscChipA9 "A9"
+      AscChipA10 "A10"
+    Banner
+      ToneDisc "i"
+      SignInButton "Sign in"
+    Caption "A6 · Season Quit runs count as losses. Last updated 14:02"
+    Rows
+      Row "1 Kito 4,210 Won"
+      Row "2 Mara 4,073 Won"
+      Row "3 Tuan Anh 3,936 Won"
+      Row "4 Bao 3,799 Lost"
+      Row "5 Linh 3,662 Won"
+      Row "6 Hana 3,525 Won"
+      Row "7 Duc 3,388 Won"
+      Row "8 Mira 3,251 Lost"
+      Row "9 Tomo 3,114 Won"
+      Row "10 Ana 2,977 Won"
+    PinnedRow "— Guest Sign in to appear here"
+    DetailPlate
+      Title "Pick a run"
+
+=== lb--guest--1280 (1280)
+  # godot: LeaderboardScreen. A-chip row is a filter: your best stays preselected. Rows are not preselected: the detail plate starts at "Pick a run".
+  Header
+    BackButton "←"
+    Title "Leaderboard"
+    SeasonTab "Season"
+    TodayTab "Today"
+  Body
+    AscRow
+      AscChipA0 "A0"
+      AscChipA1 "A1"
+      AscChipA2 "A2"
+      AscChipA3 "A3"
+      AscChipA4 "A4"
+      AscChipA5 "A5"
+      AscChipA6 "A6"
+      AscChipA7 "A7"
+      AscChipA8 "A8"
+      AscChipA9 "A9"
+      AscChipA10 "A10"
+    Banner
+      ToneDisc "i"
+      SignInButton "Sign in"
+    Caption "A6 · Season Quit runs count as losses. Last updated 14:02"
+    Rows
+      Row "1 Kito 4,210 Won"
+      Row "2 Mara 4,073 Won"
+      Row "3 Tuan Anh 3,936 Won"
+      Row "4 Bao 3,799 Lost"
+      Row "5 Linh 3,662 Won"
+      Row "6 Hana 3,525 Won"
+      Row "7 Duc 3,388 Won"
+      Row "8 Mira 3,251 Lost"
+      Row "9 Tomo 3,114 Won"
+      Row "10 Ana 2,977 Won"
+    PinnedRow "— Guest Sign in to appear here"
+    DetailPlate
+      Title "Pick a run"
+
+=== lb--newcomer (1920)
+  # godot: LeaderboardScreen. A-chip row is a filter: your best stays preselected. Rows are not preselected: the detail plate starts at "Pick a run".
+  Header
+    BackButton "←"
+    Title "Leaderboard"
+    SeasonTab "Season"
+    TodayTab "Today"
+  Body
+    AscRow
+      AscChipA0 "A0"
+      AscChipA1 "A1"
+      AscChipA2 "A2"
+      AscChipA3 "A3"
+      AscChipA4 "A4"
+      AscChipA5 "A5"
+      AscChipA6 "A6"
+      AscChipA7 "A7"
+      AscChipA8 "A8"
+      AscChipA9 "A9"
+      AscChipA10 "A10"
+    Caption "A0 · Season Quit runs count as losses. Last updated 14:02"
+    Rows
+      Row "1 Kito 4,210 Won"
+      Row "2 Mara 4,073 Won"
+      Row "3 Tuan Anh 3,936 Won"
+      Row "4 Bao 3,799 Lost"
+      Row "5 Linh 3,662 Won"
+      Row "6 Hana 3,525 Won"
+      Row "7 Duc 3,388 Won"
+      Row "8 Mira 3,251 Lost"
+      Row "9 Tomo 3,114 Won"
+      Row "10 Ana 2,977 Won"
+    PinnedRow "— Liam You Ranked opens after 5 runs"
+    DetailPlate
+      Title "Pick a run"
+
+=== lb--newcomer--1280 (1280)
+  # godot: LeaderboardScreen. A-chip row is a filter: your best stays preselected. Rows are not preselected: the detail plate starts at "Pick a run".
+  Header
+    BackButton "←"
+    Title "Leaderboard"
+    SeasonTab "Season"
+    TodayTab "Today"
+  Body
+    AscRow
+      AscChipA0 "A0"
+      AscChipA1 "A1"
+      AscChipA2 "A2"
+      AscChipA3 "A3"
+      AscChipA4 "A4"
+      AscChipA5 "A5"
+      AscChipA6 "A6"
+      AscChipA7 "A7"
+      AscChipA8 "A8"
+      AscChipA9 "A9"
+      AscChipA10 "A10"
+    Caption "A0 · Season Quit runs count as losses. Last updated 14:02"
+    Rows
+      Row "1 Kito 4,210 Won"
+      Row "2 Mara 4,073 Won"
+      Row "3 Tuan Anh 3,936 Won"
+      Row "4 Bao 3,799 Lost"
+      Row "5 Linh 3,662 Won"
+      Row "6 Hana 3,525 Won"
+      Row "7 Duc 3,388 Won"
+      Row "8 Mira 3,251 Lost"
+      Row "9 Tomo 3,114 Won"
+      Row "10 Ana 2,977 Won"
+    PinnedRow "— Liam You Ranked opens after 5 runs"
+    DetailPlate
+      Title "Pick a run"
+
+=== lb--loading (1920)
+  # godot: LeaderboardScreen. A-chip row is a filter: your best stays preselected. Rows are not preselected: the detail plate starts at "Pick a run".
+  Header
+    BackButton "←"
+    Title "Leaderboard"
+    SeasonTab "Season"
+    TodayTab "Today"
+  Body
+    AscRow
+      AscChipA0 "A0"
+      AscChipA1 "A1"
+      AscChipA2 "A2"
+      AscChipA3 "A3"
+      AscChipA4 "A4"
+      AscChipA5 "A5"
+      AscChipA6 "A6"
+      AscChipA7 "A7"
+      AscChipA8 "A8"
+      AscChipA9 "A9"
+      AscChipA10 "A10"
+    Caption "A6 · Season Quit runs count as losses."
+    Rows
+    DetailPlate
+      Title "Pick a run"
+
+=== lb--loading--1280 (1280)
+  # godot: LeaderboardScreen. A-chip row is a filter: your best stays preselected. Rows are not preselected: the detail plate starts at "Pick a run".
+  Header
+    BackButton "←"
+    Title "Leaderboard"
+    SeasonTab "Season"
+    TodayTab "Today"
+  Body
+    AscRow
+      AscChipA0 "A0"
+      AscChipA1 "A1"
+      AscChipA2 "A2"
+      AscChipA3 "A3"
+      AscChipA4 "A4"
+      AscChipA5 "A5"
+      AscChipA6 "A6"
+      AscChipA7 "A7"
+      AscChipA8 "A8"
+      AscChipA9 "A9"
+      AscChipA10 "A10"
+    Caption "A6 · Season Quit runs count as losses."
+    Rows
+    DetailPlate
+      Title "Pick a run"

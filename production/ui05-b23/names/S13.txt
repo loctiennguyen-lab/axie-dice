@@ -1,0 +1,537 @@
+# S13: Codex + Guides + Unlocks
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-meta3-screens.html
+# So frame: 14 (7 id, tinh ca ban 1920 va 1280)
+# Tien to: 29-codex
+# Id frame:
+#   29-codex--basics
+#   29-codex--basics--1280
+#   29-codex--cores
+#   29-codex--cores--1280
+#   29-codex--combos
+#   29-codex--combos--1280
+#   29-codex--anchors
+#   29-codex--anchors--1280
+#   29-codex--anchor-detail
+#   29-codex--anchor-detail--1280
+#   29-codex--search
+#   29-codex--search--1280
+#   29-codex--search-none
+#   29-codex--search-none--1280
+
+=== 29-codex--basics (1920)
+  # godot: Codex. Esc clears the search first, then goes back.
+  Header
+    BackButton "←"
+    Title "Codex"
+    SubLine "The rule book"
+    CodexTab "Codex"
+    GuidesTab "Guides"
+    UnlocksTab "Unlocks"
+  Body
+    SearchPlate
+      SearchField "Search the rule book"
+    ReadingPlate
+      Title "THE BASICS"
+      Lede "One run, one turn, one action: the loop everything else sit…"
+      Table "STEP WHAT HAPPENS 1 - ROLL All five of your dice and every …"
+    Topics
+      Topic "THE BASICS"
+      Topic "DICE & BODY PARTS"
+      Topic "MANA & CARDS"
+      Topic "KEYWORDS"
+      Topic "STATUS EFFECTS"
+      Topic "CLASSES & PLAYSTYLES"
+      Topic "RELIC TABLE"
+      Topic "MAP & REWARDS"
+      Topic "BOSSES"
+      Topic "DIFFICULTY & KEYS"
+      Topic "CORES"
+      Topic "COMBOS"
+      Topic "ANCHORS"
+
+=== 29-codex--basics--1280 (1280)
+  # godot: Codex. Esc clears the search first, then goes back.
+  Header
+    BackButton "←"
+    Title "Codex"
+    SubLine "The rule book"
+    CodexTab "Codex"
+    GuidesTab "Guides"
+    UnlocksTab "Unlocks"
+  Body
+    SearchPlate
+      SearchField "Search the rule book"
+    ReadingPlate
+      Title "THE BASICS"
+      Lede "One run, one turn, one action: the loop everything else sit…"
+      Table "STEP WHAT HAPPENS 1 - ROLL All five of your dice and every …"
+    Topics
+      Topic "THE BASICS"
+      Topic "DICE & BODY PARTS"
+      Topic "MANA & CARDS"
+      Topic "KEYWORDS"
+      Topic "STATUS EFFECTS"
+      Topic "CLASSES & PLAYSTYLES"
+      Topic "RELIC TABLE"
+      Topic "MAP & REWARDS"
+      Topic "BOSSES"
+      Topic "DIFFICULTY & KEYS"
+      Topic "CORES"
+      Topic "COMBOS"
+      Topic "ANCHORS"
+
+=== 29-codex--cores (1920)
+  # godot: Codex. Esc clears the search first, then goes back.
+  Header
+    BackButton "←"
+    Title "Codex"
+    SubLine "The rule book"
+    CodexTab "Codex"
+    GuidesTab "Guides"
+    UnlocksTab "Unlocks"
+  Body
+    SearchPlate
+      SearchField "Search the rule book"
+    ReadingPlate
+      Title "CORES"
+      Lede "Every Core you have been offered. The ones you have not met…"
+      CoresBook
+        BookTile "Bastion Moss · Picked"
+        BookTile "Early Scales Moss · Picked"
+        BookTile "Mana Pool Moss · Picked"
+        BookTileUnmet "? Not met yet"
+        BookTile "Nest Moss · Picked"
+        BookTileUnmet "? Not met yet"
+        BookTile "Thorn Shield Amber · Picked"
+        BookTile "Kindle Amber · Picked"
+        BookTileUnmet "? Not met yet"
+        BookTile "Gatekeeper Amber · Picked"
+        BookTileUnmet "? Not met yet"
+        BookTileUnmet "? Not met yet"
+        BookTile "Shield Wave Amber · Picked"
+        BookTileUnmet "? Not met yet"
+        BookTile "Living Wall Crystal · Picked"
+        BookTileUnmet "? Not met yet"
+        BookTileUnmet "? Not met yet"
+    Topics
+      Topic "THE BASICS"
+      Topic "DICE & BODY PARTS"
+      Topic "MANA & CARDS"
+      Topic "KEYWORDS"
+      Topic "STATUS EFFECTS"
+      Topic "CLASSES & PLAYSTYLES"
+      Topic "RELIC TABLE"
+      Topic "MAP & REWARDS"
+      Topic "BOSSES"
+      Topic "DIFFICULTY & KEYS"
+      Topic "CORES"
+      Topic "COMBOS"
+      Topic "ANCHORS"
+
+=== 29-codex--cores--1280 (1280)
+  # godot: Codex. Esc clears the search first, then goes back.
+  Header
+    BackButton "←"
+    Title "Codex"
+    SubLine "The rule book"
+    CodexTab "Codex"
+    GuidesTab "Guides"
+    UnlocksTab "Unlocks"
+  Body
+    SearchPlate
+      SearchField "Search the rule book"
+    ReadingPlate
+      Title "CORES"
+      Lede "Every Core you have been offered. The ones you have not met…"
+      CoresBook
+        BookTile "Bastion Moss · Picked"
+        BookTile "Early Scales Moss · Picked"
+        BookTile "Mana Pool Moss · Picked"
+        BookTileUnmet "? Not met yet"
+        BookTile "Nest Moss · Picked"
+        BookTileUnmet "? Not met yet"
+        BookTile "Thorn Shield Amber · Picked"
+        BookTile "Kindle Amber · Picked"
+        BookTileUnmet "? Not met yet"
+        BookTile "Gatekeeper Amber · Picked"
+        BookTileUnmet "? Not met yet"
+        BookTileUnmet "? Not met yet"
+        BookTile "Shield Wave Amber · Picked"
+        BookTileUnmet "? Not met yet"
+        BookTile "Living Wall Crystal · Picked"
+        BookTileUnmet "? Not met yet"
+        BookTileUnmet "? Not met yet"
+    Topics
+      Topic "THE BASICS"
+      Topic "DICE & BODY PARTS"
+      Topic "MANA & CARDS"
+      Topic "KEYWORDS"
+      Topic "STATUS EFFECTS"
+      Topic "CLASSES & PLAYSTYLES"
+      Topic "RELIC TABLE"
+      Topic "MAP & REWARDS"
+      Topic "BOSSES"
+      Topic "DIFFICULTY & KEYS"
+      Topic "CORES"
+      Topic "COMBOS"
+      Topic "ANCHORS"
+
+=== 29-codex--combos (1920)
+  # godot: Codex. Esc clears the search first, then goes back.
+  Header
+    BackButton "←"
+    Title "Codex"
+    SubLine "The rule book"
+    CodexTab "Codex"
+    GuidesTab "Guides"
+    UnlocksTab "Unlocks"
+  Body
+    SearchPlate
+      SearchField "Search the rule book"
+    ReadingPlate
+      Title "COMBOS"
+      Lede "Pairs and Fulls you have put together. Form one in a run to…"
+      CombosBook "Golden Turtle Fortress Full Shield Engine Pair ? Not met ye…"
+    Topics
+      Topic "THE BASICS"
+      Topic "DICE & BODY PARTS"
+      Topic "MANA & CARDS"
+      Topic "KEYWORDS"
+      Topic "STATUS EFFECTS"
+      Topic "CLASSES & PLAYSTYLES"
+      Topic "RELIC TABLE"
+      Topic "MAP & REWARDS"
+      Topic "BOSSES"
+      Topic "DIFFICULTY & KEYS"
+      Topic "CORES"
+      Topic "COMBOS"
+      Topic "ANCHORS"
+
+=== 29-codex--combos--1280 (1280)
+  # godot: Codex. Esc clears the search first, then goes back.
+  Header
+    BackButton "←"
+    Title "Codex"
+    SubLine "The rule book"
+    CodexTab "Codex"
+    GuidesTab "Guides"
+    UnlocksTab "Unlocks"
+  Body
+    SearchPlate
+      SearchField "Search the rule book"
+    ReadingPlate
+      Title "COMBOS"
+      Lede "Pairs and Fulls you have put together. Form one in a run to…"
+      CombosBook "Golden Turtle Fortress Full Shield Engine Pair ? Not met ye…"
+    Topics
+      Topic "THE BASICS"
+      Topic "DICE & BODY PARTS"
+      Topic "MANA & CARDS"
+      Topic "KEYWORDS"
+      Topic "STATUS EFFECTS"
+      Topic "CLASSES & PLAYSTYLES"
+      Topic "RELIC TABLE"
+      Topic "MAP & REWARDS"
+      Topic "BOSSES"
+      Topic "DIFFICULTY & KEYS"
+      Topic "CORES"
+      Topic "COMBOS"
+      Topic "ANCHORS"
+
+=== 29-codex--anchors (1920)
+  # godot: Codex. Esc clears the search first, then goes back.
+  Header
+    BackButton "←"
+    Title "Codex"
+    SubLine "The rule book"
+    CodexTab "Codex"
+    GuidesTab "Guides"
+    UnlocksTab "Unlocks"
+  Body
+    SearchPlate
+      SearchField "Search the rule book"
+    ReadingPlate
+      Title "ANCHORS"
+      Lede "Every Anchor you have been offered, taken, and awakened. 4 …"
+      AnchorsBook
+        AnchorTile "Volley Picked · Awakened"
+        AnchorTile "Kin Picked · Awakened"
+        AnchorTile "Gambler Picked"
+        AnchorTile "Embers Picked"
+    Topics
+      Topic "THE BASICS"
+      Topic "DICE & BODY PARTS"
+      Topic "MANA & CARDS"
+      Topic "KEYWORDS"
+      Topic "STATUS EFFECTS"
+      Topic "CLASSES & PLAYSTYLES"
+      Topic "RELIC TABLE"
+      Topic "MAP & REWARDS"
+      Topic "BOSSES"
+      Topic "DIFFICULTY & KEYS"
+      Topic "CORES"
+      Topic "COMBOS"
+      Topic "ANCHORS"
+
+=== 29-codex--anchors--1280 (1280)
+  # godot: Codex. Esc clears the search first, then goes back.
+  Header
+    BackButton "←"
+    Title "Codex"
+    SubLine "The rule book"
+    CodexTab "Codex"
+    GuidesTab "Guides"
+    UnlocksTab "Unlocks"
+  Body
+    SearchPlate
+      SearchField "Search the rule book"
+    ReadingPlate
+      Title "ANCHORS"
+      Lede "Every Anchor you have been offered, taken, and awakened. 4 …"
+      AnchorsBook
+        AnchorTile "Volley Picked · Awakened"
+        AnchorTile "Kin Picked · Awakened"
+        AnchorTile "Gambler Picked"
+        AnchorTile "Embers Picked"
+    Topics
+      Topic "THE BASICS"
+      Topic "DICE & BODY PARTS"
+      Topic "MANA & CARDS"
+      Topic "KEYWORDS"
+      Topic "STATUS EFFECTS"
+      Topic "CLASSES & PLAYSTYLES"
+      Topic "RELIC TABLE"
+      Topic "MAP & REWARDS"
+      Topic "BOSSES"
+      Topic "DIFFICULTY & KEYS"
+      Topic "CORES"
+      Topic "COMBOS"
+      Topic "ANCHORS"
+
+=== 29-codex--anchor-detail (1920)
+  # godot: Codex. Esc clears the search first, then goes back.
+  Header
+    BackButton "←"
+    Title "Codex"
+    SubLine "The rule book"
+    CodexTab "Codex"
+    GuidesTab "Guides"
+    UnlocksTab "Unlocks"
+  Body
+    SearchPlate
+      SearchField "Search the rule book"
+    ReadingPlate
+      Title "ANCHORS"
+      Lede "Every Anchor you have been offered, taken, and awakened. 4 …"
+      AnchorCard
+        HouseGlyph
+        AnchorName "Volley"
+        HouseLine "House: Volley"
+        Summary "A matching group of 3+ dice also hits every enemy."
+        RuleBox "Rule Every turn a SET of 3+ fires once: all enemies take 40…"
+        AwakensBox "Awakens Thorn Storm The SET fires a second time when you us…"
+        HouseCores
+          HouseCoreChip "Shield Wave"
+          HouseCoreChip "Thorn Shield"
+          HouseCoreChip "Living Wall"
+          HouseCoreChip "Backline Glow"
+          HouseCoreChip "Take The Field"
+      AnchorsBook
+        AnchorTile "Volley Picked · Awakened"
+        AnchorTile "Kin Picked · Awakened"
+        AnchorTile "Gambler Picked"
+        AnchorTile "Embers Picked"
+    Topics
+      Topic "THE BASICS"
+      Topic "DICE & BODY PARTS"
+      Topic "MANA & CARDS"
+      Topic "KEYWORDS"
+      Topic "STATUS EFFECTS"
+      Topic "CLASSES & PLAYSTYLES"
+      Topic "RELIC TABLE"
+      Topic "MAP & REWARDS"
+      Topic "BOSSES"
+      Topic "DIFFICULTY & KEYS"
+      Topic "CORES"
+      Topic "COMBOS"
+      Topic "ANCHORS"
+
+=== 29-codex--anchor-detail--1280 (1280)
+  # godot: Codex. Esc clears the search first, then goes back.
+  Header
+    BackButton "←"
+    Title "Codex"
+    SubLine "The rule book"
+    CodexTab "Codex"
+    GuidesTab "Guides"
+    UnlocksTab "Unlocks"
+  Body
+    SearchPlate
+      SearchField "Search the rule book"
+    ReadingPlate
+      Title "ANCHORS"
+      Lede "Every Anchor you have been offered, taken, and awakened. 4 …"
+      AnchorCard
+        HouseGlyph
+        AnchorName "Volley"
+        HouseLine "House: Volley"
+        Summary "A matching group of 3+ dice also hits every enemy."
+        RuleBox "Rule Every turn a SET of 3+ fires once: all enemies take 40…"
+        AwakensBox "Awakens Thorn Storm The SET fires a second time when you us…"
+        HouseCores
+          HouseCoreChip "Shield Wave"
+          HouseCoreChip "Thorn Shield"
+          HouseCoreChip "Living Wall"
+          HouseCoreChip "Backline Glow"
+          HouseCoreChip "Take The Field"
+      AnchorsBook
+        AnchorTile "Volley Picked · Awakened"
+        AnchorTile "Kin Picked · Awakened"
+        AnchorTile "Gambler Picked"
+        AnchorTile "Embers Picked"
+    Topics
+      Topic "THE BASICS"
+      Topic "DICE & BODY PARTS"
+      Topic "MANA & CARDS"
+      Topic "KEYWORDS"
+      Topic "STATUS EFFECTS"
+      Topic "CLASSES & PLAYSTYLES"
+      Topic "RELIC TABLE"
+      Topic "MAP & REWARDS"
+      Topic "BOSSES"
+      Topic "DIFFICULTY & KEYS"
+      Topic "CORES"
+      Topic "COMBOS"
+      Topic "ANCHORS"
+
+=== 29-codex--search (1920)
+  # godot: Codex. Esc clears the search first, then goes back.
+  Header
+    BackButton "←"
+    Title "Codex"
+    SubLine "The rule book"
+    CodexTab "Codex"
+    GuidesTab "Guides"
+    UnlocksTab "Unlocks"
+  Body
+    SearchPlate
+      SearchField "poison"
+      ResultCount "6 results"
+    ReadingPlate
+      Title "Results for "poison""
+      SearchHit "THE BASICS 4 - END TURN: Enemies act out exactly the intent…"
+      SearchHit "DICE & BODY PARTS TAIL: Multi-target work: Cleave, area dam…"
+      SearchHit "STATUS EFFECTS Poison N: Deals N piercing damage at end of …"
+      SearchHit "CLASSES & PLAYSTYLES BUG · VIRULENT: Applying Poison to a t…"
+      SearchHit "RELIC TABLE Contagion: When a poison ed enemy dies, its rem…"
+      SearchHit "BOSSES PLAGUE MOTHER: BROOD. Summons a minion every 3 turns…"
+    Topics
+      Topic "THE BASICS"
+      Topic "DICE & BODY PARTS"
+      Topic "MANA & CARDS"
+      Topic "KEYWORDS"
+      Topic "STATUS EFFECTS"
+      Topic "CLASSES & PLAYSTYLES"
+      Topic "RELIC TABLE"
+      Topic "MAP & REWARDS"
+      Topic "BOSSES"
+      Topic "DIFFICULTY & KEYS"
+      Topic "CORES"
+      Topic "COMBOS"
+      Topic "ANCHORS"
+
+=== 29-codex--search--1280 (1280)
+  # godot: Codex. Esc clears the search first, then goes back.
+  Header
+    BackButton "←"
+    Title "Codex"
+    SubLine "The rule book"
+    CodexTab "Codex"
+    GuidesTab "Guides"
+    UnlocksTab "Unlocks"
+  Body
+    SearchPlate
+      SearchField "poison"
+      ResultCount "6 results"
+    ReadingPlate
+      Title "Results for "poison""
+      SearchHit "THE BASICS 4 - END TURN: Enemies act out exactly the intent…"
+      SearchHit "DICE & BODY PARTS TAIL: Multi-target work: Cleave, area dam…"
+      SearchHit "STATUS EFFECTS Poison N: Deals N piercing damage at end of …"
+      SearchHit "CLASSES & PLAYSTYLES BUG · VIRULENT: Applying Poison to a t…"
+      SearchHit "RELIC TABLE Contagion: When a poison ed enemy dies, its rem…"
+      SearchHit "BOSSES PLAGUE MOTHER: BROOD. Summons a minion every 3 turns…"
+    Topics
+      Topic "THE BASICS"
+      Topic "DICE & BODY PARTS"
+      Topic "MANA & CARDS"
+      Topic "KEYWORDS"
+      Topic "STATUS EFFECTS"
+      Topic "CLASSES & PLAYSTYLES"
+      Topic "RELIC TABLE"
+      Topic "MAP & REWARDS"
+      Topic "BOSSES"
+      Topic "DIFFICULTY & KEYS"
+      Topic "CORES"
+      Topic "COMBOS"
+      Topic "ANCHORS"
+
+=== 29-codex--search-none (1920)
+  # godot: Codex. Esc clears the search first, then goes back.
+  Header
+    BackButton "←"
+    Title "Codex"
+    SubLine "The rule book"
+    CodexTab "Codex"
+    GuidesTab "Guides"
+    UnlocksTab "Unlocks"
+  Body
+    SearchPlate
+      SearchField "zzqx"
+      ResultCount "0 results"
+    ReadingPlate
+      NoMatch "Nothing matches 'zzqx'. Clear the search to see every topic."
+    Topics
+      Topic "THE BASICS"
+      Topic "DICE & BODY PARTS"
+      Topic "MANA & CARDS"
+      Topic "KEYWORDS"
+      Topic "STATUS EFFECTS"
+      Topic "CLASSES & PLAYSTYLES"
+      Topic "RELIC TABLE"
+      Topic "MAP & REWARDS"
+      Topic "BOSSES"
+      Topic "DIFFICULTY & KEYS"
+      Topic "CORES"
+      Topic "COMBOS"
+      Topic "ANCHORS"
+
+=== 29-codex--search-none--1280 (1280)
+  # godot: Codex. Esc clears the search first, then goes back.
+  Header
+    BackButton "←"
+    Title "Codex"
+    SubLine "The rule book"
+    CodexTab "Codex"
+    GuidesTab "Guides"
+    UnlocksTab "Unlocks"
+  Body
+    SearchPlate
+      SearchField "zzqx"
+      ResultCount "0 results"
+    ReadingPlate
+      NoMatch "Nothing matches 'zzqx'. Clear the search to see every topic."
+    Topics
+      Topic "THE BASICS"
+      Topic "DICE & BODY PARTS"
+      Topic "MANA & CARDS"
+      Topic "KEYWORDS"
+      Topic "STATUS EFFECTS"
+      Topic "CLASSES & PLAYSTYLES"
+      Topic "RELIC TABLE"
+      Topic "MAP & REWARDS"
+      Topic "BOSSES"
+      Topic "DIFFICULTY & KEYS"
+      Topic "CORES"
+      Topic "COMBOS"
+      Topic "ANCHORS"

@@ -1,0 +1,1725 @@
+# S10: Season Pass
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-meta2-screens.html
+# So frame: 20 (10 id, tinh ca ban 1920 va 1280)
+# Tien to: 21-pass
+# Id frame:
+#   21-pass--before
+#   21-pass--before--1280
+#   21-pass--live
+#   21-pass--live--1280
+#   21-pass--detail
+#   21-pass--detail--1280
+#   21-pass--claimed
+#   21-pass--claimed--1280
+#   21-pass--scrolled
+#   21-pass--scrolled--1280
+#   21-pass--popup
+#   21-pass--popup--1280
+#   21-pass--loop
+#   21-pass--loop--1280
+#   21-pass--over
+#   21-pass--over--1280
+#   21-pass--offline
+#   21-pass--offline--1280
+#   21-pass--guest
+#   21-pass--guest--1280
+
+=== 21-pass--before (1920)
+  # godot: PassView. One scrolling grid (6 × 5), no pages. Nothing picked at first: the detail plate reads "Pick a level".
+  Header
+    BackButton "←"
+    Title "Season Pass"
+    SubLine "Season 1 · starts 3 Nov 2026"
+  Body
+    Banner
+      ToneDisc "i"
+    LevelCard
+      ClaimAllButton "Claim all · Nothing to claim"
+    TasksTitle "Weekly tasks · resets Mon 23 Nov 2026, 00:00 UTC"
+    Tasks
+      TaskCard
+        ClaimButton "Claim · The season is not running"
+      TaskCard
+        ClaimButton "Claim · The season is not running"
+      TaskCard
+        ClaimButton "Claim · The season is not running"
+    TrackGrid
+      PassTile
+        TileButton "Next · needs 500 XP"
+      PassTile
+        TileButton "Reach Level 2"
+      PassTile
+        TileButton "Reach Level 3"
+      PassTile
+        TileButton "Reach Level 4"
+      PassTile
+        TileButton "Reach Level 5"
+      PassTile
+        TileButton "Reach Level 6"
+      PassTile
+        TileButton "Reach Level 7"
+      PassTile
+        TileButton "Reach Level 8"
+      PassTile
+        TileButton "Reach Level 9"
+      PassTile
+        TileButton "Reach Level 10"
+      PassTile
+        TileButton "Reach Level 11"
+      PassTile
+        TileButton "Reach Level 12"
+      PassTile
+        TileButton "Reach Level 13"
+      PassTile
+        TileButton "Reach Level 14"
+      PassTile
+        TileButton "Reach Level 15"
+      PassTile
+        TileButton "Reach Level 16"
+      PassTile
+        TileButton "Reach Level 17"
+      PassTile
+        TileButton "Reach Level 18"
+      PassTile
+        TileButton "Reach Level 19"
+      PassTile
+        TileButton "Reach Level 20"
+      PassTile
+        TileButton "Reach Level 21"
+      PassTile
+        TileButton "Reach Level 22"
+      PassTile
+        TileButton "Reach Level 23"
+      PassTile
+        TileButton "Reach Level 24"
+      PassTile
+        TileButton "Reach Level 25"
+      PassTile
+        TileButton "Reach Level 26"
+      PassTile
+        TileButton "Reach Level 27"
+      PassTile
+        TileButton "Reach Level 28"
+      PassTile
+        TileButton "Reach Level 29"
+      PassTile
+        TileButton "Reach Level 30"
+    PremiumRow "SEASON 2 Premium track: locked, opens in season 2. Nothing …"
+    LoopRow
+      LoopClaimButton "Nothing yet"
+    DetailPlate "Pick a level Select a level to see its reward."
+
+=== 21-pass--before--1280 (1280)
+  # godot: PassView. One scrolling grid (6 × 5), no pages. Nothing picked at first: the detail plate reads "Pick a level".
+  Header
+    BackButton "←"
+    Title "Season Pass"
+    SubLine "Season 1 · starts 3 Nov 2026"
+  Body
+    Banner
+      ToneDisc "i"
+    LevelCard
+      ClaimAllButton "Claim all · Nothing to claim"
+    TasksTitle "Weekly tasks · resets Mon 23 Nov 2026, 00:00 UTC"
+    Tasks
+      TaskCard
+        ClaimButton "Claim · The season is not running"
+      TaskCard
+        ClaimButton "Claim · The season is not running"
+      TaskCard
+        ClaimButton "Claim · The season is not running"
+    TrackGrid
+      PassTile
+        TileButton "Next · needs 500 XP"
+      PassTile
+        TileButton "Reach Level 2"
+      PassTile
+        TileButton "Reach Level 3"
+      PassTile
+        TileButton "Reach Level 4"
+      PassTile
+        TileButton "Reach Level 5"
+      PassTile
+        TileButton "Reach Level 6"
+      PassTile
+        TileButton "Reach Level 7"
+      PassTile
+        TileButton "Reach Level 8"
+      PassTile
+        TileButton "Reach Level 9"
+      PassTile
+        TileButton "Reach Level 10"
+      PassTile
+        TileButton "Reach Level 11"
+      PassTile
+        TileButton "Reach Level 12"
+      PassTile
+        TileButton "Reach Level 13"
+      PassTile
+        TileButton "Reach Level 14"
+      PassTile
+        TileButton "Reach Level 15"
+      PassTile
+        TileButton "Reach Level 16"
+      PassTile
+        TileButton "Reach Level 17"
+      PassTile
+        TileButton "Reach Level 18"
+      PassTile
+        TileButton "Reach Level 19"
+      PassTile
+        TileButton "Reach Level 20"
+      PassTile
+        TileButton "Reach Level 21"
+      PassTile
+        TileButton "Reach Level 22"
+      PassTile
+        TileButton "Reach Level 23"
+      PassTile
+        TileButton "Reach Level 24"
+      PassTile
+        TileButton "Reach Level 25"
+      PassTile
+        TileButton "Reach Level 26"
+      PassTile
+        TileButton "Reach Level 27"
+      PassTile
+        TileButton "Reach Level 28"
+      PassTile
+        TileButton "Reach Level 29"
+      PassTile
+        TileButton "Reach Level 30"
+    PremiumRow "SEASON 2 Premium track: locked, opens in season 2. Nothing …"
+    LoopRow
+      LoopClaimButton "Nothing yet"
+    DetailPlate "Pick a level Select a level to see its reward."
+
+=== 21-pass--live (1920)
+  # godot: PassView. One scrolling grid (6 × 5), no pages. Nothing picked at first: the detail plate reads "Pick a level".
+  Header
+    BackButton "←"
+    Title "Season Pass"
+    SubLine "Season 1 · ends 29 Dec 2026"
+  Body
+    LevelCard
+      ClaimAllButton "Claim all · 3 levels"
+    TasksTitle "Weekly tasks · resets Mon 23 Nov 2026, 00:00 UTC"
+    Tasks
+      TaskCard
+        ClaimButton "Claim"
+      TaskCard
+        ClaimButton "Claimed"
+      TaskCard
+        ClaimButton "Claim · Task not finished"
+    TrackGrid
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Next · needs 800 XP"
+      PassTile
+        TileButton "Reach Level 12"
+      PassTile
+        TileButton "Reach Level 13"
+      PassTile
+        TileButton "Reach Level 14"
+      PassTile
+        TileButton "Reach Level 15"
+      PassTile
+        TileButton "Reach Level 16"
+      PassTile
+        TileButton "Reach Level 17"
+      PassTile
+        TileButton "Reach Level 18"
+      PassTile
+        TileButton "Reach Level 19"
+      PassTile
+        TileButton "Reach Level 20"
+      PassTile
+        TileButton "Reach Level 21"
+      PassTile
+        TileButton "Reach Level 22"
+      PassTile
+        TileButton "Reach Level 23"
+      PassTile
+        TileButton "Reach Level 24"
+      PassTile
+        TileButton "Reach Level 25"
+      PassTile
+        TileButton "Reach Level 26"
+      PassTile
+        TileButton "Reach Level 27"
+      PassTile
+        TileButton "Reach Level 28"
+      PassTile
+        TileButton "Reach Level 29"
+      PassTile
+        TileButton "Reach Level 30"
+    PremiumRow "SEASON 2 Premium track: locked, opens in season 2. Nothing …"
+    LoopRow
+      LoopClaimButton "Nothing yet"
+    DetailPlate "Pick a level Select a level to see its reward."
+
+=== 21-pass--live--1280 (1280)
+  # godot: PassView. One scrolling grid (6 × 5), no pages. Nothing picked at first: the detail plate reads "Pick a level".
+  Header
+    BackButton "←"
+    Title "Season Pass"
+    SubLine "Season 1 · ends 29 Dec 2026"
+  Body
+    LevelCard
+      ClaimAllButton "Claim all · 3 levels"
+    TasksTitle "Weekly tasks · resets Mon 23 Nov 2026, 00:00 UTC"
+    Tasks
+      TaskCard
+        ClaimButton "Claim"
+      TaskCard
+        ClaimButton "Claimed"
+      TaskCard
+        ClaimButton "Claim · Task not finished"
+    TrackGrid
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Next · needs 800 XP"
+      PassTile
+        TileButton "Reach Level 12"
+      PassTile
+        TileButton "Reach Level 13"
+      PassTile
+        TileButton "Reach Level 14"
+      PassTile
+        TileButton "Reach Level 15"
+      PassTile
+        TileButton "Reach Level 16"
+      PassTile
+        TileButton "Reach Level 17"
+      PassTile
+        TileButton "Reach Level 18"
+      PassTile
+        TileButton "Reach Level 19"
+      PassTile
+        TileButton "Reach Level 20"
+      PassTile
+        TileButton "Reach Level 21"
+      PassTile
+        TileButton "Reach Level 22"
+      PassTile
+        TileButton "Reach Level 23"
+      PassTile
+        TileButton "Reach Level 24"
+      PassTile
+        TileButton "Reach Level 25"
+      PassTile
+        TileButton "Reach Level 26"
+      PassTile
+        TileButton "Reach Level 27"
+      PassTile
+        TileButton "Reach Level 28"
+      PassTile
+        TileButton "Reach Level 29"
+      PassTile
+        TileButton "Reach Level 30"
+    PremiumRow "SEASON 2 Premium track: locked, opens in season 2. Nothing …"
+    LoopRow
+      LoopClaimButton "Nothing yet"
+    DetailPlate "Pick a level Select a level to see its reward."
+
+=== 21-pass--detail (1920)
+  # godot: PassView. One scrolling grid (6 × 5), no pages. Nothing picked at first: the detail plate reads "Pick a level".
+  Header
+    BackButton "←"
+    Title "Season Pass"
+    SubLine "Season 1 · ends 29 Dec 2026"
+  Body
+    LevelCard
+      ClaimAllButton "Claim all · 3 levels"
+    TasksTitle "Weekly tasks · resets Mon 23 Nov 2026, 00:00 UTC"
+    Tasks
+      TaskCard
+        ClaimButton "Claim"
+      TaskCard
+        ClaimButton "Claimed"
+      TaskCard
+        ClaimButton "Claim · Task not finished"
+    TrackGrid
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Next · needs 800 XP"
+      PassTile
+        TileButton "Reach Level 12"
+      PassTile
+        TileButton "Reach Level 13"
+      PassTile
+        TileButton "Reach Level 14"
+      PassTile
+        TileButton "Reach Level 15"
+      PassTile
+        TileButton "Reach Level 16"
+      PassTile
+        TileButton "Reach Level 17"
+      PassTile
+        TileButton "Reach Level 18"
+      PassTile
+        TileButton "Reach Level 19"
+      PassTile
+        TileButton "Reach Level 20"
+      PassTile
+        TileButton "Reach Level 21"
+      PassTile
+        TileButton "Reach Level 22"
+      PassTile
+        TileButton "Reach Level 23"
+      PassTile
+        TileButton "Reach Level 24"
+      PassTile
+        TileButton "Reach Level 25"
+      PassTile
+        TileButton "Reach Level 26"
+      PassTile
+        TileButton "Reach Level 27"
+      PassTile
+        TileButton "Reach Level 28"
+      PassTile
+        TileButton "Reach Level 29"
+      PassTile
+        TileButton "Reach Level 30"
+    PremiumRow "SEASON 2 Premium track: locked, opens in season 2. Nothing …"
+    LoopRow
+      LoopClaimButton "Nothing yet"
+    DetailPlate
+      FrameArt "L"
+      ClaimLevelButton "Claim level 9"
+
+=== 21-pass--detail--1280 (1280)
+  # godot: PassView. One scrolling grid (6 × 5), no pages. Nothing picked at first: the detail plate reads "Pick a level".
+  Header
+    BackButton "←"
+    Title "Season Pass"
+    SubLine "Season 1 · ends 29 Dec 2026"
+  Body
+    LevelCard
+      ClaimAllButton "Claim all · 3 levels"
+    TasksTitle "Weekly tasks · resets Mon 23 Nov 2026, 00:00 UTC"
+    Tasks
+      TaskCard
+        ClaimButton "Claim"
+      TaskCard
+        ClaimButton "Claimed"
+      TaskCard
+        ClaimButton "Claim · Task not finished"
+    TrackGrid
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Next · needs 800 XP"
+      PassTile
+        TileButton "Reach Level 12"
+      PassTile
+        TileButton "Reach Level 13"
+      PassTile
+        TileButton "Reach Level 14"
+      PassTile
+        TileButton "Reach Level 15"
+      PassTile
+        TileButton "Reach Level 16"
+      PassTile
+        TileButton "Reach Level 17"
+      PassTile
+        TileButton "Reach Level 18"
+      PassTile
+        TileButton "Reach Level 19"
+      PassTile
+        TileButton "Reach Level 20"
+      PassTile
+        TileButton "Reach Level 21"
+      PassTile
+        TileButton "Reach Level 22"
+      PassTile
+        TileButton "Reach Level 23"
+      PassTile
+        TileButton "Reach Level 24"
+      PassTile
+        TileButton "Reach Level 25"
+      PassTile
+        TileButton "Reach Level 26"
+      PassTile
+        TileButton "Reach Level 27"
+      PassTile
+        TileButton "Reach Level 28"
+      PassTile
+        TileButton "Reach Level 29"
+      PassTile
+        TileButton "Reach Level 30"
+    PremiumRow "SEASON 2 Premium track: locked, opens in season 2. Nothing …"
+    LoopRow
+      LoopClaimButton "Nothing yet"
+    DetailPlate
+      FrameArt "L"
+      ClaimLevelButton "Claim level 9"
+
+=== 21-pass--claimed (1920)
+  # godot: PassView. One scrolling grid (6 × 5), no pages. Nothing picked at first: the detail plate reads "Pick a level".
+  Header
+    BackButton "←"
+    Title "Season Pass"
+    SubLine "Season 1 · ends 29 Dec 2026"
+  Body
+    LevelCard
+      ClaimAllButton "Claim all · Nothing to claim"
+    ResultLine
+      ToneDisc
+    TasksTitle "Weekly tasks · resets Mon 23 Nov 2026, 00:00 UTC"
+    Tasks
+      TaskCard
+        ClaimButton "Claim"
+      TaskCard
+        ClaimButton "Claimed"
+      TaskCard
+        ClaimButton "Claim · Task not finished"
+    TrackGrid
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Next · needs 800 XP"
+      PassTile
+        TileButton "Reach Level 12"
+      PassTile
+        TileButton "Reach Level 13"
+      PassTile
+        TileButton "Reach Level 14"
+      PassTile
+        TileButton "Reach Level 15"
+      PassTile
+        TileButton "Reach Level 16"
+      PassTile
+        TileButton "Reach Level 17"
+      PassTile
+        TileButton "Reach Level 18"
+      PassTile
+        TileButton "Reach Level 19"
+      PassTile
+        TileButton "Reach Level 20"
+      PassTile
+        TileButton "Reach Level 21"
+      PassTile
+        TileButton "Reach Level 22"
+      PassTile
+        TileButton "Reach Level 23"
+      PassTile
+        TileButton "Reach Level 24"
+      PassTile
+        TileButton "Reach Level 25"
+      PassTile
+        TileButton "Reach Level 26"
+      PassTile
+        TileButton "Reach Level 27"
+      PassTile
+        TileButton "Reach Level 28"
+      PassTile
+        TileButton "Reach Level 29"
+      PassTile
+        TileButton "Reach Level 30"
+    PremiumRow "SEASON 2 Premium track: locked, opens in season 2. Nothing …"
+    LoopRow
+      LoopClaimButton "Nothing yet"
+    DetailPlate "Pick a level Select a level to see its reward."
+
+=== 21-pass--claimed--1280 (1280)
+  # godot: PassView. One scrolling grid (6 × 5), no pages. Nothing picked at first: the detail plate reads "Pick a level".
+  Header
+    BackButton "←"
+    Title "Season Pass"
+    SubLine "Season 1 · ends 29 Dec 2026"
+  Body
+    LevelCard
+      ClaimAllButton "Claim all · Nothing to claim"
+    ResultLine
+      ToneDisc
+    TasksTitle "Weekly tasks · resets Mon 23 Nov 2026, 00:00 UTC"
+    Tasks
+      TaskCard
+        ClaimButton "Claim"
+      TaskCard
+        ClaimButton "Claimed"
+      TaskCard
+        ClaimButton "Claim · Task not finished"
+    TrackGrid
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Next · needs 800 XP"
+      PassTile
+        TileButton "Reach Level 12"
+      PassTile
+        TileButton "Reach Level 13"
+      PassTile
+        TileButton "Reach Level 14"
+      PassTile
+        TileButton "Reach Level 15"
+      PassTile
+        TileButton "Reach Level 16"
+      PassTile
+        TileButton "Reach Level 17"
+      PassTile
+        TileButton "Reach Level 18"
+      PassTile
+        TileButton "Reach Level 19"
+      PassTile
+        TileButton "Reach Level 20"
+      PassTile
+        TileButton "Reach Level 21"
+      PassTile
+        TileButton "Reach Level 22"
+      PassTile
+        TileButton "Reach Level 23"
+      PassTile
+        TileButton "Reach Level 24"
+      PassTile
+        TileButton "Reach Level 25"
+      PassTile
+        TileButton "Reach Level 26"
+      PassTile
+        TileButton "Reach Level 27"
+      PassTile
+        TileButton "Reach Level 28"
+      PassTile
+        TileButton "Reach Level 29"
+      PassTile
+        TileButton "Reach Level 30"
+    PremiumRow "SEASON 2 Premium track: locked, opens in season 2. Nothing …"
+    LoopRow
+      LoopClaimButton "Nothing yet"
+    DetailPlate "Pick a level Select a level to see its reward."
+
+=== 21-pass--scrolled (1920)
+  # godot: PassView. One scrolling grid (6 × 5), no pages. Nothing picked at first: the detail plate reads "Pick a level".
+  Header
+    BackButton "←"
+    Title "Season Pass"
+    SubLine "Season 1 · ends 29 Dec 2026"
+  Body
+    LevelCard
+      ClaimAllButton "Claim all · 3 levels"
+    TasksTitle "Weekly tasks · resets Mon 23 Nov 2026, 00:00 UTC"
+    Tasks
+      TaskCard
+        ClaimButton "Claim"
+      TaskCard
+        ClaimButton "Claimed"
+      TaskCard
+        ClaimButton "Claim · Task not finished"
+    TrackGrid
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Next · needs 800 XP"
+      PassTile
+        TileButton "Reach Level 12"
+      PassTile
+        TileButton "Reach Level 13"
+      PassTile
+        TileButton "Reach Level 14"
+      PassTile
+        TileButton "Reach Level 15"
+      PassTile
+        TileButton "Reach Level 16"
+      PassTile
+        TileButton "Reach Level 17"
+      PassTile
+        TileButton "Reach Level 18"
+      PassTile
+        TileButton "Reach Level 19"
+      PassTile
+        TileButton "Reach Level 20"
+      PassTile
+        TileButton "Reach Level 21"
+      PassTile
+        TileButton "Reach Level 22"
+      PassTile
+        TileButton "Reach Level 23"
+      PassTile
+        TileButton "Reach Level 24"
+      PassTile
+        TileButton "Reach Level 25"
+      PassTile
+        TileButton "Reach Level 26"
+      PassTile
+        TileButton "Reach Level 27"
+      PassTile
+        TileButton "Reach Level 28"
+      PassTile
+        TileButton "Reach Level 29"
+      PassTile
+        TileButton "Reach Level 30"
+    PremiumRow "SEASON 2 Premium track: locked, opens in season 2. Nothing …"
+    LoopRow
+      LoopClaimButton "Nothing yet"
+    DetailPlate
+      DiceSkinArt "6"
+      ClaimLevelButton "Claim level 21"
+
+=== 21-pass--scrolled--1280 (1280)
+  # godot: PassView. One scrolling grid (6 × 5), no pages. Nothing picked at first: the detail plate reads "Pick a level".
+  Header
+    BackButton "←"
+    Title "Season Pass"
+    SubLine "Season 1 · ends 29 Dec 2026"
+  Body
+    LevelCard
+      ClaimAllButton "Claim all · 3 levels"
+    TasksTitle "Weekly tasks · resets Mon 23 Nov 2026, 00:00 UTC"
+    Tasks
+      TaskCard
+        ClaimButton "Claim"
+      TaskCard
+        ClaimButton "Claimed"
+      TaskCard
+        ClaimButton "Claim · Task not finished"
+    TrackGrid
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Next · needs 800 XP"
+      PassTile
+        TileButton "Reach Level 12"
+      PassTile
+        TileButton "Reach Level 13"
+      PassTile
+        TileButton "Reach Level 14"
+      PassTile
+        TileButton "Reach Level 15"
+      PassTile
+        TileButton "Reach Level 16"
+      PassTile
+        TileButton "Reach Level 17"
+      PassTile
+        TileButton "Reach Level 18"
+      PassTile
+        TileButton "Reach Level 19"
+      PassTile
+        TileButton "Reach Level 20"
+      PassTile
+        TileButton "Reach Level 21"
+      PassTile
+        TileButton "Reach Level 22"
+      PassTile
+        TileButton "Reach Level 23"
+      PassTile
+        TileButton "Reach Level 24"
+      PassTile
+        TileButton "Reach Level 25"
+      PassTile
+        TileButton "Reach Level 26"
+      PassTile
+        TileButton "Reach Level 27"
+      PassTile
+        TileButton "Reach Level 28"
+      PassTile
+        TileButton "Reach Level 29"
+      PassTile
+        TileButton "Reach Level 30"
+    PremiumRow "SEASON 2 Premium track: locked, opens in season 2. Nothing …"
+    LoopRow
+      LoopClaimButton "Nothing yet"
+    DetailPlate
+      DiceSkinArt "6"
+      ClaimLevelButton "Claim level 21"
+
+=== 21-pass--popup (1920)
+  # godot: PassView. One scrolling grid (6 × 5), no pages. Nothing picked at first: the detail plate reads "Pick a level".
+  Header
+    BackButton "←"
+    Title "Season Pass"
+    SubLine "Season 1 · ends 29 Dec 2026"
+  Body
+    LevelCard
+      ClaimAllButton "Claim all · 3 levels"
+    TasksTitle "Weekly tasks · resets Mon 23 Nov 2026, 00:00 UTC"
+    Tasks
+      TaskCard
+        ClaimButton "Claim"
+      TaskCard
+        ClaimButton "Claimed"
+      TaskCard
+        ClaimButton "Claim · Task not finished"
+    TrackGrid
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Next · needs 800 XP"
+      PassTile
+        TileButton "Reach Level 12"
+      PassTile
+        TileButton "Reach Level 13"
+      PassTile
+        TileButton "Reach Level 14"
+      PassTile
+        TileButton "Reach Level 15"
+      PassTile
+        TileButton "Reach Level 16"
+      PassTile
+        TileButton "Reach Level 17"
+      PassTile
+        TileButton "Reach Level 18"
+      PassTile
+        TileButton "Reach Level 19"
+      PassTile
+        TileButton "Reach Level 20"
+      PassTile
+        TileButton "Reach Level 21"
+      PassTile
+        TileButton "Reach Level 22"
+      PassTile
+        TileButton "Reach Level 23"
+      PassTile
+        TileButton "Reach Level 24"
+      PassTile
+        TileButton "Reach Level 25"
+      PassTile
+        TileButton "Reach Level 26"
+      PassTile
+        TileButton "Reach Level 27"
+      PassTile
+        TileButton "Reach Level 28"
+      PassTile
+        TileButton "Reach Level 29"
+      PassTile
+        TileButton "Reach Level 30"
+    PremiumRow "SEASON 2 Premium track: locked, opens in season 2. Nothing …"
+    LoopRow
+      LoopClaimButton "Nothing yet"
+    DetailPlate "Pick a level Select a level to see its reward."
+  Scrim
+  LevelPopup [var(--size-modal-s-w)]
+    FrameArt "L"
+    CloseButton "Close"
+    ClaimButton
+      KeyCap "Space"
+
+=== 21-pass--popup--1280 (1280)
+  # godot: PassView. One scrolling grid (6 × 5), no pages. Nothing picked at first: the detail plate reads "Pick a level".
+  Header
+    BackButton "←"
+    Title "Season Pass"
+    SubLine "Season 1 · ends 29 Dec 2026"
+  Body
+    LevelCard
+      ClaimAllButton "Claim all · 3 levels"
+    TasksTitle "Weekly tasks · resets Mon 23 Nov 2026, 00:00 UTC"
+    Tasks
+      TaskCard
+        ClaimButton "Claim"
+      TaskCard
+        ClaimButton "Claimed"
+      TaskCard
+        ClaimButton "Claim · Task not finished"
+    TrackGrid
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Next · needs 800 XP"
+      PassTile
+        TileButton "Reach Level 12"
+      PassTile
+        TileButton "Reach Level 13"
+      PassTile
+        TileButton "Reach Level 14"
+      PassTile
+        TileButton "Reach Level 15"
+      PassTile
+        TileButton "Reach Level 16"
+      PassTile
+        TileButton "Reach Level 17"
+      PassTile
+        TileButton "Reach Level 18"
+      PassTile
+        TileButton "Reach Level 19"
+      PassTile
+        TileButton "Reach Level 20"
+      PassTile
+        TileButton "Reach Level 21"
+      PassTile
+        TileButton "Reach Level 22"
+      PassTile
+        TileButton "Reach Level 23"
+      PassTile
+        TileButton "Reach Level 24"
+      PassTile
+        TileButton "Reach Level 25"
+      PassTile
+        TileButton "Reach Level 26"
+      PassTile
+        TileButton "Reach Level 27"
+      PassTile
+        TileButton "Reach Level 28"
+      PassTile
+        TileButton "Reach Level 29"
+      PassTile
+        TileButton "Reach Level 30"
+    PremiumRow "SEASON 2 Premium track: locked, opens in season 2. Nothing …"
+    LoopRow
+      LoopClaimButton "Nothing yet"
+    DetailPlate "Pick a level Select a level to see its reward."
+  Scrim
+  LevelPopup [var(--size-modal-s-w)]
+    FrameArt "L"
+    CloseButton "Close"
+    ClaimButton
+      KeyCap "Space"
+
+=== 21-pass--loop (1920)
+  # godot: PassView. One scrolling grid (6 × 5), no pages. Nothing picked at first: the detail plate reads "Pick a level".
+  Header
+    BackButton "←"
+    Title "Season Pass"
+    SubLine "Season 1 · ends 29 Dec 2026"
+  Body
+    LevelCard
+      ClaimAllButton "Claim all · Nothing to claim"
+    TasksTitle "Weekly tasks · resets Mon 23 Nov 2026, 00:00 UTC"
+    Tasks
+      TaskCard
+        ClaimButton "Claim"
+      TaskCard
+        ClaimButton "Claimed"
+      TaskCard
+        ClaimButton "Claim · Task not finished"
+    TrackGrid
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+    PremiumRow "SEASON 2 Premium track: locked, opens in season 2. Nothing …"
+    LoopRow
+      LoopClaimButton "Claim 50 Shards"
+    DetailPlate "Pick a level Select a level to see its reward."
+
+=== 21-pass--loop--1280 (1280)
+  # godot: PassView. One scrolling grid (6 × 5), no pages. Nothing picked at first: the detail plate reads "Pick a level".
+  Header
+    BackButton "←"
+    Title "Season Pass"
+    SubLine "Season 1 · ends 29 Dec 2026"
+  Body
+    LevelCard
+      ClaimAllButton "Claim all · Nothing to claim"
+    TasksTitle "Weekly tasks · resets Mon 23 Nov 2026, 00:00 UTC"
+    Tasks
+      TaskCard
+        ClaimButton "Claim"
+      TaskCard
+        ClaimButton "Claimed"
+      TaskCard
+        ClaimButton "Claim · Task not finished"
+    TrackGrid
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+    PremiumRow "SEASON 2 Premium track: locked, opens in season 2. Nothing …"
+    LoopRow
+      LoopClaimButton "Claim 50 Shards"
+    DetailPlate "Pick a level Select a level to see its reward."
+
+=== 21-pass--over (1920)
+  # godot: PassView. One scrolling grid (6 × 5), no pages. Nothing picked at first: the detail plate reads "Pick a level".
+  Header
+    BackButton "←"
+    Title "Season Pass"
+    SubLine "Season 1 · ended 29 Dec 2026"
+  Body
+    Banner
+      ToneDisc "i"
+    LevelCard
+      ClaimAllButton "Claim all"
+    TasksTitle "Weekly tasks · resets Mon 23 Nov 2026, 00:00 UTC"
+    Tasks
+      TaskCard
+        ClaimButton "Claim"
+      TaskCard
+        ClaimButton "Claimed"
+      TaskCard
+        ClaimButton "Claim · Task not finished"
+    TrackGrid
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+    PremiumRow "SEASON 2 Premium track: locked, opens in season 2. Nothing …"
+    LoopRow
+      LoopClaimButton "Nothing yet"
+    DetailPlate "Pick a level Select a level to see its reward."
+
+=== 21-pass--over--1280 (1280)
+  # godot: PassView. One scrolling grid (6 × 5), no pages. Nothing picked at first: the detail plate reads "Pick a level".
+  Header
+    BackButton "←"
+    Title "Season Pass"
+    SubLine "Season 1 · ended 29 Dec 2026"
+  Body
+    Banner
+      ToneDisc "i"
+    LevelCard
+      ClaimAllButton "Claim all"
+    TasksTitle "Weekly tasks · resets Mon 23 Nov 2026, 00:00 UTC"
+    Tasks
+      TaskCard
+        ClaimButton "Claim"
+      TaskCard
+        ClaimButton "Claimed"
+      TaskCard
+        ClaimButton "Claim · Task not finished"
+    TrackGrid
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+      PassTile
+        TileButton "Not claimed"
+    PremiumRow "SEASON 2 Premium track: locked, opens in season 2. Nothing …"
+    LoopRow
+      LoopClaimButton "Nothing yet"
+    DetailPlate "Pick a level Select a level to see its reward."
+
+=== 21-pass--offline (1920)
+  # godot: PassView. One scrolling grid (6 × 5), no pages. Nothing picked at first: the detail plate reads "Pick a level".
+  Header
+    BackButton "←"
+    Title "Season Pass"
+    SubLine "Season 1 · ends 29 Dec 2026"
+  Body
+    Banner
+      ToneDisc "!"
+    LevelCard
+      ClaimAllButton "Claim all"
+    TasksTitle "Weekly tasks · resets Mon 23 Nov 2026, 00:00 UTC"
+    Tasks
+      TaskCard
+        ClaimButton "Claim"
+      TaskCard
+        ClaimButton "Claimed"
+      TaskCard
+        ClaimButton "Claim · Task not finished"
+    TrackGrid
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton [var(--size-btn-s)] "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Next · needs 800 XP"
+      PassTile
+        TileButton "Reach Level 12"
+      PassTile
+        TileButton "Reach Level 13"
+      PassTile
+        TileButton "Reach Level 14"
+      PassTile
+        TileButton "Reach Level 15"
+      PassTile
+        TileButton "Reach Level 16"
+      PassTile
+        TileButton "Reach Level 17"
+      PassTile
+        TileButton "Reach Level 18"
+      PassTile
+        TileButton "Reach Level 19"
+      PassTile
+        TileButton "Reach Level 20"
+      PassTile
+        TileButton "Reach Level 21"
+      PassTile
+        TileButton "Reach Level 22"
+      PassTile
+        TileButton "Reach Level 23"
+      PassTile
+        TileButton "Reach Level 24"
+      PassTile
+        TileButton "Reach Level 25"
+      PassTile
+        TileButton "Reach Level 26"
+      PassTile
+        TileButton "Reach Level 27"
+      PassTile
+        TileButton "Reach Level 28"
+      PassTile
+        TileButton "Reach Level 29"
+      PassTile
+        TileButton "Reach Level 30"
+    PremiumRow "SEASON 2 Premium track: locked, opens in season 2. Nothing …"
+    LoopRow
+      LoopClaimButton "Nothing yet"
+    DetailPlate "Pick a level Select a level to see its reward."
+
+=== 21-pass--offline--1280 (1280)
+  # godot: PassView. One scrolling grid (6 × 5), no pages. Nothing picked at first: the detail plate reads "Pick a level".
+  Header
+    BackButton "←"
+    Title "Season Pass"
+    SubLine "Season 1 · ends 29 Dec 2026"
+  Body
+    Banner
+      ToneDisc "!"
+    LevelCard
+      ClaimAllButton "Claim all"
+    TasksTitle "Weekly tasks · resets Mon 23 Nov 2026, 00:00 UTC"
+    Tasks
+      TaskCard
+        ClaimButton "Claim"
+      TaskCard
+        ClaimButton "Claimed"
+      TaskCard
+        ClaimButton "Claim · Task not finished"
+    TrackGrid
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton [var(--size-btn-s)] "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Next · needs 800 XP"
+      PassTile
+        TileButton "Reach Level 12"
+      PassTile
+        TileButton "Reach Level 13"
+      PassTile
+        TileButton "Reach Level 14"
+      PassTile
+        TileButton "Reach Level 15"
+      PassTile
+        TileButton "Reach Level 16"
+      PassTile
+        TileButton "Reach Level 17"
+      PassTile
+        TileButton "Reach Level 18"
+      PassTile
+        TileButton "Reach Level 19"
+      PassTile
+        TileButton "Reach Level 20"
+      PassTile
+        TileButton "Reach Level 21"
+      PassTile
+        TileButton "Reach Level 22"
+      PassTile
+        TileButton "Reach Level 23"
+      PassTile
+        TileButton "Reach Level 24"
+      PassTile
+        TileButton "Reach Level 25"
+      PassTile
+        TileButton "Reach Level 26"
+      PassTile
+        TileButton "Reach Level 27"
+      PassTile
+        TileButton "Reach Level 28"
+      PassTile
+        TileButton "Reach Level 29"
+      PassTile
+        TileButton "Reach Level 30"
+    PremiumRow "SEASON 2 Premium track: locked, opens in season 2. Nothing …"
+    LoopRow
+      LoopClaimButton "Nothing yet"
+    DetailPlate "Pick a level Select a level to see its reward."
+
+=== 21-pass--guest (1920)
+  # godot: PassView. One scrolling grid (6 × 5), no pages. Nothing picked at first: the detail plate reads "Pick a level".
+  Header
+    BackButton "←"
+    Title "Season Pass"
+    SubLine "Season 1 · ends 29 Dec 2026"
+  Body
+    Banner
+      ToneDisc "i"
+    LevelCard
+      ClaimAllButton "Claim all · 3 levels"
+    TasksTitle "Weekly tasks · resets Mon 23 Nov 2026, 00:00 UTC"
+    Tasks
+      TaskCard
+        ClaimButton "Claim"
+      TaskCard
+        ClaimButton "Claimed"
+      TaskCard
+        ClaimButton "Claim · Task not finished"
+    TrackGrid
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Next · needs 800 XP"
+      PassTile
+        TileButton "Reach Level 12"
+      PassTile
+        TileButton "Reach Level 13"
+      PassTile
+        TileButton "Reach Level 14"
+      PassTile
+        TileButton "Reach Level 15"
+      PassTile
+        TileButton "Reach Level 16"
+      PassTile
+        TileButton "Reach Level 17"
+      PassTile
+        TileButton "Reach Level 18"
+      PassTile
+        TileButton "Reach Level 19"
+      PassTile
+        TileButton "Reach Level 20"
+      PassTile
+        TileButton "Reach Level 21"
+      PassTile
+        TileButton "Reach Level 22"
+      PassTile
+        TileButton "Reach Level 23"
+      PassTile
+        TileButton "Reach Level 24"
+      PassTile
+        TileButton "Reach Level 25"
+      PassTile
+        TileButton "Reach Level 26"
+      PassTile
+        TileButton "Reach Level 27"
+      PassTile
+        TileButton "Reach Level 28"
+      PassTile
+        TileButton "Reach Level 29"
+      PassTile
+        TileButton "Reach Level 30"
+    PremiumRow "SEASON 2 Premium track: locked, opens in season 2. Nothing …"
+    LoopRow
+      LoopClaimButton "Nothing yet"
+    DetailPlate "Pick a level Select a level to see its reward."
+
+=== 21-pass--guest--1280 (1280)
+  # godot: PassView. One scrolling grid (6 × 5), no pages. Nothing picked at first: the detail plate reads "Pick a level".
+  Header
+    BackButton "←"
+    Title "Season Pass"
+    SubLine "Season 1 · ends 29 Dec 2026"
+  Body
+    Banner
+      ToneDisc "i"
+    LevelCard
+      ClaimAllButton "Claim all · 3 levels"
+    TasksTitle "Weekly tasks · resets Mon 23 Nov 2026, 00:00 UTC"
+    Tasks
+      TaskCard
+        ClaimButton "Claim"
+      TaskCard
+        ClaimButton "Claimed"
+      TaskCard
+        ClaimButton "Claim · Task not finished"
+    TrackGrid
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claimed"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Claim"
+      PassTile
+        TileButton "Next · needs 800 XP"
+      PassTile
+        TileButton "Reach Level 12"
+      PassTile
+        TileButton "Reach Level 13"
+      PassTile
+        TileButton "Reach Level 14"
+      PassTile
+        TileButton "Reach Level 15"
+      PassTile
+        TileButton "Reach Level 16"
+      PassTile
+        TileButton "Reach Level 17"
+      PassTile
+        TileButton "Reach Level 18"
+      PassTile
+        TileButton "Reach Level 19"
+      PassTile
+        TileButton "Reach Level 20"
+      PassTile
+        TileButton "Reach Level 21"
+      PassTile
+        TileButton "Reach Level 22"
+      PassTile
+        TileButton "Reach Level 23"
+      PassTile
+        TileButton "Reach Level 24"
+      PassTile
+        TileButton "Reach Level 25"
+      PassTile
+        TileButton "Reach Level 26"
+      PassTile
+        TileButton "Reach Level 27"
+      PassTile
+        TileButton "Reach Level 28"
+      PassTile
+        TileButton "Reach Level 29"
+      PassTile
+        TileButton "Reach Level 30"
+    PremiumRow "SEASON 2 Premium track: locked, opens in season 2. Nothing …"
+    LoopRow
+      LoopClaimButton "Nothing yet"
+    DetailPlate "Pick a level Select a level to see its reward."
