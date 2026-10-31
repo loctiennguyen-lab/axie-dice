@@ -155,7 +155,8 @@ func _ready() -> void:
 	_ok(rm._overlay_root.find_child("CardRow", true, false) == null, "empty vault: no card row")
 	ct.pressed.emit()
 	await _frames(6)
-	_ok(rm._overlay_root.find_child("TakeButton", true, false) == null or not rm._overlay_root.visible, "empty vault: Continue finished the node (screen closed)")
+	var ov: Node = rm._overlay_root
+	_ok(not is_instance_valid(ov) or ov.find_child("TakeButton", true, false) == null or not (ov as CanvasItem).visible, "empty vault: Continue finished the node (screen closed)")
 	# One real choose: exactly one event_choose in the log, ChooseButton drives it.
 	UI3Theme.set_scale_override(1.0)
 	rm.call("_on_event_node", "x")
