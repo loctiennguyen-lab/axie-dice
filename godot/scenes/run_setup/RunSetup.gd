@@ -932,6 +932,7 @@ func _build_slot(i: int) -> Control:
 	nm.custom_minimum_size.x = 0
 	nm.clip_text = true
 	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER   # Liam 29/10: text under a picture is centred on it
 	v.add_child(nm)
 	Ui5Ellipsis.set_text(nm, String(def.get("n", key)))
 	var vault := MetaState.is_vault_key(key)
@@ -939,9 +940,11 @@ func _build_slot(i: int) -> Control:
 	meta.name = "ClassLine"
 	meta.clip_text = true
 	meta.custom_minimum_size.x = 0
+	meta.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER   # Liam 29/10: text under a picture is centred on it
 	v.add_child(meta)
 	var hp := _lbl(tr("Max HP %d") % int(def.get("max_hp", 0)))
 	hp.name = "HpLine"
+	hp.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER   # Liam 29/10: text under a picture is centred on it
 	v.add_child(hp)
 	var acts := HBoxContainer.new()
 	acts.add_theme_constant_override("separation", UI3Theme.space("8"))
