@@ -1,0 +1,1467 @@
+# S14: Settings
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-meta3-screens.html
+# So frame: 28 (14 id, tinh ca ban 1920 va 1280)
+# Tien to: 26-settings
+# Id frame:
+#   26-settings--audio
+#   26-settings--audio--1280
+#   26-settings--accessibility
+#   26-settings--accessibility--1280
+#   26-settings--controls
+#   26-settings--controls--1280
+#   26-settings--controls-combat
+#   26-settings--controls-combat--1280
+#   26-settings--key-capture
+#   26-settings--key-capture--1280
+#   26-settings--run
+#   26-settings--run--1280
+#   26-settings--abandon-armed
+#   26-settings--abandon-armed--1280
+#   26-settings--abandon-mission
+#   26-settings--abandon-mission--1280
+#   26-settings--account-in
+#   26-settings--account-in--1280
+#   26-settings--account-confirm
+#   26-settings--account-confirm--1280
+#   26-settings--account-out
+#   26-settings--account-out--1280
+#   26-settings--account-out-web
+#   26-settings--account-out-web--1280
+#   26-settings--account-expired
+#   26-settings--account-expired--1280
+#   26-settings--in-run
+#   26-settings--in-run--1280
+
+=== 26-settings--audio (1920)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionAudio
+        SettingRow "Music 80%"
+        SettingRow "Sound effects 70%"
+        SettingRow "Mute everything Off"
+      SectionAccessibility
+        SettingRow "Reduce flashing and screen shake Turns off the screen shake…"
+        SettingRow "Reduce motion No shaking, no particles, quicker transitions…"
+        SettingRow "Colour-blind-safe glyphs Always on: every mechanic colour s…"
+      SectionControls
+        ShortcutRow
+          KeyButton "Enter, Num Enter"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "6, Num 6"
+        ShortcutRow
+          KeyButton "7, Num 7"
+        ShortcutRow
+          KeyButton "B"
+        ShortcutRow
+          KeyButton "N"
+        ShortcutRow
+          KeyButton "L"
+        ShortcutRow
+          KeyButton "P"
+        ShortcutRow
+          KeyButton "D"
+        ShortcutRow
+          KeyButton "C"
+        ShortcutRow
+          KeyButton "Space, E"
+        ShortcutRow
+          KeyButton "R"
+        ShortcutRow
+          KeyButton "Z"
+        ShortcutRow
+          KeyButton "H"
+        ShortcutRow
+          KeyButton "A"
+        ShortcutRow
+          KeyButton "I"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Space, Enter, Num Enter"
+        SettingRow
+          ResetButton "Reset to defaults"
+      SectionAidAndSpending
+        SettingRow "Spending limit (monthly) Applies when purchases open. —"
+      SectionHowToPlay
+        SettingRow
+          ReplayButton "Replay the tutorial"
+      SectionRun
+        SettingRow
+          AbandonButton "Abandon run"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Sign out"
+
+=== 26-settings--audio--1280 (1280)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionAudio
+        SettingRow "Music 80%"
+        SettingRow "Sound effects 70%"
+        SettingRow "Mute everything Off"
+      SectionAccessibility
+        SettingRow "Reduce flashing and screen shake Turns off the screen shake…"
+        SettingRow "Reduce motion No shaking, no particles, quicker transitions…"
+        SettingRow "Colour-blind-safe glyphs Always on: every mechanic colour s…"
+      SectionControls
+        ShortcutRow
+          KeyButton "Enter, Num Enter"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "6, Num 6"
+        ShortcutRow
+          KeyButton "7, Num 7"
+        ShortcutRow
+          KeyButton "B"
+        ShortcutRow
+          KeyButton "N"
+        ShortcutRow
+          KeyButton "L"
+        ShortcutRow
+          KeyButton "P"
+        ShortcutRow
+          KeyButton "D"
+        ShortcutRow
+          KeyButton "C"
+        ShortcutRow
+          KeyButton "Space, E"
+        ShortcutRow
+          KeyButton "R"
+        ShortcutRow
+          KeyButton "Z"
+        ShortcutRow
+          KeyButton "H"
+        ShortcutRow
+          KeyButton "A"
+        ShortcutRow
+          KeyButton "I"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Space, Enter, Num Enter"
+        SettingRow
+          ResetButton "Reset to defaults"
+      SectionAidAndSpending
+        SettingRow "Spending limit (monthly) Applies when purchases open. —"
+      SectionHowToPlay
+        SettingRow
+          ReplayButton "Replay the tutorial"
+      SectionRun
+        SettingRow
+          AbandonButton "Abandon run"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Sign out"
+
+=== 26-settings--accessibility (1920)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionAccessibility
+        SettingRow "Reduce flashing and screen shake Turns off the screen shake…"
+        SettingRow "Reduce motion No shaking, no particles, quicker transitions…"
+        SettingRow "Colour-blind-safe glyphs Always on: every mechanic colour s…"
+      SectionControls
+        ShortcutRow
+          KeyButton "Enter, Num Enter"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "6, Num 6"
+        ShortcutRow
+          KeyButton "7, Num 7"
+        ShortcutRow
+          KeyButton "B"
+        ShortcutRow
+          KeyButton "N"
+        ShortcutRow
+          KeyButton "L"
+        ShortcutRow
+          KeyButton "P"
+        ShortcutRow
+          KeyButton "D"
+        ShortcutRow
+          KeyButton "C"
+        ShortcutRow
+          KeyButton "Space, E"
+        ShortcutRow
+          KeyButton "R"
+        ShortcutRow
+          KeyButton "Z"
+        ShortcutRow
+          KeyButton "H"
+        ShortcutRow
+          KeyButton "A"
+        ShortcutRow
+          KeyButton "I"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Space, Enter, Num Enter"
+        SettingRow
+          ResetButton "Reset to defaults"
+      SectionAidAndSpending
+        SettingRow "Spending limit (monthly) Applies when purchases open. —"
+      SectionHowToPlay
+        SettingRow
+          ReplayButton "Replay the tutorial"
+      SectionRun
+        SettingRow
+          AbandonButton "Abandon run"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Sign out"
+
+=== 26-settings--accessibility--1280 (1280)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionAccessibility
+        SettingRow "Reduce flashing and screen shake Turns off the screen shake…"
+        SettingRow "Reduce motion No shaking, no particles, quicker transitions…"
+        SettingRow "Colour-blind-safe glyphs Always on: every mechanic colour s…"
+      SectionControls
+        ShortcutRow
+          KeyButton "Enter, Num Enter"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "6, Num 6"
+        ShortcutRow
+          KeyButton "7, Num 7"
+        ShortcutRow
+          KeyButton "B"
+        ShortcutRow
+          KeyButton "N"
+        ShortcutRow
+          KeyButton "L"
+        ShortcutRow
+          KeyButton "P"
+        ShortcutRow
+          KeyButton "D"
+        ShortcutRow
+          KeyButton "C"
+        ShortcutRow
+          KeyButton "Space, E"
+        ShortcutRow
+          KeyButton "R"
+        ShortcutRow
+          KeyButton "Z"
+        ShortcutRow
+          KeyButton "H"
+        ShortcutRow
+          KeyButton "A"
+        ShortcutRow
+          KeyButton "I"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Space, Enter, Num Enter"
+        SettingRow
+          ResetButton "Reset to defaults"
+      SectionAidAndSpending
+        SettingRow "Spending limit (monthly) Applies when purchases open. —"
+      SectionHowToPlay
+        SettingRow
+          ReplayButton "Replay the tutorial"
+      SectionRun
+        SettingRow
+          AbandonButton "Abandon run"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Sign out"
+
+=== 26-settings--controls (1920)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionControls
+        ShortcutRow
+          KeyButton "Enter, Num Enter"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "6, Num 6"
+        ShortcutRow
+          KeyButton "7, Num 7"
+        ShortcutRow
+          KeyButton "B"
+        ShortcutRow
+          KeyButton "N"
+        ShortcutRow
+          KeyButton "L"
+        ShortcutRow
+          KeyButton "P"
+        ShortcutRow
+          KeyButton "D"
+        ShortcutRow
+          KeyButton "C"
+        ShortcutRow
+          KeyButton "Space, E"
+        ShortcutRow
+          KeyButton "R"
+        ShortcutRow
+          KeyButton "Z"
+        ShortcutRow
+          KeyButton "H"
+        ShortcutRow
+          KeyButton "A"
+        ShortcutRow
+          KeyButton "I"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Space, Enter, Num Enter"
+        SettingRow
+          ResetButton "Reset to defaults"
+      SectionAidAndSpending
+        SettingRow "Spending limit (monthly) Applies when purchases open. —"
+      SectionHowToPlay
+        SettingRow
+          ReplayButton "Replay the tutorial"
+      SectionRun
+        SettingRow
+          AbandonButton "Abandon run"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Sign out"
+
+=== 26-settings--controls--1280 (1280)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionControls
+        ShortcutRow
+          KeyButton "Enter, Num Enter"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "6, Num 6"
+        ShortcutRow
+          KeyButton "7, Num 7"
+        ShortcutRow
+          KeyButton "B"
+        ShortcutRow
+          KeyButton "N"
+        ShortcutRow
+          KeyButton "L"
+        ShortcutRow
+          KeyButton "P"
+        ShortcutRow
+          KeyButton "D"
+        ShortcutRow
+          KeyButton "C"
+        ShortcutRow
+          KeyButton "Space, E"
+        ShortcutRow
+          KeyButton "R"
+        ShortcutRow
+          KeyButton "Z"
+        ShortcutRow
+          KeyButton "H"
+        ShortcutRow
+          KeyButton "A"
+        ShortcutRow
+          KeyButton "I"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Space, Enter, Num Enter"
+        SettingRow
+          ResetButton "Reset to defaults"
+      SectionAidAndSpending
+        SettingRow "Spending limit (monthly) Applies when purchases open. —"
+      SectionHowToPlay
+        SettingRow
+          ReplayButton "Replay the tutorial"
+      SectionRun
+        SettingRow
+          AbandonButton "Abandon run"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Sign out"
+
+=== 26-settings--controls-combat (1920)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionControls
+        ShortcutRow
+          KeyButton "Space, E"
+        ShortcutRow
+          KeyButton "R"
+        ShortcutRow
+          KeyButton "Z"
+        ShortcutRow
+          KeyButton "H"
+        ShortcutRow
+          KeyButton "A"
+        ShortcutRow
+          KeyButton "I"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Space, Enter, Num Enter"
+        SettingRow
+          ResetButton "Reset to defaults"
+      SectionAidAndSpending
+        SettingRow "Spending limit (monthly) Applies when purchases open. —"
+      SectionHowToPlay
+        SettingRow
+          ReplayButton "Replay the tutorial"
+      SectionRun
+        SettingRow
+          AbandonButton "Abandon run"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Sign out"
+
+=== 26-settings--controls-combat--1280 (1280)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionControls
+        ShortcutRow
+          KeyButton "Space, E"
+        ShortcutRow
+          KeyButton "R"
+        ShortcutRow
+          KeyButton "Z"
+        ShortcutRow
+          KeyButton "H"
+        ShortcutRow
+          KeyButton "A"
+        ShortcutRow
+          KeyButton "I"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Space, Enter, Num Enter"
+        SettingRow
+          ResetButton "Reset to defaults"
+      SectionAidAndSpending
+        SettingRow "Spending limit (monthly) Applies when purchases open. —"
+      SectionHowToPlay
+        SettingRow
+          ReplayButton "Replay the tutorial"
+      SectionRun
+        SettingRow
+          AbandonButton "Abandon run"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Sign out"
+
+=== 26-settings--key-capture (1920)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionControls
+        ShortcutRow
+          KeyButton "Press a key…"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "6, Num 6"
+        ShortcutRow
+          KeyButton "7, Num 7"
+        ShortcutRow
+          KeyButton "B"
+        ShortcutRow
+          KeyButton "N"
+        ShortcutRow
+          KeyButton "L"
+        ShortcutRow
+          KeyButton "P"
+        ShortcutRow
+          KeyButton "D"
+        ShortcutRow
+          KeyButton "C"
+        ShortcutRow
+          KeyButton "Space, E"
+        ShortcutRow
+          KeyButton "R"
+        ShortcutRow
+          KeyButton "Z"
+        ShortcutRow
+          KeyButton "H"
+        ShortcutRow
+          KeyButton "A"
+        ShortcutRow
+          KeyButton "I"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Space, Enter, Num Enter"
+        SettingRow
+          ResetButton "Reset to defaults"
+      SectionAidAndSpending
+        SettingRow "Spending limit (monthly) Applies when purchases open. —"
+      SectionHowToPlay
+        SettingRow
+          ReplayButton "Replay the tutorial"
+      SectionRun
+        SettingRow
+          AbandonButton "Abandon run"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Sign out"
+
+=== 26-settings--key-capture--1280 (1280)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionControls
+        ShortcutRow
+          KeyButton "Press a key…"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "6, Num 6"
+        ShortcutRow
+          KeyButton "7, Num 7"
+        ShortcutRow
+          KeyButton "B"
+        ShortcutRow
+          KeyButton "N"
+        ShortcutRow
+          KeyButton "L"
+        ShortcutRow
+          KeyButton "P"
+        ShortcutRow
+          KeyButton "D"
+        ShortcutRow
+          KeyButton "C"
+        ShortcutRow
+          KeyButton "Space, E"
+        ShortcutRow
+          KeyButton "R"
+        ShortcutRow
+          KeyButton "Z"
+        ShortcutRow
+          KeyButton "H"
+        ShortcutRow
+          KeyButton "A"
+        ShortcutRow
+          KeyButton "I"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Space, Enter, Num Enter"
+        SettingRow
+          ResetButton "Reset to defaults"
+      SectionAidAndSpending
+        SettingRow "Spending limit (monthly) Applies when purchases open. —"
+      SectionHowToPlay
+        SettingRow
+          ReplayButton "Replay the tutorial"
+      SectionRun
+        SettingRow
+          AbandonButton "Abandon run"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Sign out"
+
+=== 26-settings--run (1920)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionHowToPlay
+        SettingRow
+          ReplayButton "Replay the tutorial"
+      SectionRun
+        SettingRow "Abandon run A run is saved. Abandoning it deletes that save…"
+        ConfirmRow
+          Checkbox
+          AbandonButton "Abandon run"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Sign out"
+
+=== 26-settings--run--1280 (1280)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionHowToPlay
+        SettingRow
+          ReplayButton "Replay the tutorial"
+      SectionRun
+        SettingRow "Abandon run A run is saved. Abandoning it deletes that save…"
+        ConfirmRow
+          Checkbox
+          AbandonButton "Abandon run"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Sign out"
+
+=== 26-settings--abandon-armed (1920)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionHowToPlay
+        SettingRow
+          ReplayButton "Replay the tutorial"
+      SectionRun
+        SettingRow "Abandon run A run is saved. Abandoning it deletes that save…"
+        ConfirmRow
+          Checkbox
+          AbandonButton "Abandon run"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Sign out"
+
+=== 26-settings--abandon-armed--1280 (1280)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionHowToPlay
+        SettingRow
+          ReplayButton "Replay the tutorial"
+      SectionRun
+        SettingRow "Abandon run A run is saved. Abandoning it deletes that save…"
+        ConfirmRow
+          Checkbox
+          AbandonButton "Abandon run"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Sign out"
+
+=== 26-settings--abandon-mission (1920)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionHowToPlay
+        SettingRow
+          ReplayButton "Replay the tutorial"
+      SectionRun
+        MissionRow "Abandon mission run You will lose your stake (800 Shards). …"
+        ConfirmRow
+          Checkbox
+          AbandonButton "Abandon run"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Sign out"
+
+=== 26-settings--abandon-mission--1280 (1280)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionHowToPlay
+        SettingRow
+          ReplayButton "Replay the tutorial"
+      SectionRun
+        MissionRow "Abandon mission run You will lose your stake (800 Shards). …"
+        ConfirmRow
+          Checkbox
+          AbandonButton "Abandon run"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Sign out"
+
+=== 26-settings--account-in (1920)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionRun
+        SettingRow
+          AbandonButton "Abandon run"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Sign out"
+
+=== 26-settings--account-in--1280 (1280)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionRun
+        SettingRow
+          AbandonButton "Abandon run"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Sign out"
+
+=== 26-settings--account-confirm (1920)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionRun
+        SettingRow
+          AbandonButton "Abandon run"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Confirm sign out"
+
+=== 26-settings--account-confirm--1280 (1280)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionRun
+        SettingRow
+          AbandonButton "Abandon run"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Confirm sign out"
+
+=== 26-settings--account-out (1920)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionRun
+        SettingRow
+          AbandonButton "Abandon run"
+      SectionAccount
+        SignedOutRow
+          Body "You're signed out. You can browse and play the tutorial; ru…"
+          AccountButton [var(--size-btn-m)] "Account"
+
+=== 26-settings--account-out--1280 (1280)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionRun
+        SettingRow
+          AbandonButton "Abandon run"
+      SectionAccount
+        SignedOutRow
+          Body "You're signed out. You can browse and play the tutorial; ru…"
+          AccountButton [var(--size-btn-m)] "Account"
+
+=== 26-settings--account-out-web (1920)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionRun
+        SettingRow
+          AbandonButton "Abandon run"
+      SectionAccount
+        SignedOutRow
+          Body "You're signed out. You can browse and play the tutorial; ru…"
+          SignInButton [var(--size-btn-m)] "Continue with Google"
+
+=== 26-settings--account-out-web--1280 (1280)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionRun
+        SettingRow
+          AbandonButton "Abandon run"
+      SectionAccount
+        SignedOutRow
+          Body "You're signed out. You can browse and play the tutorial; ru…"
+          SignInButton [var(--size-btn-m)] "Continue with Google"
+
+=== 26-settings--account-expired (1920)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionRun
+        SettingRow
+          AbandonButton "Abandon run"
+      SectionAccount
+        ToneDisc "!"
+        SignInButton [var(--size-btn-m)] "Sign in"
+
+=== 26-settings--account-expired--1280 (1280)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here.
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Every toggle states On / Off in words."
+  Body
+    SectionIndex
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Run"
+      IndexRow "Account"
+    Column
+      SectionRun
+        SettingRow
+          AbandonButton "Abandon run"
+      SectionAccount
+        ToneDisc "!"
+        SignInButton [var(--size-btn-m)] "Sign in"
+
+=== 26-settings--in-run (1920)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here. Back tooltip "Back to run · Esc".
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Opened from the combat menu. The run is paused."
+  Body
+    SectionIndex
+      IndexRow "Run"
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Account"
+    Column
+      SectionRun
+        SettingRow "Abandon run A run is saved. Abandoning it deletes that save…"
+        ConfirmRow
+          Checkbox
+          AbandonButton "Abandon run"
+      SectionAudio
+        SettingRow "Music 80%"
+        SettingRow "Sound effects 70%"
+        SettingRow "Mute everything Off"
+      SectionAccessibility
+        SettingRow "Reduce flashing and screen shake Turns off the screen shake…"
+        SettingRow "Reduce motion No shaking, no particles, quicker transitions…"
+        SettingRow "Colour-blind-safe glyphs Always on: every mechanic colour s…"
+      SectionControls
+        ShortcutRow
+          KeyButton "Enter, Num Enter"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "6, Num 6"
+        ShortcutRow
+          KeyButton "7, Num 7"
+        ShortcutRow
+          KeyButton "B"
+        ShortcutRow
+          KeyButton "N"
+        ShortcutRow
+          KeyButton "L"
+        ShortcutRow
+          KeyButton "P"
+        ShortcutRow
+          KeyButton "D"
+        ShortcutRow
+          KeyButton "C"
+        ShortcutRow
+          KeyButton "Space, E"
+        ShortcutRow
+          KeyButton "R"
+        ShortcutRow
+          KeyButton "Z"
+        ShortcutRow
+          KeyButton "H"
+        ShortcutRow
+          KeyButton "A"
+        ShortcutRow
+          KeyButton "I"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Space, Enter, Num Enter"
+        SettingRow
+          ResetButton "Reset to defaults"
+      SectionAidAndSpending
+        SettingRow "Spending limit (monthly) Applies when purchases open. —"
+      SectionHowToPlay
+        SettingRow
+          ReplayButton "Replay the tutorial"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Sign out"
+
+=== 26-settings--in-run--1280 (1280)
+  # godot: SettingsView. Section index on the left; one column, rows 72. No currency plate here. Back tooltip "Back to run · Esc".
+  Header
+    BackButton "←"
+    Title "Settings"
+    SubLine "Opened from the combat menu. The run is paused."
+  Body
+    SectionIndex
+      IndexRow "Run"
+      IndexRow "Audio"
+      IndexRow "Accessibility"
+      IndexRow "Controls"
+      IndexRow "Aid and spending"
+      IndexRow "How to play"
+      IndexRow "Account"
+    Column
+      SectionRun
+        SettingRow "Abandon run A run is saved. Abandoning it deletes that save…"
+        ConfirmRow
+          Checkbox
+          AbandonButton "Abandon run"
+      SectionAudio
+        SettingRow "Music 80%"
+        SettingRow "Sound effects 70%"
+        SettingRow "Mute everything Off"
+      SectionAccessibility
+        SettingRow "Reduce flashing and screen shake Turns off the screen shake…"
+        SettingRow "Reduce motion No shaking, no particles, quicker transitions…"
+        SettingRow "Colour-blind-safe glyphs Always on: every mechanic colour s…"
+      SectionControls
+        ShortcutRow
+          KeyButton "Enter, Num Enter"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "6, Num 6"
+        ShortcutRow
+          KeyButton "7, Num 7"
+        ShortcutRow
+          KeyButton "B"
+        ShortcutRow
+          KeyButton "N"
+        ShortcutRow
+          KeyButton "L"
+        ShortcutRow
+          KeyButton "P"
+        ShortcutRow
+          KeyButton "D"
+        ShortcutRow
+          KeyButton "C"
+        ShortcutRow
+          KeyButton "Space, E"
+        ShortcutRow
+          KeyButton "R"
+        ShortcutRow
+          KeyButton "Z"
+        ShortcutRow
+          KeyButton "H"
+        ShortcutRow
+          KeyButton "A"
+        ShortcutRow
+          KeyButton "I"
+        ShortcutRow
+          KeyButton "1, Num 1"
+        ShortcutRow
+          KeyButton "2, Num 2"
+        ShortcutRow
+          KeyButton "3, Num 3"
+        ShortcutRow
+          KeyButton "4, Num 4"
+        ShortcutRow
+          KeyButton "5, Num 5"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Esc"
+        ShortcutRow
+          KeyButton "Space, Enter, Num Enter"
+        SettingRow
+          ResetButton "Reset to defaults"
+      SectionAidAndSpending
+        SettingRow "Spending limit (monthly) Applies when purchases open. —"
+      SectionHowToPlay
+        SettingRow
+          ReplayButton "Replay the tutorial"
+      SectionAccount
+        SwitchButton "Switch account"
+        SignOutButton "Sign out"

@@ -1,0 +1,479 @@
+# S12: Profile
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-meta3-screens.html
+# So frame: 16 (8 id, tinh ca ban 1920 va 1280)
+# Tien to: 24-profile
+# Id frame:
+#   24-profile--overview
+#   24-profile--overview--1280
+#   24-profile--overview-empty
+#   24-profile--overview-empty--1280
+#   24-profile--guest
+#   24-profile--guest--1280
+#   24-profile--cosmetics-dice
+#   24-profile--cosmetics-dice--1280
+#   24-profile--cosmetics-locked
+#   24-profile--cosmetics-locked--1280
+#   24-profile--cosmetics-owned
+#   24-profile--cosmetics-owned--1280
+#   24-profile--cosmetics-frames
+#   24-profile--cosmetics-frames--1280
+#   24-profile--titles
+#   24-profile--titles--1280
+
+=== 24-profile--overview (1920)
+  # godot: ProfileView.
+  Header
+    BackButton "←"
+    Title "Profile"
+    SubLine "Liam · Savannah Land"
+    OverviewTab "Overview"
+    CosmeticsTab "Cosmetics"
+    TitlesTab "Titles"
+  Body
+    StatTiles
+      StatTile "Runs 12 finished runs"
+      StatTile "Wins 7 58%"
+      StatTile "Best Ascension A5 won"
+      StatTile "Pure wins 4 no Aid"
+      StatTile "Missions 1 / 3 won / played"
+    LandSection "Land Tier Savannah 1/6 Aesthetic score 20 Milestones claime…"
+    RunList
+      RunRow "29 Oct Normal · Short A5 Won no Aid Pure"
+      RunRow "29 Oct Ranked · Short A4 Lost no Aid"
+      RunRow "28 Oct Mission A3 Won no Aid (mission) Pure"
+      RunRow "28 Oct Daily A0 Won Aid 1"
+      RunRow "27 Oct Normal · Short A4 Won no Aid Pure"
+      RunRow "27 Oct Normal · Full A3 Lost Aid 2"
+      RunRow "26 Oct Normal · Short A3 Won no Aid Pure"
+      RunRow "25 Oct Normal · Short A2 Lost no Aid"
+    ProfileCard
+      Avatar "L"
+      Name "Liam"
+      SkyMavisTag "Sky Mavis"
+      TitleLine "Title: [A5 title]"
+      SyncChip "Saved"
+
+=== 24-profile--overview--1280 (1280)
+  # godot: ProfileView.
+  Header
+    BackButton "←"
+    Title "Profile"
+    SubLine "Liam · Savannah Land"
+    OverviewTab "Overview"
+    CosmeticsTab "Cosmetics"
+    TitlesTab "Titles"
+  Body
+    StatTiles
+      StatTile "Runs 12 finished runs"
+      StatTile "Wins 7 58%"
+      StatTile "Best Ascension A5 won"
+      StatTile "Pure wins 4 no Aid"
+      StatTile "Missions 1 / 3 won / played"
+    LandSection "Land Tier Savannah 1/6 Aesthetic score 20 Milestones claime…"
+    RunList
+      RunRow "29 Oct Normal · Short A5 Won no Aid Pure"
+      RunRow "29 Oct Ranked · Short A4 Lost no Aid"
+      RunRow "28 Oct Mission A3 Won no Aid (mission) Pure"
+      RunRow "28 Oct Daily A0 Won Aid 1"
+      RunRow "27 Oct Normal · Short A4 Won no Aid Pure"
+      RunRow "27 Oct Normal · Full A3 Lost Aid 2"
+      RunRow "26 Oct Normal · Short A3 Won no Aid Pure"
+      RunRow "25 Oct Normal · Short A2 Lost no Aid"
+    ProfileCard
+      Avatar "L"
+      Name "Liam"
+      SkyMavisTag "Sky Mavis"
+      TitleLine "Title: [A5 title]"
+      SyncChip "Saved"
+
+=== 24-profile--overview-empty (1920)
+  # godot: ProfileView.
+  Header
+    BackButton "←"
+    Title "Profile"
+    SubLine "Liam · Savannah Land"
+    OverviewTab "Overview"
+    CosmeticsTab "Cosmetics"
+    TitlesTab "Titles"
+  Body
+    StatTiles
+      StatTile "Runs — finished runs"
+      StatTile "Wins —"
+      StatTile "Best Ascension — won"
+      StatTile "Pure wins — no Aid"
+      StatTile "Missions — won / played"
+    LandSection "Land Tier Savannah 1/6 Aesthetic score 0 Milestones claimed…"
+    RunList "Last 10 runs No runs yet. Finish a run and it shows up here."
+    ProfileCard
+      Avatar "L"
+      Name "Liam"
+      SkyMavisTag "Sky Mavis"
+      TitleLine "No title"
+      SyncChip "Saved"
+
+=== 24-profile--overview-empty--1280 (1280)
+  # godot: ProfileView.
+  Header
+    BackButton "←"
+    Title "Profile"
+    SubLine "Liam · Savannah Land"
+    OverviewTab "Overview"
+    CosmeticsTab "Cosmetics"
+    TitlesTab "Titles"
+  Body
+    StatTiles
+      StatTile "Runs — finished runs"
+      StatTile "Wins —"
+      StatTile "Best Ascension — won"
+      StatTile "Pure wins — no Aid"
+      StatTile "Missions — won / played"
+    LandSection "Land Tier Savannah 1/6 Aesthetic score 0 Milestones claimed…"
+    RunList "Last 10 runs No runs yet. Finish a run and it shows up here."
+    ProfileCard
+      Avatar "L"
+      Name "Liam"
+      SkyMavisTag "Sky Mavis"
+      TitleLine "No title"
+      SyncChip "Saved"
+
+=== 24-profile--guest (1920)
+  # godot: ProfileView.
+  Header
+    BackButton "←"
+    Title "Profile"
+    SubLine "Guest · local stats on this computer"
+    OverviewTab "Overview"
+    CosmeticsTab "Cosmetics"
+    TitlesTab "Titles"
+  Body
+    GuestBanner
+      ToneDisc "i"
+      SignInButton "Sign in"
+    StatTiles
+      StatTile "Runs 12 finished runs"
+      StatTile "Wins 7 58%"
+      StatTile "Best Ascension A5 won"
+      StatTile "Pure wins 4 no Aid"
+      StatTile "Missions 1 / 3 won / played"
+    LandSection "Land Tier Savannah 1/6 Aesthetic score 20 Milestones claime…"
+    RunList
+      RunRow "29 Oct Normal · Short A5 Won no Aid Pure"
+      RunRow "29 Oct Ranked · Short A4 Lost no Aid"
+      RunRow "28 Oct Mission A3 Won no Aid (mission) Pure"
+      RunRow "28 Oct Daily A0 Won Aid 1"
+      RunRow "27 Oct Normal · Short A4 Won no Aid Pure"
+      RunRow "27 Oct Normal · Full A3 Lost Aid 2"
+      RunRow "26 Oct Normal · Short A3 Won no Aid Pure"
+      RunRow "25 Oct Normal · Short A2 Lost no Aid"
+    ProfileCard
+      Avatar "?"
+      Name "Guest"
+      TitleLine "No title"
+      SyncChip "Guest · not saved to cloud"
+
+=== 24-profile--guest--1280 (1280)
+  # godot: ProfileView.
+  Header
+    BackButton "←"
+    Title "Profile"
+    SubLine "Guest · local stats on this computer"
+    OverviewTab "Overview"
+    CosmeticsTab "Cosmetics"
+    TitlesTab "Titles"
+  Body
+    GuestBanner
+      ToneDisc "i"
+      SignInButton "Sign in"
+    StatTiles
+      StatTile "Runs 12 finished runs"
+      StatTile "Wins 7 58%"
+      StatTile "Best Ascension A5 won"
+      StatTile "Pure wins 4 no Aid"
+      StatTile "Missions 1 / 3 won / played"
+    LandSection "Land Tier Savannah 1/6 Aesthetic score 20 Milestones claime…"
+    RunList
+      RunRow "29 Oct Normal · Short A5 Won no Aid Pure"
+      RunRow "29 Oct Ranked · Short A4 Lost no Aid"
+      RunRow "28 Oct Mission A3 Won no Aid (mission) Pure"
+      RunRow "28 Oct Daily A0 Won Aid 1"
+      RunRow "27 Oct Normal · Short A4 Won no Aid Pure"
+      RunRow "27 Oct Normal · Full A3 Lost Aid 2"
+      RunRow "26 Oct Normal · Short A3 Won no Aid Pure"
+      RunRow "25 Oct Normal · Short A2 Lost no Aid"
+    ProfileCard
+      Avatar "?"
+      Name "Guest"
+      TitleLine "No title"
+      SyncChip "Guest · not saved to cloud"
+
+=== 24-profile--cosmetics-dice (1920)
+  # godot: ProfileView.
+  Header
+    BackButton "←"
+    Title "Profile"
+    SubLine "Liam · Savannah Land"
+    OverviewTab "Overview"
+    CosmeticsTab "Cosmetics"
+    TitlesTab "Titles"
+  Body
+    CategoryTabs
+      DiceTab "Dice skins · 2 of 26"
+      FramesTab "Avatar frames · 2 of 27"
+    Grid
+      CosmeticTile
+        EquippedDisc
+      CosmeticTile "6 Mossy Stone Uncommon · Owned"
+      CosmeticTile "6 Jade Sprout Rare · Locked"
+      CosmeticTile "6 Coral Bloom Epic · Locked"
+      CosmeticTile "6 Rune Slate Epic · Locked"
+      CosmeticTile "6 Founder's Seal Epic · Locked"
+      CosmeticTile "6 Genesis Sun Legendary · Locked"
+      CosmeticTile "6 Lunacia Crown Legendary · Locked"
+      CosmeticTile "6 Heart of Luna Mythic · Locked"
+    PreviewPlate
+      Preview3D "6 3D die (SubViewport)"
+      EquipButton "Equip · Equipped"
+
+=== 24-profile--cosmetics-dice--1280 (1280)
+  # godot: ProfileView.
+  Header
+    BackButton "←"
+    Title "Profile"
+    SubLine "Liam · Savannah Land"
+    OverviewTab "Overview"
+    CosmeticsTab "Cosmetics"
+    TitlesTab "Titles"
+  Body
+    CategoryTabs
+      DiceTab "Dice skins · 2 of 26"
+      FramesTab "Avatar frames · 2 of 27"
+    Grid
+      CosmeticTile
+        EquippedDisc
+      CosmeticTile "6 Mossy Stone Uncommon · Owned"
+      CosmeticTile "6 Jade Sprout Rare · Locked"
+      CosmeticTile "6 Coral Bloom Epic · Locked"
+      CosmeticTile "6 Rune Slate Epic · Locked"
+      CosmeticTile "6 Founder's Seal Epic · Locked"
+      CosmeticTile "6 Genesis Sun Legendary · Locked"
+      CosmeticTile "6 Lunacia Crown Legendary · Locked"
+      CosmeticTile "6 Heart of Luna Mythic · Locked"
+    PreviewPlate
+      Preview3D "6 3D die (SubViewport)"
+      EquipButton "Equip · Equipped"
+
+=== 24-profile--cosmetics-locked (1920)
+  # godot: ProfileView.
+  Header
+    BackButton "←"
+    Title "Profile"
+    SubLine "Liam · Savannah Land"
+    OverviewTab "Overview"
+    CosmeticsTab "Cosmetics"
+    TitlesTab "Titles"
+  Body
+    CategoryTabs
+      DiceTab "Dice skins · 2 of 26"
+      FramesTab "Avatar frames · 2 of 27"
+    Grid
+      CosmeticTile
+        EquippedDisc
+      CosmeticTile "6 Mossy Stone Uncommon · Owned"
+      CosmeticTile "6 Jade Sprout Rare · Locked"
+      CosmeticTile "6 Coral Bloom Epic · Locked"
+      CosmeticTile "6 Rune Slate Epic · Locked"
+      CosmeticTile "6 Founder's Seal Epic · Locked"
+      CosmeticTile "6 Genesis Sun Legendary · Locked"
+      CosmeticTile "6 Lunacia Crown Legendary · Locked"
+      CosmeticTile "6 Heart of Luna Mythic · Locked"
+    PreviewPlate
+      Preview3D "6 3D die (SubViewport)"
+      EquipButton "Equip · Locked"
+
+=== 24-profile--cosmetics-locked--1280 (1280)
+  # godot: ProfileView.
+  Header
+    BackButton "←"
+    Title "Profile"
+    SubLine "Liam · Savannah Land"
+    OverviewTab "Overview"
+    CosmeticsTab "Cosmetics"
+    TitlesTab "Titles"
+  Body
+    CategoryTabs
+      DiceTab "Dice skins · 2 of 26"
+      FramesTab "Avatar frames · 2 of 27"
+    Grid
+      CosmeticTile
+        EquippedDisc
+      CosmeticTile "6 Mossy Stone Uncommon · Owned"
+      CosmeticTile "6 Jade Sprout Rare · Locked"
+      CosmeticTile "6 Coral Bloom Epic · Locked"
+      CosmeticTile "6 Rune Slate Epic · Locked"
+      CosmeticTile "6 Founder's Seal Epic · Locked"
+      CosmeticTile "6 Genesis Sun Legendary · Locked"
+      CosmeticTile "6 Lunacia Crown Legendary · Locked"
+      CosmeticTile "6 Heart of Luna Mythic · Locked"
+    PreviewPlate
+      Preview3D "6 3D die (SubViewport)"
+      EquipButton "Equip · Locked"
+
+=== 24-profile--cosmetics-owned (1920)
+  # godot: ProfileView.
+  Header
+    BackButton "←"
+    Title "Profile"
+    SubLine "Liam · Savannah Land"
+    OverviewTab "Overview"
+    CosmeticsTab "Cosmetics"
+    TitlesTab "Titles"
+  Body
+    CategoryTabs
+      DiceTab "Dice skins · 2 of 26"
+      FramesTab "Avatar frames · 2 of 27"
+    Grid
+      CosmeticTile
+        EquippedDisc
+      CosmeticTile "6 Mossy Stone Uncommon · Owned"
+      CosmeticTile "6 Jade Sprout Rare · Locked"
+      CosmeticTile "6 Coral Bloom Epic · Locked"
+      CosmeticTile "6 Rune Slate Epic · Locked"
+      CosmeticTile "6 Founder's Seal Epic · Locked"
+      CosmeticTile "6 Genesis Sun Legendary · Locked"
+      CosmeticTile "6 Lunacia Crown Legendary · Locked"
+      CosmeticTile "6 Heart of Luna Mythic · Locked"
+    PreviewPlate
+      Preview3D "6 3D die (SubViewport)"
+      EquipButton "Equip"
+
+=== 24-profile--cosmetics-owned--1280 (1280)
+  # godot: ProfileView.
+  Header
+    BackButton "←"
+    Title "Profile"
+    SubLine "Liam · Savannah Land"
+    OverviewTab "Overview"
+    CosmeticsTab "Cosmetics"
+    TitlesTab "Titles"
+  Body
+    CategoryTabs
+      DiceTab "Dice skins · 2 of 26"
+      FramesTab "Avatar frames · 2 of 27"
+    Grid
+      CosmeticTile
+        EquippedDisc
+      CosmeticTile "6 Mossy Stone Uncommon · Owned"
+      CosmeticTile "6 Jade Sprout Rare · Locked"
+      CosmeticTile "6 Coral Bloom Epic · Locked"
+      CosmeticTile "6 Rune Slate Epic · Locked"
+      CosmeticTile "6 Founder's Seal Epic · Locked"
+      CosmeticTile "6 Genesis Sun Legendary · Locked"
+      CosmeticTile "6 Lunacia Crown Legendary · Locked"
+      CosmeticTile "6 Heart of Luna Mythic · Locked"
+    PreviewPlate
+      Preview3D "6 3D die (SubViewport)"
+      EquipButton "Equip"
+
+=== 24-profile--cosmetics-frames (1920)
+  # godot: ProfileView.
+  Header
+    BackButton "←"
+    Title "Profile"
+    SubLine "Liam · Savannah Land"
+    OverviewTab "Overview"
+    CosmeticsTab "Cosmetics"
+    TitlesTab "Titles"
+  Body
+    CategoryTabs
+      DiceTab "Dice skins · 2 of 26"
+      FramesTab "Avatar frames · 2 of 27"
+    Grid
+      CosmeticTile
+        EquippedDisc
+      CosmeticTile "L Vine Wreath Uncommon · Owned"
+      CosmeticTile "L Frost Crown Rare · Locked"
+      CosmeticTile "L Coral Fan Epic · Locked"
+      CosmeticTile "L Founder's Laurel Epic · Locked"
+      CosmeticTile "L Lunacia Sovereign Legendary · Locked"
+      CosmeticTile "L Luna Heart Crown Mythic · Locked"
+    PreviewPlate
+      Preview3D "— frame on your avatar"
+      EquipButton "Equip · Equipped"
+
+=== 24-profile--cosmetics-frames--1280 (1280)
+  # godot: ProfileView.
+  Header
+    BackButton "←"
+    Title "Profile"
+    SubLine "Liam · Savannah Land"
+    OverviewTab "Overview"
+    CosmeticsTab "Cosmetics"
+    TitlesTab "Titles"
+  Body
+    CategoryTabs
+      DiceTab "Dice skins · 2 of 26"
+      FramesTab "Avatar frames · 2 of 27"
+    Grid
+      CosmeticTile
+        EquippedDisc
+      CosmeticTile "L Vine Wreath Uncommon · Owned"
+      CosmeticTile "L Frost Crown Rare · Locked"
+      CosmeticTile "L Coral Fan Epic · Locked"
+      CosmeticTile "L Founder's Laurel Epic · Locked"
+      CosmeticTile "L Lunacia Sovereign Legendary · Locked"
+      CosmeticTile "L Luna Heart Crown Mythic · Locked"
+    PreviewPlate
+      Preview3D "— frame on your avatar"
+      EquipButton "Equip · Equipped"
+
+=== 24-profile--titles (1920)
+  # godot: ProfileView.
+  Header
+    BackButton "←"
+    Title "Profile"
+    SubLine "Liam · Savannah Land"
+    OverviewTab "Overview"
+    CosmeticsTab "Cosmetics"
+    TitlesTab "Titles"
+  Body
+    TitleGrid
+      TitleTile
+        UseDefaultButton "Use default"
+      TitleTile
+        EquipButton "Equip · Equipped"
+      TitleTile
+        EquipButton "Equip"
+      TitleTile
+        EquipButton "Equip · Not yet earned"
+    ProfileCard
+      Avatar "L"
+      Name "Liam"
+      SkyMavisTag "Sky Mavis"
+      TitleLine "Title: [A5 title]"
+      SyncChip "Saved"
+
+=== 24-profile--titles--1280 (1280)
+  # godot: ProfileView.
+  Header
+    BackButton "←"
+    Title "Profile"
+    SubLine "Liam · Savannah Land"
+    OverviewTab "Overview"
+    CosmeticsTab "Cosmetics"
+    TitlesTab "Titles"
+  Body
+    TitleGrid
+      TitleTile
+        UseDefaultButton "Use default"
+      TitleTile
+        EquipButton "Equip · Equipped"
+      TitleTile
+        EquipButton "Equip"
+      TitleTile
+        EquipButton "Equip · Not yet earned"
+    ProfileCard
+      Avatar "L"
+      Name "Liam"
+      SkyMavisTag "Sky Mavis"
+      TitleLine "Title: [A5 title]"
+      SyncChip "Saved"

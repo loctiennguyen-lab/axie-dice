@@ -1,0 +1,21 @@
+# M2: Moment B2
+# Nguon: design/handoffs/ui-05-figma/round-2/moments (khong co frame, liet ke file)
+# So file moment: 6
+
+=== moments/moment-anchor-awaken.html  [UI-05 moment · Anchor awaken]
+  (HTML dong, khong co data-name; xem motion-batch*.md va file nay)
+
+=== moments/moment-core-reveal.html  [UI-05 moment · Core offer reveal]
+  (HTML dong, khong co data-name; xem motion-batch*.md va file nay)
+
+=== moments/moment-core-taken.html  [UI-05 moment · Core taken]
+  (HTML dong, khong co data-name; xem motion-batch*.md va file nay)
+
+=== moments/moment-level-up.html  [UI-05 moment · Level up]
+  (HTML dong, khong co data-name; xem motion-batch*.md va file nay)
+
+=== moments/moment-reward-taken.html  [UI-05 moment · Reward taken]
+  (HTML dong, khong co data-name; xem motion-batch*.md va file nay)
+
+=== moments/moment-treasure-open.html  [UI-05 moment · Treasure open]
+  (HTML dong, khong co data-name; xem motion-batch*.md va file nay)

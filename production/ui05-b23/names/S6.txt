@@ -1,0 +1,609 @@
+# S6: Result
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-meta1-screens.html
+# So frame: 24 (12 id, tinh ca ban 1920 va 1280)
+# Tien to: 10-result
+# Id frame:
+#   10-result--win
+#   10-result--win--1280
+#   10-result--new-title
+#   10-result--new-title--1280
+#   10-result--anchor-awake
+#   10-result--anchor-awake--1280
+#   10-result--anchor-not
+#   10-result--anchor-not--1280
+#   10-result--combos-full
+#   10-result--combos-full--1280
+#   10-result--ranked-save
+#   10-result--ranked-save--1280
+#   10-result--ranked-saved
+#   10-result--ranked-saved--1280
+#   10-result--copied
+#   10-result--copied--1280
+#   10-result--loss
+#   10-result--loss--1280
+#   10-result--mission-won
+#   10-result--mission-won--1280
+#   10-result--mission-lost
+#   10-result--mission-lost--1280
+#   10-result--mission-settling
+#   10-result--mission-settling--1280
+
+=== 10-result--win (1920)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    NewBestChip "New best · A5"
+    Title "Run won"
+    SubLine "Short run · A5 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "18 / 18 Nodes cleared 41 Turns taken 913 Damage dealt 23 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      ShardCard "Gene Shard earned +87 27 run payout · 60 daily Shards now 4…"
+      PassCard
+        XpDisc "XP"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Run again"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--win--1280 (1280)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    NewBestChip "New best · A5"
+    Title "Run won"
+    SubLine "Short run · A5 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "18 / 18 Nodes cleared 41 Turns taken 913 Damage dealt 23 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      ShardCard "Gene Shard earned +87 27 run payout · 60 daily Shards now 4…"
+      PassCard
+        XpDisc "XP"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Run again"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--new-title (1920)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Run won"
+    SubLine "Short run · A5 · Seed 777006"
+    NewTitleRow "New title: [A5 title]"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "18 / 18 Nodes cleared 41 Turns taken 913 Damage dealt 23 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      ShardCard "Gene Shard earned +87 27 run payout · 60 daily Shards now 4…"
+      PassCard
+        XpDisc "XP"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Run again"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--new-title--1280 (1280)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Run won"
+    SubLine "Short run · A5 · Seed 777006"
+    NewTitleRow "New title: [A5 title]"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "18 / 18 Nodes cleared 41 Turns taken 913 Damage dealt 23 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      ShardCard "Gene Shard earned +87 27 run payout · 60 daily Shards now 4…"
+      PassCard
+        XpDisc "XP"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Run again"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--anchor-awake (1920)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Run won"
+    SubLine "Short run · A5 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "18 / 18 Nodes cleared 41 Turns taken 913 Damage dealt 23 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      ShardCard "Gene Shard earned +87 27 run payout · 60 daily Shards now 4…"
+      PassCard
+        XpDisc "XP"
+      AnchorCard "Anchor · Kin Awakened Mutations: Unison (level 2)"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Run again"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--anchor-awake--1280 (1280)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Run won"
+    SubLine "Short run · A5 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "18 / 18 Nodes cleared 41 Turns taken 913 Damage dealt 23 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      ShardCard "Gene Shard earned +87 27 run payout · 60 daily Shards now 4…"
+      PassCard
+        XpDisc "XP"
+      AnchorCard "Anchor · Kin Awakened Mutations: Unison (level 2)"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Run again"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--anchor-not (1920)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Run won"
+    SubLine "Short run · A5 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "18 / 18 Nodes cleared 41 Turns taken 913 Damage dealt 23 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      ShardCard "Gene Shard earned +87 27 run payout · 60 daily Shards now 4…"
+      PassCard
+        XpDisc "XP"
+      AnchorCard "Anchor · Kin Not awakened Mutations: Unison (level 1)"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Run again"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--anchor-not--1280 (1280)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Run won"
+    SubLine "Short run · A5 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "18 / 18 Nodes cleared 41 Turns taken 913 Damage dealt 23 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      ShardCard "Gene Shard earned +87 27 run payout · 60 daily Shards now 4…"
+      PassCard
+        XpDisc "XP"
+      AnchorCard "Anchor · Kin Not awakened Mutations: Unison (level 1)"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Run again"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--combos-full (1920)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Run won"
+    SubLine "Short run · A5 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "18 / 18 Nodes cleared 41 Turns taken 913 Damage dealt 23 Ki…"
+    BestSetLine "Best set: Mouth ×4 · ×2"
+    CardScroll
+      ShardCard
+        SaveRecordButton "Save run record"
+      PassCard
+        XpDisc "XP"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard
+        ComboRowFull "Golden Turtle Fortress Full"
+        ComboRow "Shield Engine Pair"
+    Actions
+      RunAgainButton "Run again"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--combos-full--1280 (1280)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Run won"
+    SubLine "Short run · A5 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "18 / 18 Nodes cleared 41 Turns taken 913 Damage dealt 23 Ki…"
+    BestSetLine "Best set: Mouth ×4 · ×2"
+    CardScroll
+      ShardCard
+        SaveRecordButton "Save run record"
+      PassCard
+        XpDisc "XP"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard
+        ComboRowFull "Golden Turtle Fortress Full"
+        ComboRow "Shield Engine Pair"
+    Actions
+      RunAgainButton "Run again"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--ranked-save (1920)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Run won"
+    SubLine "Short run · A5 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "18 / 18 Nodes cleared 41 Turns taken 913 Damage dealt 23 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      ShardCard
+        SaveRecordButton "Save run record"
+      PassCard
+        XpDisc "XP"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Run again"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--ranked-save--1280 (1280)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Run won"
+    SubLine "Short run · A5 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "18 / 18 Nodes cleared 41 Turns taken 913 Damage dealt 23 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      ShardCard
+        SaveRecordButton "Save run record"
+      PassCard
+        XpDisc "XP"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Run again"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--ranked-saved (1920)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Run won"
+    SubLine "Short run · A5 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "18 / 18 Nodes cleared 41 Turns taken 913 Damage dealt 23 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      ShardCard
+        SavedLine
+          ToneDisc
+      PassCard
+        XpDisc "XP"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Run again"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--ranked-saved--1280 (1280)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Run won"
+    SubLine "Short run · A5 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "18 / 18 Nodes cleared 41 Turns taken 913 Damage dealt 23 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      ShardCard
+        SavedLine
+          ToneDisc
+      PassCard
+        XpDisc "XP"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Run again"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--copied (1920)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Run won"
+    SubLine "Short run · A5 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "18 / 18 Nodes cleared 41 Turns taken 913 Damage dealt 23 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      ShardCard "Gene Shard earned +87 27 run payout · 60 daily Shards now 4…"
+      PassCard
+        XpDisc "XP"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Run again"
+      CopiedLine
+        ToneDisc
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--copied--1280 (1280)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Run won"
+    SubLine "Short run · A5 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "18 / 18 Nodes cleared 41 Turns taken 913 Damage dealt 23 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      ShardCard "Gene Shard earned +87 27 run payout · 60 daily Shards now 4…"
+      PassCard
+        XpDisc "XP"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Run again"
+      CopiedLine
+        ToneDisc
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--loss (1920)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Defeated"
+    SubLine "Short run · A5 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "11 / 18 Nodes cleared 29 Turns taken 512 Damage dealt 14 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      ShardCard "Gene Shard earned +87 27 run payout · 60 daily Shards now 4…"
+      PassCard
+        XpDisc "XP"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Run again"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--loss--1280 (1280)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Defeated"
+    SubLine "Short run · A5 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "11 / 18 Nodes cleared 29 Turns taken 512 Damage dealt 14 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      ShardCard "Gene Shard earned +87 27 run payout · 60 daily Shards now 4…"
+      PassCard
+        XpDisc "XP"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Run again"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--mission-won (1920)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Run won"
+    SubLine "Short run · A3 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "18 / 18 Nodes cleared 41 Turns taken 913 Damage dealt 23 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      StakeBox "Mission won. Your 800 Shards stake comes back as 7,240 Shar…"
+      ShardCard "Run reward (separate from your stake) +27 27 from the run i…"
+      PassCard
+        XpDisc "XP"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Play a normal run"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--mission-won--1280 (1280)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Run won"
+    SubLine "Short run · A3 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "18 / 18 Nodes cleared 41 Turns taken 913 Damage dealt 23 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      StakeBox "Mission won. Your 800 Shards stake comes back as 7,240 Shar…"
+      ShardCard "Run reward (separate from your stake) +27 27 from the run i…"
+      PassCard
+        XpDisc "XP"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Play a normal run"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--mission-lost (1920)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Defeated"
+    SubLine "Short run · A3 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "11 / 18 Nodes cleared 29 Turns taken 512 Damage dealt 14 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      StakeBox "Mission lost. You lose your 800 Shards stake (−800 Shards).…"
+      ShardCard "Run reward (separate from your stake) +27 27 from the run i…"
+      PassCard
+        XpDisc "XP"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Play a normal run"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--mission-lost--1280 (1280)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Defeated"
+    SubLine "Short run · A3 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "11 / 18 Nodes cleared 29 Turns taken 512 Damage dealt 14 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      StakeBox "Mission lost. You lose your 800 Shards stake (−800 Shards).…"
+      ShardCard "Run reward (separate from your stake) +27 27 from the run i…"
+      PassCard
+        XpDisc "XP"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Play a normal run"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--mission-settling (1920)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Run won"
+    SubLine "Short run · A3 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "18 / 18 Nodes cleared 41 Turns taken 913 Damage dealt 23 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      StakeBox "Your 800 Shards stake settles with the server. Check Missio…"
+      ShardCard "Run reward (separate from your stake) +27 27 from the run i…"
+      PassCard
+        XpDisc "XP"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Play a normal run"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"
+
+=== 10-result--mission-settling--1280 (1280)
+  # godot: ResultView. One 640 plate; cards scroll. Back to Land has focus (Space).
+  ResultBackground "result_bg/forest.jpg (biome arena, not in send) + scrim"
+  Scrim
+  ResultPlate
+    Title "Run won"
+    SubLine "Short run · A3 · Seed 777006"
+    PartyRow "Olek T1 Buba T1 Puffy T1 Machito T1 Pomodoro T1"
+    StatGrid "18 / 18 Nodes cleared 41 Turns taken 913 Damage dealt 23 Ki…"
+    BestSetLine "No Set this run. Next time try keeping 3 dice of the same p…"
+    CardScroll
+      StakeBox "Your 800 Shards stake settles with the server. Check Missio…"
+      ShardCard "Run reward (separate from your stake) +27 27 from the run i…"
+      PassCard
+        XpDisc "XP"
+      CoresCard "Cores · 3 Run Rule: Upside Down Living Wall Not triggered t…"
+      CombosCard "Combos · 0 No combos this run."
+    Actions
+      RunAgainButton "Play a normal run"
+      CopyButton "Copy run card"
+      BackButton
+        KeyCap "Space"
+  VersionTag "v0.1.0-l1"

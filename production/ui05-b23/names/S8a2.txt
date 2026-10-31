@@ -1,0 +1,101 @@
+# S8a2: Boot offline, Welcome, ChooseSave, Move progress (a13-a16)
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-meta1-screens.html
+# So frame: 8 (4 id, tinh ca ban 1920 va 1280)
+# Tien to: a13- a14- a15- a16-
+# Id frame:
+#   a13-boot-offline-gate
+#   a13-boot-offline-gate--1280
+#   a14-welcome-panel
+#   a14-welcome-panel--1280
+#   a15-choose-a-save
+#   a15-choose-a-save--1280
+#   a16-move-guest-progress
+#   a16-move-guest-progress--1280
+
+=== a13-boot-offline-gate (1920)
+  # godot: boot offline gate. Nothing opens until the server answers.
+  BootOfflineGate
+    Brand "AXIE DICE"
+    Version "v0.1.0-l1"
+    ToneDisc "!"
+    TryAgainButton "Try again"
+
+=== a13-boot-offline-gate--1280 (1280)
+  # godot: boot offline gate. Nothing opens until the server answers.
+  BootOfflineGate
+    Brand "AXIE DICE"
+    Version "v0.1.0-l1"
+    ToneDisc "!"
+    TryAgainButton "Try again"
+
+=== a14-welcome-panel (1920)
+  # godot: AccountUI welcome panel (web, once, signed out and never chose guest).
+  LandScene "3D Land diorama · placeholder"
+  Scrim
+  WelcomePanel
+    SkyMavisTag "SKY MAVIS"
+    Point "Vault your imported Axies"
+    Point "Shards & Pass every unlock you earned"
+    Point "Continue pick up a run on another device"
+    GoogleButton "Continue with Google"
+    GuestButton "Continue without signing in"
+
+=== a14-welcome-panel--1280 (1280)
+  # godot: AccountUI welcome panel (web, once, signed out and never chose guest).
+  LandScene "3D Land diorama · placeholder"
+  Scrim
+  WelcomePanel
+    SkyMavisTag "SKY MAVIS"
+    Point "Vault your imported Axies"
+    Point "Shards & Pass every unlock you earned"
+    Point "Continue pick up a run on another device"
+    GoogleButton "Continue with Google"
+    GuestButton "Continue without signing in"
+
+=== a15-choose-a-save (1920)
+  # godot: AccountUI choose-a-save. Primary goes to the save with more XP (here the device); a tie keeps the cloud.
+  Scrim
+  ChooseSave
+    Title "Choose a save"
+    Body "This device has guest progress Your account already has a s…"
+    SaveCard "This device (guest) On this browser Gene Shards 4,967 Vault…"
+    SaveCard "Cloud (your account) Saved 3 hours ago Gene Shards 1,240 Va…"
+    Footer
+      KeepLocalButton "Keep this device"
+      KeepCloudButton "Keep cloud"
+
+=== a15-choose-a-save--1280 (1280)
+  # godot: AccountUI choose-a-save. Primary goes to the save with more XP (here the device); a tie keeps the cloud.
+  Scrim
+  ChooseSave
+    Title "Choose a save"
+    Body "This device has guest progress Your account already has a s…"
+    SaveCard "This device (guest) On this browser Gene Shards 4,967 Vault…"
+    SaveCard "Cloud (your account) Saved 3 hours ago Gene Shards 1,240 Va…"
+    Footer
+      KeepLocalButton "Keep this device"
+      KeepCloudButton "Keep cloud"
+
+=== a16-move-guest-progress (1920)
+  # godot: AccountUI move-progress. Move progress has focus (Space).
+  Scrim
+  MoveGuestProgress
+    Title "Move your guest progress?"
+    Body "This browser has progress from before you signed in, and yo…"
+    SaveCard "This device (guest) On this browser Gene Shards 4,967 Vault…"
+    Footer
+      StartFreshButton "Start fresh"
+      MoveButton
+        KeyCap "Space"
+
+=== a16-move-guest-progress--1280 (1280)
+  # godot: AccountUI move-progress. Move progress has focus (Space).
+  Scrim
+  MoveGuestProgress
+    Title "Move your guest progress?"
+    Body "This browser has progress from before you signed in, and yo…"
+    SaveCard "This device (guest) On this browser Gene Shards 4,967 Vault…"
+    Footer
+      StartFreshButton "Start fresh"
+      MoveButton
+        KeyCap "Space"

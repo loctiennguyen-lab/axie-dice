@@ -1,0 +1,295 @@
+# R5a: Shop
+# Nguon HTML: design/handoffs/ui-05-figma/round-2/ui05-run-screens.html
+# So frame: 6 (3 id, tinh ca ban 1920 va 1280)
+# Tien to: shop--
+# Id frame:
+#   shop--stock
+#   shop--stock--1280
+#   shop--sold-out
+#   shop--sold-out--1280
+#   shop--cant-afford
+#   shop--cant-afford--1280
+
+=== shop--stock (1920)
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  Shop
+    # godot: Focus: Cores → Supplies → Sell → Leave shop. Prices: Core cards by tier 45 / 75 / 120.
+    Header
+      Title "Shop"
+      RowLabel "Row 7"
+      ShardPill "100"
+    CoreStock
+      ShopCoreCard
+        CoreName "Dewdrop"
+        TierChip "Moss"
+        CategoryChip "Stat"
+        RuleText "+1 Mana at the start of every turn."
+        BuyButton "Buy · 45 Shards"
+      ShopCoreCard
+        CoreName "Kindle"
+        TierChip "Amber"
+        CategoryChip "Dice faces"
+        RuleText "A Held die has Focus: used next turn it deals +4 (+8 if hel…"
+        BuyButton "Buy · 75 Shards"
+      ShopCoreCard
+        CoreName "Sixth Die"
+        TierChip "Crystal"
+        CategoryChip "Dice faces"
+        RuleText "Each turn, roll one extra die from a random living Axie. Us…"
+        BuyButton "Need 120 Shards"
+    SupplyStock
+      SupplyItem
+        BuyButton "Buy · 40 Shards"
+      SupplyItem
+        BuyButton "Need 110 Shards"
+      SupplyItem
+        BuyButton "Buy · 60 Shards"
+    SellColumn
+      SellRow
+        CoreSlot "E"
+        SellButton "Early Scales · +22"
+      SellRow
+        CoreSlot "M"
+        SellButton "Mana Pool · +22"
+    LeaveButton
+      KeyCap "Space"
+
+=== shop--stock--1280 (1280)
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  Shop
+    # godot: Focus: Cores → Supplies → Sell → Leave shop. Prices: Core cards by tier 45 / 75 / 120.
+    Header
+      Title "Shop"
+      RowLabel "Row 7"
+      ShardPill "100"
+    CoreStock
+      ShopCoreCard
+        CoreName "Dewdrop"
+        TierChip "Moss"
+        CategoryChip "Stat"
+        RuleText "+1 Mana at the start of every turn."
+        BuyButton "Buy · 45 Shards"
+      ShopCoreCard
+        CoreName "Kindle"
+        TierChip "Amber"
+        CategoryChip "Dice faces"
+        RuleText "A Held die has Focus: used next turn it deals +4 (+8 if hel…"
+        BuyButton "Buy · 75 Shards"
+      ShopCoreCard
+        CoreName "Sixth Die"
+        TierChip "Crystal"
+        CategoryChip "Dice faces"
+        RuleText "Each turn, roll one extra die from a random living Axie. Us…"
+        BuyButton "Need 120 Shards"
+    SupplyStock
+      SupplyItem
+        BuyButton "Buy · 40 Shards"
+      SupplyItem
+        BuyButton "Need 110 Shards"
+      SupplyItem
+        BuyButton "Buy · 60 Shards"
+    SellColumn
+      SellRow
+        CoreSlot "E"
+        SellButton "Early Scales · +22"
+      SellRow
+        CoreSlot "M"
+        SellButton "Mana Pool · +22"
+    LeaveButton
+      KeyCap "Space"
+
+=== shop--sold-out (1920)
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  Shop
+    # godot: Focus: Cores → Supplies → Sell → Leave shop. Prices: Core cards by tier 45 / 75 / 120.
+    Header
+      Title "Shop"
+      RowLabel "Row 7"
+      ShardPill "25"
+    CoreStock
+      ShopCoreCard
+        CoreName "Dewdrop"
+        TierChip "Moss"
+        CategoryChip "Stat"
+        RuleText "+1 Mana at the start of every turn."
+        BuyButton "Need 45 Shards"
+      ShopCoreCard
+        CoreName "Kindle"
+        TierChip "Amber"
+        CategoryChip "Dice faces"
+        RuleText "A Held die has Focus: used next turn it deals +4 (+8 if hel…"
+        BuyButton "Bought"
+      ShopCoreCard
+        CoreName "Sixth Die"
+        TierChip "Crystal"
+        CategoryChip "Dice faces"
+        RuleText "Each turn, roll one extra die from a random living Axie. Us…"
+        BuyButton "Need 120 Shards"
+    SupplyStock
+      SupplyItem
+        BuyButton "Need 40 Shards"
+      SupplyItem
+        BuyButton "Need 110 Shards"
+      SupplyItem
+        BuyButton "Sold out"
+    SellColumn
+      SellRow
+        CoreSlot "E"
+        SellButton "Early Scales · +22"
+      SellRow
+        CoreSlot "M"
+        SellButton "Mana Pool · +22"
+      SellRow
+        CoreSlot "K"
+        SellButton "Kindle · +37"
+    LeaveButton
+      KeyCap "Space"
+
+=== shop--sold-out--1280 (1280)
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  Shop
+    # godot: Focus: Cores → Supplies → Sell → Leave shop. Prices: Core cards by tier 45 / 75 / 120.
+    Header
+      Title "Shop"
+      RowLabel "Row 7"
+      ShardPill "25"
+    CoreStock
+      ShopCoreCard
+        CoreName "Dewdrop"
+        TierChip "Moss"
+        CategoryChip "Stat"
+        RuleText "+1 Mana at the start of every turn."
+        BuyButton "Need 45 Shards"
+      ShopCoreCard
+        CoreName "Kindle"
+        TierChip "Amber"
+        CategoryChip "Dice faces"
+        RuleText "A Held die has Focus: used next turn it deals +4 (+8 if hel…"
+        BuyButton "Bought"
+      ShopCoreCard
+        CoreName "Sixth Die"
+        TierChip "Crystal"
+        CategoryChip "Dice faces"
+        RuleText "Each turn, roll one extra die from a random living Axie. Us…"
+        BuyButton "Need 120 Shards"
+    SupplyStock
+      SupplyItem
+        BuyButton "Need 40 Shards"
+      SupplyItem
+        BuyButton "Need 110 Shards"
+      SupplyItem
+        BuyButton "Sold out"
+    SellColumn
+      SellRow
+        CoreSlot "E"
+        SellButton "Early Scales · +22"
+      SellRow
+        CoreSlot "M"
+        SellButton "Mana Pool · +22"
+      SellRow
+        CoreSlot "K"
+        SellButton "Kindle · +37"
+    LeaveButton
+      KeyCap "Space"
+
+=== shop--cant-afford (1920)
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  Shop
+    # godot: Focus: Cores → Supplies → Sell → Leave shop. Prices: Core cards by tier 45 / 75 / 120.
+    Header
+      Title "Shop"
+      RowLabel "Row 7"
+      ShardPill "10"
+    Notice "You can't afford anything here. Sell a Core or leave."
+    CoreStock
+      ShopCoreCard
+        CoreName "Dewdrop"
+        TierChip "Moss"
+        CategoryChip "Stat"
+        RuleText "+1 Mana at the start of every turn."
+        BuyButton "Need 45 Shards"
+      ShopCoreCard
+        CoreName "Kindle"
+        TierChip "Amber"
+        CategoryChip "Dice faces"
+        RuleText "A Held die has Focus: used next turn it deals +4 (+8 if hel…"
+        BuyButton "Bought"
+      ShopCoreCard
+        CoreName "Sixth Die"
+        TierChip "Crystal"
+        CategoryChip "Dice faces"
+        RuleText "Each turn, roll one extra die from a random living Axie. Us…"
+        BuyButton "Need 120 Shards"
+    SupplyStock
+      SupplyItem
+        BuyButton "Need 40 Shards"
+      SupplyItem
+        BuyButton "Need 110 Shards"
+      SupplyItem
+        BuyButton "Sold out"
+    SellColumn
+      SellRow
+        CoreSlot "E"
+        SellButton "Early Scales · +22"
+      SellRow
+        CoreSlot "M"
+        SellButton "Mana Pool · +22"
+      SellRow
+        CoreSlot "K"
+        SellButton "Kindle · +37"
+    LeaveButton
+      KeyCap "Space"
+
+=== shop--cant-afford--1280 (1280)
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  Shop
+    # godot: Focus: Cores → Supplies → Sell → Leave shop. Prices: Core cards by tier 45 / 75 / 120.
+    Header
+      Title "Shop"
+      RowLabel "Row 7"
+      ShardPill "10"
+    Notice "You can't afford anything here. Sell a Core or leave."
+    CoreStock
+      ShopCoreCard
+        CoreName "Dewdrop"
+        TierChip "Moss"
+        CategoryChip "Stat"
+        RuleText "+1 Mana at the start of every turn."
+        BuyButton "Need 45 Shards"
+      ShopCoreCard
+        CoreName "Kindle"
+        TierChip "Amber"
+        CategoryChip "Dice faces"
+        RuleText "A Held die has Focus: used next turn it deals +4 (+8 if hel…"
+        BuyButton "Bought"
+      ShopCoreCard
+        CoreName "Sixth Die"
+        TierChip "Crystal"
+        CategoryChip "Dice faces"
+        RuleText "Each turn, roll one extra die from a random living Axie. Us…"
+        BuyButton "Need 120 Shards"
+    SupplyStock
+      SupplyItem
+        BuyButton "Need 40 Shards"
+      SupplyItem
+        BuyButton "Need 110 Shards"
+      SupplyItem
+        BuyButton "Sold out"
+    SellColumn
+      SellRow
+        CoreSlot "E"
+        SellButton "Early Scales · +22"
+      SellRow
+        CoreSlot "M"
+        SellButton "Mana Pool · +22"
+      SellRow
+        CoreSlot "K"
+        SellButton "Kindle · +37"
+    LeaveButton
+      KeyCap "Space"

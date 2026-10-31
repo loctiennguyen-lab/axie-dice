@@ -1,0 +1,803 @@
+# R1: Ban do + HUD
+# Nguon HTML: design/handoffs/ui-05-figma/round-2/ui05-run-screens.html
+# So frame: 9 (5 id, tinh ca ban 1920 va 1280)
+# Tien to: 03-run-map components-run--sheet
+# Id frame:
+#   components-run--sheet
+#   03-run-map--default
+#   03-run-map--default--1280
+#   03-run-map--anchor-rule
+#   03-run-map--anchor-rule--1280
+#   03-run-map--node-picked
+#   03-run-map--node-picked--1280
+#   03-run-map--boss-next
+#   03-run-map--boss-next--1280
+
+=== components-run--sheet (1920)
+  ComponentsRun
+    CoreSlot
+    CoreSlot "B"
+    CoreSlot "K"
+    CoreSlot "L"
+    CoreSlot
+      HouseRing
+    AnchorTile
+    AnchorTile
+      AwakenGlyph
+    TierChip "Moss"
+    TierChip "Amber"
+    TierChip "Crystal"
+    TierChip "Amber"
+    CategoryChip "Stat"
+    CategoryChip "Dice faces"
+    CategoryChip "Position"
+    CategoryChip "Mana"
+    CategoryChip "Quest"
+    CategoryChip "Rule change"
+    CategoryChip "Run rule"
+
+=== 03-run-map--default (1920)
+  # godot: MapView (Control, full rect) draws edges, then one MapNode per node at the generator's position. Columns = floors, 140 px apart; lanes 160 px apart. The view scrolls so the current floor sits in column 2.
+  # godot: RunInfo = HBox anchored top-left (margin 24): MenuButton (tooltip "Menu", opens the in-run menu, same as Esc), RunPill.
+  # godot: NodeDetail anchored top-right (margin 24). Follows the picked node (mouse or arrows). Travel = Space / Enter / double-click (keys work, only Space is shown).
+  MapBackdrop [0,0 100%x100%] "run map backdrop (scene art)"
+  MapView
+    # godot: MapEdges = draw_line / draw_dashed_line in MapView._draw(). Dashed map_edge #fff3d6 with a plate_ink drop 2 px below; walked path solid map_edge_passed #ffb444. Width 4.
+    MapEdges
+    MapNode [472px,504px]
+      NodeToken
+        PassedTick
+    MapNode [612px,504px]
+      NodeToken
+      Caption "Battle"
+    MapNode [752px,344px]
+      NodeToken
+      Caption "Event"
+    MapNode [752px,504px]
+      NodeToken
+        RewardBadge
+      Caption "Battle"
+    MapNode [752px,664px]
+      NodeToken
+      Caption "Treasure"
+    MapNode [892px,344px]
+      NodeToken "?"
+    MapNode [892px,504px]
+      NodeToken "?"
+    MapNode [892px,664px]
+      NodeToken "?"
+    MapNode [1032px,344px]
+      NodeToken "?"
+    MapNode [1032px,504px]
+      NodeToken "?"
+    MapNode [1032px,664px]
+      NodeToken "?"
+    MapNode [1172px,495px]
+      NodeToken "?"
+    MapNode [1312px,344px]
+      NodeToken "?"
+    MapNode [1312px,664px]
+      NodeToken "?"
+  RunInfo
+    MenuButton
+    RunPill
+      FloorLabel "Floor 2 of 18"
+      AscensionChip "A0"
+      ShardChip "40"
+  PartyPlate
+    PartyRow
+      AxieName "Olek"
+      MaxHP "17"
+      HPBar
+    PartyRow
+      AxieName "Buba"
+      MaxHP "12"
+      HPBar
+    PartyRow
+      AxieName "Puffy"
+      MaxHP "13"
+      HPBar
+    PartyRow
+      AxieName "Machito"
+      MaxHP "16"
+      HPBar
+    PartyRow
+      AxieName "Pomodoro"
+      MaxHP "14"
+      HPBar
+  CoresPlate
+    # godot: CorePanel. Order: AnchorTile (only with an Anchor) · divider · 6 CoreSlot · RunRuleSlot. Slot 40 on the map, 44 elsewhere. Tooltips as game-data §1.
+    CoresTitle "Cores · 1"
+    CoreStrip
+      CoreSlot "E"
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      RunRuleSlot "R"
+    OwnedList
+      OwnedCore "Early Scales Moss"
+  NodeDetail
+    NodeTitle "Battle"
+    NodeDesc "A fight against a squad of enemies."
+    WinRows
+      WinRow "Choose 1 of 3 rewards"
+      RewardRow "Reward card: Level up"
+    PathNote "On your path"
+    RouteLine "Floor 3 of 18 · 3 floors to the boss"
+    TravelButton
+      KeyCap "Space"
+
+=== 03-run-map--default--1280 (1280)
+  # godot: MapView (Control, full rect) draws edges, then one MapNode per node at the generator's position. Columns = floors, 140 px apart; lanes 160 px apart. The view scrolls so the current floor sits in column 2.
+  # godot: RunInfo = HBox anchored top-left (margin 24): MenuButton (tooltip "Menu", opens the in-run menu, same as Esc), RunPill.
+  # godot: NodeDetail anchored top-right (margin 24). Follows the picked node (mouse or arrows). Travel = Space / Enter / double-click (keys work, only Space is shown).
+  MapBackdrop [0,0 100%x100%] "run map backdrop (scene art)"
+  MapView
+    # godot: MapEdges = draw_line / draw_dashed_line in MapView._draw(). Dashed map_edge #fff3d6 with a plate_ink drop 2 px below; walked path solid map_edge_passed #ffb444. Width 4.
+    MapEdges
+    MapNode [315px,336px]
+      NodeToken
+        PassedTick
+    MapNode [408px,336px]
+      NodeToken
+      Caption "Battle"
+    MapNode [501px,229px]
+      NodeToken
+      Caption "Event"
+    MapNode [501px,336px]
+      NodeToken
+        RewardBadge
+      Caption "Battle"
+    MapNode [501px,443px]
+      NodeToken
+      Caption "Treasure"
+    MapNode [595px,229px]
+      NodeToken "?"
+    MapNode [595px,336px]
+      NodeToken "?"
+    MapNode [595px,443px]
+      NodeToken "?"
+    MapNode [688px,229px]
+      NodeToken "?"
+    MapNode [688px,336px]
+      NodeToken "?"
+    MapNode [688px,443px]
+      NodeToken "?"
+    MapNode [781px,330px]
+      NodeToken "?"
+    MapNode [875px,229px]
+      NodeToken "?"
+    MapNode [875px,443px]
+      NodeToken "?"
+  RunInfo
+    MenuButton
+    RunPill
+      FloorLabel "Floor 2 of 18"
+      AscensionChip "A0"
+      ShardChip "40"
+  PartyPlate
+    PartyRow
+      AxieName "Olek"
+      MaxHP "17"
+      HPBar
+    PartyRow
+      AxieName "Buba"
+      MaxHP "12"
+      HPBar
+    PartyRow
+      AxieName "Puffy"
+      MaxHP "13"
+      HPBar
+    PartyRow
+      AxieName "Machito"
+      MaxHP "16"
+      HPBar
+    PartyRow
+      AxieName "Pomodoro"
+      MaxHP "14"
+      HPBar
+  CoresPlate
+    # godot: CorePanel. Order: AnchorTile (only with an Anchor) · divider · 6 CoreSlot · RunRuleSlot. Slot 40 on the map, 44 elsewhere. Tooltips as game-data §1.
+    CoresTitle "Cores · 1"
+    CoreStrip
+      CoreSlot "E"
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      RunRuleSlot "R"
+    OwnedList
+      OwnedCore "Early Scales Moss"
+  NodeDetail
+    NodeTitle "Battle"
+    NodeDesc "A fight against a squad of enemies."
+    WinRows
+      WinRow "Choose 1 of 3 rewards"
+      RewardRow "Reward card: Level up"
+    PathNote "On your path"
+    RouteLine "Floor 3 of 18 · 3 floors to the boss"
+    TravelButton
+      KeyCap "Space"
+
+=== 03-run-map--anchor-rule (1920)
+  # godot: MapView (Control, full rect) draws edges, then one MapNode per node at the generator's position. Columns = floors, 140 px apart; lanes 160 px apart. The view scrolls so the current floor sits in column 2.
+  # godot: RunInfo = HBox anchored top-left (margin 24): MenuButton (tooltip "Menu", opens the in-run menu, same as Esc), RunPill.
+  # godot: NodeDetail anchored top-right (margin 24). Follows the picked node (mouse or arrows). Travel = Space / Enter / double-click (keys work, only Space is shown).
+  MapBackdrop [0,0 100%x100%] "run map backdrop (scene art)"
+  MapView
+    # godot: MapEdges = draw_line / draw_dashed_line in MapView._draw(). Dashed map_edge #fff3d6 with a plate_ink drop 2 px below; walked path solid map_edge_passed #ffb444. Width 4.
+    MapEdges
+    MapNode [472px,504px]
+      NodeToken
+        PassedTick
+    MapNode [612px,504px]
+      NodeToken
+      Caption "Battle"
+    MapNode [752px,344px]
+      NodeToken
+      Caption "Event"
+    MapNode [752px,504px]
+      NodeToken
+        RewardBadge
+      Caption "Battle"
+    MapNode [752px,664px]
+      NodeToken
+      Caption "Treasure"
+    MapNode [892px,344px]
+      NodeToken "?"
+    MapNode [892px,504px]
+      NodeToken "?"
+    MapNode [892px,664px]
+      NodeToken "?"
+    MapNode [1032px,344px]
+      NodeToken "?"
+    MapNode [1032px,504px]
+      NodeToken "?"
+    MapNode [1032px,664px]
+      NodeToken "?"
+    MapNode [1172px,495px]
+      NodeToken "?"
+    MapNode [1312px,344px]
+      NodeToken "?"
+    MapNode [1312px,664px]
+      NodeToken "?"
+  RunInfo
+    # godot: AnchorChip in the top bar (Liam approved 29/10): the Anchor reads without opening the Cores strip. It replaces the HouseChip that sat in the CoresPlate; the Anchor tile in the strip stays.
+    MenuButton
+    RunPill
+      FloorLabel "Floor 2 of 18"
+      AscensionChip "A0"
+      ShardChip "40"
+    AnchorChip "Kin 1/2"
+  PartyPlate
+    PartyRow
+      AxieName "Olek"
+      MaxHP "17"
+      HPBar
+    PartyRow
+      AxieName "Buba"
+      MaxHP "12"
+      HPBar
+    PartyRow
+      AxieName "Puffy"
+      MaxHP "13"
+      HPBar
+    PartyRow
+      AxieName "Machito"
+      MaxHP "16"
+      HPBar
+    PartyRow
+      AxieName "Pomodoro"
+      MaxHP "14"
+      HPBar
+  CoresPlate
+    # godot: CorePanel. Order: AnchorTile (only with an Anchor) · divider · 6 CoreSlot · RunRuleSlot. Slot 40 on the map, 44 elsewhere. Tooltips as game-data §1.
+    CoresTitle "Cores · 1"
+    CoreStrip
+      AnchorTile
+      CoreSlot
+        HouseRing
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      RunRuleSlot "R"
+    RunRuleChip "Run rule: Upside Down"
+    OwnedList
+      OwnedCore "Nest Moss"
+      OwnedRule "Upside Down Run rule"
+  NodeDetail
+    NodeTitle "Battle"
+    NodeDesc "A fight against a squad of enemies."
+    WinRows
+      WinRow "Choose 1 of 3 rewards"
+      RewardRow "Reward card: Level up"
+    PathNote "On your path"
+    RouteLine "Floor 3 of 18 · 3 floors to the boss"
+    TravelButton
+      KeyCap "Space"
+
+=== 03-run-map--anchor-rule--1280 (1280)
+  # godot: MapView (Control, full rect) draws edges, then one MapNode per node at the generator's position. Columns = floors, 140 px apart; lanes 160 px apart. The view scrolls so the current floor sits in column 2.
+  # godot: RunInfo = HBox anchored top-left (margin 24): MenuButton (tooltip "Menu", opens the in-run menu, same as Esc), RunPill.
+  # godot: NodeDetail anchored top-right (margin 24). Follows the picked node (mouse or arrows). Travel = Space / Enter / double-click (keys work, only Space is shown).
+  MapBackdrop [0,0 100%x100%] "run map backdrop (scene art)"
+  MapView
+    # godot: MapEdges = draw_line / draw_dashed_line in MapView._draw(). Dashed map_edge #fff3d6 with a plate_ink drop 2 px below; walked path solid map_edge_passed #ffb444. Width 4.
+    MapEdges
+    MapNode [315px,336px]
+      NodeToken
+        PassedTick
+    MapNode [408px,336px]
+      NodeToken
+      Caption "Battle"
+    MapNode [501px,229px]
+      NodeToken
+      Caption "Event"
+    MapNode [501px,336px]
+      NodeToken
+        RewardBadge
+      Caption "Battle"
+    MapNode [501px,443px]
+      NodeToken
+      Caption "Treasure"
+    MapNode [595px,229px]
+      NodeToken "?"
+    MapNode [595px,336px]
+      NodeToken "?"
+    MapNode [595px,443px]
+      NodeToken "?"
+    MapNode [688px,229px]
+      NodeToken "?"
+    MapNode [688px,336px]
+      NodeToken "?"
+    MapNode [688px,443px]
+      NodeToken "?"
+    MapNode [781px,330px]
+      NodeToken "?"
+    MapNode [875px,229px]
+      NodeToken "?"
+    MapNode [875px,443px]
+      NodeToken "?"
+  RunInfo
+    # godot: AnchorChip in the top bar (Liam approved 29/10): the Anchor reads without opening the Cores strip. It replaces the HouseChip that sat in the CoresPlate; the Anchor tile in the strip stays.
+    MenuButton
+    RunPill
+      FloorLabel "Floor 2 of 18"
+      AscensionChip "A0"
+      ShardChip "40"
+    AnchorChip "Kin 1/2"
+  PartyPlate
+    PartyRow
+      AxieName "Olek"
+      MaxHP "17"
+      HPBar
+    PartyRow
+      AxieName "Buba"
+      MaxHP "12"
+      HPBar
+    PartyRow
+      AxieName "Puffy"
+      MaxHP "13"
+      HPBar
+    PartyRow
+      AxieName "Machito"
+      MaxHP "16"
+      HPBar
+    PartyRow
+      AxieName "Pomodoro"
+      MaxHP "14"
+      HPBar
+  CoresPlate
+    # godot: CorePanel. Order: AnchorTile (only with an Anchor) · divider · 6 CoreSlot · RunRuleSlot. Slot 40 on the map, 44 elsewhere. Tooltips as game-data §1.
+    CoresTitle "Cores · 1"
+    CoreStrip
+      AnchorTile
+      CoreSlot
+        HouseRing
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      RunRuleSlot "R"
+    RunRuleChip "Run rule: Upside Down"
+    OwnedList
+      OwnedCore "Nest Moss"
+      OwnedRule "Upside Down Run rule"
+  NodeDetail
+    NodeTitle "Battle"
+    NodeDesc "A fight against a squad of enemies."
+    WinRows
+      WinRow "Choose 1 of 3 rewards"
+      RewardRow "Reward card: Level up"
+    PathNote "On your path"
+    RouteLine "Floor 3 of 18 · 3 floors to the boss"
+    TravelButton
+      KeyCap "Space"
+
+=== 03-run-map--node-picked (1920)
+  # godot: MapView (Control, full rect) draws edges, then one MapNode per node at the generator's position. Columns = floors, 140 px apart; lanes 160 px apart. The view scrolls so the current floor sits in column 2.
+  # godot: RunInfo = HBox anchored top-left (margin 24): MenuButton (tooltip "Menu", opens the in-run menu, same as Esc), RunPill.
+  # godot: NodeDetail anchored top-right (margin 24). Follows the picked node (mouse or arrows). Travel = Space / Enter / double-click (keys work, only Space is shown).
+  MapBackdrop [0,0 100%x100%] "run map backdrop (scene art)"
+  MapView
+    # godot: MapEdges = draw_line / draw_dashed_line in MapView._draw(). Dashed map_edge #fff3d6 with a plate_ink drop 2 px below; walked path solid map_edge_passed #ffb444. Width 4.
+    MapEdges
+    MapNode [472px,504px]
+      NodeToken
+        PassedTick
+    MapNode [612px,504px]
+      NodeToken
+        PassedTick
+    MapNode [612px,344px]
+      NodeToken
+    MapNode [612px,664px]
+      NodeToken
+    MapNode [752px,664px]
+      NodeToken
+        PassedTick
+    MapNode [752px,344px]
+      NodeToken
+    MapNode [752px,504px]
+      NodeToken
+    MapNode [892px,504px]
+      NodeToken
+      Caption "Battle"
+    MapNode [892px,344px]
+      NodeToken
+    MapNode [1032px,344px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Shell"
+    MapNode [1032px,504px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Fang"
+    MapNode [1032px,664px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Iron"
+    MapNode [1172px,495px]
+      NodeToken "?"
+    MapNode [1312px,344px]
+      NodeToken "?"
+    MapNode [1312px,664px]
+      NodeToken "?"
+  RunInfo
+    MenuButton
+    RunPill
+      FloorLabel "Floor 4 of 18"
+      AscensionChip "A0"
+      ShardChip "40"
+  PartyPlate
+    PartyRow
+      AxieName "Olek"
+      MaxHP "17"
+      HPBar
+    PartyRow
+      AxieName "Buba"
+      MaxHP "12"
+      HPBar
+    PartyRow
+      AxieName "Puffy"
+      MaxHP "13"
+      HPBar
+    PartyRow
+      AxieName "Machito"
+      MaxHP "16"
+      HPBar
+    PartyRow
+      AxieName "Pomodoro"
+      MaxHP "14"
+      HPBar
+  CoresPlate
+    # godot: CorePanel. Order: AnchorTile (only with an Anchor) · divider · 6 CoreSlot · RunRuleSlot. Slot 40 on the map, 44 elsewhere. Tooltips as game-data §1.
+    CoresTitle "Cores · 2"
+    CoreStrip
+      CoreSlot "E"
+      CoreSlot "M"
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      RunRuleSlot "R"
+    OwnedList
+      OwnedCore "Early Scales Moss"
+      OwnedCore "Mana Pool Moss"
+  NodeDetail
+    NodeTitle "Elite"
+    NodeDesc "A tougher fight against stronger enemies."
+    WinRows
+      WinRow "Choose 1 of 3 rewards"
+      RewardRow "Reward card: Max HP"
+      AffixRow "Shell: Starts with a shield of 40% max HP."
+    PathNote "On your path"
+    RouteLine "Floor 5 of 18 · 1 floor to the boss"
+    TravelButton
+      KeyCap "Space"
+
+=== 03-run-map--node-picked--1280 (1280)
+  # godot: MapView (Control, full rect) draws edges, then one MapNode per node at the generator's position. Columns = floors, 140 px apart; lanes 160 px apart. The view scrolls so the current floor sits in column 2.
+  # godot: RunInfo = HBox anchored top-left (margin 24): MenuButton (tooltip "Menu", opens the in-run menu, same as Esc), RunPill.
+  # godot: NodeDetail anchored top-right (margin 24). Follows the picked node (mouse or arrows). Travel = Space / Enter / double-click (keys work, only Space is shown).
+  MapBackdrop [0,0 100%x100%] "run map backdrop (scene art)"
+  MapView
+    # godot: MapEdges = draw_line / draw_dashed_line in MapView._draw(). Dashed map_edge #fff3d6 with a plate_ink drop 2 px below; walked path solid map_edge_passed #ffb444. Width 4.
+    MapEdges
+    MapNode [315px,336px]
+      NodeToken
+        PassedTick
+    MapNode [408px,336px]
+      NodeToken
+        PassedTick
+    MapNode [408px,229px]
+      NodeToken
+    MapNode [408px,443px]
+      NodeToken
+    MapNode [501px,443px]
+      NodeToken
+        PassedTick
+    MapNode [501px,229px]
+      NodeToken
+    MapNode [501px,336px]
+      NodeToken
+    MapNode [595px,336px]
+      NodeToken
+      Caption "Battle"
+    MapNode [595px,229px]
+      NodeToken
+    MapNode [688px,229px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Shell"
+    MapNode [688px,336px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Fang"
+    MapNode [688px,443px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Iron"
+    MapNode [781px,330px]
+      NodeToken "?"
+    MapNode [875px,229px]
+      NodeToken "?"
+    MapNode [875px,443px]
+      NodeToken "?"
+  RunInfo
+    MenuButton
+    RunPill
+      FloorLabel "Floor 4 of 18"
+      AscensionChip "A0"
+      ShardChip "40"
+  PartyPlate
+    PartyRow
+      AxieName "Olek"
+      MaxHP "17"
+      HPBar
+    PartyRow
+      AxieName "Buba"
+      MaxHP "12"
+      HPBar
+    PartyRow
+      AxieName "Puffy"
+      MaxHP "13"
+      HPBar
+    PartyRow
+      AxieName "Machito"
+      MaxHP "16"
+      HPBar
+    PartyRow
+      AxieName "Pomodoro"
+      MaxHP "14"
+      HPBar
+  CoresPlate
+    # godot: CorePanel. Order: AnchorTile (only with an Anchor) · divider · 6 CoreSlot · RunRuleSlot. Slot 40 on the map, 44 elsewhere. Tooltips as game-data §1.
+    CoresTitle "Cores · 2"
+    CoreStrip
+      CoreSlot "E"
+      CoreSlot "M"
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      RunRuleSlot "R"
+    OwnedList
+      OwnedCore "Early Scales Moss"
+      OwnedCore "Mana Pool Moss"
+  NodeDetail
+    NodeTitle "Elite"
+    NodeDesc "A tougher fight against stronger enemies."
+    WinRows
+      WinRow "Choose 1 of 3 rewards"
+      RewardRow "Reward card: Max HP"
+      AffixRow "Shell: Starts with a shield of 40% max HP."
+    PathNote "On your path"
+    RouteLine "Floor 5 of 18 · 1 floor to the boss"
+    TravelButton
+      KeyCap "Space"
+
+=== 03-run-map--boss-next (1920)
+  # godot: MapView (Control, full rect) draws edges, then one MapNode per node at the generator's position. Columns = floors, 140 px apart; lanes 160 px apart. The view scrolls so the current floor sits in column 2.
+  # godot: RunInfo = HBox anchored top-left (margin 24): MenuButton (tooltip "Menu", opens the in-run menu, same as Esc), RunPill.
+  # godot: NodeDetail anchored top-right (margin 24). Follows the picked node (mouse or arrows). Travel = Space / Enter / double-click (keys work, only Space is shown).
+  MapBackdrop [0,0 100%x100%] "run map backdrop (scene art)"
+  MapView
+    # godot: MapEdges = draw_line / draw_dashed_line in MapView._draw(). Dashed map_edge #fff3d6 with a plate_ink drop 2 px below; walked path solid map_edge_passed #ffb444. Width 4.
+    MapEdges
+    MapNode [472px,504px]
+      NodeToken
+        PassedTick
+    MapNode [612px,504px]
+      NodeToken
+        PassedTick
+    MapNode [752px,664px]
+      NodeToken
+        PassedTick
+    MapNode [892px,504px]
+      NodeToken
+        PassedTick
+    MapNode [1032px,344px]
+      NodeToken
+      Caption "Elite"
+    MapNode [1032px,504px]
+      NodeToken
+    MapNode [1032px,664px]
+      NodeToken
+    MapNode [1172px,495px]
+      NodeToken
+      Caption "FROST LORD"
+    MapNode [1312px,344px]
+      NodeToken "?"
+    MapNode [1312px,504px]
+      NodeToken "?"
+    MapNode [1312px,664px]
+      NodeToken "?"
+  RunInfo
+    MenuButton
+    RunPill
+      FloorLabel "Floor 5 of 18"
+      AscensionChip "A0"
+      ShardChip "40"
+  PartyPlate
+    PartyRow
+      AxieName "Olek"
+      MaxHP "17"
+      HPBar
+    PartyRow
+      AxieName "Buba"
+      MaxHP "12"
+      HPBar
+    PartyRow
+      AxieName "Puffy"
+      MaxHP "13"
+      HPBar
+    PartyRow
+      AxieName "Machito"
+      MaxHP "16"
+      HPBar
+    PartyRow
+      AxieName "Pomodoro"
+      MaxHP "14"
+      HPBar
+  CoresPlate
+    # godot: CorePanel. Order: AnchorTile (only with an Anchor) · divider · 6 CoreSlot · RunRuleSlot. Slot 40 on the map, 44 elsewhere. Tooltips as game-data §1.
+    CoresTitle "Cores · 3"
+    CoreStrip
+      CoreSlot "E"
+      CoreSlot "M"
+      CoreSlot "T"
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      RunRuleSlot "R"
+    RunRuleChip "Run rule: Hard Shell"
+    OwnedList
+      OwnedCore "Early Scales Moss"
+      OwnedCore "Mana Pool Moss"
+      OwnedCore "Thorn Shield Amber"
+      OwnedRule "Hard Shell Run rule"
+  NodeDetail
+    NodeTitle "FROST LORD"
+    NodeDesc "The guardian of this stretch of the road."
+    WinRows
+      WinRow "Choose 1 of 3 rewards"
+    PathNote "On your path"
+    RouteLine "Floor 6 of 18 · boss floor"
+    TravelButton
+      KeyCap "Space"
+
+=== 03-run-map--boss-next--1280 (1280)
+  # godot: MapView (Control, full rect) draws edges, then one MapNode per node at the generator's position. Columns = floors, 140 px apart; lanes 160 px apart. The view scrolls so the current floor sits in column 2.
+  # godot: RunInfo = HBox anchored top-left (margin 24): MenuButton (tooltip "Menu", opens the in-run menu, same as Esc), RunPill.
+  # godot: NodeDetail anchored top-right (margin 24). Follows the picked node (mouse or arrows). Travel = Space / Enter / double-click (keys work, only Space is shown).
+  MapBackdrop [0,0 100%x100%] "run map backdrop (scene art)"
+  MapView
+    # godot: MapEdges = draw_line / draw_dashed_line in MapView._draw(). Dashed map_edge #fff3d6 with a plate_ink drop 2 px below; walked path solid map_edge_passed #ffb444. Width 4.
+    MapEdges
+    MapNode [315px,336px]
+      NodeToken
+        PassedTick
+    MapNode [408px,336px]
+      NodeToken
+        PassedTick
+    MapNode [501px,443px]
+      NodeToken
+        PassedTick
+    MapNode [595px,336px]
+      NodeToken
+        PassedTick
+    MapNode [688px,229px]
+      NodeToken
+      Caption "Elite"
+    MapNode [688px,336px]
+      NodeToken
+    MapNode [688px,443px]
+      NodeToken
+    MapNode [781px,330px]
+      NodeToken
+      Caption "FROST LORD"
+    MapNode [875px,229px]
+      NodeToken "?"
+    MapNode [875px,336px]
+      NodeToken "?"
+    MapNode [875px,443px]
+      NodeToken "?"
+  RunInfo
+    MenuButton
+    RunPill
+      FloorLabel "Floor 5 of 18"
+      AscensionChip "A0"
+      ShardChip "40"
+  PartyPlate
+    PartyRow
+      AxieName "Olek"
+      MaxHP "17"
+      HPBar
+    PartyRow
+      AxieName "Buba"
+      MaxHP "12"
+      HPBar
+    PartyRow
+      AxieName "Puffy"
+      MaxHP "13"
+      HPBar
+    PartyRow
+      AxieName "Machito"
+      MaxHP "16"
+      HPBar
+    PartyRow
+      AxieName "Pomodoro"
+      MaxHP "14"
+      HPBar
+  CoresPlate
+    # godot: CorePanel. Order: AnchorTile (only with an Anchor) · divider · 6 CoreSlot · RunRuleSlot. Slot 40 on the map, 44 elsewhere. Tooltips as game-data §1.
+    CoresTitle "Cores · 3"
+    CoreStrip
+      CoreSlot "E"
+      CoreSlot "M"
+      CoreSlot "T"
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      RunRuleSlot "R"
+    RunRuleChip "Run rule: Hard Shell"
+    OwnedList
+      OwnedCore "Early Scales Moss"
+      OwnedCore "Mana Pool Moss"
+      OwnedCore "Thorn Shield Amber"
+      OwnedRule "Hard Shell Run rule"
+  NodeDetail
+    NodeTitle "FROST LORD"
+    NodeDesc "The guardian of this stretch of the road."
+    WinRows
+      WinRow "Choose 1 of 3 rewards"
+    PathNote "On your path"
+    RouteLine "Floor 6 of 18 · boss floor"
+    TravelButton
+      KeyCap "Space"

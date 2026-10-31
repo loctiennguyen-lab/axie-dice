@@ -1,0 +1,660 @@
+# S1b: Land HUD: toast, coach, confirm, banner offline
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-land-screens.html
+# So frame: 16 (8 id, tinh ca ban 1920 va 1280)
+# Tien to: 01-land--first-visit 01-land--toast-error 01-land--new-run-confirm 01-land--abandon-mission-confirm 01-land--offline 01-land--offline-retry 01-land--reconnecting 01-land--beta-reset
+# Ghi chu: Chia 01-land (nua sau): first-visit (coach), toast-error, new-run-confirm, abandon-mission-confirm, banner offline/offline-retry/reconnecting, beta-reset. DOAN: beta-reset xep vao day (banner/thong bao), first-visit la coach.
+# Id frame:
+#   01-land--first-visit
+#   01-land--first-visit--1280
+#   01-land--offline
+#   01-land--offline--1280
+#   01-land--offline-retry
+#   01-land--offline-retry--1280
+#   01-land--reconnecting
+#   01-land--reconnecting--1280
+#   01-land--new-run-confirm
+#   01-land--new-run-confirm--1280
+#   01-land--abandon-mission-confirm
+#   01-land--abandon-mission-confirm--1280
+#   01-land--beta-reset
+#   01-land--beta-reset--1280
+#   01-land--toast-error
+#   01-land--toast-error--1280
+
+=== 01-land--first-visit (1920)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  # godot: Toast, top-centre 24 from the top, one at a time (others queue). Tone ok: disc + glyph, never colour alone.
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "No wins yet"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    # godot: StartHint, first visit only. 640 plate + 32×20 arrow down to the RunPlate (which has focus, so Space presses it).
+    StartHint
+      Title "Start here"
+      Body "Pick a mode and play your first run"
+      Arrow
+    RunPlate [320px]
+      KeyCap "Space"
+  Toast
+    ToneDisc
+    Message "Welcome gift: 3 decor in your storage. Open Edit Land to pl…"
+
+=== 01-land--first-visit--1280 (1280)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  # godot: Toast, top-centre 24 from the top, one at a time (others queue). Tone ok: disc + glyph, never colour alone.
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "No wins yet"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    # godot: StartHint, first visit only. 640 plate + 32×20 arrow down to the RunPlate (which has focus, so Space presses it).
+    StartHint
+      Title "Start here"
+      Body "Pick a mode and play your first run"
+      Arrow
+    RunPlate [213px]
+      KeyCap "Space"
+  Toast
+    ToneDisc
+    Message "Welcome gift: 3 decor in your storage. Open Edit Land to pl…"
+
+=== 01-land--offline (1920)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  # godot: OfflineBanner, top centre, 600 wide. Retry while still offline → error toast "Still offline".
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    DailyButton "Daily run · needs connection"
+    RunPlate [320px] "Start run · needs connection"
+  OfflineBanner
+    ToneDisc "!"
+    Message "Offline · Runs, Store, Pass, Echo Box, Daily and Leaderboar…"
+    RetryButton "Retry"
+
+=== 01-land--offline--1280 (1280)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  # godot: OfflineBanner, top centre, 600 wide. Retry while still offline → error toast "Still offline".
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    DailyButton "Daily run · needs connection"
+    RunPlate [213px] "Start run · needs connection"
+  OfflineBanner
+    ToneDisc "!"
+    Message "Offline · Runs, Store, Pass, Echo Box, Daily and Leaderboar…"
+    RetryButton "Retry"
+
+=== 01-land--offline-retry (1920)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  # godot: OfflineBanner, top centre, 600 wide. Retry while still offline → error toast "Still offline".
+  # godot: Toast, top-centre 24 from the top, one at a time (others queue). Tone error: disc + glyph, never colour alone.
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    DailyButton "Daily run · needs connection"
+    RunPlate [320px] "Start run · needs connection"
+  OfflineBanner
+    ToneDisc "!"
+    Message "Offline · Runs, Store, Pass, Echo Box, Daily and Leaderboar…"
+    RetryButton "Retry"
+  Toast [var(--size-toast-under-banner)]
+    ToneDisc "!"
+    Message "Still offline"
+
+=== 01-land--offline-retry--1280 (1280)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  # godot: OfflineBanner, top centre, 600 wide. Retry while still offline → error toast "Still offline".
+  # godot: Toast, top-centre 24 from the top, one at a time (others queue). Tone error: disc + glyph, never colour alone.
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    DailyButton "Daily run · needs connection"
+    RunPlate [213px] "Start run · needs connection"
+  OfflineBanner
+    ToneDisc "!"
+    Message "Offline · Runs, Store, Pass, Echo Box, Daily and Leaderboar…"
+    RetryButton "Retry"
+  Toast [var(--size-toast-under-banner)]
+    ToneDisc "!"
+    Message "Still offline"
+
+=== 01-land--reconnecting (1920)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  # godot: Toast, top-centre 24 from the top, one at a time (others queue). Tone info: disc + glyph, never colour alone.
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    NewRunButton "New run"
+    DailyButton "Daily run · 2 of 3"
+    RunPlate [320px] "Reconnecting…"
+  Toast
+    ToneDisc "i"
+    Message "Still reconnecting to the server…"
+
+=== 01-land--reconnecting--1280 (1280)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  # godot: Toast, top-centre 24 from the top, one at a time (others queue). Tone info: disc + glyph, never colour alone.
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    NewRunButton "New run"
+    DailyButton "Daily run · 2 of 3"
+    RunPlate [213px] "Reconnecting…"
+  Toast
+    ToneDisc "i"
+    Message "Still reconnecting to the server…"
+
+=== 01-land--new-run-confirm (1920)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  # godot: Land._open_confirm → UI3.modal(…, [Keep playing, End run], focus 0). Destructive, so focus starts on Keep playing: Space presses it.
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    NewRunButton "New run"
+    DailyButton "Daily run · 2 of 3"
+    RunPlate [320px] "Continue run"
+  Scrim
+  NewRunConfirm
+    Title "Start a new run?"
+    Body "Your current run ends now and cannot be continued."
+    LossRows "Run progress is lost Normal · Ascension 2"
+    Footer
+      KeepPlayingButton
+        KeyCap "Space"
+      EndRunButton "End run"
+
+=== 01-land--new-run-confirm--1280 (1280)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  # godot: Land._open_confirm → UI3.modal(…, [Keep playing, End run], focus 0). Destructive, so focus starts on Keep playing: Space presses it.
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    NewRunButton "New run"
+    DailyButton "Daily run · 2 of 3"
+    RunPlate [213px] "Continue run"
+  Scrim
+  NewRunConfirm
+    Title "Start a new run?"
+    Body "Your current run ends now and cannot be continued."
+    LossRows "Run progress is lost Normal · Ascension 2"
+    Footer
+      KeepPlayingButton
+        KeyCap "Space"
+      EndRunButton "End run"
+
+=== 01-land--abandon-mission-confirm (1920)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  # godot: Land._open_confirm, destructive: focus on Keep playing.
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    NewRunButton "New run"
+    DailyButton "Daily run"
+    RunPlate [320px] "Continue mission"
+  Scrim
+  AbandonMissionConfirm
+    Title "Abandon this mission?"
+    Body "Starting a new run abandons Mission N3. The stake is not re…"
+    LossRows "You lose 800 Shards Mission N3 stake · this run's progress …"
+    Footer
+      KeepPlayingButton
+        KeyCap "Space"
+      AbandonButton "Abandon · −800"
+
+=== 01-land--abandon-mission-confirm--1280 (1280)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  # godot: Land._open_confirm, destructive: focus on Keep playing.
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    NewRunButton "New run"
+    DailyButton "Daily run"
+    RunPlate [213px] "Continue mission"
+  Scrim
+  AbandonMissionConfirm
+    Title "Abandon this mission?"
+    Body "Starting a new run abandons Mission N3. The stake is not re…"
+    LossRows "You lose 800 Shards Mission N3 stake · this run's progress …"
+    Footer
+      KeepPlayingButton
+        KeyCap "Space"
+      AbandonButton "Abandon · −800"
+
+=== 01-land--beta-reset (1920)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  # godot: UI3.modal("Beta reset", …, [OK], 0). Once per reset.
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    DailyButton "Daily run · claim"
+    RunPlate [320px] "Start run"
+  Scrim
+  BetaResetModal
+    Title "Beta reset"
+    Body "Beta reset: everyone starts fresh. Shards, Stone, tickets, …"
+    Footer
+      OkButton
+        KeyCap "Space"
+
+=== 01-land--beta-reset--1280 (1280)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  # godot: UI3.modal("Beta reset", …, [OK], 0). Once per reset.
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    DailyButton "Daily run · claim"
+    RunPlate [213px] "Start run"
+  Scrim
+  BetaResetModal
+    Title "Beta reset"
+    Body "Beta reset: everyone starts fresh. Shards, Stone, tickets, …"
+    Footer
+      OkButton
+        KeyCap "Space"
+
+=== 01-land--toast-error (1920)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  # godot: Toast, top-centre 24 from the top, one at a time (others queue). Tone error: disc + glyph, never colour alone.
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    DailyButton "Daily run"
+    RunPlate [320px]
+      KeyCap "Space"
+  Toast
+    ToneDisc "!"
+    Message "That run could not be loaded and was removed. You can start…"
+
+=== 01-land--toast-error--1280 (1280)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  # godot: Toast, top-centre 24 from the top, one at a time (others queue). Tone error: disc + glyph, never colour alone.
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    DailyButton "Daily run"
+    RunPlate [213px]
+      KeyCap "Space"
+  Toast
+    ToneDisc "!"
+    Message "That run could not be loaded and was removed. You can start…"

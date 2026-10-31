@@ -1,0 +1,1313 @@
+# R6: Menu trong run
+# Nguon HTML: design/handoffs/ui-05-figma/round-2/ui05-run-screens.html
+# So frame: 10 (5 id, tinh ca ban 1920 va 1280)
+# Tien to: menu--
+# Id frame:
+#   menu--map-cores
+#   menu--map-cores--1280
+#   menu--combat-run
+#   menu--combat-run--1280
+#   menu--settings
+#   menu--settings--1280
+#   menu--save-quit-confirm
+#   menu--save-quit-confirm--1280
+#   menu--abandon
+#   menu--abandon--1280
+
+=== menu--map-cores (1920)
+  # godot: MapView (Control, full rect) draws edges, then one MapNode per node at the generator's position. Columns = floors, 140 px apart; lanes 160 px apart. The view scrolls so the current floor sits in column 2.
+  # godot: RunInfo = HBox anchored top-left (margin 24): MenuButton (tooltip "Menu", opens the in-run menu, same as Esc), RunPill.
+  # godot: NodeDetail anchored top-right (margin 24). Follows the picked node (mouse or arrows). Travel = Space / Enter / double-click (keys work, only Space is shown).
+  # godot: RunPauseMenu, same scene on the run map and in combat. Esc toggles it (Esc = Resume). Focus starts on Resume. Rows are 64 high. The side panel follows the focused row.
+  MapBackdrop [0,0 100%x100%] "run map backdrop (scene art)"
+  MapView
+    # godot: MapEdges = draw_line / draw_dashed_line in MapView._draw(). Dashed map_edge #fff3d6 with a plate_ink drop 2 px below; walked path solid map_edge_passed #ffb444. Width 4.
+    MapEdges
+    MapNode [472px,504px]
+      NodeToken
+        PassedTick
+    MapNode [612px,504px]
+      NodeToken
+        PassedTick
+    MapNode [612px,344px]
+      NodeToken
+    MapNode [612px,664px]
+      NodeToken
+    MapNode [752px,664px]
+      NodeToken
+        PassedTick
+    MapNode [752px,344px]
+      NodeToken
+    MapNode [752px,504px]
+      NodeToken
+    MapNode [892px,504px]
+      NodeToken
+      Caption "Battle"
+    MapNode [892px,344px]
+      NodeToken
+    MapNode [1032px,344px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Shell"
+    MapNode [1032px,504px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Fang"
+    MapNode [1032px,664px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Iron"
+    MapNode [1172px,495px]
+      NodeToken "?"
+    MapNode [1312px,344px]
+      NodeToken "?"
+    MapNode [1312px,664px]
+      NodeToken "?"
+  RunInfo
+    MenuButton
+    RunPill
+      FloorLabel "Floor 4 of 18"
+      AscensionChip "A0"
+      ShardChip "40"
+  PartyPlate
+    PartyRow
+      AxieName "Olek"
+      MaxHP "17"
+      HPBar
+    PartyRow
+      AxieName "Buba"
+      MaxHP "12"
+      HPBar
+    PartyRow
+      AxieName "Puffy"
+      MaxHP "13"
+      HPBar
+    PartyRow
+      AxieName "Machito"
+      MaxHP "16"
+      HPBar
+    PartyRow
+      AxieName "Pomodoro"
+      MaxHP "14"
+      HPBar
+  CoresPlate
+    # godot: CorePanel. Order: AnchorTile (only with an Anchor) · divider · 6 CoreSlot · RunRuleSlot. Slot 40 on the map, 44 elsewhere. Tooltips as game-data §1.
+    CoresTitle "Cores · 3"
+    CoreStrip
+      CoreSlot "E"
+      CoreSlot "M"
+      CoreSlot "T"
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      RunRuleSlot "R"
+    RunRuleChip "Run rule: Hard Shell"
+    OwnedList
+      OwnedCore "Early Scales Moss"
+      OwnedCore "Mana Pool Moss"
+      OwnedCore "Thorn Shield Amber"
+      OwnedRule "Hard Shell Run rule"
+  NodeDetail
+    NodeTitle "Elite"
+    NodeDesc "A tougher fight against stronger enemies."
+    WinRows
+      WinRow "Choose 1 of 3 rewards"
+      RewardRow "Reward card: Max HP"
+      AffixRow "Shell: Starts with a shield of 40% max HP."
+    PathNote "On your path"
+    RouteLine "Floor 5 of 18 · 1 floor to the boss"
+    TravelButton
+      KeyCap "Space"
+  Scrim
+  RunPauseMenu
+    MenuColumn
+      Title "Paused"
+      SubLine "Your run is safe while you look around."
+      ResumeButton
+        KeyCap "Space"
+      CoresownedRow "Cores owned"
+      RunmapRow "Run map"
+      SettingsRow "Settings"
+      SaveandquitRow "Save and quit"
+      AbandonrunRow "Abandon run"
+    SidePanel
+      OwnedCore
+        CoreSlot "E"
+        TierChip "Moss"
+      OwnedCore
+        CoreSlot "M"
+        TierChip "Moss"
+      OwnedCore
+        CoreSlot "T"
+        TierChip "Amber"
+      OwnedRule "Hard Shell Run rule"
+
+=== menu--map-cores--1280 (1280)
+  # godot: MapView (Control, full rect) draws edges, then one MapNode per node at the generator's position. Columns = floors, 140 px apart; lanes 160 px apart. The view scrolls so the current floor sits in column 2.
+  # godot: RunInfo = HBox anchored top-left (margin 24): MenuButton (tooltip "Menu", opens the in-run menu, same as Esc), RunPill.
+  # godot: NodeDetail anchored top-right (margin 24). Follows the picked node (mouse or arrows). Travel = Space / Enter / double-click (keys work, only Space is shown).
+  # godot: RunPauseMenu, same scene on the run map and in combat. Esc toggles it (Esc = Resume). Focus starts on Resume. Rows are 64 high. The side panel follows the focused row.
+  MapBackdrop [0,0 100%x100%] "run map backdrop (scene art)"
+  MapView
+    # godot: MapEdges = draw_line / draw_dashed_line in MapView._draw(). Dashed map_edge #fff3d6 with a plate_ink drop 2 px below; walked path solid map_edge_passed #ffb444. Width 4.
+    MapEdges
+    MapNode [315px,336px]
+      NodeToken
+        PassedTick
+    MapNode [408px,336px]
+      NodeToken
+        PassedTick
+    MapNode [408px,229px]
+      NodeToken
+    MapNode [408px,443px]
+      NodeToken
+    MapNode [501px,443px]
+      NodeToken
+        PassedTick
+    MapNode [501px,229px]
+      NodeToken
+    MapNode [501px,336px]
+      NodeToken
+    MapNode [595px,336px]
+      NodeToken
+      Caption "Battle"
+    MapNode [595px,229px]
+      NodeToken
+    MapNode [688px,229px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Shell"
+    MapNode [688px,336px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Fang"
+    MapNode [688px,443px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Iron"
+    MapNode [781px,330px]
+      NodeToken "?"
+    MapNode [875px,229px]
+      NodeToken "?"
+    MapNode [875px,443px]
+      NodeToken "?"
+  RunInfo
+    MenuButton
+    RunPill
+      FloorLabel "Floor 4 of 18"
+      AscensionChip "A0"
+      ShardChip "40"
+  PartyPlate
+    PartyRow
+      AxieName "Olek"
+      MaxHP "17"
+      HPBar
+    PartyRow
+      AxieName "Buba"
+      MaxHP "12"
+      HPBar
+    PartyRow
+      AxieName "Puffy"
+      MaxHP "13"
+      HPBar
+    PartyRow
+      AxieName "Machito"
+      MaxHP "16"
+      HPBar
+    PartyRow
+      AxieName "Pomodoro"
+      MaxHP "14"
+      HPBar
+  CoresPlate
+    # godot: CorePanel. Order: AnchorTile (only with an Anchor) · divider · 6 CoreSlot · RunRuleSlot. Slot 40 on the map, 44 elsewhere. Tooltips as game-data §1.
+    CoresTitle "Cores · 3"
+    CoreStrip
+      CoreSlot "E"
+      CoreSlot "M"
+      CoreSlot "T"
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      RunRuleSlot "R"
+    RunRuleChip "Run rule: Hard Shell"
+    OwnedList
+      OwnedCore "Early Scales Moss"
+      OwnedCore "Mana Pool Moss"
+      OwnedCore "Thorn Shield Amber"
+      OwnedRule "Hard Shell Run rule"
+  NodeDetail
+    NodeTitle "Elite"
+    NodeDesc "A tougher fight against stronger enemies."
+    WinRows
+      WinRow "Choose 1 of 3 rewards"
+      RewardRow "Reward card: Max HP"
+      AffixRow "Shell: Starts with a shield of 40% max HP."
+    PathNote "On your path"
+    RouteLine "Floor 5 of 18 · 1 floor to the boss"
+    TravelButton
+      KeyCap "Space"
+  Scrim
+  RunPauseMenu
+    MenuColumn
+      Title "Paused"
+      SubLine "Your run is safe while you look around."
+      ResumeButton
+        KeyCap "Space"
+      CoresownedRow "Cores owned"
+      RunmapRow "Run map"
+      SettingsRow "Settings"
+      SaveandquitRow "Save and quit"
+      AbandonrunRow "Abandon run"
+    SidePanel
+      OwnedCore
+        CoreSlot "E"
+        TierChip "Moss"
+      OwnedCore
+        CoreSlot "M"
+        TierChip "Moss"
+      OwnedCore
+        CoreSlot "T"
+        TierChip "Amber"
+      OwnedRule "Hard Shell Run rule"
+
+=== menu--combat-run (1920)
+  # godot: EnemyColumn = VBox anchored top-right (margin 24), gap 12: EnemyPlate × n, then AttritionCard. Same place as UI-04.
+  # godot: world label above the Axie head
+  # godot: DiceDock = VBox(SetBanners HBox, HeaderRow, HBox(DieCard×5)). No panel behind the cards. SetBanners keeps its height when empty so the tray never jumps.
+  # godot: RunPauseMenu, same scene on the run map and in combat. Esc toggles it (Esc = Resume). Focus starts on Resume. Rows are 64 high. The side panel follows the focused row.
+  SafeParty [150px,370px 540pxx360px] "party · keep clear"
+  SafeEnemy1 [1092px,418px 120pxx110px] "enemy"
+  SafeEnemy2 [1088px,612px 190pxx112px] "enemy"
+  ScenePortal [1370px,450px 140pxx240px] "portal (scene)"
+  RunInfo
+    MenuButton
+    RunPill
+      FightLabel "Fight 4 of 18"
+      AscensionChip "A6"
+      TurnChip "Turn 1"
+      ShardChip "0"
+  EnemyColumn
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    EnemyCluster1
+      EnemyPlate
+        EnemyMain
+          EnemyName "Ravenling"
+          HPValue "19 / 19"
+          HPBar
+        IntentBlock
+          IntentValue "8"
+          IntentVerb "ATTACK"
+    EnemyCluster2
+      EnemyPlate
+        EnemyMain
+          EnemyName "Bomblet"
+          HPValue "13 / 13"
+          HPBar
+        IntentBlock
+          IntentValue "11"
+          IntentVerb "ATTACK"
+  StatusChip [186px,574px] "2"
+  StatusChip [538px,394px] "2"
+  AidZone
+    AidButton "Aid 0 of 6 used"
+  DiceDock
+    SetBanners
+    DiceHeader "FRONT BACK"
+    DiceRow
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      DieCard1
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Horn"
+        OwnerRow
+          OwnerName "Olek"
+          OwnerHP "17/17"
+        OwnerHPBar
+      DieCard2
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Mouth"
+        OwnerRow
+          OwnerName "Buba"
+          OwnerHP "12/12"
+        OwnerHPBar
+      DieCard3
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "HEAL"
+        PartRow
+          PartChip "Eyes"
+        OwnerRow
+          OwnerName "Puffy"
+          OwnerHP "13/13"
+        OwnerHPBar
+      DieCard4
+        Die
+          FaceValue "4"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Back"
+        OwnerRow
+          OwnerName "Machito"
+          OwnerHP "16/16"
+        OwnerHPBar
+      DieCard5
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Tail"
+        OwnerRow
+          OwnerName "Pomodor"
+          OwnerHP "14/14"
+        OwnerHPBar
+  ActionDock
+    ToolKeys
+      UndoKey "Undo"
+      HoldKey "Hold"
+      WildKey "✦ Wild"
+      OvercastKey "ϟ Overcast"
+    RerollButton
+      CostChip "1"
+    EndTurnButton "End turn Space"
+    StatusLine "5 dice unused"
+  Scrim
+  RunPauseMenu
+    MenuColumn
+      Title "Paused"
+      SubLine "Your run is safe while you look around."
+      ResumeButton
+        KeyCap "Space"
+      CoresownedRow "Cores owned"
+      RunmapRow "Run map"
+      SettingsRow "Settings"
+      SaveandquitRow "Save and quit"
+      AbandonrunRow "Abandon run"
+    SidePanel
+      StatRow "Floor 4 of 18"
+      StatRow "Ascension 0"
+      StatRow "Shards this run 40"
+      StatRow "Axies in the party 5"
+      StatRow "Cores owned 3"
+
+=== menu--combat-run--1280 (1280)
+  # godot: EnemyColumn = VBox anchored top-right (margin 24), gap 12: EnemyPlate × n, then AttritionCard. Same place as UI-04.
+  # godot: world label above the Axie head
+  # godot: DiceDock = VBox(SetBanners HBox, HeaderRow, HBox(DieCard×5)). No panel behind the cards. SetBanners keeps its height when empty so the tray never jumps.
+  # godot: RunPauseMenu, same scene on the run map and in combat. Esc toggles it (Esc = Resume). Focus starts on Resume. Rows are 64 high. The side panel follows the focused row.
+  SafeParty [100px,247px 360pxx240px] "party · keep clear"
+  SafeEnemy1 [728px,279px 80pxx73px] "enemy"
+  SafeEnemy2 [725px,408px 127pxx75px] "enemy"
+  ScenePortal [913px,300px 93pxx160px] "portal (scene)"
+  RunInfo
+    MenuButton
+    RunPill
+      FightLabel "Fight 4 of 18"
+      AscensionChip "A6"
+      TurnChip "Turn 1"
+      ShardChip "0"
+  EnemyColumn
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    EnemyCluster1
+      EnemyPlate
+        EnemyMain
+          EnemyName "Ravenling"
+          HPValue "19 / 19"
+          HPBar
+        IntentBlock
+          IntentValue "8"
+          IntentVerb "ATTACK"
+    EnemyCluster2
+      EnemyPlate
+        EnemyMain
+          EnemyName "Bomblet"
+          HPValue "13 / 13"
+          HPBar
+        IntentBlock
+          IntentValue "11"
+          IntentVerb "ATTACK"
+  StatusChip [124px,383px] "2"
+  StatusChip [359px,263px] "2"
+  AidZone
+    AidButton "Aid 0 of 6 used"
+  DiceDock
+    SetBanners
+    DiceHeader "FRONT BACK"
+    DiceRow
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      DieCard1
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Horn"
+        OwnerRow
+          OwnerName "Olek"
+          OwnerHP "17/17"
+        OwnerHPBar
+      DieCard2
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Mouth"
+        OwnerRow
+          OwnerName "Buba"
+          OwnerHP "12/12"
+        OwnerHPBar
+      DieCard3
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "HEAL"
+        PartRow
+          PartChip "Eyes"
+        OwnerRow
+          OwnerName "Puffy"
+          OwnerHP "13/13"
+        OwnerHPBar
+      DieCard4
+        Die
+          FaceValue "4"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Back"
+        OwnerRow
+          OwnerName "Machito"
+          OwnerHP "16/16"
+        OwnerHPBar
+      DieCard5
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Tail"
+        OwnerRow
+          OwnerName "Pomodor"
+          OwnerHP "14/14"
+        OwnerHPBar
+  ActionDock
+    ToolKeys
+      UndoKey "Undo"
+      HoldKey "Hold"
+      WildKey "✦ Wild"
+      OvercastKey "ϟ Overcast"
+    RerollButton
+      CostChip "1"
+    EndTurnButton "End turn Space"
+    StatusLine "5 dice unused"
+  Scrim
+  RunPauseMenu
+    MenuColumn
+      Title "Paused"
+      SubLine "Your run is safe while you look around."
+      ResumeButton
+        KeyCap "Space"
+      CoresownedRow "Cores owned"
+      RunmapRow "Run map"
+      SettingsRow "Settings"
+      SaveandquitRow "Save and quit"
+      AbandonrunRow "Abandon run"
+    SidePanel
+      StatRow "Floor 4 of 18"
+      StatRow "Ascension 0"
+      StatRow "Shards this run 40"
+      StatRow "Axies in the party 5"
+      StatRow "Cores owned 3"
+
+=== menu--settings (1920)
+  # godot: MapView (Control, full rect) draws edges, then one MapNode per node at the generator's position. Columns = floors, 140 px apart; lanes 160 px apart. The view scrolls so the current floor sits in column 2.
+  # godot: RunInfo = HBox anchored top-left (margin 24): MenuButton (tooltip "Menu", opens the in-run menu, same as Esc), RunPill.
+  # godot: NodeDetail anchored top-right (margin 24). Follows the picked node (mouse or arrows). Travel = Space / Enter / double-click (keys work, only Space is shown).
+  # godot: RunPauseMenu, same scene on the run map and in combat. Esc toggles it (Esc = Resume). Focus starts on Resume. Rows are 64 high. The side panel follows the focused row.
+  MapBackdrop [0,0 100%x100%] "run map backdrop (scene art)"
+  MapView
+    # godot: MapEdges = draw_line / draw_dashed_line in MapView._draw(). Dashed map_edge #fff3d6 with a plate_ink drop 2 px below; walked path solid map_edge_passed #ffb444. Width 4.
+    MapEdges
+    MapNode [472px,504px]
+      NodeToken
+        PassedTick
+    MapNode [612px,504px]
+      NodeToken
+        PassedTick
+    MapNode [612px,344px]
+      NodeToken
+    MapNode [612px,664px]
+      NodeToken
+    MapNode [752px,664px]
+      NodeToken
+        PassedTick
+    MapNode [752px,344px]
+      NodeToken
+    MapNode [752px,504px]
+      NodeToken
+    MapNode [892px,504px]
+      NodeToken
+      Caption "Battle"
+    MapNode [892px,344px]
+      NodeToken
+    MapNode [1032px,344px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Shell"
+    MapNode [1032px,504px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Fang"
+    MapNode [1032px,664px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Iron"
+    MapNode [1172px,495px]
+      NodeToken "?"
+    MapNode [1312px,344px]
+      NodeToken "?"
+    MapNode [1312px,664px]
+      NodeToken "?"
+  RunInfo
+    MenuButton
+    RunPill
+      FloorLabel "Floor 4 of 18"
+      AscensionChip "A0"
+      ShardChip "40"
+  PartyPlate
+    PartyRow
+      AxieName "Olek"
+      MaxHP "17"
+      HPBar
+    PartyRow
+      AxieName "Buba"
+      MaxHP "12"
+      HPBar
+    PartyRow
+      AxieName "Puffy"
+      MaxHP "13"
+      HPBar
+    PartyRow
+      AxieName "Machito"
+      MaxHP "16"
+      HPBar
+    PartyRow
+      AxieName "Pomodoro"
+      MaxHP "14"
+      HPBar
+  CoresPlate
+    # godot: CorePanel. Order: AnchorTile (only with an Anchor) · divider · 6 CoreSlot · RunRuleSlot. Slot 40 on the map, 44 elsewhere. Tooltips as game-data §1.
+    CoresTitle "Cores · 3"
+    CoreStrip
+      CoreSlot "E"
+      CoreSlot "M"
+      CoreSlot "T"
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      RunRuleSlot "R"
+    RunRuleChip "Run rule: Hard Shell"
+    OwnedList
+      OwnedCore "Early Scales Moss"
+      OwnedCore "Mana Pool Moss"
+      OwnedCore "Thorn Shield Amber"
+      OwnedRule "Hard Shell Run rule"
+  NodeDetail
+    NodeTitle "Elite"
+    NodeDesc "A tougher fight against stronger enemies."
+    WinRows
+      WinRow "Choose 1 of 3 rewards"
+      RewardRow "Reward card: Max HP"
+      AffixRow "Shell: Starts with a shield of 40% max HP."
+    PathNote "On your path"
+    RouteLine "Floor 5 of 18 · 1 floor to the boss"
+    TravelButton
+      KeyCap "Space"
+  Scrim
+  RunPauseMenu
+    MenuColumn
+      Title "Paused"
+      SubLine "Your run is safe while you look around."
+      ResumeButton
+        KeyCap "Space"
+      CoresownedRow "Cores owned"
+      RunmapRow "Run map"
+      SettingsRow "Settings"
+      SaveandquitRow "Save and quit"
+      AbandonrunRow "Abandon run"
+    SidePanel
+      MusicRow "Music 80%"
+      SfxRow "Sound effects 70%"
+      MuteRow "Mute everything Off"
+      ReduceRow "Reduce flashing and screen shake On"
+      OpenSettingsButton "Open Settings"
+
+=== menu--settings--1280 (1280)
+  # godot: MapView (Control, full rect) draws edges, then one MapNode per node at the generator's position. Columns = floors, 140 px apart; lanes 160 px apart. The view scrolls so the current floor sits in column 2.
+  # godot: RunInfo = HBox anchored top-left (margin 24): MenuButton (tooltip "Menu", opens the in-run menu, same as Esc), RunPill.
+  # godot: NodeDetail anchored top-right (margin 24). Follows the picked node (mouse or arrows). Travel = Space / Enter / double-click (keys work, only Space is shown).
+  # godot: RunPauseMenu, same scene on the run map and in combat. Esc toggles it (Esc = Resume). Focus starts on Resume. Rows are 64 high. The side panel follows the focused row.
+  MapBackdrop [0,0 100%x100%] "run map backdrop (scene art)"
+  MapView
+    # godot: MapEdges = draw_line / draw_dashed_line in MapView._draw(). Dashed map_edge #fff3d6 with a plate_ink drop 2 px below; walked path solid map_edge_passed #ffb444. Width 4.
+    MapEdges
+    MapNode [315px,336px]
+      NodeToken
+        PassedTick
+    MapNode [408px,336px]
+      NodeToken
+        PassedTick
+    MapNode [408px,229px]
+      NodeToken
+    MapNode [408px,443px]
+      NodeToken
+    MapNode [501px,443px]
+      NodeToken
+        PassedTick
+    MapNode [501px,229px]
+      NodeToken
+    MapNode [501px,336px]
+      NodeToken
+    MapNode [595px,336px]
+      NodeToken
+      Caption "Battle"
+    MapNode [595px,229px]
+      NodeToken
+    MapNode [688px,229px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Shell"
+    MapNode [688px,336px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Fang"
+    MapNode [688px,443px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Iron"
+    MapNode [781px,330px]
+      NodeToken "?"
+    MapNode [875px,229px]
+      NodeToken "?"
+    MapNode [875px,443px]
+      NodeToken "?"
+  RunInfo
+    MenuButton
+    RunPill
+      FloorLabel "Floor 4 of 18"
+      AscensionChip "A0"
+      ShardChip "40"
+  PartyPlate
+    PartyRow
+      AxieName "Olek"
+      MaxHP "17"
+      HPBar
+    PartyRow
+      AxieName "Buba"
+      MaxHP "12"
+      HPBar
+    PartyRow
+      AxieName "Puffy"
+      MaxHP "13"
+      HPBar
+    PartyRow
+      AxieName "Machito"
+      MaxHP "16"
+      HPBar
+    PartyRow
+      AxieName "Pomodoro"
+      MaxHP "14"
+      HPBar
+  CoresPlate
+    # godot: CorePanel. Order: AnchorTile (only with an Anchor) · divider · 6 CoreSlot · RunRuleSlot. Slot 40 on the map, 44 elsewhere. Tooltips as game-data §1.
+    CoresTitle "Cores · 3"
+    CoreStrip
+      CoreSlot "E"
+      CoreSlot "M"
+      CoreSlot "T"
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      RunRuleSlot "R"
+    RunRuleChip "Run rule: Hard Shell"
+    OwnedList
+      OwnedCore "Early Scales Moss"
+      OwnedCore "Mana Pool Moss"
+      OwnedCore "Thorn Shield Amber"
+      OwnedRule "Hard Shell Run rule"
+  NodeDetail
+    NodeTitle "Elite"
+    NodeDesc "A tougher fight against stronger enemies."
+    WinRows
+      WinRow "Choose 1 of 3 rewards"
+      RewardRow "Reward card: Max HP"
+      AffixRow "Shell: Starts with a shield of 40% max HP."
+    PathNote "On your path"
+    RouteLine "Floor 5 of 18 · 1 floor to the boss"
+    TravelButton
+      KeyCap "Space"
+  Scrim
+  RunPauseMenu
+    MenuColumn
+      Title "Paused"
+      SubLine "Your run is safe while you look around."
+      ResumeButton
+        KeyCap "Space"
+      CoresownedRow "Cores owned"
+      RunmapRow "Run map"
+      SettingsRow "Settings"
+      SaveandquitRow "Save and quit"
+      AbandonrunRow "Abandon run"
+    SidePanel
+      MusicRow "Music 80%"
+      SfxRow "Sound effects 70%"
+      MuteRow "Mute everything Off"
+      ReduceRow "Reduce flashing and screen shake On"
+      OpenSettingsButton "Open Settings"
+
+=== menu--save-quit-confirm (1920)
+  # godot: MapView (Control, full rect) draws edges, then one MapNode per node at the generator's position. Columns = floors, 140 px apart; lanes 160 px apart. The view scrolls so the current floor sits in column 2.
+  # godot: RunInfo = HBox anchored top-left (margin 24): MenuButton (tooltip "Menu", opens the in-run menu, same as Esc), RunPill.
+  # godot: NodeDetail anchored top-right (margin 24). Follows the picked node (mouse or arrows). Travel = Space / Enter / double-click (keys work, only Space is shown).
+  # godot: RunPauseMenu, same scene on the run map and in combat. Esc toggles it (Esc = Resume). Focus starts on Resume. Rows are 64 high. The side panel follows the focused row.
+  # godot: RunPauseMenu._ask_save_quit → UI3.modal(title, body, [Cancel, Save and quit], focus_index 0). Esc = Cancel. Focus starts on Cancel, so Space / Enter press Cancel: no keycap on Save and quit (it is still the one primary).
+  MapBackdrop [0,0 100%x100%] "run map backdrop (scene art)"
+  MapView
+    # godot: MapEdges = draw_line / draw_dashed_line in MapView._draw(). Dashed map_edge #fff3d6 with a plate_ink drop 2 px below; walked path solid map_edge_passed #ffb444. Width 4.
+    MapEdges
+    MapNode [472px,504px]
+      NodeToken
+        PassedTick
+    MapNode [612px,504px]
+      NodeToken
+        PassedTick
+    MapNode [612px,344px]
+      NodeToken
+    MapNode [612px,664px]
+      NodeToken
+    MapNode [752px,664px]
+      NodeToken
+        PassedTick
+    MapNode [752px,344px]
+      NodeToken
+    MapNode [752px,504px]
+      NodeToken
+    MapNode [892px,504px]
+      NodeToken
+      Caption "Battle"
+    MapNode [892px,344px]
+      NodeToken
+    MapNode [1032px,344px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Shell"
+    MapNode [1032px,504px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Fang"
+    MapNode [1032px,664px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Iron"
+    MapNode [1172px,495px]
+      NodeToken "?"
+    MapNode [1312px,344px]
+      NodeToken "?"
+    MapNode [1312px,664px]
+      NodeToken "?"
+  RunInfo
+    MenuButton
+    RunPill
+      FloorLabel "Floor 4 of 18"
+      AscensionChip "A0"
+      ShardChip "40"
+  PartyPlate
+    PartyRow
+      AxieName "Olek"
+      MaxHP "17"
+      HPBar
+    PartyRow
+      AxieName "Buba"
+      MaxHP "12"
+      HPBar
+    PartyRow
+      AxieName "Puffy"
+      MaxHP "13"
+      HPBar
+    PartyRow
+      AxieName "Machito"
+      MaxHP "16"
+      HPBar
+    PartyRow
+      AxieName "Pomodoro"
+      MaxHP "14"
+      HPBar
+  CoresPlate
+    # godot: CorePanel. Order: AnchorTile (only with an Anchor) · divider · 6 CoreSlot · RunRuleSlot. Slot 40 on the map, 44 elsewhere. Tooltips as game-data §1.
+    CoresTitle "Cores · 3"
+    CoreStrip
+      CoreSlot "E"
+      CoreSlot "M"
+      CoreSlot "T"
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      RunRuleSlot "R"
+    RunRuleChip "Run rule: Hard Shell"
+    OwnedList
+      OwnedCore "Early Scales Moss"
+      OwnedCore "Mana Pool Moss"
+      OwnedCore "Thorn Shield Amber"
+      OwnedRule "Hard Shell Run rule"
+  NodeDetail
+    NodeTitle "Elite"
+    NodeDesc "A tougher fight against stronger enemies."
+    WinRows
+      WinRow "Choose 1 of 3 rewards"
+      RewardRow "Reward card: Max HP"
+      AffixRow "Shell: Starts with a shield of 40% max HP."
+    PathNote "On your path"
+    RouteLine "Floor 5 of 18 · 1 floor to the boss"
+    TravelButton
+      KeyCap "Space"
+  Scrim
+  RunPauseMenu
+    MenuColumn
+      Title "Paused"
+      SubLine "Your run is safe while you look around."
+      ResumeButton
+        KeyCap "Space"
+      CoresownedRow "Cores owned"
+      RunmapRow "Run map"
+      SettingsRow "Settings"
+      SaveandquitRow "Save and quit"
+      AbandonrunRow "Abandon run"
+    SidePanel
+      StatRow "Floor 4 of 18"
+      StatRow "Ascension 0"
+      StatRow "Shards this run 40"
+      StatRow "Axies in the party 5"
+      StatRow "Cores owned 3"
+  Scrim2
+  SaveQuitConfirm
+    Title "Save and quit?"
+    Body "Your run is saved. You can continue it from the main menu."
+    Footer
+      CancelButton "Cancel"
+      SaveQuitButton "Save and quit"
+
+=== menu--save-quit-confirm--1280 (1280)
+  # godot: MapView (Control, full rect) draws edges, then one MapNode per node at the generator's position. Columns = floors, 140 px apart; lanes 160 px apart. The view scrolls so the current floor sits in column 2.
+  # godot: RunInfo = HBox anchored top-left (margin 24): MenuButton (tooltip "Menu", opens the in-run menu, same as Esc), RunPill.
+  # godot: NodeDetail anchored top-right (margin 24). Follows the picked node (mouse or arrows). Travel = Space / Enter / double-click (keys work, only Space is shown).
+  # godot: RunPauseMenu, same scene on the run map and in combat. Esc toggles it (Esc = Resume). Focus starts on Resume. Rows are 64 high. The side panel follows the focused row.
+  # godot: RunPauseMenu._ask_save_quit → UI3.modal(title, body, [Cancel, Save and quit], focus_index 0). Esc = Cancel. Focus starts on Cancel, so Space / Enter press Cancel: no keycap on Save and quit (it is still the one primary).
+  MapBackdrop [0,0 100%x100%] "run map backdrop (scene art)"
+  MapView
+    # godot: MapEdges = draw_line / draw_dashed_line in MapView._draw(). Dashed map_edge #fff3d6 with a plate_ink drop 2 px below; walked path solid map_edge_passed #ffb444. Width 4.
+    MapEdges
+    MapNode [315px,336px]
+      NodeToken
+        PassedTick
+    MapNode [408px,336px]
+      NodeToken
+        PassedTick
+    MapNode [408px,229px]
+      NodeToken
+    MapNode [408px,443px]
+      NodeToken
+    MapNode [501px,443px]
+      NodeToken
+        PassedTick
+    MapNode [501px,229px]
+      NodeToken
+    MapNode [501px,336px]
+      NodeToken
+    MapNode [595px,336px]
+      NodeToken
+      Caption "Battle"
+    MapNode [595px,229px]
+      NodeToken
+    MapNode [688px,229px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Shell"
+    MapNode [688px,336px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Fang"
+    MapNode [688px,443px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Iron"
+    MapNode [781px,330px]
+      NodeToken "?"
+    MapNode [875px,229px]
+      NodeToken "?"
+    MapNode [875px,443px]
+      NodeToken "?"
+  RunInfo
+    MenuButton
+    RunPill
+      FloorLabel "Floor 4 of 18"
+      AscensionChip "A0"
+      ShardChip "40"
+  PartyPlate
+    PartyRow
+      AxieName "Olek"
+      MaxHP "17"
+      HPBar
+    PartyRow
+      AxieName "Buba"
+      MaxHP "12"
+      HPBar
+    PartyRow
+      AxieName "Puffy"
+      MaxHP "13"
+      HPBar
+    PartyRow
+      AxieName "Machito"
+      MaxHP "16"
+      HPBar
+    PartyRow
+      AxieName "Pomodoro"
+      MaxHP "14"
+      HPBar
+  CoresPlate
+    # godot: CorePanel. Order: AnchorTile (only with an Anchor) · divider · 6 CoreSlot · RunRuleSlot. Slot 40 on the map, 44 elsewhere. Tooltips as game-data §1.
+    CoresTitle "Cores · 3"
+    CoreStrip
+      CoreSlot "E"
+      CoreSlot "M"
+      CoreSlot "T"
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      RunRuleSlot "R"
+    RunRuleChip "Run rule: Hard Shell"
+    OwnedList
+      OwnedCore "Early Scales Moss"
+      OwnedCore "Mana Pool Moss"
+      OwnedCore "Thorn Shield Amber"
+      OwnedRule "Hard Shell Run rule"
+  NodeDetail
+    NodeTitle "Elite"
+    NodeDesc "A tougher fight against stronger enemies."
+    WinRows
+      WinRow "Choose 1 of 3 rewards"
+      RewardRow "Reward card: Max HP"
+      AffixRow "Shell: Starts with a shield of 40% max HP."
+    PathNote "On your path"
+    RouteLine "Floor 5 of 18 · 1 floor to the boss"
+    TravelButton
+      KeyCap "Space"
+  Scrim
+  RunPauseMenu
+    MenuColumn
+      Title "Paused"
+      SubLine "Your run is safe while you look around."
+      ResumeButton
+        KeyCap "Space"
+      CoresownedRow "Cores owned"
+      RunmapRow "Run map"
+      SettingsRow "Settings"
+      SaveandquitRow "Save and quit"
+      AbandonrunRow "Abandon run"
+    SidePanel
+      StatRow "Floor 4 of 18"
+      StatRow "Ascension 0"
+      StatRow "Shards this run 40"
+      StatRow "Axies in the party 5"
+      StatRow "Cores owned 3"
+  Scrim2
+  SaveQuitConfirm
+    Title "Save and quit?"
+    Body "Your run is saved. You can continue it from the main menu."
+    Footer
+      CancelButton "Cancel"
+      SaveQuitButton "Save and quit"
+
+=== menu--abandon (1920)
+  # godot: MapView (Control, full rect) draws edges, then one MapNode per node at the generator's position. Columns = floors, 140 px apart; lanes 160 px apart. The view scrolls so the current floor sits in column 2.
+  # godot: RunInfo = HBox anchored top-left (margin 24): MenuButton (tooltip "Menu", opens the in-run menu, same as Esc), RunPill.
+  # godot: NodeDetail anchored top-right (margin 24). Follows the picked node (mouse or arrows). Travel = Space / Enter / double-click (keys work, only Space is shown).
+  # godot: RunPauseMenu, same scene on the run map and in combat. Esc toggles it (Esc = Resume). Focus starts on Resume. Rows are 64 high. The side panel follows the focused row.
+  # godot: Confirm dialog. Esc = Keep playing. Focus starts on Keep playing (the safe action is the primary).
+  MapBackdrop [0,0 100%x100%] "run map backdrop (scene art)"
+  MapView
+    # godot: MapEdges = draw_line / draw_dashed_line in MapView._draw(). Dashed map_edge #fff3d6 with a plate_ink drop 2 px below; walked path solid map_edge_passed #ffb444. Width 4.
+    MapEdges
+    MapNode [472px,504px]
+      NodeToken
+        PassedTick
+    MapNode [612px,504px]
+      NodeToken
+        PassedTick
+    MapNode [612px,344px]
+      NodeToken
+    MapNode [612px,664px]
+      NodeToken
+    MapNode [752px,664px]
+      NodeToken
+        PassedTick
+    MapNode [752px,344px]
+      NodeToken
+    MapNode [752px,504px]
+      NodeToken
+    MapNode [892px,504px]
+      NodeToken
+      Caption "Battle"
+    MapNode [892px,344px]
+      NodeToken
+    MapNode [1032px,344px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Shell"
+    MapNode [1032px,504px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Fang"
+    MapNode [1032px,664px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Iron"
+    MapNode [1172px,495px]
+      NodeToken "?"
+    MapNode [1312px,344px]
+      NodeToken "?"
+    MapNode [1312px,664px]
+      NodeToken "?"
+  RunInfo
+    MenuButton
+    RunPill
+      FloorLabel "Floor 4 of 18"
+      AscensionChip "A0"
+      ShardChip "40"
+  PartyPlate
+    PartyRow
+      AxieName "Olek"
+      MaxHP "17"
+      HPBar
+    PartyRow
+      AxieName "Buba"
+      MaxHP "12"
+      HPBar
+    PartyRow
+      AxieName "Puffy"
+      MaxHP "13"
+      HPBar
+    PartyRow
+      AxieName "Machito"
+      MaxHP "16"
+      HPBar
+    PartyRow
+      AxieName "Pomodoro"
+      MaxHP "14"
+      HPBar
+  CoresPlate
+    # godot: CorePanel. Order: AnchorTile (only with an Anchor) · divider · 6 CoreSlot · RunRuleSlot. Slot 40 on the map, 44 elsewhere. Tooltips as game-data §1.
+    CoresTitle "Cores · 3"
+    CoreStrip
+      CoreSlot "E"
+      CoreSlot "M"
+      CoreSlot "T"
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      RunRuleSlot "R"
+    RunRuleChip "Run rule: Hard Shell"
+    OwnedList
+      OwnedCore "Early Scales Moss"
+      OwnedCore "Mana Pool Moss"
+      OwnedCore "Thorn Shield Amber"
+      OwnedRule "Hard Shell Run rule"
+  NodeDetail
+    NodeTitle "Elite"
+    NodeDesc "A tougher fight against stronger enemies."
+    WinRows
+      WinRow "Choose 1 of 3 rewards"
+      RewardRow "Reward card: Max HP"
+      AffixRow "Shell: Starts with a shield of 40% max HP."
+    PathNote "On your path"
+    RouteLine "Floor 5 of 18 · 1 floor to the boss"
+    TravelButton
+      KeyCap "Space"
+  Scrim
+  RunPauseMenu
+    MenuColumn
+      Title "Paused"
+      SubLine "Your run is safe while you look around."
+      ResumeButton
+        KeyCap "Space"
+      CoresownedRow "Cores owned"
+      RunmapRow "Run map"
+      SettingsRow "Settings"
+      SaveandquitRow "Save and quit"
+      AbandonrunRow "Abandon run"
+    SidePanel
+      StatRow "Floor 4 of 18"
+      StatRow "Ascension 0"
+      StatRow "Shards this run 40"
+      StatRow "Axies in the party 5"
+      StatRow "Cores owned 3"
+  Scrim2
+  AbandonConfirm
+    Title "Abandon this run?"
+    Body "The run is deleted: its Axies, Cores and Shards are gone. S…"
+    StakeLine "You lose your 60 Shard mission stake."
+    Footer
+      KeepPlayingButton
+        KeyCap "Space"
+      AbandonButton "Abandon run"
+
+=== menu--abandon--1280 (1280)
+  # godot: MapView (Control, full rect) draws edges, then one MapNode per node at the generator's position. Columns = floors, 140 px apart; lanes 160 px apart. The view scrolls so the current floor sits in column 2.
+  # godot: RunInfo = HBox anchored top-left (margin 24): MenuButton (tooltip "Menu", opens the in-run menu, same as Esc), RunPill.
+  # godot: NodeDetail anchored top-right (margin 24). Follows the picked node (mouse or arrows). Travel = Space / Enter / double-click (keys work, only Space is shown).
+  # godot: RunPauseMenu, same scene on the run map and in combat. Esc toggles it (Esc = Resume). Focus starts on Resume. Rows are 64 high. The side panel follows the focused row.
+  # godot: Confirm dialog. Esc = Keep playing. Focus starts on Keep playing (the safe action is the primary).
+  MapBackdrop [0,0 100%x100%] "run map backdrop (scene art)"
+  MapView
+    # godot: MapEdges = draw_line / draw_dashed_line in MapView._draw(). Dashed map_edge #fff3d6 with a plate_ink drop 2 px below; walked path solid map_edge_passed #ffb444. Width 4.
+    MapEdges
+    MapNode [315px,336px]
+      NodeToken
+        PassedTick
+    MapNode [408px,336px]
+      NodeToken
+        PassedTick
+    MapNode [408px,229px]
+      NodeToken
+    MapNode [408px,443px]
+      NodeToken
+    MapNode [501px,443px]
+      NodeToken
+        PassedTick
+    MapNode [501px,229px]
+      NodeToken
+    MapNode [501px,336px]
+      NodeToken
+    MapNode [595px,336px]
+      NodeToken
+      Caption "Battle"
+    MapNode [595px,229px]
+      NodeToken
+    MapNode [688px,229px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Shell"
+    MapNode [688px,336px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Fang"
+    MapNode [688px,443px]
+      NodeToken
+        RewardBadge
+      Caption "Elite · Iron"
+    MapNode [781px,330px]
+      NodeToken "?"
+    MapNode [875px,229px]
+      NodeToken "?"
+    MapNode [875px,443px]
+      NodeToken "?"
+  RunInfo
+    MenuButton
+    RunPill
+      FloorLabel "Floor 4 of 18"
+      AscensionChip "A0"
+      ShardChip "40"
+  PartyPlate
+    PartyRow
+      AxieName "Olek"
+      MaxHP "17"
+      HPBar
+    PartyRow
+      AxieName "Buba"
+      MaxHP "12"
+      HPBar
+    PartyRow
+      AxieName "Puffy"
+      MaxHP "13"
+      HPBar
+    PartyRow
+      AxieName "Machito"
+      MaxHP "16"
+      HPBar
+    PartyRow
+      AxieName "Pomodoro"
+      MaxHP "14"
+      HPBar
+  CoresPlate
+    # godot: CorePanel. Order: AnchorTile (only with an Anchor) · divider · 6 CoreSlot · RunRuleSlot. Slot 40 on the map, 44 elsewhere. Tooltips as game-data §1.
+    CoresTitle "Cores · 3"
+    CoreStrip
+      CoreSlot "E"
+      CoreSlot "M"
+      CoreSlot "T"
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      RunRuleSlot "R"
+    RunRuleChip "Run rule: Hard Shell"
+    OwnedList
+      OwnedCore "Early Scales Moss"
+      OwnedCore "Mana Pool Moss"
+      OwnedCore "Thorn Shield Amber"
+      OwnedRule "Hard Shell Run rule"
+  NodeDetail
+    NodeTitle "Elite"
+    NodeDesc "A tougher fight against stronger enemies."
+    WinRows
+      WinRow "Choose 1 of 3 rewards"
+      RewardRow "Reward card: Max HP"
+      AffixRow "Shell: Starts with a shield of 40% max HP."
+    PathNote "On your path"
+    RouteLine "Floor 5 of 18 · 1 floor to the boss"
+    TravelButton
+      KeyCap "Space"
+  Scrim
+  RunPauseMenu
+    MenuColumn
+      Title "Paused"
+      SubLine "Your run is safe while you look around."
+      ResumeButton
+        KeyCap "Space"
+      CoresownedRow "Cores owned"
+      RunmapRow "Run map"
+      SettingsRow "Settings"
+      SaveandquitRow "Save and quit"
+      AbandonrunRow "Abandon run"
+    SidePanel
+      StatRow "Floor 4 of 18"
+      StatRow "Ascension 0"
+      StatRow "Shards this run 40"
+      StatRow "Axies in the party 5"
+      StatRow "Cores owned 3"
+  Scrim2
+  AbandonConfirm
+    Title "Abandon this run?"
+    Body "The run is deleted: its Axies, Cores and Shards are gone. S…"
+    StakeLine "You lose your 60 Shard mission stake."
+    Footer
+      KeepPlayingButton
+        KeyCap "Space"
+      AbandonButton "Abandon run"

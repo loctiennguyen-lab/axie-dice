@@ -1,0 +1,321 @@
+# S8a1: Account + sign-in (a01-a12, a17-a18)
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-meta1-screens.html
+# So frame: 28 (14 id, tinh ca ban 1920 va 1280)
+# Tien to: a01- a02- a03- a04- a05- a06- a07- a08- a09- a10- a11- a12- a17- a18-
+# Id frame:
+#   a01-account--signed-out
+#   a01-account--signed-out--1280
+#   a02-account--waiting
+#   a02-account--waiting--1280
+#   a03-account--finishing
+#   a03-account--finishing--1280
+#   a04-account--error-timeout
+#   a04-account--error-timeout--1280
+#   a05-account--error-workspace
+#   a05-account--error-workspace--1280
+#   a06-account--signed-in
+#   a06-account--signed-in--1280
+#   a07-account--sign-out-armed
+#   a07-account--sign-out-armed--1280
+#   a08-account--expired
+#   a08-account--expired--1280
+#   a09-signin-overlay--waiting
+#   a09-signin-overlay--waiting--1280
+#   a10-signin-overlay--finishing
+#   a10-signin-overlay--finishing--1280
+#   a11-signin-overlay--done
+#   a11-signin-overlay--done--1280
+#   a12-signin-overlay--error
+#   a12-signin-overlay--error--1280
+#   a17-toast--cancelled
+#   a17-toast--cancelled--1280
+#   a18-toast--expired
+#   a18-toast--expired--1280
+
+=== a01-account--signed-out (1920)
+  # godot: AccountScreen (desktop, Settings → Account). Esc = back.
+  Header
+    BackButton "←"
+    Title "Account"
+  AccountPanel
+    Brand "AXIE DICE"
+    Version "v0.1.0-l1"
+    SignInButton "Sign in"
+
+=== a01-account--signed-out--1280 (1280)
+  # godot: AccountScreen (desktop, Settings → Account). Esc = back.
+  Header
+    BackButton "←"
+    Title "Account"
+  AccountPanel
+    Brand "AXIE DICE"
+    Version "v0.1.0-l1"
+    SignInButton "Sign in"
+
+=== a02-account--waiting (1920)
+  # godot: AccountScreen (desktop, Settings → Account). Esc = back.
+  Header
+    BackButton "←"
+    Title "Account"
+  AccountPanel
+    Brand "AXIE DICE"
+    Version "v0.1.0-l1"
+    CancelButton "Cancel"
+    OpenBrowserButton "Open browser again"
+
+=== a02-account--waiting--1280 (1280)
+  # godot: AccountScreen (desktop, Settings → Account). Esc = back.
+  Header
+    BackButton "←"
+    Title "Account"
+  AccountPanel
+    Brand "AXIE DICE"
+    Version "v0.1.0-l1"
+    CancelButton "Cancel"
+    OpenBrowserButton "Open browser again"
+
+=== a03-account--finishing (1920)
+  # godot: AccountScreen (desktop, Settings → Account). Esc = back.
+  Header
+    BackButton "←"
+    Title "Account"
+  AccountPanel
+    Brand "AXIE DICE"
+    Version "v0.1.0-l1"
+    Spinner
+
+=== a03-account--finishing--1280 (1280)
+  # godot: AccountScreen (desktop, Settings → Account). Esc = back.
+  Header
+    BackButton "←"
+    Title "Account"
+  AccountPanel
+    Brand "AXIE DICE"
+    Version "v0.1.0-l1"
+    Spinner
+
+=== a04-account--error-timeout (1920)
+  # godot: AccountScreen (desktop, Settings → Account). Esc = back.
+  Header
+    BackButton "←"
+    Title "Account"
+  AccountPanel
+    Brand "AXIE DICE"
+    Version "v0.1.0-l1"
+    ToneDisc "!"
+    ErrorCode "Error code: timeout"
+    TryAgainButton "Try again"
+
+=== a04-account--error-timeout--1280 (1280)
+  # godot: AccountScreen (desktop, Settings → Account). Esc = back.
+  Header
+    BackButton "←"
+    Title "Account"
+  AccountPanel
+    Brand "AXIE DICE"
+    Version "v0.1.0-l1"
+    ToneDisc "!"
+    ErrorCode "Error code: timeout"
+    TryAgainButton "Try again"
+
+=== a05-account--error-workspace (1920)
+  # godot: AccountScreen (desktop, Settings → Account). Esc = back.
+  Header
+    BackButton "←"
+    Title "Account"
+  AccountPanel
+    Brand "AXIE DICE"
+    Version "v0.1.0-l1"
+    ToneDisc "!"
+    ErrorCode "Error code: admin_policy_enforced"
+    UseAnotherButton "Use another account"
+
+=== a05-account--error-workspace--1280 (1280)
+  # godot: AccountScreen (desktop, Settings → Account). Esc = back.
+  Header
+    BackButton "←"
+    Title "Account"
+  AccountPanel
+    Brand "AXIE DICE"
+    Version "v0.1.0-l1"
+    ToneDisc "!"
+    ErrorCode "Error code: admin_policy_enforced"
+    UseAnotherButton "Use another account"
+
+=== a06-account--signed-in (1920)
+  # godot: AccountScreen (desktop, Settings → Account). Esc = back.
+  Header
+    BackButton "←"
+    Title "Account"
+  AccountPanel
+    Brand "AXIE DICE"
+    Version "v0.1.0-l1"
+    Who "L Liam liam@gmail.com · Google"
+    SignOutButton "Sign out"
+
+=== a06-account--signed-in--1280 (1280)
+  # godot: AccountScreen (desktop, Settings → Account). Esc = back.
+  Header
+    BackButton "←"
+    Title "Account"
+  AccountPanel
+    Brand "AXIE DICE"
+    Version "v0.1.0-l1"
+    Who "L Liam liam@gmail.com · Google"
+    SignOutButton "Sign out"
+
+=== a07-account--sign-out-armed (1920)
+  # godot: AccountScreen (desktop, Settings → Account). Esc = back.
+  Header
+    BackButton "←"
+    Title "Account"
+  AccountPanel
+    Brand "AXIE DICE"
+    Version "v0.1.0-l1"
+    Who "L Liam liam@gmail.com · Google"
+    SignOutButton "Press again to sign out"
+
+=== a07-account--sign-out-armed--1280 (1280)
+  # godot: AccountScreen (desktop, Settings → Account). Esc = back.
+  Header
+    BackButton "←"
+    Title "Account"
+  AccountPanel
+    Brand "AXIE DICE"
+    Version "v0.1.0-l1"
+    Who "L Liam liam@gmail.com · Google"
+    SignOutButton "Press again to sign out"
+
+=== a08-account--expired (1920)
+  # godot: AccountScreen (desktop, Settings → Account). Esc = back.
+  Header
+    BackButton "←"
+    Title "Account"
+  AccountPanel
+    Brand "AXIE DICE"
+    Version "v0.1.0-l1"
+    ToneDisc "!"
+    BackToMenuButton "Back to menu"
+    SignInButton "Sign in"
+
+=== a08-account--expired--1280 (1280)
+  # godot: AccountScreen (desktop, Settings → Account). Esc = back.
+  Header
+    BackButton "←"
+    Title "Account"
+  AccountPanel
+    Brand "AXIE DICE"
+    Version "v0.1.0-l1"
+    ToneDisc "!"
+    BackToMenuButton "Back to menu"
+    SignInButton "Sign in"
+
+=== a09-signin-overlay--waiting (1920)
+  # godot: AccountUI desktop flow modal.
+  SceneBackdrop "Run setup (guest) underneath, see part (a)"
+  Scrim
+  DesktopSignIn
+    Title "Waiting for the browser…"
+    Body "Finish signing in in your browser. Then come back here; the…"
+    OpenBrowserButton "Open browser again"
+    CancelButton "Cancel"
+
+=== a09-signin-overlay--waiting--1280 (1280)
+  # godot: AccountUI desktop flow modal.
+  SceneBackdrop "Run setup (guest) underneath, see part (a)"
+  Scrim
+  DesktopSignIn
+    Title "Waiting for the browser…"
+    Body "Finish signing in in your browser. Then come back here; the…"
+    OpenBrowserButton "Open browser again"
+    CancelButton "Cancel"
+
+=== a10-signin-overlay--finishing (1920)
+  # godot: AccountUI desktop flow modal.
+  SceneBackdrop "Run setup (guest) underneath, see part (a)"
+  Scrim
+  DesktopSignIn
+    Title "Signing you in…"
+    Body "Google said yes. Checking your account."
+    Spinner
+
+=== a10-signin-overlay--finishing--1280 (1280)
+  # godot: AccountUI desktop flow modal.
+  SceneBackdrop "Run setup (guest) underneath, see part (a)"
+  Scrim
+  DesktopSignIn
+    Title "Signing you in…"
+    Body "Google said yes. Checking your account."
+    Spinner
+
+=== a11-signin-overlay--done (1920)
+  # godot: AccountUI desktop flow modal. Auto closes after 1.6 s.
+  SceneBackdrop "Run setup (guest) underneath, see part (a)"
+  Scrim
+  DesktopSignIn
+    ToneDisc
+    Title "Signed in as Liam"
+    ContinueButton
+      KeyCap "Space"
+
+=== a11-signin-overlay--done--1280 (1280)
+  # godot: AccountUI desktop flow modal. Auto closes after 1.6 s.
+  SceneBackdrop "Run setup (guest) underneath, see part (a)"
+  Scrim
+  DesktopSignIn
+    ToneDisc
+    Title "Signed in as Liam"
+    ContinueButton
+      KeyCap "Space"
+
+=== a12-signin-overlay--error (1920)
+  # godot: AccountUI desktop flow modal.
+  SceneBackdrop "Run setup (guest) underneath, see part (a)"
+  Scrim
+  DesktopSignIn
+    ToneDisc "!"
+    Title "No network"
+    Body "Can't reach sign-in. Check your connection and try again."
+    TryAgainButton "Try again"
+    CloseButton "Close"
+
+=== a12-signin-overlay--error--1280 (1280)
+  # godot: AccountUI desktop flow modal.
+  SceneBackdrop "Run setup (guest) underneath, see part (a)"
+  Scrim
+  DesktopSignIn
+    ToneDisc "!"
+    Title "No network"
+    Body "Can't reach sign-in. Check your connection and try again."
+    TryAgainButton "Try again"
+    CloseButton "Close"
+
+=== a17-toast--cancelled (1920)
+  # godot: AccountUI toast, bottom centre, 860 wide, 10 s.
+  SceneBackdrop "Run setup (guest) underneath, see part (a)"
+  AccountToast
+    ToneDisc "!"
+    TryAgainButton "Try again"
+    ContinueWithoutSigningInButton "Continue without signing in"
+
+=== a17-toast--cancelled--1280 (1280)
+  # godot: AccountUI toast, bottom centre, 860 wide, 10 s.
+  SceneBackdrop "Run setup (guest) underneath, see part (a)"
+  AccountToast
+    ToneDisc "!"
+    TryAgainButton "Try again"
+    ContinueWithoutSigningInButton "Continue without signing in"
+
+=== a18-toast--expired (1920)
+  # godot: AccountUI toast, bottom centre, 860 wide, 10 s.
+  SceneBackdrop "Run setup (guest) underneath, see part (a)"
+  AccountToast
+    ToneDisc "!"
+    SignInButton "Sign in"
+
+=== a18-toast--expired--1280 (1280)
+  # godot: AccountUI toast, bottom centre, 860 wide, 10 s.
+  SceneBackdrop "Run setup (guest) underneath, see part (a)"
+  AccountToast
+    ToneDisc "!"
+    SignInButton "Sign in"

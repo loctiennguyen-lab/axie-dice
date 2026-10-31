@@ -21,8 +21,8 @@ func _ready() -> void:
 	# every override key maps onto a real snake_case size token
 	var raw: Dictionary = UI3Theme.tokens()["_size_1280_overrides"]
 	for k in raw:
-		if k == "note" or k == "min_text":
-			continue
+		if k == "note" or k == "min_text" or String(k).begins_with("_"):
+			continue   # _b2_keys/_b3_keys: lists, not sizes
 		var snake := String(k).replace("-", "_")
 		_ok((UI3Theme.tokens()["size"] as Dictionary).has(snake), "override '%s' maps to size token '%s'" % [k, snake])
 	UI3Theme.set_scale_override(1.0)
