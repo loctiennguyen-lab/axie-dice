@@ -350,6 +350,7 @@ func _fmt(n: int) -> String:
 ## Detail plate content for the picked item. `reason` != "" disables the primary and replaces its label.
 func _show_detail(art: Control, title: String, body: String, rows: Array, action_text: String, reason: String, on_press: Callable) -> void:
 	_detail.show_item(title)
+	_detail.title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER   # text under an icon is centred on it (Liam 29/10)
 	var ab := Ui5StoreParts.art_box(art, 200)
 	ab.name = "DetailArt"
 	var inner := _detail.title.get_parent()
@@ -366,6 +367,7 @@ func _show_detail(art: Control, title: String, body: String, rows: Array, action
 
 func _show_empty() -> void:
 	_detail.show_empty()
+	_detail.title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	var inner := _detail.title.get_parent()
 	var ab := Ui5StoreParts.art_box(null, 200)
 	ab.name = "DetailArt"
