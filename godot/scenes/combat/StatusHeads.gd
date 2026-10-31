@@ -1,7 +1,7 @@
 class_name StatusHeads
 extends Control
 ## Status icons above the head of every Axie, enemy and boss. The chip is the UI-05 b1 StatusChip
-## (scenes/combat/ui5/StatusChip.gd: status_chip_h pill, icon_m glyph + Rowdies body count).
+## (scenes/shared/ui5/StatusChip.gd: status_chip_h pill, icon_m glyph + Rowdies body count).
 ## One chip row per unit. CombatView calls sync() every frame with the head point it got from
 ## CombatStage3D.get_unit_screen_pos(); a unit with no point (dead, hidden, behind the camera) or with
 ## `hidden` set (victory march) gets its row hidden at once, so nothing is left floating.
