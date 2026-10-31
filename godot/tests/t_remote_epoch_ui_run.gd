@@ -261,7 +261,7 @@ func _handle_notice(scene: Node) -> bool:
 		_retries += 1
 		retry.pressed.emit()
 	else:
-		_check(n.find_child("SignInButton", true, false) != null and n.find_child("BackButton", true, false) != null,
+		_check(n.find_child("SignInButton", true, false) != null and n.find_child("BackToMenuButton", true, false) != null,
 			"fatal notice without SIGN IN / BACK TO MENU")
 		_signin_seen += 1
 		(n.find_child("OkButton", true, false) as Button).pressed.emit()
