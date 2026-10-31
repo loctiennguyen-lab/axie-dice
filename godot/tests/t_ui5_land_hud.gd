@@ -22,6 +22,7 @@ func _ready() -> void:
 	print("=== t_ui5_land_hud: start ===")
 	_guard.capture()
 	LandNav.dry_run = true
+	MetaState.tutorial_seen = true
 	await get_tree().process_frame
 	for sc in [1.0, 2.0 / 3.0]:
 		UI3Theme.set_scale_override(sc)
@@ -83,7 +84,6 @@ func _pass(sc: float) -> void:
 	var rp := h.find_child("RunPlate", true, false) as Button
 	_ok(rp.text == "Start run" and rp.get_meta("state") == "start", tag + ": RunPlate Start run")
 	_ok(_caps(h) == 1 and Ui5Keycap.text_of(Ui5Keycap.all_under(rp)[0]) == "Space", tag + ": one Space keycap on the RunPlate")
-	_ok(h.find_child("ShardValue", true, false) == null or true, "n/a")
 	var shard := (h.find_child("CurrencyShard", true, false).get_node("Value") as Label).text
 	_ok(shard == UI3.fmt(MetaState.shard_pool), tag + ": shard from MetaState")
 	_ok((h.find_child("CurrencyStone", true, false).get_node("Value") as Label).text == UI3.fmt(MetaState.stone), tag + ": stone from MetaState")
