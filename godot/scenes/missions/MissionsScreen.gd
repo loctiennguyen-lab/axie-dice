@@ -16,6 +16,7 @@ extends Control
 ## Not drawn: M6d/e/f results (belong to the Result screen), "table updated" line (no data).
 
 const _Econ := preload("res://scripts/meta/economy_db.gd")
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 const RUN_MAP := "res://scenes/run_map/RunMap.tscn"
 const RULE_NAMES := {"M1": "Harsh clock", "M2": "Spike stack", "M3": "Hunted", "M4": "Heavy hits", "M5": "Thick boss", "M6": "Sturdy foes", "M7": "Fierce elites"}
 
@@ -40,7 +41,6 @@ var day_override := ""
 var selected := ""
 
 var _shell: Dictionary
-var _banner_host: VBoxContainer
 var _modal_layer: Control
 var _balance: Label
 var _table_host: VBoxContainer
@@ -49,7 +49,6 @@ var _detail: PanelContainer
 
 func _ready() -> void:
 	_build()
-	selected = _default_tier()
 	if use_account:
 		state = derive_state()
 	set_state(state)
@@ -71,7 +70,7 @@ func sync_server(force := false) -> void:
 				return
 			var ap := MissionEscrowSync.take_applied()
 			if String(ap.get("state", "")) == "refunded":
-				_banner("Old run, stake refunded", "That mission started before an update, so your %s Shard stake was returned." % UI3.fmt(int(ap.get("payout", 0))), false)
+				_banner("Old run, stake refunded", "That mission started before an update, so your %s Shards stake was returned." % UI3.fmt(int(ap.get("payout", 0))), &"ok")
 			_refresh(), force), force)
 
 
@@ -100,8 +99,9 @@ func _default_tier() -> String:
 
 func select_tier(tier_id: String) -> void:
 	if not offer(tier_id).is_empty():
-		selected = tier_id
-		_refresh()
+		selected = tier_id   # picking only moves the ring and the plate: no log, no server call
+		_update_rows()
+		_draw_detail()
 
 
 func _account_blocks() -> bool:
@@ -146,17 +146,17 @@ func block_reason(tier_id: String, own_start := false) -> String:
 	if state == "open_run":
 		return "Finish or abandon your open run first"
 	if state == "loading":
-		return "Loading..."
+		return tr("Loading…")
 	if _syncing:
-		return "Checking your last mission..."
+		return tr("Checking your last mission…")
 	if _starting and not own_start:
 		return tr("Starting…")
 	if _account_blocks():
-		return "Needs a connection" if state == "offline" else "Sign in to stake Shard"
+		return "Needs a connection" if state == "offline" else "Sign in to stake Shards"
 	if not bool(o.unlocked):
 		return lock_text(o)
 	if usable_shards() < int(o.stake):
-		return "Need %d more Shard" % (int(o.stake) - usable_shards())
+		return "Need %d more Shards" % (int(o.stake) - usable_shards())
 	return ""
 
 
@@ -284,11 +284,11 @@ func _start_inner(tier_id: String) -> Dictionary:
 		if not w.done:
 			await w.finished
 		if w.value != "":
-			_banner(w.value, "Nothing was spent.", true)
+			_banner(w.value, "Nothing was spent.", &"error")
 			return {"ok": false, "code": "syncing"}
 	var mid := MetaState.take_mission_stake(tier_id, int(o.stake))
 	if mid == "":
-		_banner("Could not take the stake", "Nothing was spent.", true)
+		_banner("Could not take the stake", "Nothing was spent.", &"error")
 		return {"ok": false, "code": "stake"}
 	var params := mission_params(tier_id, mid)
 	var r: Dictionary = (await start_hook.call(params)) if (test_mode and start_hook.is_valid()) else (await RunState.begin_run(params))
@@ -299,11 +299,11 @@ func _start_inner(tier_id: String) -> Dictionary:
 			begin_error = "This version is out of date"
 			if is_inside_tree():
 				UpdateRequired.show(self, code)
-			_banner(begin_error, "Download the new version to play Missions. Your stake was returned.", false)
+			_banner(begin_error, "Download the new version to play Missions. Your stake was returned.", &"error")
 			return r
 		var msg := begin_error_text(code)
 		begin_error = String(msg[0])
-		_banner(String(msg[0]), String(msg[1]), false)
+		_banner(String(msg[0]), String(msg[1]), &"error")
 		return r
 	begin_error = ""
 	if not no_scene_change and is_inside_tree():
@@ -337,16 +337,16 @@ func set_state(s: String) -> void:
 	match s:
 		"offline":
 			if remote_on:
-				_banner("Can't reach the server", "Cards are readable. Stakes need a connection; nothing is spent.", true)
+				_banner("Can't reach the server", "Cards are readable. Stakes need a connection; nothing is spent.", &"warn")
 			else:
-				_banner("You're offline", "Missions run on this device for now; progress syncs when you reconnect.", false)
+				_banner("You're offline", "Missions run on this device for now; progress syncs when you reconnect.", &"info")
 		"guest":
 			if remote_on:
-				_banner("Sign in to stake Shard", "Guests can read every card. Staking needs an account.", false, true)
+				_banner("Sign in to stake Shards", "Guests can read every card. Staking needs an account.", &"info", true)
 			else:
-				_banner("You're signed out", "Missions run on this device. Sign in to keep your progress across devices.", false)
+				_banner("You're signed out", "Missions run on this device. Sign in to keep your progress across devices.", &"info")
 		"open_run":
-			_banner("You have a run open", "Only one run can be open. Finish or abandon it to take a mission.", false)
+			_banner("You have a run open", "Only one run can be open. Finish or abandon it to take a mission.", &"warn")
 	_refresh()
 
 
@@ -357,27 +357,73 @@ func open_confirm(tier_id: String) -> void:
 		return
 	if selected != tier_id:   # the detail plate behind the dialog always shows the dialog's tier
 		select_tier(tier_id)
-	var lines: Array[String] = ["%s · %s, Ascension %d" % [tier_id, String(o.mode).capitalize(), int(o.ascension)], ""]
+	var stake_txt := UI3.fmt(int(o.stake))
+	var root := UI3.ModalRoot.new()
+	root.theme = UI3Theme.get_theme()
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_STOP
+	root.name = "Modal"
+	root.add_to_group("ui3_modal")
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree != null:
+		UI3Tooltip.hide_all(tree)
+	var scrim := ColorRect.new()
+	scrim.name = "Scrim"
+	scrim.color = UI3Theme.color("scrim")
+	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(scrim)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(center)
+	var dlg := PanelParts.panel(PanelParts.plate_box("xl", UI3Theme.space("32")), "StakeConfirm")
+	dlg.custom_minimum_size.x = UI3Theme.size_of("defeat_panel_w")
+	center.add_child(dlg)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", UI3Theme.space("20"))
+	dlg.add_child(col)
+	var ttl := Ui5Text.label("Stake %s Shards?" % stake_txt, "text_banner", "text", true)
+	ttl.name = "Title"
+	col.add_child(ttl)
+	var body := VBoxContainer.new()
+	body.name = "Body"
+	body.add_theme_constant_override("separation", UI3Theme.space("8"))
+	col.add_child(body)
+	var add := func(t: String, tok := "text_body", clr := "text_muted", disp := false) -> Label:
+		var l := Ui5Text.label(t, tok, clr, disp)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		body.add_child(l)
+		return l
+	add.call("%s · %s, Ascension %d" % [tier_id, String(o.mode).capitalize(), int(o.ascension)], "text_body", "text", true)
 	for line in rule_lines(o):
-		lines.append(String(line))
-	lines.append("")
-	lines.append("Win: %s Shard back (×%s)" % [UI3.fmt(int(o.payout)), _num(float(o.m))])
-	lines.append("Net if you win: %s Shard" % _signed(int(o.net)))
-	lines.append("Lose or abandon: you lose all %s Shard, no refund" % UI3.fmt(int(o.stake)))
-	lines.append("Estimated win chance (simulated): about %s%%" % _num(float(o.est_win_pct)))
-	lines.append("No Continue and no Aid in a mission run.")
-	var no := UI3.button("Not now", &"secondary", &"M")
-	no.name = "NotNow"
-	var yes := UI3.button("Stake %d and play" % int(o.stake), &"primary", &"M")
-	yes.name = "ConfirmStake"
+		add.call(String(line))
+	body.add_child(MissionParts.kv_row("Win: %s Shards back (×%s)" % [UI3.fmt(int(o.payout)), _num(float(o.m))], "", "WinRow"))
+	body.add_child(MissionParts.kv_row("Net if you win: %s Shards" % _signed(int(o.net)), "", "NetRow"))
+	body.add_child(MissionParts.lose_box("", "Lose or abandon: you lose all %s Shards, no refund" % stake_txt))
+	add.call("Estimated win chance (simulated): about %s%%" % _num(float(o.est_win_pct)))
+	add.call("No Continue and no Aid in a mission run.")
+	var no := PanelParts.button("Not now", &"secondary", &"M")
+	no.name = "NotNowButton"
+	var cap := Ui5Keycap.make("Space")
+	cap.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	var yes := PanelParts.button("Stake %s and play" % stake_txt, &"primary", &"M")
+	yes.name = "StakeButton"
 	yes.disabled = block_reason(tier_id) != ""
 	no.pressed.connect(close_modal)
 	yes.pressed.connect(func() -> void:
 		close_modal()
 		start(tier_id))
-	var m := UI3.modal("Stake %d Shard?" % int(o.stake), "\n".join(lines), [no, yes], 0)   # focus starts on the safe choice
-	m.cancelled.connect(close_modal)
-	_modal_layer.add_child(m)
+	col.add_child(Ui5ModalFooter.make(yes, no))
+	root.actions = [no, yes]
+	root.focus_index = 0   # focus starts on the safe choice
+	root.cancelled.connect(close_modal)
+	_modal_layer.add_child(root)
+	no.add_child(cap)   # Space presses the focused Not now
+	cap.position = Vector2.ZERO
+	cap.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	cap.offset_left = -cap.custom_minimum_size.x - UI3Theme.space("8")
+	cap.offset_right = -UI3Theme.space("8")
 
 
 func close_modal() -> void:
@@ -387,56 +433,68 @@ func close_modal() -> void:
 
 # ---------------------------------------------------------------- build
 
-const COLS := [["TIER", 120, false], ["MODE", 140, false], ["STAKE", 160, true], ["WIN BACK", 160, true],
-	["STONE", 120, true], ["RULES", 0, false]]
-const ROW_H := 96
-const DETAIL_W := 440
+var _banner_host: VBoxContainer
+var _balance_icon: TextureRect
+var _rows := {}
 
 
 func _build() -> void:
 	_shell = UI3Meta.build(self, "Missions", "Stake Shards on a hard run", _on_back)
-	_banner_host = _shell["banner_host"]
+	(_shell["back"] as Control).name = "BackButton"
+	(_shell["sub"] as Control).name = "SubLine"
 	(_shell["panel"] as Control).name = "PlateHost"   # t_ui_laws L0
 	_modal_layer = _shell["modal_layer"]
 	var col: VBoxContainer = _shell["col"]
-	var note := UI3.plate(&"plate")
-	note.name = "Explainer"
+	var body := VBoxContainer.new()
+	body.name = "Body"
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", UI3Theme.space("16"))
+	col.add_child(body)
+	var note := PanelParts.panel(UI3Theme.flat(UI3Theme.color("plate"), UI3Theme.radius("l"), UI3Theme.stroke("rim"),
+		UI3Theme.color("plate_rim"), Vector4(UI3Theme.space("16"), UI3Theme.space("12"), UI3Theme.space("16"), UI3Theme.space("12")),
+		PanelParts.lip(UI3Theme.color("plate_ink"))), "Explainer")
 	var nrow := HBoxContainer.new()
 	nrow.add_theme_constant_override("separation", UI3Theme.space("24"))
 	note.add_child(nrow)
 	var exv := VBoxContainer.new()
 	exv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	exv.add_theme_constant_override("separation", UI3Theme.space("8"))
-	var ex := UI3.label("Win a hard run to get your stake back with a bonus. Lose it and the stake is gone.", "LabelMuted")
+	nrow.add_child(exv)
+	var ex := Ui5Text.label("Win a hard run to get your stake back with a bonus. Lose it and the stake is gone.", "text_body", "text")
 	ex.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	exv.add_child(ex)
-	var gl := UI3.label("A = Ascension (extra difficulty). Stone = Land currency. Starter Shard = the free Shards you began with; they can't be staked. Win chances are simulated with a bot.", "LabelMuted")
+	var gl := Ui5Text.label("A = Ascension (extra difficulty). Stone = Land currency. Starter Shards = the free Shards you began with; they can't be staked. Win chances are simulated with a bot.", "text_body", "text_muted")
 	gl.name = "Glossary"
 	gl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	exv.add_child(gl)
-	nrow.add_child(exv)
-	_balance = UI3.label("", "LabelTitle")
-	_balance.name = "Balance"
-	nrow.add_child(_balance)
-	col.add_child(note)
-	var body := HBoxContainer.new()
-	body.name = "Body"
-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", UI3Meta.GAP)
-	col.add_child(body)
-	var left := VBoxContainer.new()
-	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.add_theme_constant_override("separation", UI3Theme.space("16"))
-	body.add_child(left)
+	var bal := HBoxContainer.new()
+	bal.name = "Balance"
+	bal.add_theme_constant_override("separation", UI3Theme.space("8"))
+	bal.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_balance_icon = PanelParts.icon_rect(UI3.currency_icon("cur_shard", UI3Theme.size_of("icon_m")), UI3Theme.size_of("icon_m"))
+	bal.add_child(_balance_icon)
+	_balance = Ui5Text.label("", "text_title", "text", true)
+	_balance.name = "Value"
+	bal.add_child(_balance)
+	nrow.add_child(bal)
+	body.add_child(note)
+	_banner_host = VBoxContainer.new()
+	_banner_host.name = "BannerHost"
+	body.add_child(_banner_host)
+	var main := HBoxContainer.new()
+	main.name = "Main"
+	main.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	main.add_theme_constant_override("separation", UI3Theme.space("24"))
+	body.add_child(main)
 	_table_host = VBoxContainer.new()
-	_table_host.name = "TableHost"
-	_table_host.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_table_host.name = "Table"
 	_table_host.add_theme_constant_override("separation", UI3Theme.space("8"))
-	left.add_child(_table_host)
-	_detail = UI3.plate(&"plate")
-	_detail.name = "Detail"
-	_detail.custom_minimum_size = Vector2(DETAIL_W, 0)
-	body.add_child(_detail)
+	var sc := UI3Meta.scroll(_table_host)
+	sc.name = "TableScroll"
+	main.add_child(sc)
+	var dp := Ui5DetailPlate.new()
+	dp.setup("mission_detail_w", "Pick a tier", "Select a tier to see its stake, payout and rules.", "Pick a tier")
+	_detail = dp
+	main.add_child(dp)
 
 
 func _on_back() -> void:
@@ -444,13 +502,9 @@ func _on_back() -> void:
 		LandNav.back_to_land()
 
 
-func _banner(msg: String, detail: String, with_retry: bool, with_sign_in := false) -> void:
-	var btns: Array = []
-	if with_sign_in:
-		btns.append({"name": "SignIn", "text": "Sign in", "primary": false, "cb": _sign_in})
-	if with_retry:
-		btns.append({"name": "TryAgain", "text": "Try again", "primary": true, "cb": func() -> void: set_state("normal")})
-	UI3Meta.banner(_banner_host, msg, detail, btns)
+func _banner(msg: String, detail: String, tone: StringName, with_sign_in := false) -> void:
+	UI3Meta.clear(_banner_host)
+	_banner_host.add_child(MissionParts.banner(tone, msg, detail, _sign_in if with_sign_in else Callable()))
 
 
 ## A signed-out or expired account: with the remote wallet on, a guest has no Shards to show and cannot stake.
@@ -470,53 +524,30 @@ func _sign_in() -> void:
 
 # ---------------------------------------------------------------- refresh
 
-func _cell(text: String, w: int, variation := "", right := false) -> Label:
-	var l := UI3.label(text, variation)
-	if w > 0:
-		l.custom_minimum_size = Vector2(w, 0)
-	else:
-		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if right else HORIZONTAL_ALIGNMENT_LEFT
-	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return l
-
-
 func _refresh() -> void:
 	if _shell.is_empty():
 		return
 	var usable := usable_shards()
+	_balance_icon.visible = not is_guest_view()
 	if is_guest_view():   # a guest has no wallet: no numbers (the cached ones belong to nobody)
 		_balance.text = "Sign in to see your Shards"
 	else:
 		_balance.text = "Stakeable %s · Starter %s" % [UI3.fmt(usable), UI3.fmt(maxi(MetaState.shard_pool - usable, 0))]
 	UI3Meta.clear(_table_host)
-	if state == "loading":
-		for i in 4:
-			_table_host.add_child(UI3.skeleton_row(ROW_H))
-		UI3Meta.clear(_detail)
+	_rows.clear()
+	_table_host.add_child(MissionParts.head_row())
+	if state == "loading" or _syncing:
+		for i in maxi(offers().size(), 1):
+			var sk := UI3.skeleton_row(UI3Theme.size_of("mission_row_h"))
+			sk.name = "Skeleton"
+			_table_host.add_child(sk)
+		_draw_detail()
 		return
-	if offer(selected).is_empty():
-		selected = _default_tier()
-	var head := HBoxContainer.new()
-	head.name = "Head"
-	head.add_theme_constant_override("separation", UI3Theme.space("16"))
-	var hpad := MarginContainer.new()
-	hpad.add_theme_constant_override("margin_left", 24)
-	hpad.add_theme_constant_override("margin_right", 24)
-	hpad.add_child(head)
-	for c in COLS:
-		head.add_child(_cell(String(c[0]), int(c[1]), "LabelMuted", bool(c[2])))
-	_table_host.add_child(hpad)
-	var rows := VBoxContainer.new()
-	rows.name = "Grid"
-	rows.add_theme_constant_override("separation", UI3Theme.space("8"))
 	for o in offers():
-		rows.add_child(_row(o))
-	var sc := UI3Meta.scroll(rows)
-	sc.name = "Scroll"
-	_table_host.add_child(sc)
+		var row := _row(o)
+		_rows[String((o as Dictionary).tier)] = row
+		_table_host.add_child(row)
+	_update_rows()
 	_draw_detail()
 
 
@@ -527,158 +558,85 @@ func _rule_names(o: Dictionary) -> String:
 	return ", ".join(names) if not names.is_empty() else "Standard only"
 
 
+func _row_locked(o: Dictionary) -> bool:
+	return not bool(o.unlocked) and not is_guest_view()   # a guest sees rule text, no lock lines
+
+
 func _row(o: Dictionary) -> Control:
 	var id := String(o.tier)
-	var locked := not bool(o.unlocked)
-	var b := UI3.button("", &"secondary", &"M")
-	b.name = "Card_" + id
-	b.set_meta("selected", id == selected)   # not a toggle: the pressed style would fill the row cream
-	if id == selected:
-		# selected = 4 px cream outline (selected-card style), drawn as an overlay: no lift, no fill change
-		var ring := Panel.new()
-		ring.name = "SelectedRing"
-		ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		ring.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		ring.add_theme_stylebox_override("panel", UI3Theme.flat(Color.TRANSPARENT, UI3Theme.radius("m"), 4,
-			UI3Theme.color("selected_outline")))
-		b.add_child(ring)
-	b.custom_minimum_size = Vector2(0, ROW_H)
-	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if locked:
-		b.modulate = Color(1, 1, 1, 0.55)   # locked rows read as not playable; "Locked: ..." in the row says why
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", UI3Theme.space("16"))
-	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	h.offset_left = 24
-	h.offset_right = -24
-	b.add_child(h)
-	h.add_child(_cell(id, 120, "LabelScreenTitle"))
-	h.add_child(_cell("%s · A%d" % [String(o.mode).capitalize(), int(o.ascension)], 140))
-	h.add_child(_cell(UI3.fmt(int(o.stake)), 160, "LabelTitle", true))
-	h.add_child(_cell("%s (×%s)" % [UI3.fmt(int(o.payout)), _num(float(o.m))], 160, "", true))
-	h.add_child(_cell("+%d" % int(o.stone), 120, "", true))
-	if locked:
-		var lk := _cell("Locked: " + lock_text(o), 0)
-		lk.name = "LockNote"
-		h.add_child(lk)
-	else:
-		var rl := _cell(_rule_names(o), 0)
-		rl.name = "Rules"
-		h.add_child(rl)
-	b.pressed.connect(select_tier.bind(id))
-	return b
+	var locked := _row_locked(o)
+	var r := MissionTierRow.new()
+	r.setup_tier(id, [id, "%s · A%d" % [String(o.mode).capitalize(), int(o.ascension)], UI3.fmt(int(o.stake)),
+		"%s (×%s)" % [UI3.fmt(int(o.payout)), _num(float(o.m))], "+%d" % int(o.stone),
+		("Locked: " + lock_text(o)) if locked else _rule_names(o)], locked)
+	r.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	r.pressed.connect(select_tier.bind(id))
+	return r
 
 
-func _tinted(kind: String, title: String, text: String) -> Control:
-	var win := kind == "win"
-	var p := PanelContainer.new()
-	p.name = "Win" if win else "Lose"
-	p.theme = UI3Theme.get_theme()
-	p.add_theme_stylebox_override("panel", UI3Theme.flat(
-		UI3Theme.color("success_bg" if win else "danger_bg"), UI3Theme.radius("m"), 0, Color.TRANSPARENT,
-		Vector4(16, 12, 16, 12)))
-	var v := VBoxContainer.new()
-	p.add_child(v)
-	var t := UI3.label(title, "LabelTitle")
-	t.add_theme_color_override("font_color", UI3Theme.color("success_text" if win else "danger_text"))
-	v.add_child(t)
-	var d := UI3.label(text)
-	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v.add_child(d)
-	return p
+## Ring + dim follow `selected` and the lock state; nothing is selected when the screen opens.
+func _update_rows() -> void:
+	for id in _rows:
+		var r := _rows[id] as MissionTierRow
+		if is_instance_valid(r):
+			r.set_tier_state(String(id) == selected, r.locked)
 
 
 func _draw_detail() -> void:
-	UI3Meta.clear(_detail)
+	var dp := _detail as Ui5DetailPlate
+	var big := UI3Theme.size_of("text_screen_title")
+	if state == "loading" or _syncing:
+		var t := tr("Loading…") if state == "loading" else tr("Checking your last mission…")
+		dp.show_item(t)
+		dp.title.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
+		for i in 2:
+			dp.body.add_child(UI3.skeleton_row(UI3Theme.size_of("skeleton_h")))
+		dp.set_primary(t, t).name = "StakeButton"
+		return
+	dp.title.add_theme_font_size_override("font_size", big)
 	var o := offer(selected)
-	if o.is_empty():
+	if selected == "" or o.is_empty():
+		dp.show_empty()
+		if dp.primary != null:
+			dp.primary.name = "StakeButton"
 		return
 	var id := selected
-	var outer := VBoxContainer.new()
-	outer.add_theme_constant_override("separation", UI3Theme.space("16"))
-	_detail.add_child(outer)
-	var v := VBoxContainer.new()
-	v.name = "DetailBody"
-	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	v.add_theme_constant_override("separation", UI3Theme.space("16"))
-	var pad := MarginContainer.new()   # keeps text off the scrollbar
-	pad.add_theme_constant_override("margin_right", 16)
-	pad.add_child(v)
-	var sc := UI3Meta.scroll(pad)
-	sc.name = "DetailScroll"
-	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	outer.add_child(sc)
-	var t := UI3.label("%s · %s, A%d" % [id, String(o.mode).capitalize(), int(o.ascension)], "LabelScreenTitle")
-	t.name = "DetailTitle"
-	v.add_child(t)
+	dp.show_item("%s · %s, A%d" % [id, String(o.mode).capitalize(), int(o.ascension)])
 	var tier_locked := not bool(o.unlocked) and not _account_blocks()
 	if tier_locked:
-		var lk := UI3.label("Locked", "LabelTitle")
-		lk.name = "LockedTitle"
-		v.add_child(lk)
-	# 1. rules in words (same names as the chips in the run)
-	var rules := VBoxContainer.new()
-	rules.name = "RuleLines"
-	rules.add_theme_constant_override("separation", UI3Theme.space("8"))
+		dp.body.add_child(MissionParts.locked_tag())
 	for line in rule_lines(o):
-		var rl := UI3.label(String(line))
-		rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		rules.add_child(rl)
-	v.add_child(rules)
+		dp.add_line(String(line)).name = "RuleLine"
 	if not tier_locked:   # a tier you cannot play shows what opens it, not stake money, the lose box, a warning or an estimate
-		_draw_detail_money(v, o)
+		_draw_detail_money(dp, o)
 	var why := block_reason(id)
-	var b := UI3.button("Stake %d and play" % int(o.stake), &"primary", &"M")
-	b.name = "Stake"
-	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var stake_text := "Stake %s and play" % UI3.fmt(int(o.stake))
+	var b: Button
 	if is_guest_view():
-		# looks active and works: leaving "guest" is the one thing this button does
-		b.text = "Sign in to stake Shard"
+		b = dp.set_primary("Sign in to stake Shards")   # looks active and works: leaving "guest" is its one job
 		b.pressed.connect(_sign_in)
 	else:
-		if why != "":
-			UI3.set_disabled_reason(b, why)
-			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			b.custom_minimum_size.y = 72
+		b = dp.set_primary(stake_text, why)
 		b.pressed.connect(open_confirm.bind(id))
-	outer.add_child(b)
+	b.name = "StakeButton"
 
 
-## Stake -> Win back -> Net, the lose box, the warning and the estimate line (open tiers only).
-func _draw_detail_money(v: VBoxContainer, o: Dictionary) -> void:
-	var money := VBoxContainer.new()
-	money.name = "Money"
-	money.add_theme_constant_override("separation", UI3Theme.space("8"))
-	for row in [["Stake", "%s Shards" % UI3.fmt(int(o.stake)), "StakeValue"],
-			["Win back", "%s Shards (×%s)" % [UI3.fmt(int(o.payout)), _num(float(o.m))], "PayValue"],
-			["Net if you win", "%s Shards" % _signed(int(o.net)), "NetValue"],
-			["Stone if you win", "+%d" % int(o.stone), "StoneValue"]]:
-		var hb := HBoxContainer.new()
-		hb.add_theme_constant_override("separation", UI3Theme.space("16"))
-		var kl := UI3.label(String(row[0]), "LabelMuted")
-		kl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		hb.add_child(kl)
-		var vl := UI3.label(String(row[1]), "LabelTitle")
-		vl.name = String(row[2])
-		hb.add_child(vl)
-		money.add_child(hb)
-	v.add_child(money)
-	v.add_child(_tinted("lose", "Lose or abandon", "You lose %s Shards. No refund, no Stone." % UI3.fmt(int(o.stake))))
+## Stake -> Win back -> Net, Stone, the lose box, the warning and the estimate line (open tiers only).
+func _draw_detail_money(dp: Ui5DetailPlate, o: Dictionary) -> void:
+	var rows := [["Stake", "%s Shards" % UI3.fmt(int(o.stake)), "StakeRow"],
+			["Win back", "%s Shards (×%s)" % [UI3.fmt(int(o.payout)), _num(float(o.m))], "WinBackRow"],
+			["Net if you win", "%s Shards" % _signed(int(o.net)), "NetRow"],
+			["Stone if you win", "+%d" % int(o.stone), "StoneRow"]]
+	for r in rows:
+		dp.body.add_child(MissionParts.kv_row(String(r[0]), String(r[1]), String(r[2])))
+	dp.body.add_child(MissionParts.lose_box("Lose or abandon", "You lose %s Shards. No refund, no Stone." % UI3.fmt(int(o.stake))))
 	var wt := warning_text(effective_warning(o))
 	if wt != "":
-		var wl := UI3.label(wt)
-		wl.name = "Warning"
-		wl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		wl.add_theme_color_override("font_color", UI3Theme.color("anchor_price"))
-		v.add_child(wl)
-	# same line on every tier: simulated win chance and average return (numbers from missions.json)
-	var est := UI3.label("Estimated win chance (simulated): about %s%%. On average you get back about %d%% of your stake. Real players may do better or worse." % [
-		_num(float(o.est_win_pct)), roundi(float(o.est_return_pct))])
-	est.name = "Estimate"
-	est.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v.add_child(est)
-	v.add_child(UI3.label("No Continue and no Aid.", "LabelMuted"))
+		dp.body.add_child(MissionParts.warning(wt))
+	var est := dp.add_line("Estimated win chance (simulated): about %s%%. On average you get back about %d%% of your stake. Real players may do better or worse." % [
+		_num(float(o.est_win_pct)), roundi(float(o.est_return_pct))], "text_muted")
+	est.name = "ChanceLine"
+	dp.add_line("No Continue and no Aid.", "text_muted")
 
 
 ## The tier's own warning kind (N3+: MissionBoard.warning_kind), else "most_lose" for any tier whose estimated win

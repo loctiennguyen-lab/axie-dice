@@ -44,25 +44,25 @@ func _ready() -> void:
 		var o := s.offer(id)
 		var t: Dictionary = cfg.tiers[id]
 		_ok(int(o.net) == int(o.payout) - int(o.stake), "%s net = payout - stake" % id)
-		var money: Node = s.find_child("Money", true, false)
+		var money: Node = s.find_child("StakeRow", true, false)
 		var txt: Array = []
-		_texts(s.find_child("DetailBody", true, false), txt)
+		_texts(s.find_child("DetailScroll", true, false), txt)
 		var all := "\n".join(txt)
 		if bool(o.unlocked):
 			_ok(money != null, "%s money block" % id)
 			_ok(all.find(UI3.fmt(int(o.stake))) >= 0 and all.find(UI3.fmt(int(o.payout))) >= 0 and all.find("+" + UI3.fmt(int(o.net))) >= 0,
 				"%s shows stake, win back and net" % id)
 			_ok(all.find("Estimated win chance (simulated)") >= 0 and all.find("Estimate (bot)") < 0, "%s estimate is labelled simulated" % id)
-			_ok(s.find_child("Estimate", true, false) != null and s.find_child("LockedTitle", true, false) == null, "%s: same estimate line, no lock title" % id)
+			_ok(s.find_child("ChanceLine", true, false) != null and s.find_child("LockedTag", true, false) == null, "%s: same estimate line, no lock title" % id)
 		else:
 			# S3-2: a locked tier shows what opens it, not stake money / lose box / warning / estimate
-			_ok(money == null and s.find_child("Lose", true, false) == null and s.find_child("Warning", true, false) == null
-				and s.find_child("Estimate", true, false) == null, "%s locked: no money, lose box, warning or estimate" % id)
-			_ok(s.find_child("LockedTitle", true, false) != null, "%s locked: Locked title" % id)
-		var row_card := s.find_child("Card_" + id, true, false) as Control
+			_ok(money == null and s.find_child("LoseBox", true, false) == null and s.find_child("Warning", true, false) == null
+				and s.find_child("ChanceLine", true, false) == null, "%s locked: no money, lose box, warning or estimate" % id)
+			_ok(s.find_child("LockedTag", true, false) != null, "%s locked: Locked title" % id)
+		var row_card := s.find_child("TierRow" + id, true, false) as Control
 		_ok((row_card.modulate.a < 1.0) == (not bool(o.unlocked)), "%s row dimmed only when locked" % id)
-		var rl: Node = s.find_child("RuleLines", true, false)
-		_ok(rl != null and rl.get_child_count() == 1 + (t.rules as Array).size(), "%s rule lines = standard + %d" % [id, (t.rules as Array).size()])
+		var rl: Array = s.find_children("RuleLine*", "", true, false)
+		_ok(rl.size() == 1 + (t.rules as Array).size(), "%s rule lines = standard + %d" % [id, (t.rules as Array).size()])
 		var w := s.find_child("Warning", true, false)
 		# S3-1: every tier in missions.json has est win < 50% and the same ~65% return, so every tier warns
 		var wt := MissionsScreen.warning_text(MissionsScreen.effective_warning(o))
@@ -74,8 +74,8 @@ func _ready() -> void:
 			"N6":
 				_ok(wt.begins_with("Title tier"), "N6 title warning")
 		if bool(o.unlocked):
-			_ok(w != null and (w as Label).text == wt, "%s: open tier shows its warning" % id)
-		var b := s.find_child("Stake", true, false) as Button
+			_ok(w != null and (w.get_node("WarningText") as Label).text == wt, "%s: open tier shows its warning" % id)
+		var b := s.find_child("StakeButton", true, false) as Button
 		if bool(o.unlocked):
 			_ok(not b.disabled and b.text == "Stake %d and play" % int(o.stake), "%s button enabled" % id)
 		else:
@@ -85,7 +85,7 @@ func _ready() -> void:
 	s.select_tier("N2")
 	MetaState.shard_pool = 450
 	s._refresh()
-	_ok((s.find_child("Stake", true, false) as Button).text == "Need 50 more Shard", "short of Shard: reason shown")
+	_ok((s.find_child("StakeButton", true, false) as Button).text == "Need 50 more Shards", "short of Shard: reason shown")
 	# confirm modal: net and "no refund" in words
 	MetaState.shard_pool = 9000
 	s._refresh()
