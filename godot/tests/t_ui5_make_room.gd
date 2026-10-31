@@ -174,6 +174,6 @@ func _core_room(sc: float) -> void:
 		var ln := (sheet.find_child("Line", true, false) as Label).text
 		_ok(tt.contains("%d of %d" % [m_slots, m_slots]), tag + ": title says N of M (%s)" % tt)
 		_ok(ln.begins_with("All %d Core slots full" % m_slots), tag + ": line says All M Core slots full (%s)" % ln)
-		_ok(sheet.find_child("OwnedList", true, false).get_child_count() == m_slots, tag + ": one row per owned Core (%d)" % sheet.find_child("OwnedList", true, false).get_child_count())
+		_ok(sheet.find_children("SellRow*", "", true, false).size() == m_slots, tag + ": one row per owned Core (%d)" % sheet.find_children("SellRow*", "", true, false).size())
 	m.queue_free()
 	await _frames(2)

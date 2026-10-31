@@ -86,7 +86,7 @@ static func build(new_title: String, new_tier: int, line: String, cells: Array, 
 		sb.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		sb.add_theme_constant_override("icon_max_width", UI3Theme.size_of("icon_s"))
 		h.add_child(sb)
-		list.add_child(row)
+		list.add_child(row, true)   # readable unique names: SellRow, SellRow2 ...
 		sells.append(sb)
 		if eternal:
 			UI3.set_disabled_reason(sb, TranslationServer.translate("Can't sell"))

@@ -87,7 +87,7 @@ static func _tag(full: bool) -> PanelContainer:
 	moons.add_theme_constant_override("separation", UI3Theme.stroke("hairline"))
 	moons.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for i in (3 if full else 2):
-		moons.add_child(PanelParts.icon_rect(UI3.icon("ui_mooncard"), UI3Theme.space("24"), "Moon"))
+		moons.add_child(PanelParts.icon_rect(UI3.icon("ui_mooncard"), UI3Theme.space("24"), "Moon"), true)
 	h.add_child(moons)
 	var kb := PanelParts.panel(UI3Theme.flat(ink, UI3Theme.radius("pill"), 0, Color.TRANSPARENT,
 		Vector4(UI3Theme.space("8"), 0, UI3Theme.space("8"), 0)), "Kind")
