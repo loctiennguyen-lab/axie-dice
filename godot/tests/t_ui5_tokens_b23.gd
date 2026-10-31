@@ -56,6 +56,18 @@ func _test_changed_keys() -> void:
 				"color":
 					var c := String((v as Dictionary).get("value", "")) if typeof(v) == TYPE_DICTIONARY else ""
 					_ok(hex.search(c) != null, "%s is not #rrggbb: %s" % [p, str(v)])
+				"shadow":
+					var d: Dictionary = v if typeof(v) == TYPE_DICTIONARY else {}
+					for f in ["x", "y", "blur", "spread"]:
+						_ok(d.has(f), "%s has no %s" % [p, f])
+	# The values B2/B3 changed on purpose: a revert to the UI-04 colour must fail here, not pass as "a hex".
+	var want := {"tier_moss": "#2dc661", "tier_moss_bg": "#0c3a1e", "tier_amber": "#ffb444", "tier_amber_bg": "#4a2c0c",
+		"tier_crystal": "#27c0ca", "tier_crystal_bg": "#0a3337", "run_rule_bg": "#2b1a10", "run_rule_border": "#8e97a8"}
+	var colors: Dictionary = t.get("color", {})
+	for k in want:
+		_ok(String((colors.get(k, {}) as Dictionary).get("value", "")).to_lower() == want[k], "color.%s = %s, want %s" % [k, str(colors.get(k)), want[k]])
+	var sizes: Dictionary = t.get("size", {})
+	_ok(int(sizes.get("mission_row_h", -1)) == 96 and int(sizes.get("mission_detail_w", -1)) == 420, "mission_row_h/mission_detail_w not the B3 96/420")
 
 
 func _test_overrides() -> void:
