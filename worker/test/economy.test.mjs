@@ -99,6 +99,38 @@ test('economy: daily claim needs a closed run today, pays once per day; weekly n
   assert.equal((await j(call(env, '/api/econ/claim', 'POST', { kind: 'daily_run' }))).code, 'no_run_today');
 });
 
+test('economy: the snapshot carries the Daily state; the min_days-th daily claim of the week pays the weekly bonus', async () => {
+  const env = mkEnv();
+  const s0 = await j(call(env, '/api/econ'));
+  const now = Math.floor(Date.now() / 1000);
+  const today = new Date(now * 1000).toISOString().slice(0, 10);
+  assert.deepEqual([s0.daily.day, s0.daily.claimed, s0.daily.days, s0.daily.weekly_paid], [today, false, 0, false]);
+  assert.equal(new Date(s0.daily.week + 'T00:00:00Z').getUTCDay(), 1, 'week starts on Monday');
+  env.DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, rules_version, state, created_at, closed_at, outcome, battles_done) VALUES (?, 'p1', 'normal', 'x', 'closed', ?, ?, 'won', 3)`).run('a'.repeat(32), now - 5, now - 1);
+  // three earlier daily claims this week (same shape as the ledger rows the claim writes; `at` inside this week)
+  const ins = env.DB.db.prepare(`INSERT INTO wallet_ledger (player_id, currency, delta, reason, idem_key, at) VALUES ('p1', 'shard', 60, 'daily', ?, ?)`);
+  for (const d of ['2000-01-01', '2000-01-02', '2000-01-03']) ins.run(`shard:claim:daily:${d}`, now - 2);
+  const pre = (await j(call(env, '/api/econ'))).shard;
+  const c = await j(call(env, '/api/econ/claim', 'POST', { kind: 'daily' }));
+  assert.equal(c.ok, true);
+  assert.deepEqual([c.daily.claimed, c.daily.days, c.daily.weekly_paid], [true, 4, true], 'claim answer carries the new Daily state');
+  assert.equal(c.shard, pre + 60 + 150, 'daily + weekly shards'); assert.equal(c.result.weekly.shards, 150);
+  const again = await j(call(env, '/api/econ/claim', 'POST', { kind: 'daily' }));
+  assert.equal(again.dup, true); assert.equal(again.shard, c.shard, 'retry pays nothing'); assert.equal(again.result.weekly, undefined);
+  const wk = await j(call(env, '/api/econ/claim', 'POST', { kind: 'weekly' }));
+  assert.equal(wk.dup, true); assert.equal(wk.shard, c.shard, 'manual weekly after the auto one pays nothing');
+});
+
+test('economy: a daily claim below min_days does not pay the weekly bonus', async () => {
+  const env = mkEnv();
+  await call(env, '/api/econ');
+  const now = Math.floor(Date.now() / 1000);
+  env.DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, rules_version, state, created_at, closed_at, outcome, battles_done) VALUES (?, 'p1', 'normal', 'x', 'closed', ?, ?, 'won', 3)`).run('a'.repeat(32), now - 5, now - 1);
+  const c = await j(call(env, '/api/econ/claim', 'POST', { kind: 'daily' }));
+  assert.deepEqual([c.daily.claimed, c.daily.days, c.daily.weekly_paid], [true, 1, false]);
+  assert.equal(c.result.weekly, undefined);
+});
+
 const insRun = (env, id, pid, mode, battles, shards) => env.DB.db.prepare(
   `INSERT INTO runs (run_id, player_id, mode, rules_version, state, created_at, closed_at, battles_done, summary_json) VALUES (?, ?, ?, 'x', 'closed', 1, 1000, ?, ?)`)
   .run(id, pid, mode, battles, JSON.stringify({ shards }));

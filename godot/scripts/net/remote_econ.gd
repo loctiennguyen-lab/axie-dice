@@ -54,7 +54,9 @@ func _call(method: String, path: String, body: String, done: Callable) -> void:
 			var d: Dictionary = j
 			r["net"] = true
 			if d.has("shard"):
-				MetaState.apply_server_econ(d)   # wins over the cache even on a refusal: it is the truth
+				MetaState.apply_server_econ(d, false)   # wins over the cache even on a refusal: it is the truth
+				apply_daily(d)
+				MetaState.save_to_disk()
 			if code == 200 and (d.get("ok", true) != false):
 				r["ok"] = true
 				r["code"] = ""
@@ -66,6 +68,25 @@ func _call(method: String, path: String, body: String, done: Callable) -> void:
 			r["code"] = "unauthenticated"
 		if done.is_valid():
 			done.call(r))
+
+
+## Daily screen cache from the snapshot's `daily` block {day, claimed, week, days, weekly_paid}: MetaState.daily_date
+## and daily_week are what DailyScreen / Land read, and only the offline claim writes them, so a remote claim left the
+## button live and the week strip at 0. Lives here, not in MetaState.apply_server_econ, so the rule files stay as they
+## are (t_rules_version). The caller saves.
+static func apply_daily(snap: Dictionary) -> void:
+	var dd: Variant = snap.get("daily")
+	if not dd is Dictionary:
+		return
+	var day := String((dd as Dictionary).get("day", ""))
+	if day == "":
+		return
+	if bool((dd as Dictionary).get("claimed", false)):
+		MetaState.daily_date = day
+	elif MetaState.daily_date == day:
+		MetaState.daily_date = ""
+	MetaState.daily_week = {"week": String((dd as Dictionary).get("week", "")), "n": int((dd as Dictionary).get("days", 0)),
+		"paid": bool((dd as Dictionary).get("weekly_paid", false))}
 
 
 ## Idempotency key, server pattern [A-Za-z0-9_-]{8,64}. Random: each purchase is its own operation.
