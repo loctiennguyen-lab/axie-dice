@@ -80,7 +80,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 	_check(h.find_child("ResetNotice", true, false) != null, "Land shows the reset notice")
 	_check(h.find_child("TierBanner", true, false) == null, "tier banner waits")
-	var ok := h.find_child("ResetNoticeOk", true, false) as Button
+	var ok := h.find_child("OkButton", true, false) as Button
 	if ok != null:
 		ok.pressed.emit()
 	_check(MetaState.reset_notice_id == "", "OK clears it")

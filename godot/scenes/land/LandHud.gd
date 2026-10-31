@@ -6,6 +6,7 @@ extends RefCounted
 
 const Plates := preload("res://scenes/land/ui5/LandPlates.gd")
 const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
+const Over := preload("res://scenes/land/ui5/LandOverlays.gd")
 
 var _l: Node3D   # the LandHub
 var _tip: PanelContainer
@@ -52,32 +53,10 @@ func build_run_button() -> Button:
 	if _l._first and not _l._has_run:
 		plate.grab_focus.call_deferred()
 	# "Start here" coach card (640 wide, 32x20 arrow toward the Start run spotlight).
-	var hint := VBoxContainer.new()
+	var hint := Over.coach("Start here", "Pick a mode and play your first run", func() -> float:
+		return float(UI3Theme.size_of("coach_w")) - plate.size.x * 0.5)
 	_l._start_hint = hint
-	hint.name = "StartHint"
-	hint.theme = UI3Theme.get_theme()
-	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hint.add_theme_constant_override("separation", 0)
-	var card := UI3.plate(&"dialog")
-	card.custom_minimum_size.x = 640
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var hv := VBoxContainer.new()
-	hv.add_child(UI3.label("Start here", "LabelTitle"))
-	var hb := UI3.label("Pick a mode and play your first run", "LabelMuted")
-	hb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hb.custom_minimum_size.x = 592   # card 640 minus 24 padding each side
-	hv.add_child(hb)
-	card.add_child(hv)
-	hint.add_child(card)
-	var arrow := Control.new()
-	arrow.name = "HintArrow"
-	arrow.custom_minimum_size = Vector2(640, 20)
-	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	arrow.draw.connect(func() -> void:
-		var cx := 640.0 - plate.size.x * 0.5
-		arrow.draw_colored_polygon(PackedVector2Array([Vector2(cx - 16, 0), Vector2(cx + 16, 0), Vector2(cx, 20)]),
-			UI3Theme.color("panel")))
-	hint.add_child(arrow)
+	Over.spotlight(plate, UI3Theme.radius("m"))
 	hint.visible = _l._first and not _l._has_run and not _l._guest
 	_l._ui.add_child(hint)
 	return plate
@@ -365,17 +344,9 @@ func mission_line() -> String:
 
 
 func build_banners() -> void:
-	var b: Control = UI3.net_notice("Offline · Runs, Store, Pass, Echo Box, Daily and Leaderboard need a connection.",
+	var b: Control = Over.banner("Offline · Runs, Store, Pass, Echo Box, Daily and Leaderboard need a connection.",
 		"Retry", _l._on_retry)
 	_l._offline_banner = b
-	b.name = "OfflineBanner"
-	b.custom_minimum_size = Vector2(600, 0)
-	var msg := b.find_children("*", "Label", true, false)
-	if not msg.is_empty():
-		(msg[0] as Label).custom_minimum_size.x = 440
-	var rb := b.find_child("Retry", true, false)
-	if rb != null:
-		rb.name = "RetryButton"
 	b.visible = _l._offline
 	_l._ui.add_child(b)
 
@@ -400,8 +371,7 @@ func show_toast(text: String, hold: float = 1.6, tone: StringName = &"ok") -> vo
 	if not _l._toasts.is_empty() and not _l._draining:
 		_l._toast_queue.append([text, hold, tone])
 		return
-	var tw_node := UI3.toast(text, tone)
-	tw_node.name = "Toast"
+	var tw_node := Ui5Toast.make(text, tone)
 	tw_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_l._ui.add_child(tw_node)
 	_l._toasts.append(tw_node)
@@ -423,7 +393,7 @@ func show_toast(text: String, hold: float = 1.6, tone: StringName = &"ok") -> vo
 
 
 func layout_toasts() -> void:
-	var y := 24.0
+	var y := float(Ui5Toast.top_y(_l._offline_banner != null and is_instance_valid(_l._offline_banner) and _l._offline_banner.visible))
 	for t in _l._toasts:
 		if not is_instance_valid(t) or t.is_queued_for_deletion():
 			continue
@@ -437,31 +407,40 @@ func open_confirm(title: String, body: String, ok_text: String, on_ok: Callable,
 		cancel_text: String = "Cancel", loss: Array = [], _head: Color = Color(0, 0, 0, 0)) -> void:
 	if _l._modal != null:
 		return
-	# UI-03 18-system: UI3.modal (560 w dialog). Destructive (`loss` given) = red button + focus on Cancel;
-	# otherwise amber primary + focus on the primary action.
+	# Destructive (`loss` given): safe button first, carries Space and the focus; the danger button is the action.
 	var destructive := loss.size() >= 2
-	var cancel := UI3.button(cancel_text, &"secondary")
-	cancel.name = "ConfirmCancel"
+	var abandon := title.begins_with("Abandon")
+	var m := Over.dialog("Confirm", "AbandonMissionConfirm" if abandon else "NewRunConfirm", title, body, abandon and destructive)
+	var col := m.get_meta("col") as VBoxContainer
+	var cancel := UI3.button(cancel_text, &"secondary", &"M")
+	cancel.name = "KeepPlayingButton"
 	cancel.pressed.connect(_l._close_modal)
-	var ok := UI3.button(ok_text, &"danger" if destructive else &"primary")
-	ok.name = "ConfirmOk"
+	var ok := UI3.button(ok_text, &"danger" if destructive else &"primary", &"M")
+	ok.name = "AbandonButton" if abandon else "EndRunButton"
 	ok.pressed.connect(on_ok)
-	var m := UI3.modal(title, body, [cancel, ok], 0 if destructive else 1)
-	m.name = "Confirm"
-	m.cancelled.connect(_l._close_modal)
 	if destructive:
-		var row := ok.get_parent()
-		var lb := UI3.plate(&"row")
-		lb.name = "LossRow"
-		lb.custom_minimum_size = Vector2(0, 48)
-		var lv := VBoxContainer.new()
-		lv.add_child(UI3.label(String(loss[0])))
-		lv.add_child(UI3.label(String(loss[1]), "LabelMuted"))
-		lb.add_child(lv)
-		row.get_parent().add_child(lb)
-		row.get_parent().move_child(lb, row.get_index())
+		col.add_child(Over.loss_rows(String(loss[0]), String(loss[1]), abandon))
+		col.add_child(Over.confirm_footer(cancel, ok))
+	else:
+		col.add_child(Ui5ModalFooter.make(ok, cancel))
+	m.actions = [cancel, ok]
+	m.focus_index = 0 if destructive else 1
+	m.cancelled.connect(_l._close_modal)
 	_l._modal = m
 	_l._ui.add_child(m)
+	if destructive:
+		Over.safe_cap(cancel)
+
+
+## Beta reset notice (frame 01-land--beta-reset): one OK button with the Space cap, focused.
+func reset_notice(body: String, ok: Button) -> UI3.ModalRoot:
+	var m := Over.dialog("ResetNotice", "BetaResetModal", "Beta reset", body)
+	ok.name = "OkButton"
+	(m.get_meta("col") as VBoxContainer).add_child(Ui5ModalFooter.make(ok))
+	m.actions = [ok]
+	m.focus_index = 0
+	Plates.attach_space_cap(ok, UI3Theme.space("32"))
+	return m
 
 
 func close_modal() -> void:

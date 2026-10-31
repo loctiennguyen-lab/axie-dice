@@ -240,8 +240,7 @@ func _show_reset_notice() -> void:
 		MetaState.dismiss_reset_notice()
 		_close_modal()
 		_gift_and_tier_notices())
-	var m := UI3.modal("Beta reset", "Beta reset: everyone starts fresh. Shards, Stone, tickets, unlocks and run history were cleared. Your account and sign-in are kept.", [ok], 0)
-	m.name = "ResetNotice"
+	var m := _hud.reset_notice("Beta reset: everyone starts fresh. Shards, Stone, tickets, unlocks and run history were cleared. Your account and sign-in are kept.", ok)
 	m.cancelled.connect(ok.pressed.emit)
 	_modal = m
 	_ui.add_child(_modal)
@@ -1381,7 +1380,7 @@ func _place_hud(f: float) -> void:
 	_offline_banner.reset_size()
 	var os := _offline_banner.get_combined_minimum_size()
 	_offline_banner.scale = sc
-	_offline_banner.position = Vector2((w - os.x * f) * 0.5, h - 24.0 - os.y * f)   # bottom centre: clear of every place chip
+	_offline_banner.position = Vector2((w - os.x * f) * 0.5, float(UI3Theme.size_of("offline_banner_top")) * f)   # frame: top centre
 
 
 # ================================================================ actions
