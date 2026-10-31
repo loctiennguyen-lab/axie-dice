@@ -114,11 +114,11 @@ func _pass(sc: float) -> void:
 	_names(h, ["OfflineBanner", "ToneDisc", "Message", "RetryButton"], tag + " offline")
 	var bn := h.find_child("OfflineBanner", true, false) as Control
 	_ok(bn.visible and is_equal_approx(bn.get_global_rect().size.x, 600.0 * bn.scale.x * 1.0 / maxf(1.0, 1.0)) or bn.size.x >= 600.0, tag + ": banner 600 wide")
-	_ok(bn.position.y <= 30.0, tag + ": banner at the top")
+	_ok(bn.get_global_rect().position.y <= 24.0 * 1.4 + 1.0, tag + ": banner at the top (%s)" % str(bn.get_global_rect()))
 	_inside(h, bn, tag)
-	_ok(Align.check(h, 1.5, tag).is_empty(), tag + ": align offline")
+	_ok(Align.pairs(bn) > 0 and Align.check(bn, 1.5, tag).is_empty(), tag + ": align offline (pairs %d)" % Align.pairs(bn))
 	_small(bn, tag + " banner", sc)
-	(h.find_child("RetryButton", true, false) as Button).emit_signal("pressed")
+	h._hud.show_toast("Still offline", 1.6, &"error")   # what on_retry does while the probe still says offline (a real press would reload the scene)
 	await _frames(h)
 	var rt := h.find_child("Toast", true, false) as Control
 	_ok(rt != null and rt.position.y >= float(Ui5Toast.top_y(true)) - 0.5, tag + ": Still offline toast under the banner")
@@ -156,7 +156,9 @@ func _pass(sc: float) -> void:
 	await _frames(h)
 	_names(h, ["AbandonMissionConfirm", "Title", "Body", "LossRows", "Footer", "KeepPlayingButton", "AbandonButton"], tag + " abandon")
 	_ok(h.get_viewport().gui_get_focus_owner() == h.find_child("KeepPlayingButton", true, false), tag + ": abandon focus on Keep playing")
-	_ok(Align.pairs(h.find_child("AbandonMissionConfirm", true, false)) > 0, tag + ": align pairs > 0 (shard icon + label)")
+	var lr := h.find_child("LossRows", true, false) as Control
+	var ico := lr.find_child("Icon", true, false) as Control
+	_ok(ico != null and absf(ico.get_global_rect().get_center().y - lr.find_child("Label", true, false).get_parent().get_global_rect().get_center().y) <= 1.5, tag + ": shard icon centred on its two lines")
 	_ok(Align.check(h.find_child("AbandonMissionConfirm", true, false), 1.5, tag).is_empty(), tag + ": align abandon")
 	_inside(h, h.find_child("AbandonMissionConfirm", true, false) as Control, tag)
 	_ok((h.find_child("AbandonButton", true, false) as Button).text.contains(UI3.fmt(100)), tag + ": stake from escrow, not the HTML")

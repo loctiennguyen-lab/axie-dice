@@ -1380,7 +1380,7 @@ func _place_hud(f: float) -> void:
 	_offline_banner.reset_size()
 	var os := _offline_banner.get_combined_minimum_size()
 	_offline_banner.scale = sc
-	_offline_banner.position = Vector2((w - os.x * f) * 0.5, float(UI3Theme.size_of("offline_banner_top")) * f)   # frame: top centre
+	_offline_banner.position = Vector2((w - os.x * f) * 0.5, float(Ui5Toast.top_y(false)) * f)   # frame: top centre
 
 
 # ================================================================ actions
@@ -1442,7 +1442,7 @@ func _on_run_pressed() -> void:
 
 func _on_continue_pressed() -> void:
 	if RunContinue.busy:
-		_show_toast("Still reconnecting to the server…")   # never a silent press
+		_show_toast("Still reconnecting to the server…", 1.6, &"info")   # never a silent press
 		return
 	if not RunState.load_run():
 		push_warning("LandHub: saved run could not be loaded")
