@@ -18,7 +18,7 @@ var no_scene_change := false
 func _ready() -> void:
 	_shell = UI3Meta.build(self, "Unlocks", "Spend once, keep forever", _on_back)
 	(_shell["panel"] as Control).name = "PlateHost"   # t_ui_laws L0
-	UI3Meta.doc_tabs(_shell, "unlocks")
+	Ui5CodexParts.header(_shell, "unlocks")
 	var col := _shell["col"] as VBoxContainer
 	var bar := UI3.plate(&"plate")
 	var br := HBoxContainer.new()

@@ -420,16 +420,58 @@ static func _diff() -> String:
 	return s
 
 
+## Plain-text lines of a tab (BBCode stripped; a table row becomes "first cell: the rest"), for the search hits.
+static func plain_lines(key: String) -> Array[String]:
+	var src := tab_text(key)
+	var out: Array[String] = []
+	var tbl := RegEx.create_from_string("(?s)\\[table=(\\d+)\\](.*?)\\[/table\\]")
+	var cell := RegEx.create_from_string("(?s)\\[cell[^\\]]*\\](.*?)\\[/cell\\]")
+	var tag := RegEx.create_from_string("\\[/?(b|i|u|color|font_size|font|bgcolor|center|table|cell)[^\\]]*\\]")
+	var pos := 0
+	var chunks: Array[String] = []
+	for m in tbl.search_all(src):
+		chunks.append(src.substr(pos, m.get_start() - pos))
+		var cols := maxi(1, int(m.get_string(1)))
+		var cells: Array[String] = []
+		for c in cell.search_all(m.get_string(2)):
+			cells.append(tag.sub(c.get_string(1), "", true).strip_edges())
+		var i := 0
+		var rows := ""
+		while i < cells.size():
+			var row := cells.slice(i, i + cols)
+			rows += (row[0] + (": " + " ".join(row.slice(1)) if row.size() > 1 else "")) + "\n"
+			i += cols
+		chunks.append(rows)
+		pos = m.get_end()
+	chunks.append(src.substr(pos))
+	for ch in chunks:
+		for ln in tag.sub(ch, "", true).split("\n"):
+			var t := ln.strip_edges()
+			if t != "":
+				out.append(t)
+	return out
+
+
 static func _table(headers: Array, rows: Array) -> String:
 	var cols: int = headers.size()
 	var s := "[table=%d]" % cols
-	for h in headers:
-		s += "[cell][b]%s[/b][/cell]" % _safe(h)
+	var chip := UI3Theme.color("chip").to_html(false)
+	var raised := UI3Theme.color("plate_raised").to_html(false)
+	var muted := UI3Theme.color("text_muted").to_html(false)
+	for i in cols:
+		s += "[cell bg=#%s padding=12,8,12,8 expand=%d][color=#%s][b]%s[/b][/color][/cell]" % [chip, _ratio(cols, i), muted, _safe(headers[i])]
 	for row in rows:
-		for cell in row:
-			s += "[cell]%s[/cell]" % _safe(cell)
+		for i in cols:
+			s += "[cell bg=#%s padding=12,8,12,8 expand=%d]%s[/cell]" % [raised, _ratio(cols, i), _safe(row[i] if i < row.size() else "")]
 	s += "[/table]\n"
 	return s
+
+
+## Column weights: .tbl is 0.35fr / 1fr for two columns, equal for more.
+static func _ratio(cols: int, i: int) -> int:
+	if cols == 2:
+		return 35 if i == 0 else 100
+	return 1
 
 
 ## Defends the "never <NULL>/NaN/undefined" UI rule (inherited from tools/verify.mjs) at the
