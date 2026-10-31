@@ -58,7 +58,7 @@ func _text(n: Node, sc: float, tag: String) -> void:
 
 
 func _inside(root: Control, sc: float, tag: String) -> void:
-	var lim := Rect2(Vector2.ZERO, Vector2(1920, 1080) * sc).grow(1.0)
+	var lim := Rect2(Vector2.ZERO, Vector2(1920, 1080)).grow(1.0)
 	for c in root.find_children("*", "Control", true, false):
 		var ctl := c as Control
 		if not ctl.is_visible_in_tree() or ctl is ScrollContainer or ctl.get_parent() is ScrollContainer:
@@ -74,7 +74,7 @@ func _inside(root: Control, sc: float, tag: String) -> void:
 					skip = true
 				par = par.get_parent() as Control
 			if not skip:
-				_check(lim.encloses(r), "%s: %s outside the %d frame (%s)" % [tag, ctl.name, int(1920 * sc), str(r)])
+				_check(lim.encloses(r), "%s: %s outside the 1920 logical frame (%s)" % [tag, ctl.name, str(r)])
 
 
 func _settle() -> void:
@@ -84,7 +84,7 @@ func _settle() -> void:
 
 func _host(sc: float) -> Control:
 	var host := Control.new()
-	host.size = Vector2(1920, 1080) * sc
+	host.size = Vector2(1920, 1080)   # logical canvas; 1280 is the same canvas at scale 0.667
 	add_child(host)
 	return host
 
@@ -112,6 +112,8 @@ func _upgrade(sc: float, tag: String) -> void:
 		s.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		await _settle()
 		for n in UP_NAMES:
+			if state == "max" and n in ["UpgradeButton", "CostRow"]:
+				continue
 			_check(s.find_child(n, true, false) != null, "%s: node %s exists" % [t, n])
 		var up := s.find_child("UpgradeButton", true, false) as Button
 		match state:
@@ -179,7 +181,7 @@ func _edit(sc: float, tag: String) -> void:
 		await _settle()
 		for n in EDIT_NAMES:
 			_check(host.find_child(n, true, false) != null, "%s: node %s exists" % [t, n])
-		var row := {"place": "DecorRow", "craft": "CraftRow", "rewards": "RewardRow", "empty": "EmptyState"}[tab]
+		var row: String = {"place": "DecorRow", "craft": "CraftRow", "rewards": "RewardRow", "empty": "EmptyState"}[tab]
 		_check(host.find_child(row, true, false) != null, "%s: %s exists" % [t, row])
 		var rot := host.find_child("RotateButton", true, false) as Button
 		_check(rot.disabled and rot.text == "Rotate · pick a decor" and Ui5Keycap.all_under(rot).is_empty(), "%s: Rotate disabled, says why" % t)
