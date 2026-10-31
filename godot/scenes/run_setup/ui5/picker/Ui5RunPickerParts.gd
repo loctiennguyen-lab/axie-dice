@@ -61,8 +61,10 @@ static func cap(b: Button) -> void:
 static func uncap(b: Button) -> void:
 	for c in b.get_children():
 		if c.has_meta("ui5_keycap"):
+			(c as Control).visible = false   # the pending sync() then reserves no room for it
 			b.remove_child(c)
 			c.queue_free()
+	b.remove_meta("cap_sig")
 	Ui5HudStyle.reserve_trailing(b, null, maxi(int(b.get_theme_stylebox("normal").content_margin_left), UI3Theme.space("20")))
 
 

@@ -197,7 +197,7 @@ func _pass(sc: float, tag: String) -> void:
 	_check((m.find_children("TeamButton*", "Button", true, false)[1] as Button).text.contains("1 seats empty"), "%s presets-load: missing seat said" % tag)
 	_focus(m, "CancelButton", tag + " presets-load")
 	_check(_caps(_btn(m, "CancelButton")) == 1, "%s presets-load: Cancel keycap" % tag)
-	_audit(m, sc, tag + " presets-load", true)
+	_audit(m, sc, tag + " presets-load")
 	var before := s.party.duplicate()
 	(m.find_children("TeamButton*", "Button", true, false)[0] as Button).pressed.emit()
 	_check(not go.disabled and s.party == before, "%s presets-load: pick enables Load, party untouched" % tag)
@@ -229,6 +229,8 @@ func _pass(sc: float, tag: String) -> void:
 	# leaderboard
 	var st := LeaderboardSourceStub.new()
 	s.lb_source = st
+	st.boards[LeaderboardSource.query_key({"asc": s.ascension, "period": "season"})] = {"rows": [
+		{"rank": 1, "name": "Zed", "score": 9000}, {"rank": 2, "name": "Yan", "score": 8000}], "me": {"rank": 9, "name": "Me", "score": 100}, "updated": "14:05"}
 	st.pending = true
 	s.open_leaderboard()
 	await _settle()
@@ -237,8 +239,6 @@ func _pass(sc: float, tag: String) -> void:
 	_focus(m, "CloseButton", tag + " lb-loading")
 	_check(_caps(_btn(m, "CloseButton")) == 1, "%s lb-loading: Close keycap" % tag)
 	_audit(m, sc, tag + " lb-loading")
-	st.boards[LeaderboardSource.query_key({"asc": s.ascension, "period": "season"})] = {"rows": [
-		{"rank": 1, "name": "Zed", "score": 9000}, {"rank": 2, "name": "Yan", "score": 8000}], "me": {"rank": 9, "name": "Me", "score": 100}, "updated": "14:05"}
 	st.release()
 	await _settle()
 	_has(m, ["Row", "UpdatedLine", "YouTag"], tag + " lb-rows")
