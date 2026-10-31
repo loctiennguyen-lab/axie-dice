@@ -76,14 +76,14 @@ func _ready() -> void:
 	var w := await _make(worker_stub)
 	var keys: Array = w.columns().map(func(c): return c[0])
 	_ok(keys == ["rank", "name", "score", "won"], "only the columns the Worker sends: %s" % str(keys))
-	_ok(w.find_child("Pinned", true, false).find_children("*", "Label", true, false).any(func(l): return (l as Label).text == "1,500"), "pinned self row from {rank, score}")
+	_ok(w.find_child("PinnedRow", true, false).find_children("*", "Label", true, false).any(func(l): return (l as Label).text == "1,500"), "pinned self row from {rank, score}")
 	w.queue_free()
 
 	# ---- default source: failed banner with Try again + Back to Land
 	var d := await _make(LeaderboardSource.new())
 	_ok(d.status == "failed" and d.fail_reason == "no_endpoint", "default source -> failed state")
-	_ok(d.find_child("TryAgain", true, false) != null and d.find_child("BackToLand", true, false) != null, "banner has Try again + Back to Land")
-	_ok(d.find_child("ErrorCard", true, false) != null and d.find_child("Pinned", true, false) == null, "error card replaces the table, no pinned row")
+	_ok(d.find_child("TryAgainButton", true, false) != null and d.find_child("BackToLandButton", true, false) != null, "banner has Try again + Back to Land")
+	_ok(d.find_child("ErrorState", true, false) != null and d.find_child("PinnedRow", true, false) == null, "error card replaces the table, no pinned row")
 	d.queue_free()
 
 	# ---- normal board
@@ -91,36 +91,36 @@ func _ready() -> void:
 	_ok(s.asc == 6 and s.period == "season", "best Ascension + Season preselected")
 	_ok(s.status == "ok" and s.rows.size() == 12, "rows loaded")
 	_ok(s.find_child("Row11", true, false) != null, "12 rows drawn")
-	_ok(s.find_child("Pinned", true, false) != null, "own row pinned")
-	_ok(is_equal_approx(s.find_child("Pinned", true, false).custom_minimum_size.y, 72.0), "pinned row 72")
+	_ok(s.find_child("PinnedRow", true, false) != null, "own row pinned")
+	_ok(is_equal_approx(s.find_child("PinnedRow", true, false).custom_minimum_size.y, 56.0), "pinned row = lb_row_l_h 56")
 	_ok(is_equal_approx(s.find_child("Row0", true, false).custom_minimum_size.y, 56.0), "rows 56")
 	_ok(s.find_child("Skeleton", true, false) == null, "no skeleton when loaded")
 	_ok(s.find_children("*", "Label", true, false).all(func(l): return not ("[" in (l as Label).text)), "no label shows a [tag]")
 	_ok(s.find_child("Banner", true, false) == null, "no banner when loaded")
-	_ok(s.find_child("Asc7", true, false) != null and (s.find_child("Asc7", true, false) as Button).tooltip_text == "Locked for you", "A7 chip locked above asc_max 6")
+	_ok(s.find_child("AscChipA7", true, false) != null and (s.find_child("AscChipA7", true, false) as Button).tooltip_text == "Locked for you", "A7 chip locked above asc_max 6")
 	_ok(not s.is_locked(6) and s.is_locked(7), "lock rule")
 	# detail
 	s.open_detail(1)
 	await get_tree().process_frame
-	_ok(s.find_child("CloseDetail", true, false) != null and s.detail_index == 1, "detail opens for the selected row")
-	var wr := s.find_child("WatchReplay", true, false) as Button
+	_ok(s.find_child("CloseButton", true, false) != null and s.detail_index == 1, "detail opens for the selected row")
+	var wr := s.find_child("WatchReplayButton", true, false) as Button
 	_ok(wr != null and wr.disabled and wr.text == "Watch replay" and wr.custom_minimum_size.y >= 56.0 \
 		and s.find_child("WatchReplayReason", true, false) != null and (s.find_child("WatchReplayReason", true, false) as Label).text != "", "Watch replay: normal disabled button (56) with a reason line")
 	s.close_detail()
 	await get_tree().process_frame
-	_ok(s.find_child("CloseDetail", true, false) == null and s.detail_index == -1, "detail closes")
-	_ok(s.find_child("Detail", true, false) != null, "detail plate stays (hint)")
+	_ok(s.find_child("CloseButton", true, false) == null and s.detail_index == -1, "detail closes")
+	_ok(s.find_child("DetailPlate", true, false) != null, "detail plate stays (hint)")
 	# filters / periods / chips drive the query
 	s.set_period("today")
 	s.set_asc(4)
 	var last: Dictionary = stub.calls[stub.calls.size() - 1]
 	_ok(last["asc"] == 4 and last["period"] == "today" and not last.has("filter"), "controls drive the query (Season/Today only)")
 	_ok(s.find_child("Seg_week", true, false) == null and s.find_child("Seg_pure", true, false) == null, "no Week, no Pure/All/Mission controls")
-	_ok(s.find_child("Seg_season", true, false) != null and s.find_child("Seg_today", true, false) != null, "Season + Today present")
-	_ok(s.status == "empty" and s.find_child("Empty", true, false) != null, "empty board state")
+	_ok(s.find_child("SeasonTab", true, false) != null and s.find_child("TodayTab", true, false) != null, "Season + Today present")
+	_ok(s.status == "empty" and s.find_child("EmptyState", true, false) != null, "empty board state")
 	s.set_asc(9)
-	_ok(s.is_locked() and String(s._line_lbl.text).begins_with("Locked for you: win a run at A8"), "locked board is readable with a reason")
-	_ok(s.find_child("Empty", true, false) == null, "locked board does not also say No runs here yet")
+	_ok(s.is_locked() and String(s._line_text).begins_with("Locked for you: win a run at A8"), "locked board is readable with a reason")
+	_ok(s.find_child("EmptyState", true, false) == null, "locked board does not also say No runs here yet")
 
 	# ---- loading
 	stub.pending = true
@@ -128,7 +128,7 @@ func _ready() -> void:
 	s.set_period("season")
 	await get_tree().process_frame
 	_ok(s.status == "loading" and s.find_child("Skeleton", true, false) != null, "loading skeleton")
-	_ok(s.find_child("Back", true, false) != null and s.find_child("Asc3", true, false) != null, "header and chips stay live while loading")
+	_ok(s.find_child("BackButton", true, false) != null and s.find_child("AscChipA3", true, false) != null, "header and chips stay live while loading")
 	var r1 := s._req
 	s.set_asc(5)       # supersede
 	stub.release()
@@ -144,7 +144,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_ok(s.status == "failed" and s.rows.size() == 12, "failed keeps cached rows")
 	_ok(s.find_child("Banner", true, false) != null, "failure banner")
-	_ok(s.find_child("Pinned", true, false) == null, "failed hides pinned row")
+	_ok(s.find_child("PinnedRow", true, false) != null, "failed with cached rows keeps the pinned row (offline frame)")
 	stub.fail_reason = ""
 	s.retry()
 	await get_tree().process_frame
@@ -159,11 +159,11 @@ func _ready() -> void:
 	# ---- guest / newcomer pinned rows
 	var g := await _make(stub, {"guest": true})
 	_ok(g.find_child("Banner", true, false) != null, "guest banner")
-	var gt := g.find_child("Pinned", true, false).find_children("*", "Label", true, false).map(func(l): return (l as Label).text)
+	var gt := g.find_child("PinnedRow", true, false).find_children("*", "Label", true, false).map(func(l): return (l as Label).text)
 	_ok(gt.has("Sign in to appear here"), "guest pinned row text")
 	g.queue_free()
 	var n := await _make(stub, {"newcomer": true})
-	var nt := n.find_child("Pinned", true, false).find_children("*", "Label", true, false).map(func(l): return (l as Label).text)
+	var nt := n.find_child("PinnedRow", true, false).find_children("*", "Label", true, false).map(func(l): return (l as Label).text)
 	_ok(nt.any(func(t): return String(t).begins_with("Ranked opens after")), "newcomer pinned row text")
 	n.queue_free()
 
