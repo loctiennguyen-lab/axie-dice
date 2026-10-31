@@ -295,6 +295,27 @@ func _build_place() -> void:
 		_list.add_child(Parts.empty_state("Nothing to place yet. Craft decor with Shards in the Craft tab."))
 
 
+## "[shard icon] Craft · 40" centred in the button: the button text stays (it sizes the button) but is drawn transparent.
+func _shard_cluster(b: Button, cost: int) -> void:
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color", "font_disabled_color"]:
+		b.add_theme_color_override(c, Color.TRANSPARENT)
+	var h := HBoxContainer.new()
+	h.name = "ShardCluster"
+	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	h.alignment = BoxContainer.ALIGNMENT_CENTER
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_theme_constant_override("separation", UI3Theme.space("8"))
+	var ic := PanelParts.icon_rect(UI3.currency_icon("cur_shard", UI3Theme.size_of("icon_s")), UI3Theme.size_of("icon_s"))
+	ic.name = "ShardIcon"
+	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(ic)
+	var l := Ui5Text.label("Craft · %d" % cost, "text_body", "text", true)
+	l.name = "ShardText"
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(l)
+	b.add_child(h)
+
+
 func _build_craft() -> void:
 	for d in LandDecor.all_defs():
 		var id := String(d["id"])
@@ -303,27 +324,18 @@ func _build_craft() -> void:
 		var why := LandDecor.craft_block(id, MetaState.land_tier, MetaState.land_decor_owned, MetaState.shard_pool)
 		var b := _sbtn("Craft · %d" % int(d["shard_cost"]))
 		b.name = "CraftButton"
-		b.icon = UI3.currency_icon("cur_shard", UI3Theme.size_of("icon_s"))
-		b.expand_icon = true
-		b.add_theme_constant_override("icon_max_width", UI3Theme.size_of("icon_s"))
 		b.custom_minimum_size.x = 136
 		var rr := String(d["rarity"])
 		var sub := " · own %d of %d" % [int(MetaState.land_decor_owned.get(id, 0)), int(d["max_own"])]
 		if why != "":
 			Ui5DisabledReason.apply(b, "Locked")
-			b.icon = null
 			sub += " · " + why
 		else:
 			b.pressed.connect(_craft.bind(id))
+			_shard_cluster(b, int(d["shard_cost"]))
 		var crow := Parts.row("CraftRow", String(d["name"]), _rarity_word(rr), _rarity_token(rr), sub, b)
 		crow.set_meta("decor_id", id)
 		_list.add_child(crow, true)
-
-
-## Frame e04 writes "N points · Label"; a long label would wrap to 3 lines in the 320 px panel, so it shortens to "pts".
-func _reward_title(pts: int, label: String) -> String:
-	var full := "%d points · %s" % [pts, label]
-	return full if full.length() <= 28 else "%d pts · %s" % [pts, label]
 
 
 func _build_rewards() -> void:
@@ -340,7 +352,7 @@ func _build_rewards() -> void:
 			Ui5DisabledReason.apply(b, "Need %d" % pts)
 		else:
 			b.pressed.connect(_claim.bind(id))
-		var wrow := Parts.row("RewardRow", _reward_title(pts, String(m["label"])), "", "", "No Stone, no power.", b)
+		var wrow := Parts.row("RewardRow", "%d points · %s" % [pts, String(m["label"])], "", "", "No Stone, no power.", b)
 		wrow.set_meta("milestone_id", id)
 		_list.add_child(wrow, true)
 

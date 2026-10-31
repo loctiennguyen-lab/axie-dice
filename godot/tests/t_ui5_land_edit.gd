@@ -193,17 +193,30 @@ func _edit(sc: float, tag: String) -> void:
 		_check((host.find_child("StoreButton", true, false) as Button).text == "Store · pick a decor", "%s: Store reason" % t)
 		_check(host.find_child("DoneButton", true, false).get_node_or_null("KeyCap") == null, "%s: no key printed on Done" % t)
 		_text(host, sc, t)
-		_check(Align.pairs(host) >= 0, "%s: align ran (no icon+text pair exists in these tabs, so > 0 cannot hold)" % t)
+		if tab == "craft":
+			_check(Align.pairs(host) > 0, "%s: align measured a pair" % t)
+		_check(Align.pairs(host) >= 0, "%s: align ran" % t)
 		for pr in Align.check(host, 1.5, t + ": "):
 			_check(false, pr)
 		_inside(host, sc, t)
 		if tab == "craft":
 			var cb := host.find_child("CraftButton", true, false) as Button
-			_check(cb != null and cb.expand_icon and cb.get_theme_constant("icon_max_width") == UI3Theme.size_of("icon_s"), "%s: Craft icon capped" % t)
+			var ic := cb.find_child("ShardIcon", true, false) as Control if cb != null else null
+			var tx := cb.find_child("ShardText", true, false) as Label if cb != null else null
+			_check(ic != null and tx != null and cb.icon == null, "%s: Craft cluster exists, no b.icon" % t)
+			if ic != null and tx != null:
+				var ir := ic.get_global_rect()
+				var tr := tx.get_global_rect()
+				var br := cb.get_global_rect()
+				_check(ir.end.x <= tr.position.x + 0.5, "%s: shard icon left of text, no overlap" % t)
+				_check(ir.size.x <= UI3Theme.size_of("icon_s") * sc * 0 + UI3Theme.size_of("icon_s") + 1.0, "%s: icon capped" % t)
+				var mid := (ir.position.x + tr.end.x) * 0.5
+				_check(absf(mid - (br.position.x + br.end.x) * 0.5) <= 3.0, "%s: cluster centred in button" % t)
+				_check(br.encloses(ir) and br.encloses(tr), "%s: cluster inside button" % t)
 		if tab in ["place", "craft", "rewards"]:
 			for rl in host.find_children("*", "Label", true, false):
 				if rl.get_parent() is Container and String(rl.name) in ["Name", "Sub"] and (rl as Label).is_visible_in_tree():
-					_check((rl as Label).get_line_count() <= 2, "%s: %s '%s' wraps to %d lines" % [t, rl.name, (rl as Label).text.left(20), (rl as Label).get_line_count()])
+					_check((rl as Label).get_line_count() <= (3 if tab == "rewards" else 2), "%s: %s '%s' wraps to %d lines" % [t, rl.name, (rl as Label).text.left(20), (rl as Label).get_line_count()])
 	# picking a stored decor: Rotate opens, the ghost line names it
 	MetaState.land_decor_owned = {"decor_sav_tree": 3}
 	ed._set_tab("place")

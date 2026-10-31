@@ -1,0 +1,9 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+=== t_land_nav: start ===
+WARNING: LandNav.open: 'khong_co_id' chưa có màn nào để mở
+     at: push_warning (core/variant/variant_utility.cpp:1033)
+     GDScript backtrace (most recent call first):
+         [0] open (res://scenes/land/LandNav.gd:67)
+         [1] _ready (res://tests/t_land_nav.gd:34)
+=== t_land_nav: PASS (57 checks) ===
