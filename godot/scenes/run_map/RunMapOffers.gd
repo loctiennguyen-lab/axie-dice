@@ -517,7 +517,7 @@ func _add_reward_card(r: Dictionary, _wide := false) -> PanelContainer:
 	var card := _RewardCardUi.new()
 	card.name = "RewardCard%d" % idx
 	card.setup(tr(kind_text), rar_word, accent, icon_tex, name_text)
-	var col: VBoxContainer = card.column
+	var col: VBoxContainer = card.text_box
 	if is_core and not is_rule:
 		card.rarity_chip.mouse_filter = Control.MOUSE_FILTER_STOP
 		UI3Tooltip.bind(card.rarity_chip, tr(ctrl.CORE_TIER_HINT))

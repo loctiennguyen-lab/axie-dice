@@ -63,6 +63,30 @@ func _ready() -> void:
 		_ok(bool(rm._reward_cards[1].get("selected")), "no-rule card can be picked @%.2f" % sc)
 		var tk := rm._overlay_root.find_child("TakeButton", true, false) as Button
 		_ok(tk != null and not tk.disabled and tk.text == "Take", "pick turns Take on @%.2f (got '%s')" % [sc, tk.text if tk != null else "-"])
+	# Plain reward + treasure cards: the name / text is left-aligned card text in a Body box, so no label pairs with the RewardArt icon.
+	RunState._rule_offer_active = false
+	RunState._core_offer_active = false
+	RunState.reward_reroll_charges = 1
+	for mode in ["reward", "treasure"]:
+		for sc in [1.0, 2.0 / 3.0]:
+			UI3Theme.set_scale_override(sc)
+			var fake: Array = []
+			for i in 3:
+				fake.append({"t": "relic", "key": "x%d" % i, "rar": i % 3, "title": "RELIC", "desc": "Name %d" % i, "sub": "Does thing %d." % i})
+			RunState.pending_rewards.assign(fake)
+			if mode == "reward":
+				rm._show_reward_overlay("x")
+			else:
+				rm.call("_build_treasure", true)
+			await _frames(4)
+			var rt: Node = rm._overlay_root
+			var tg := "%s @%.2f" % [mode, sc]
+			_ok(rm._reward_cards.size() == 3, "%s: 3 cards" % tg)
+			for c in rm._reward_cards:
+				_ok(c.find_child("Body", true, false) != null and c.find_child("RewardName", true, false).get_parent().name == "Body", "%s: name sits in Body" % tg)
+			_ok(Align.pairs(rt) > 0, "%s: align check measured pairs" % tg)
+			var al2: Array[String] = Align.check(rt, 1.5, tg)
+			_ok(al2.is_empty(), "%s: aligned %s" % [tg, str(al2.slice(0, 3))])
 	UI3Theme.set_scale_override(-1.0)
 	RunState.pending_rewards.assign([])
 	rm.queue_free()
