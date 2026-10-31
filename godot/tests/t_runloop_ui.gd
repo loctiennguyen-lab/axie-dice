@@ -471,7 +471,6 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 		await get_tree().process_frame
 		await get_tree().process_frame
 		_assert(runmap.find_child("SlotSwapSheet", true, false) == null and not RunState.owned_relic_ids.has("r_seedling"), "Leave it takes nothing")
-		runmap.call("_select_reward", 0)
 		runmap.call("_take_selected_reward")
 		await get_tree().process_frame
 		sheet = runmap.find_child("SlotSwapSheet", true, false)

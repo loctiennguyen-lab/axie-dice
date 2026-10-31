@@ -45,7 +45,7 @@ func _ready() -> void:
 	var rev: GachaReveal = rm._reveal
 	_check(rev != null and rev.running, "reveal running on a Core offer")
 	var card: Control = rm._reward_cards[0]
-	_check(card.find_child("CardBack", true, false) != null, "cards start face-down")
+	_check(card.find_child("CoreCardBack", true, false) != null, "cards start face-down")
 	_check(rm._overlay_root.find_child("NextTierChip", true, false) == null, "no next-tier chip")
 	var shot := OS.get_environment("AXIE_SHOT")
 	if shot != "" and DisplayServer.get_name() != "headless":
@@ -53,10 +53,10 @@ func _ready() -> void:
 		get_viewport().get_texture().get_image().save_png(shot)
 	await get_tree().create_timer(2.2).timeout
 	_check(rev.events.has("flip:2") and not rev.running, "flips left to right then finishes")
-	_check(card.find_child("CardBack", true, false) == null, "cover gone after flip")
+	_check(card.find_child("CoreCardBack", true, false) == null, "cover gone after flip")
 	var c2: Control = rm._reward_cards[0]
 	_check(c2.has_meta("prism_accent") and c2.find_child("PrismFrame", true, false) != null, "Crystal card has the prism frame")
-	_check((c2.find_child("RewardName", true, false) as Label).get_theme_font_size("font_size") == UI3Theme.size_of("text_screen_title"), "card name is text_screen_title (UI-05)")
+	_check((c2.find_child("CoreName", true, false) as Label).get_theme_font_size("font_size") == UI3Theme.size_of("text_banner"), "Crystal card name is text_banner (UI-05 .core-card.crystal .name)")
 	# Skip: new offer, then a click.
 	RunState.pending_rewards = []
 	rm._close_overlay()

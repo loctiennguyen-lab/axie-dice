@@ -620,7 +620,7 @@ func core_checks(m: Node) -> void:
 	# 2: reroll card 0 through its button
 	var left0: int = RunState.core_reroll_left
 	var old_key := String(RunState.pending_rewards[0].get("key", ""))
-	var btn = m.find_child("CardReroll0", true, false)
+	var btn = m._reward_cards[0].find_child("RerollButton", true, false)
 	note("ITEM2 btn=%s disabled=%s left=%d texts=%s" % [str(btn != null), str(btn.disabled if btn else "-"), left0, str(ov_texts(m, "reroll"))])
 	if btn != null and not btn.disabled:
 		btn.pressed.emit()
