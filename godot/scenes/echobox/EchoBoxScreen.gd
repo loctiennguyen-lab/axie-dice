@@ -1344,13 +1344,14 @@ func _load_thumb(tr: TextureRect, id: String, live: bool, px: float) -> void:
 	st.setup(Vector2i(int(px), int(px)), id, faces, true)
 	st.mouse_filter = Control.MOUSE_FILTER_STOP
 	tr.add_child(st)
-	# The stage starts in the thumbnail pose, so it can replace the baked thumb with no blank in between: keep the thumb
-	# until the stage has drawn a frame, and do not auto-drop (the die would start above the frame = an empty square
-	# right after the card flips). A click still replays the drop.
+	# Keep the baked thumb until the 3D stage has drawn (building it takes a moment: no blank square after the flip),
+	# then hand over and drop the die as the UI-03 spec says (drop from 3.2 m, one bounce, settle).
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
-	if is_instance_valid(tr):
-		tr.texture = null
+	if not is_instance_valid(tr) or not is_instance_valid(st):
+		return   # the ceremony was closed during those two frames
+	tr.texture = null
+	st.play_drop()
 	st.gui_input.connect(func(ev: InputEvent) -> void:   # click the card to replay the drop
 		if ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed and is_instance_valid(st):
 			st.play_drop())

@@ -87,7 +87,8 @@ func _await_art(ids: Array) -> void:
 	if DisplayServer.get_name() == "headless" or ids.is_empty():
 		return
 	var t := 0.0
-	while t < 3.0 and _s.is_inside_tree():
+	# Capped at 3 s; a Skip (or the screen going away) stops the wait at once.
+	while t < 3.0 and is_instance_valid(_s) and _s.is_inside_tree() and not _s._skip:
 		var ready := true
 		for a in ids:
 			if DiceThumb.cached_texture(a) == null and DiceSkin.has(a):
