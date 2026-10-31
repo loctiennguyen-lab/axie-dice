@@ -98,6 +98,21 @@ func _frame(id: String, sc: float, tag: String) -> void:
 		_check(caps.is_empty() or not (caps[0] as Control).visible, "%s: no visible keycap on a disabled Start" % tag)
 	else:
 		_check(not caps.is_empty() and (caps[0] as Control).visible, "%s: Space keycap on enabled Start" % tag)
+		if not caps.is_empty():
+			await get_tree().process_frame
+			var kr := (caps[0] as Control).get_global_rect()
+			var br := st.get_global_rect()
+			var font := st.get_theme_font("font")
+			var tw := font.get_string_size(st.text, HORIZONTAL_ALIGNMENT_LEFT, -1, st.get_theme_font_size("font_size")).x
+			var text_right := br.position.x + (st.get_theme_stylebox("normal").content_margin_left + st.size.x - st.get_theme_stylebox("normal").content_margin_right) * 0.5 + tw * 0.5
+			_check(kr.position.x >= text_right - 0.5, "%s: KeyCap %.1f starts after the text (%.1f)" % [tag, kr.position.x, text_right])
+			_check(br.encloses(kr), "%s: KeyCap inside Start %s / %s" % [tag, str(kr), str(br)])
+	# locked toggles: grey, icon+text row, no Button.icon
+	for tn in ["FullToggle", "RankedToggle"]:
+		var tb := s.find_child(tn, true, false) as Button
+		if tb != null and tb.get_node_or_null("LockRow") != null:
+			_check(tb.icon == null and tb.text == "", "%s: %s lock drawn as HBox, no Button.icon" % [tag, tn])
+			_check(tb.get_node("LockRow/LockIcon") is TextureRect and (tb.get_node("LockRow/LockText") as Label).text != "", "%s: %s has icon + reason text" % [tag, tn])
 	# nothing outside the 1920 frame
 	var lim := Rect2(Vector2.ZERO, Vector2(1920, 1080)).grow(1.0)
 	for c in s.find_children("*", "Control", true, false):
