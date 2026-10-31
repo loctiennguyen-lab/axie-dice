@@ -14,7 +14,23 @@ func _ready() -> void:
 	var ids: Array = Fx.IDS.duplicate()
 	if OS.get_environment("UI5_STATES") == "1":
 		ids = Fx.STATE_IDS.duplicate()
+	if OS.get_environment("UI5_IMPORT") == "1":
+		ids = ["ranked-import"]
 	for id in ids:
+		if id == "ranked-import":   # Ranked toggle with an imported (Vault) Axie in the party: reason label must wrap, not "..."
+			ContentDB.heroes["vault_dup1"] = (ContentDB.heroes["plant1"] as Dictionary).duplicate(true)
+			var si := Fx.make("ranked")
+			add_child(si)
+			for i in 8:
+				await get_tree().process_frame
+			si.set_slot(0, "vault_dup1")
+			for i in 8:
+				await get_tree().process_frame
+			await RenderingServer.frame_post_draw
+			Util.save(get_viewport(), "06-run-setup--ranked-import" + ("--1280" if small else ""))
+			si.queue_free()
+			ContentDB.heroes.erase("vault_dup1")
+			continue
 		var s := Fx.make_state(id) if id in Fx.STATE_IDS else Fx.make(id)
 		add_child(s)
 		for i in 8:
