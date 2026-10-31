@@ -27,7 +27,7 @@ static func banner(tone: StringName, msg: String, detail: String, btn_text := ""
 	v.add_child(d)
 	if btn_text != "":
 		var b := UI3.button(btn_text, &"secondary", &"S")
-		b.name = btn_text.replace(" ", "") + "Button"
+		b.name = "TryAgainButton" if btn_text == "Try again" else "SignInButton"
 		if cb.is_valid():
 			b.pressed.connect(cb)
 		h.add_child(b)

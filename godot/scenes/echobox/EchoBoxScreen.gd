@@ -64,7 +64,7 @@ var _shell: Dictionary
 var _col: VBoxContainer
 var _body: HBoxContainer
 var _banner_host: VBoxContainer
-var _bar_host: HBoxContainer
+var _bar_host: HFlowContainer
 var _stage_host: VBoxContainer
 var _side_host: VBoxContainer
 var _tab_btns: Dictionary = {}
@@ -419,21 +419,22 @@ func _build() -> void:
 	_body.add_theme_constant_override("separation", UI3Meta.GAP)
 	_col.add_child(_body)
 	_stage_host = VBoxContainer.new()
-	_stage_host.name = "Stage"
+	_stage_host.name = "StageColumn"
 	_stage_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_stage_host.add_theme_constant_override("separation", UI3Theme.space("16"))
 	_body.add_child(_stage_host)
 	var bar := UI3.plate(&"plate")
 	bar.name = "TicketPlate"
-	_bar_host = HBoxContainer.new()
+	_bar_host = HFlowContainer.new()
 	_bar_host.name = "TicketBar"
-	_bar_host.add_theme_constant_override("separation", UI3Theme.space("24"))
+	_bar_host.add_theme_constant_override("h_separation", UI3Theme.space("24"))
+	_bar_host.add_theme_constant_override("v_separation", UI3Theme.space("8"))
 	bar.add_child(_bar_host)
 	_stage_host.add_child(bar)
 	_stage_host.move_child(bar, 0)
 	_side_host = VBoxContainer.new()
 	_side_host.name = "Side"
-	_side_host.custom_minimum_size = Vector2(DETAIL_W, 0)
+	_side_host.custom_minimum_size = Vector2(UI3Theme.size_of("echo_side_w"), 0)
 	_side_host.add_theme_constant_override("separation", UI3Theme.space("16"))
 	_body.add_child(_side_host)
 
@@ -543,7 +544,8 @@ func _refresh_bar() -> void:
 	var fb := ProgressBar.new()
 	fb.name = "Fragments"
 	fb.theme = UI3Theme.get_theme()
-	fb.custom_minimum_size = Vector2(220, 16)
+	fb.custom_minimum_size = Vector2(80, 16)
+	fb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	fb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	fb.max_value = per
 	fb.value = frags
@@ -592,21 +594,22 @@ func _refresh_stage() -> void:
 	var seasonal := tab == "seasonal"
 	var stage := UI3.plate(&"plate")
 	stage.name = "Stage"
-	stage.custom_minimum_size = Vector2(0, 360)
+	stage.custom_minimum_size = Vector2(0, 0)
 	stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var cc := CenterContainer.new()
-	stage.add_child(cc)
 	var v := VBoxContainer.new()
+	v.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
 	v.add_theme_constant_override("separation", UI3Theme.space("16"))
-	cc.add_child(v)
+	stage.add_child(v)
 	# Real chest art (assets/echobox/chests): Gold tier for the daily box, Mystic themed for the season box.
 	var chest := TextureRect.new()
 	chest.name = "Chest"
 	chest.texture = load("res://assets/echobox/chests/themed/mystic-chest.png" if seasonal else "res://assets/echobox/chests/tiers/chest_gold.png")
 	chest.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	chest.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	chest.custom_minimum_size = Vector2(240, 200)
+	var cs := float(UI3Theme.size_of("echo_stage_chest")) * 0.75 * minf(UI3Theme.layout_scale(), 1.0)
+	chest.custom_minimum_size = Vector2(cs * 0.6, 48)
+	chest.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	chest.tooltip_text = "Mystic Chest" if seasonal else "Gold Chest"
 	v.add_child(chest)
 	if seasonal:
@@ -614,14 +617,17 @@ func _refresh_stage() -> void:
 		l.name = "SeasonLine"
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		l.custom_minimum_size.x = 640
+		l.custom_minimum_size.x = UI3Theme.size_of("echo_stage_chest") * 2
 		v.add_child(l)
-		var left := UI3.label("Pulls left today  %d / %d" % [season_pulls_left(), season_cap_day()], "LabelTitle")
+		var left := UI3.label("Pulls left today %d / %d" % [season_pulls_left(), season_cap_day()], "LabelTitle")
 		left.name = "PullsLeft"
+		left.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		left.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		v.add_child(left)
-		var srow := HBoxContainer.new()
-		srow.alignment = BoxContainer.ALIGNMENT_CENTER
-		srow.add_theme_constant_override("separation", UI3Theme.space("16"))
+		var srow := HFlowContainer.new()
+		srow.alignment = FlowContainer.ALIGNMENT_CENTER
+		srow.add_theme_constant_override("h_separation", UI3Theme.space("16"))
+		srow.add_theme_constant_override("v_separation", UI3Theme.space("8"))
 		v.add_child(srow)
 		var n_big := clampi(season_pulls_left(), 1, PULL_N)
 		var ok1 := pull_block_reason(1) == ""
@@ -654,9 +660,10 @@ func _refresh_stage() -> void:
 		srt.pressed.connect(open_rates)
 		srow.add_child(srt)
 	else:
-		var row := HBoxContainer.new()
-		row.alignment = BoxContainer.ALIGNMENT_CENTER
-		row.add_theme_constant_override("separation", UI3Theme.space("16"))
+		var row := HFlowContainer.new()
+		row.alignment = FlowContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("h_separation", UI3Theme.space("16"))
+		row.add_theme_constant_override("v_separation", UI3Theme.space("8"))
 		v.add_child(row)
 		var n_big := PULL_N
 		# One primary: Open N when usable, else Open 1, else (below) the buy button.
@@ -755,6 +762,9 @@ func _refresh_side() -> void:
 	if tab == "seasonal":
 		_refresh_side_season()
 		return
+	var scol := VBoxContainer.new()
+	scol.add_theme_constant_override("separation", UI3Theme.space("16"))
+	scol.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var pity := UI3.plate(&"plate")
 	pity.name = "PityPlate"
 	var v := VBoxContainer.new()
@@ -787,7 +797,7 @@ func _refresh_side() -> void:
 		r.add_child(pb)
 		r.add_child(UI3.label("%d/%d" % [have, need], "LabelMuted"))
 		v.add_child(r)
-	_side_host.add_child(pity)
+	scol.add_child(pity)
 	var pool := UI3.plate(&"plate")
 	pool.name = "PoolPlate"
 	var pv := VBoxContainer.new()
@@ -819,11 +829,15 @@ func _refresh_side() -> void:
 		tile.add_child(tl)
 		grid.add_child(tile)
 	pv.add_child(UI3.label("%d cosmetics in the pool" % total, "LabelMuted"))
-	_side_host.add_child(pool)
+	scol.add_child(pool)
 	var dup := UI3.label("A duplicate becomes Fragments; 10 Fragments = 1 ticket. Never Shards.", "LabelMuted")
 	dup.name = "DupLine"
 	dup.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_side_host.add_child(dup)
+	scol.add_child(dup)
+	var ssc := UI3Meta.scroll(scol)
+	ssc.name = "SideScroll"
+	ssc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_side_host.add_child(ssc)
 
 
 func _season_names() -> Dictionary:
