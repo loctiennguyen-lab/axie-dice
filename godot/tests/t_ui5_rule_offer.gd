@@ -62,7 +62,18 @@ func _ready() -> void:
 		_ok(bool(rm._reward_cards[1].get("selected")), "no-rule card can be picked @%.2f" % sc)
 		var tk := rm._overlay_root.find_child("TakeButton", true, false) as Button
 		_ok(tk != null and not tk.disabled and tk.text == "Take", "pick turns Take on @%.2f (got '%s')" % [sc, tk.text if tk != null else "-"])
-	# Plain reward + treasure cards: the name / text is left-aligned card text in a Body box, so no label pairs with the RewardArt icon.
+	# The longest rule text (Pack Alpha) must fit its card at the 1280 size.
+	var pa = RelicRegistry.get_def("rule_pack_alpha")
+	_ok(pa != null, "rule_pack_alpha exists")
+	if pa != null:
+		RunState._rule_offer_active = true
+		RunState.pending_rewards.assign([CoreOffer.rule_card_of(pa, 0), real])
+		for sc in [1.0, 2.0 / 3.0]:
+			UI3Theme.set_scale_override(sc)
+			rm._show_reward_overlay("x")
+			await _frames(4)
+			_frame(sc, false)
+		# Plain reward + treasure cards: the name / text is left-aligned card text in a Body box, so no label pairs with the RewardArt icon.
 	RunState._rule_offer_active = false
 	RunState._core_offer_active = false
 	RunState.reward_reroll_charges = 1
@@ -86,6 +97,26 @@ func _ready() -> void:
 			_ok(Align.pairs(rt) > 0, "%s: align check measured pairs" % tg)
 			var al2: Array[String] = Align.check(rt, 1.5, tg)
 			_ok(al2.is_empty(), "%s: aligned %s" % [tg, str(al2.slice(0, 3))])
+			await _frames(3)
+			_ok(rm._reward_cards[0].has_focus() and int(rm._reward_sel) == -1, "%s: initial focus is card 0, nothing selected" % tg)
+			for bn in rt.find_children("*", "Button", true, false):
+				if (bn as Control).is_visible_in_tree():
+					_ok(float((bn as Button).get_theme_font_size("font_size")) * sc >= 13.99, "%s: button '%s' >= 14 real px" % [tg, (bn as Button).text.left(20)])
+			for l in rt.find_children("*", "Label", true, false):
+				var lab := l as Label
+				if lab.is_visible_in_tree() and lab.text != "":
+					_ok(float(lab.get_theme_font_size("font_size")) * sc >= 13.99, "%s: '%s' >= 14 real px" % [tg, lab.text.left(20)])
+			for cn in rt.find_children("*", "Control", true, false):
+				var ct := cn as Control
+				if ct.is_visible_in_tree() and ct.size.x > 0.0:
+					var rr := ct.get_global_rect()
+					if rr.end.x > 1920.5 or rr.position.x < -0.5:
+						_ok(false, "%s: %s outside 1920 (%s)" % [tg, ct.name, str(rr)])
+			rm._select_reward(0)
+			await _frames(3)
+			var tb2 := rt.find_child("TakeButton", true, false) as Button
+			var cap2 := tb2.get_node_or_null("KeyCap") as PanelContainer if tb2 != null else null
+			_ok(cap2 != null and Ui5Keycap.text_of(cap2) == "Space" and not tb2.disabled, "%s: picked Take shows the Space keycap" % tg)
 	UI3Theme.set_scale_override(-1.0)
 	RunState.pending_rewards.assign([])
 	rm.queue_free()

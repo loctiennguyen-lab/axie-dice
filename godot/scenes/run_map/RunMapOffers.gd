@@ -474,31 +474,19 @@ func _start_core_reveal(shake_host: Control) -> void:
 
 
 ## One UI-05 RewardCard (31-reward): Category + RarityChip, RewardArt (rarity edge), RewardName, then the body:
-## RewardBody text, or GainBox + GambleBox / CurseBox (always in that order) for Chaos / Curse. A Core shows its tier
-## (Moss / Amber / Crystal) in the RarityChip, the axis / partner / house chips, and its own Reroll at the bottom.
+## RewardBody text, or GainBox + GambleBox / CurseBox (always in that order) for Chaos / Curse. Core cards
+## go to _add_core_card (CoreCard) and Run rules to _add_rule_card (RuleCard).
 ## Real strings come from the offer (RewardGenerator / CoreOffer), never from the mockup samples.
 func _add_reward_card(r: Dictionary, _wide := false) -> PanelContainer:
 	var t := String(r.get("t", ""))
 	var rar := ctrl._reward_rarity(r)
-	var is_core := ctrl._is_core_card(r)
-	var is_rule := is_core and bool(r.get("rule", false))
+	if ctrl._is_core_card(r):
+		return _add_rule_card(r) if bool(r.get("rule", false)) else _add_core_card(r)
 	var accent := ctrl._rarity_color(rar)
 	var rar_word := ctrl._rarity_name(rar)
-	var tier := clampi(int(r.get("tier", 0)), 0, 2)
-	if is_core and not is_rule:
-		accent = UI3Theme.color(ctrl._CORE_TIER_TOKEN[tier])
-		rar_word = tr(ctrl._CORE_TIER_NAME[tier])
 	var idx := ctrl._reward_cards.size()
-	if is_core and not is_rule:
-		return _add_core_card(r)
-	if is_rule:
-		return _add_rule_card(r)
 	var kind_text := String(ctrl._REWARD_KIND.get(t, "Reward"))
-	if is_core:
-		kind_text = "Core"
 	var icon_tex := UI3.icon(String(ctrl._REWARD_ICON.get(t, "ui_mooncard")))
-	if is_core:
-		icon_tex = UI3.icon(String(CorePanel.AXIS_ICON.get(String(r.get("axis", "")), "face_buff")))
 
 	# A relic offer arrives as title "RELIC", desc = relic name, sub = effect text.
 	var name_text := String(r.get("title", ""))
@@ -518,9 +506,6 @@ func _add_reward_card(r: Dictionary, _wide := false) -> PanelContainer:
 	card.name = "RewardCard%d" % idx
 	card.setup(tr(kind_text), rar_word, accent, icon_tex, name_text)
 	var col: VBoxContainer = card.text_box
-	if is_core and not is_rule:
-		card.rarity_chip.mouse_filter = Control.MOUSE_FILTER_STOP
-		UI3Tooltip.bind(card.rarity_chip, tr(ctrl.CORE_TIER_HINT))
 	card.gui_input.connect(func(ev: InputEvent) -> void:
 		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
 			_select_reward(idx)
@@ -532,30 +517,6 @@ func _add_reward_card(r: Dictionary, _wide := false) -> PanelContainer:
 				tb.grab_focus())
 	ctrl._overlay_vbox.add_child(card)
 	ctrl._reward_cards.append(card)
-	if is_core:
-		card.mouse_entered.connect(_dm_core_hover)
-		card.focus_entered.connect(_dm_core_hover)
-	var crystal := is_core and not is_rule and tier >= 2
-	if crystal:
-		# A3: Crystal cards keep their own bevelled silhouette and extra rings, and rise on hover.
-		card.set_meta("prism_accent", accent)
-		card.use_prism(func(sel: bool) -> StyleBoxFlat: return UI3Gacha.prism_style(accent, sel))
-		card.add_child(UI3Gacha.prism_frame(accent))
-		card.mouse_entered.connect(_prism_hover.bind(card, true))
-		card.mouse_exited.connect(_prism_hover.bind(card, false))
-	if is_core and not is_rule:
-		# Axis chip (glyph + word), partner / combo labels and the house chip. The tier word is the RarityChip.
-		var chips := HFlowContainer.new()
-		chips.name = "CoreChips"
-		chips.add_theme_constant_override("h_separation", UI3Theme.space("8"))
-		chips.add_theme_constant_override("v_separation", UI3Theme.space("8"))
-		chips.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var axis := String(r.get("axis", ""))
-		chips.add_child(CorePanel.word_chip(tr(String(CorePanel.AXIS_NAME.get(axis, "Core"))),
-			String(CorePanel.AXIS_ICON.get(axis, "face_buff")), UI3Theme.color("text_muted"), "AxisChip"))
-		_add_combo_labels(col, String(r.get("key", "")), chips)
-		RunMapController._add_house_chip(card, chips, String(r.get("key", "")))
-		col.add_child(chips)
 	if t in ["chaos", "curse"]:
 		var tp := _trade_parts(r)
 		col.add_child(_RewardCardUi.trade_box(&"gain", String(tp["gain"])))
@@ -568,15 +529,6 @@ func _add_reward_card(r: Dictionary, _wide := false) -> PanelContainer:
 	desc.custom_minimum_size.x = body_w
 	desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	col.add_child(desc)
-	if is_core and not is_rule:
-		var rr := _PanelParts.button(tr("Reroll"), &"secondary", &"M")
-		rr.name = "CardReroll%d" % idx
-		rr.size_flags_vertical = Control.SIZE_SHRINK_END
-		if RunState.core_can_reroll(idx):
-			rr.pressed.connect(_on_core_card_reroll.bind(idx))
-		else:
-			UI3.set_disabled_reason(rr, tr("Rerolled") if RunState.core_rerolled_slots.has(idx) else tr("No rerolls left"))
-		col.add_child(rr)
 	return card
 
 

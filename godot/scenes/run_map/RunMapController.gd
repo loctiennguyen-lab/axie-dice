@@ -426,10 +426,6 @@ const _RULE_PRICE := {
 const _RULE_TINTS := ["house_volley", "house_gambler", "house_mana_mine", "house_kin", "house_embers", "house_big_hand"]
 
 
-## A tint per rule (stable from its key) so two Run rule cards never look identical.
-static func rule_tint(key: String) -> Color:
-	return UI3Theme.color(_RULE_TINTS[absi(key.hash()) % _RULE_TINTS.size()])
-
 
 func _is_core_card(r: Dictionary) -> bool:
 	return bool(r.get("core", false))

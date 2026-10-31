@@ -1,7 +1,7 @@
 extends PanelContainer
 ## UI-05 RewardCard (31-reward): fixed reward_card_w x reward_card_h plate, padding 20, gap 12, radius xl.
-## Tree (data-names): RewardCard > Column > [CatRow(Category, RarityChip), RewardArt(icon), RewardName, ...].
-## The caller adds the body under `column` (RewardBody, GainBox / GambleBox / CurseBox, Core chips...).
+## Tree (data-names): RewardCard > Column > [CatRow(Category, RarityChip), RewardArt(icon), Body[RewardName, ...]].
+## The caller adds the body under `text_box` (RewardBody, GainBox / GambleBox / CurseBox); `column` is the outer box.
 ## Rarity is a filled chip and the colour of the art edge. Selected = 4 px cream ring outside the card and a
 ## 12 px lift (re-applied after every sort of the parent row); focus = the sky ring outside that.
 ## GachaReveal relies on child 0 being the content column: keep it first.
