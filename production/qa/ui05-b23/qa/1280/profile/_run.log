@@ -1,0 +1,42 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Metal 4.0 - Forward+ - Using Device #0: Apple - Apple M3 Pro (Apple9)
+
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_files_at (core/io/dir_access.cpp:578)
+   GDScript backtrace (most recent call first):
+       [0] _acct_files (res://tests/save_guard.gd:121)
+       [1] capture (res://tests/save_guard.gd:63)
+       [2] _ready (res://tests/qa_ui5_profile_capture.gd:19)
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_directories_at (core/io/dir_access.cpp:588)
+   GDScript backtrace (most recent call first):
+       [0] _acct_files (res://tests/save_guard.gd:123)
+       [1] capture (res://tests/save_guard.gd:63)
+       [2] _ready (res://tests/qa_ui5_profile_capture.gd:19)
+QA_STAGE cosmetics-dice inside=true stage=[P: (1528.0, 390.0), S: (344.0, 344.0)] box=[P: (1520.0, 228.0), S: (360.0, 669.0)]
+QA_STAGE cosmetics-owned inside=true stage=[P: (1528.0, 375.0), S: (344.0, 344.0)] box=[P: (1520.0, 228.0), S: (360.0, 638.0)]
+QA_STAGE cosmetics-locked inside=true stage=[P: (1528.0, 375.0), S: (344.0, 344.0)] box=[P: (1520.0, 228.0), S: (360.0, 638.0)]
+QA_STAGE cosmetics-dice inside=true stage=[P: (1470.0, 357.0), S: (402.0, 402.0)] box=[P: (1462.0, 228.0), S: (418.0, 661.0)]
+QA_STAGE cosmetics-owned inside=true stage=[P: (1470.0, 344.0), S: (402.0, 402.0)] box=[P: (1462.0, 228.0), S: (418.0, 634.0)]
+QA_STAGE cosmetics-locked inside=true stage=[P: (1470.0, 344.0), S: (402.0, 402.0)] box=[P: (1462.0, 228.0), S: (418.0, 634.0)]
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_files_at (core/io/dir_access.cpp:578)
+   GDScript backtrace (most recent call first):
+       [0] _acct_files (res://tests/save_guard.gd:121)
+       [1] restore (res://tests/save_guard.gd:102)
+       [2] _ready (res://tests/qa_ui5_profile_capture.gd:68)
+       [3] _shot (res://tests/qa_ui5_profile_capture.gd:97)
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_directories_at (core/io/dir_access.cpp:588)
+   GDScript backtrace (most recent call first):
+       [0] _acct_files (res://tests/save_guard.gd:123)
+       [1] restore (res://tests/save_guard.gd:102)
+       [2] _ready (res://tests/qa_ui5_profile_capture.gd:68)
+       [3] _shot (res://tests/qa_ui5_profile_capture.gd:97)
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_directories_at (core/io/dir_access.cpp:588)
+   GDScript backtrace (most recent call first):
+       [0] _prune_empty_dirs (res://tests/save_guard.gd:130)
+       [1] restore (res://tests/save_guard.gd:115)
+       [2] _ready (res://tests/qa_ui5_profile_capture.gd:68)
+       [3] _shot (res://tests/qa_ui5_profile_capture.gd:97)
