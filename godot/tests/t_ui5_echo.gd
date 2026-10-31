@@ -59,7 +59,7 @@ func _make(sc: float, tickets: int, state := "normal", remote := false) -> EchoB
 	MetaState.tickets["normal"] = tickets
 	var host := Control.new()
 	host.name = "Frame"
-	host.size = Vector2(1920, 1080) * sc
+	host.size = Vector2(1920, 1080)   # the canvas is logical 1920 at every scale (as in the game: canvas_items stretch)
 	add_child(host)
 	var s: EchoBoxScreen = load("res://scenes/echobox/EchoBoxScreen.tscn").instantiate()
 	s.use_account = false
@@ -119,7 +119,7 @@ func _audit(s: Node, sc: float, tag: String) -> void:
 	for n in s.find_children("*", "", true, false):
 		_seen[String(n.name)] = true
 	_small(s, sc, tag)
-	_inside(s, Rect2(Vector2.ZERO, Vector2(1920, 1080) * sc), tag)
+	_inside(s, Rect2(Vector2.ZERO, Vector2(1920, 1080)), tag)
 	for pr in Align.check(s, 1.5, tag + ": "):
 		_check(false, pr)
 
@@ -138,8 +138,8 @@ func _pass(sc: float, tag: String) -> void:
 	_check(fo != null and fo.name == "RegularTab", tag + ": idle: first focus is the selected tab (%s)" % (fo.name if fo else "none"))
 	var ch := s.find_child("Chest", true, false) as Control
 	var stg0 := s.find_child("Stage", true, false) as Control
-	var want := float(UI3Theme.size_of("echo_stage_chest")) * UI3Theme.layout_scale()
-	_check(ch != null and ch.get_global_rect().size.x >= want - 1.0, tag + ": chest is the token size (%.0f real vs %.0f)" % [ch.get_global_rect().size.x if ch else 0.0, want])
+	var want := float(UI3Theme.size_of("echo_stage_chest"))   # logical (the test canvas is 1920 logical at every scale)
+	_check(ch != null and ch.get_global_rect().size.x >= want - 1.0, tag + ": chest is the token size, not scaled twice (%.0f vs %.0f logical)" % [ch.get_global_rect().size.x if ch else 0.0, want])
 	var cluster := ch.get_global_rect().merge(_btn(s, "Open10Button").get_global_rect()) if ch else Rect2()
 	_check(stg0 != null and stg0.get_global_rect().grow(1.0).encloses(cluster), tag + ": chest + buttons sit inside the Stage")
 	_check(fo == null or (fo.name != "Open1Button" and fo.name != "Open10Button"), tag + ": idle: no Open button is preselected (focus: %s)" % (fo.name if fo else "none"))

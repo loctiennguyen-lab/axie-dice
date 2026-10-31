@@ -632,7 +632,7 @@ func _refresh_stage() -> void:
 	chest.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	chest.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	# frame: .stage .chest { width: var(--size-echo-stage-chest) }; size_of already applies the 1280 scale/override.
-	var cs := float(UI3Theme.size_of("echo_stage_chest")) * minf(UI3Theme.layout_scale(), 1.0)   # logical token -> real px
+	var cs := float(UI3Theme.size_of("echo_stage_chest"))   # logical px: the 1280 canvas already scales it (no second multiply)
 	chest.custom_minimum_size = Vector2(cs, cs)
 	chest.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	chest.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -644,7 +644,7 @@ func _refresh_stage() -> void:
 		l.name = "SeasonLine"
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		l.custom_minimum_size.x = UI3Theme.size_of("echo_stage_chest") * 2 * minf(UI3Theme.layout_scale(), 1.0)
+		l.custom_minimum_size.x = UI3Theme.size_of("echo_stage_chest") * 2
 		v.add_child(l)
 		var left := UI3.label("Pulls left today %d / %d" % [season_pulls_left(), season_cap_day()], "LabelTitle")
 		left.name = "PullsLeft"
@@ -759,8 +759,15 @@ func _fit_chest(chest: Control, cs: float) -> void:
 	if not is_instance_valid(chest) or not chest.is_inside_tree():
 		return
 	var over := host.get_combined_minimum_size().y - size.y
-	if over > 0.0:
-		var n := maxf(cs * 0.4, cs - over - 2.0)
+	if over <= 0.0:
+		return
+	# Only the part of the overflow the Stage column causes can be won back by shrinking the chest: when the side
+	# column (pity, pool) is the taller one, a smaller chest changes nothing and would only look lost in the Stage.
+	var lead := over
+	if is_instance_valid(_stage_host) and is_instance_valid(_side_host):
+		lead = minf(over, _stage_host.get_combined_minimum_size().y - _side_host.get_combined_minimum_size().y)
+	if lead > 0.0:
+		var n := maxf(cs * 0.4, cs - lead - 2.0)
 		chest.custom_minimum_size = Vector2(n, n)
 
 
