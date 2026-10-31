@@ -35,14 +35,14 @@ func _ready() -> void:
 		await get_tree().process_frame
 	_check(v.find_child("CombosCard", true, false) != null, "Combos card exists")
 	var pr: Node = v.find_child("ComboRow_t_pair", true, false)
-	var fr: Node = v.find_child("ComboRow_t_full", true, false)
+	var fr: Node = v.find_child("ComboRowFull_t_full", true, false)
 	_check(pr != null and pr.find_child("ComboTier", true, false).text == "Pair", "Pair row")
 	_check(fr != null and fr.find_child("ComboTier", true, false).text == "Full", "Full row")
-	_check(fr != null and ((fr as PanelContainer).get_theme_stylebox("panel") as StyleBoxFlat).border_width_left == 4, "Full has the gold frame")
+	_check(fr != null and ((fr as PanelContainer).get_theme_stylebox("panel") as StyleBoxFlat).border_width_left == 3, "Full has the gold frame (3 px, UI-05)")
 	_check(pr != null and ((pr as PanelContainer).get_theme_stylebox("panel") as StyleBoxFlat).border_width_left == 0, "Pair has no frame")
 	var sk: Label = v.find_child("SkippedLine", true, false)
 	_check(sk != null and sk.text.begins_with("Skipped: ") and sk.text.count(",") == 2, "Skipped line has 3 names: %s" % (sk.text if sk else ""))
-	var copy: Button = v.find_child("CopyRunCard", true, false)
+	var copy: Button = v.find_child("CopyButton", true, false)
 	_check(copy != null and copy.text == "Copy run card", "Copy button")
 	if copy != null:
 		copy.pressed.emit()

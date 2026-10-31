@@ -30,7 +30,7 @@ func _ready() -> void:
 		var vis := sc.get_global_rect()
 		var bar := sc.get_v_scroll_bar()
 		var scrollable := bar.visible and bar.max_value > bar.page + 1.0
-		for n in ["ComboRow_t_pair", "ComboRow_t_full", "SkippedLine"]:
+		for n in ["ComboRow_t_pair", "ComboRowFull_t_full", "SkippedLine"]:
 			var r: Control = v.find_child(n, true, false)
 			_check(r != null, "%s exists" % n)
 			if r != null:
