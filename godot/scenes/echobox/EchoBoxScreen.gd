@@ -1316,7 +1316,12 @@ func _load_thumb(tr: TextureRect, id: String, live: bool, px: float) -> void:
 	fb.set_anchors_preset(Control.PRESET_FULL_RECT)
 	fb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	fb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	fb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if px < 120.0:   # small tiles (Series items): one line + ellipsis, the tile tooltip has the full name
+		fb.autowrap_mode = TextServer.AUTOWRAP_OFF
+		fb.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		fb.clip_text = true
+	else:
+		fb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	fb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tr.add_child(fb)
 	var tex: Texture2D = DiceThumb.cached_texture(id)

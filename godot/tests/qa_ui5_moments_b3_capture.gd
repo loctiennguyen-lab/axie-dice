@@ -75,7 +75,7 @@ func _ready() -> void:
 	MetaState.tickets = {"normal": 30, "season": 0}
 	MetaState.echobox_pity = {}
 	var stone := {"ok": true, "kind": "stone", "amount": 500, "rarity": "", "item": "", "duplicate": false, "fragments": 0}
-	await _echo([_cos("mythic")], [1.3, 1.75], ["echo-open-mythic-tint", "echo-open-mythic-flip"])
+	await _echo([_cos("mythic")], [1.3, 1.75, 2.6, 4.0], ["echo-open-mythic-tint", "echo-open-mythic-flip", "echo-open-mythic-flip2", "echo-open-mythic-rest"])
 	await _echo([_cos("legendary")], [1.1, 1.45], ["echo-open-rare-tint", "echo-open-rare-flip"])
 	var ten: Array = []
 	for r in ["", "common", "", "common", "", "", "uncommon", "", "common", "epic"]:

@@ -219,6 +219,8 @@ func _pass(sc: float, tag: String) -> void:
 	for tn in s.find_children("ItemName", "Label", true, false):
 		long_tiles += 1
 		_check((tn as Label).get_line_count() <= 1, tag + ": Series item name stays on one line ('%s')" % (tn as Label).text)
+	for fb in s.find_children("ThumbFallback", "Label", true, false):
+		_check((fb as Label).get_line_count() <= 1, tag + ": Series thumb fallback stays on one line ('%s')" % (fb as Label).text)
 	_check(long_tiles > 0, tag + ": Series item names measured (%d)" % long_tiles)
 	# a taken milestone reads "Done"
 	var sid0 := String(EchoBox.season_cfg().get("series_id", "s1"))
