@@ -1,7 +1,7 @@
 extends Node
 ## UI-05 b23 lane S3a1: Run setup main layout (frames stage1, stage3, a5, full-locked, newcomer, daily, ranked), 1920 and 1280.
 ## Data-names exist, the 7 run kinds (3 modes x state) build, inside 1920 logical, text >= 14 real px, equal party columns,
-## Space keycap on an enabled Start only, initial focus kept, begin_run params arrive unchanged (stub).
+## Space keycap on an enabled Start only, initial focus on the Normal toggle (never Start), begin_run params arrive unchanged (stub).
 ## Run: AXIE_TEST_NO_NET=1 godot --headless --path godot res://tests/t_ui5_run_setup.tscn
 const Fx := preload("res://tests/ui5_run_setup_fixture.gd")
 const Align := preload("res://tests/ui5_align_check.gd")
@@ -108,9 +108,11 @@ func _frame(id: String, sc: float, tag: String) -> void:
 			_check(lim.encloses(ctl.get_global_rect()), "%s: %s outside the 1920 frame %s" % [tag, ctl.name, str(ctl.get_global_rect())])
 	_text(s, sc, tag)
 	_check(Align.pairs(s) > 0, "%s: align measured %d icon/label pairs" % [tag, Align.pairs(s)])
-	# initial focus: RunSetup grabs none itself (only modals do), so no node in the screen owns focus on open
+	# initial focus: NormalToggle in state normal, never StartButton
 	var fo := s.get_viewport().gui_get_focus_owner()
-	_check(fo == null or not s.is_ancestor_of(fo), "%s: no initial focus inside RunSetup (owner %s)" % [tag, str(fo)])
+	if s.state == "normal":
+		_check(fo != null and fo.name == "NormalToggle", "%s: initial focus is NormalToggle (owner %s)" % [tag, str(fo)])
+	_check(fo == null or fo.name != "StartButton", "%s: focus is not on Start" % tag)
 	# selected toggles keep the selection outline stylebox
 	for tn in ["NormalToggle", "DailyToggle", "RankedToggle", "ShortToggle", "FullToggle"]:
 		var tb2 := s.find_child(tn, true, false) as Button

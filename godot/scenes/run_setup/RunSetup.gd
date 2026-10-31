@@ -461,6 +461,8 @@ func set_state(s: String) -> void:
 	if _panel == null:
 		return
 	_clear_banners()
+	if s == "normal" and _kind_btns.has("normal"):
+		_focus_later(_kind_btns["normal"])   # first stop: Normal toggle, never Start
 	_body.visible = s != "loading" and s != "open_run"
 	_stage.visible = s != "loading" and s != "open_run"
 	_panel.visible = s != "open_run"
