@@ -434,8 +434,16 @@ func _draw_detail() -> void:
 			b = _detail.set_primary("Claimed")
 			Ui5ClaimButton.set_claimed(b)
 		"claimable":
-			b = _detail.set_primary("Claim level %d" % lv)
-			b.theme_type_variation = &"ButtonSecondary"   # Claim all is the screen's one primary while a level is ready
+			# Claim all is the screen's one primary while a level is ready: this one is a wide secondary.
+			_detail.set_primary("Claim level %d" % lv)
+			for c in _detail.footer.get_children():
+				_detail.footer.remove_child(c)
+				c.queue_free()
+			b = PanelParts.button("Claim level %d" % lv, &"secondary", &"L")
+			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			b.custom_minimum_size.y = UI3Theme.size_of("btn_l")
+			_detail.footer.add_child(b)
+			_detail.primary = b
 			b.pressed.connect(claim_level.bind(lv))
 		_:
 			var why := "Reach Level %d" % lv if season_phase() != "over" else "Not claimed"
@@ -543,7 +551,7 @@ func _build_weekly() -> void:
 		b.name = "ClaimButton"
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b.custom_minimum_size.x = 0
+		b.custom_minimum_size.x = UI3Theme.space("32") * 6   # wraps a long reason inside the card (frame: max 55%), never char by char
 		b.set_meta("task_id", id)
 		if bool(st["claimed"]):
 			Ui5ClaimButton.set_claimed(b)
