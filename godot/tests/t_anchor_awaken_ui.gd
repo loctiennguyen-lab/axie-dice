@@ -97,6 +97,23 @@ func _ready() -> void:
 		"glyph sits inside the disc, centred (%s in %s)" % [gr, dr])
 	fxs.skip()
 	await _frames(2)
+	# 3c full motion, timeline runs to its natural end (no _show_final, no skip): glyph sits in the disc, centred
+	var fxm := AnchorFx.play(host, "a_volley")
+	var rest := {}
+	fxm.finished.connect(func() -> void:
+		var d2 := fxm.card_frame.find_child("AwakenDisc", true, false) as Control
+		var g2 := fxm.card_frame.find_child("AwakenGlyph", true, false) as Control
+		rest.merge({"d": d2.get_global_rect(), "g": g2.get_global_rect(), "size": g2.size, "scale": g2.scale, "rot": g2.rotation}))   # merge: a lambda cannot rebind captured locals
+	var t_end := Time.get_ticks_msec() + 8000
+	while rest.is_empty() and Time.get_ticks_msec() < t_end:
+		await _tree.process_frame
+	_check(not rest.is_empty(), "full motion: timeline reached its natural end")
+	if not rest.is_empty():
+		var dr2: Rect2 = rest["d"]
+		var gr2: Rect2 = rest["g"]
+		_check(dr2.size.x > 0.0 and dr2.grow(0.5).encloses(gr2) and gr2.get_center().distance_to(dr2.get_center()) <= 2.0,
+			"full motion end: glyph inside the disc, centred (%s in %s, scale %s rot %s size %s)" % [gr2, dr2, rest["scale"], rest["rot"], rest["size"]])
+	await _frames(2)
 	# 4 timing: normal vs Reduce flashing
 	var t_full := AnchorFx.duration()
 	MetaState.reduce_flash = true
