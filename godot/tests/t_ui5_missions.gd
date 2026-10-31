@@ -46,7 +46,7 @@ func _ready() -> void:
 
 func _make(sc: float) -> MissionsScreen:
 	var host := Control.new()
-	host.size = Vector2(1920, 1080) * sc
+	host.size = Vector2(1920, 1080)   # the canvas is logical 1920x1080 at every scale
 	add_child(host)
 	var s: MissionsScreen = load("res://scenes/missions/MissionsScreen.tscn").instantiate()
 	s.use_account = false

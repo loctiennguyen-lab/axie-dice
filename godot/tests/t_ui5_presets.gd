@@ -44,7 +44,7 @@ func _settle() -> void:
 func _make(sc: float, setup := {}) -> TeamPresetsScreen:
 	var host := Control.new()
 	host.name = "Frame"
-	host.size = Vector2(1920, 1080) * sc
+	host.size = Vector2(1920, 1080)   # the canvas is logical 1920x1080 at every scale
 	add_child(host)
 	var s: TeamPresetsScreen = load("res://scenes/team_presets/TeamPresets.tscn").instantiate()
 	s.use_account = false
@@ -91,7 +91,7 @@ func _in_scroll(c: Node) -> bool:
 
 
 func _audit(s: Node, sc: float, tag: String, pairs := false) -> void:
-	var frame := Rect2(Vector2.ZERO, Vector2(1920, 1080) * sc)
+	var frame := Rect2(Vector2.ZERO, Vector2(1920, 1080))
 	for n in s.find_children("*", "", true, false):
 		if (n is Label or n is Button) and (n as Control).is_visible_in_tree() and String(n.text).strip_edges() != "":
 			_check(float(n.get_theme_font_size("font_size")) * sc >= 13.99, "%s: '%s' is %.1f real px (< 14)" % [tag, String(n.text).left(20), n.get_theme_font_size("font_size") * sc])

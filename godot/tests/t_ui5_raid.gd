@@ -56,7 +56,7 @@ func _ready() -> void:
 func _make(sc: float, setup := {}) -> RaidScreen:
 	var host := Control.new()
 	host.name = "Frame"
-	host.size = Vector2(1920, 1080) * sc
+	host.size = Vector2(1920, 1080)   # the canvas is logical 1920x1080 at every scale
 	add_child(host)
 	var s: RaidScreen = load("res://scenes/raid/Raid.tscn").instantiate()
 	s.use_account = false
@@ -132,7 +132,7 @@ func _in_scroll(c: Node) -> bool:
 
 func _audit(s: RaidScreen, sc: float, tag: String, with_pairs := false) -> void:
 	_small(s, sc, tag)
-	_inside(s, Rect2(Vector2.ZERO, Vector2(1920, 1080) * sc), tag)
+	_inside(s, Rect2(Vector2.ZERO, Vector2(1920, 1080)), tag)
 	for pr in Align.check(s, 1.5, tag + ": "):
 		_check(false, pr)
 	if with_pairs:
