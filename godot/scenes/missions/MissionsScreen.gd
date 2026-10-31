@@ -58,7 +58,11 @@ func _ready() -> void:
 ## reconcileEscrows BEFORE the balance and the buy button are trusted: close a stake the server settled while we
 ## were away, then refresh which tiers the win chain has opened. Offline / local dice: both are no-ops and the
 ## screen keeps the cache. Safe to call again (e.g. after a run).
+var sync_calls := 0   ## tests: how often a server check was asked for
+
+
 func sync_server(force := false) -> void:
+	sync_calls += 1
 	if not (remote_on or force) or _syncing:
 		return
 	_syncing = true
@@ -275,11 +279,11 @@ func _start_inner(tier_id: String) -> Dictionary:
 		if not w.done:
 			await w.finished
 		if w.value != "":
-			_banner(w.value, "Nothing was spent.", &"error", false, true)
+			_banner(w.value, "Nothing was spent.", &"error")
 			return {"ok": false, "code": "syncing"}
 	var mid := MetaState.take_mission_stake(tier_id, int(o.stake))
 	if mid == "":
-		_banner("Could not take the stake", "Nothing was spent.", &"error", false, true)
+		_banner("Could not take the stake", "Nothing was spent.", &"error")
 		return {"ok": false, "code": "stake"}
 	var params := mission_params(tier_id, mid)
 	var r: Dictionary = (await start_hook.call(params)) if (test_mode and start_hook.is_valid()) else (await RunState.begin_run(params))
@@ -507,6 +511,7 @@ func _banner(msg: String, detail: String, tone: StringName, with_sign_in := fals
 ## A signed-out or expired account: with the remote wallet on, a guest has no Shards to show and cannot stake.
 func _retry() -> void:
 	set_state(derive_state() if use_account else "normal")
+	sync_server(true)   # ask the server again (reconcile + unlocks), not just redraw
 
 
 func is_guest_view() -> bool:

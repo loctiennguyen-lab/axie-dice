@@ -48,5 +48,4 @@ func setup_tier(tier_id: String, cells: Array, note_is_lock: bool) -> void:
 func set_tier_state(selected: bool, is_locked: bool) -> void:
 	locked = is_locked
 	set_state(&"selected" if selected else (&"locked" if is_locked else &"normal"))
-	if is_locked:
-		modulate = Color(1, 1, 1, 0.55)
+	modulate = Color(1, 1, 1, 0.55) if is_locked else Color.WHITE

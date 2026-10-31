@@ -163,7 +163,7 @@ func _ready() -> void:
 	s.set_state("guest")
 	_ok(s.is_guest_view() and s.find_child("Balance", true, false).get_node("Value").text == "Sign in to see your Shards", "guest: no Shard numbers")
 	var gb := s.find_child("StakeButton", true, false) as Button
-	_ok(not gb.disabled and gb.text == "Sign in to stake Shards" and String(gb.theme_type_variation).begins_with("ButtonPrimary"), "guest: sign-in button looks active (primary)")
+	_ok(not gb.disabled and gb.text == "Sign in to stake Shards" and gb.theme_type_variation == &"ButtonPrimaryL", "guest: sign-in button looks active (primary)")
 	gb.pressed.emit()
 	_ok(s.sign_in_calls == 1, "guest: the button signs in")
 	var gbn := s.find_child("SignInButton", true, false) as Button

@@ -78,6 +78,13 @@ func _text(n: Node, sc: float, tag: String) -> void:
 		_text(ch, sc, tag)
 
 
+## Text >= 14 real px and icon / label centring over the whole screen in the current state.
+func _audit(s: Node, sc: float, tag: String) -> void:
+	_text(s, sc, tag)
+	for pr in Align.check(s, 1.5, tag + ": "):
+		_check(false, pr)
+
+
 func _pass(sc: float, tag: String) -> void:
 	MetaState.runs = 8
 	MetaState.runs_with_battle = 8
@@ -98,6 +105,7 @@ func _pass(sc: float, tag: String) -> void:
 		_check((s.find_child("TierRow" + id, true, false) as Ui5ListRow).state != &"selected", "%s: %s not selected" % [tag, id])
 	var rowh := (s.find_child("TierRowN1", true, false) as Control).size.y
 	_check(rowh >= UI3Theme.size_of("mission_row_h") - 1.0, "%s: row height >= mission_row_h (%.0f)" % [tag, rowh])
+	_audit(s, sc, tag + " open")
 	# picking an open tier
 	var o := s.offer("N2")
 	s.select_tier("N2")
@@ -118,6 +126,7 @@ func _pass(sc: float, tag: String) -> void:
 	sb = s.find_child("StakeButton", true, false) as Button
 	_check(s.find_child("LockedTag", true, false) != null and s.find_child("LoseBox", true, false) == null and sb.disabled and sb.text == s.lock_text(s.offer("N4")), "%s: locked tier: tag, reason on the button" % tag)
 	_check(s.find_child("LockNote", true, false) != null, "%s: lock note in a row" % tag)
+	_audit(s, sc, tag + " locked")
 	# short of Shards
 	MetaState.set_mission_unlocks(["N1", "N2", "N3", "N4"], false)
 	MetaState.shard_pool = int(s.offer("N4").stake) - 200
@@ -126,14 +135,36 @@ func _pass(sc: float, tag: String) -> void:
 	await _settle()
 	_check((s.find_child("StakeButton", true, false) as Button).text == "Need 200 more Shards", "%s: need shards reason" % tag)
 	MetaState.shard_pool = 5000
+	# newcomer: every row locked with the long run-count text
+	MetaState.runs = 2
+	MetaState.runs_with_battle = 2
+	MetaState.set_mission_unlocks([], false)
+	s._refresh()
+	s.select_tier("N1")
+	await _settle()
+	_audit(s, sc, tag + " newcomer")
+	MetaState.runs = 8
+	MetaState.runs_with_battle = 8
+	MetaState.set_mission_unlocks(["N1", "N2", "N3", "N4"], false)
+	s._refresh()
 	# states
 	s.set_state("guest")
 	await _settle()
 	_check(s.find_child("Banner", true, false) != null and s.find_child("SignInButton", true, false) != null, "%s: guest banner with Sign in" % tag)
+	_audit(s, sc, tag + " guest")
 	_check(s.find_child("LockNote", true, false) == null, "%s: guest sees no lock lines" % tag)
 	s.set_state("offline")
 	await _settle()
 	_check(s.find_child("Banner", true, false) != null and s.find_child("SignInButton", true, false) == null, "%s: offline banner" % tag)
+	_audit(s, sc, tag + " offline")
+	# Retry: offline (remote on) has it and asks the server again; a stake error banner has none
+	var rb := s.find_child("RetryButton", true, false) as Button
+	_check(rb != null, "%s: offline banner has RetryButton" % tag)
+	if rb != null:
+		var c0 := s.sync_calls
+		rb.pressed.emit()
+		_check(s.sync_calls == c0 + 1, "%s: Retry asks the server again (sync_server)" % tag)
+	await _settle()
 	s.set_state("open_run")
 	await _settle()
 	_check(s.find_child("Banner", true, false) != null and (s.find_child("StakeButton", true, false) as Button).disabled, "%s: open run banner, stake disabled" % tag)
@@ -141,9 +172,12 @@ func _pass(sc: float, tag: String) -> void:
 	s._banner("Could not take the stake", "Nothing was spent.", &"error")
 	await _settle()
 	_check(s.find_child("Banner", true, false).find_child("ToneDisc", true, false) != null, "%s: error banner with ToneDisc" % tag)
+	_check(s.find_child("RetryButton", true, false) == null, "%s: stake error banner has no Retry" % tag)
+	_audit(s, sc, tag + " error")
 	s.set_state("loading")
 	await _settle()
 	_check(s.find_child("TierRowN1", true, false) == null and (s.find_child("StakeButton", true, false) as Button).text == "Loading…", "%s: loading: skeleton rows, button says Loading…" % tag)
+	_audit(s, sc, tag + " loading")
 	s.set_state("normal")
 	s._syncing = true
 	s._refresh()
@@ -158,6 +192,7 @@ func _pass(sc: float, tag: String) -> void:
 	var m := s.find_child("StakeConfirm", true, false)
 	_check(m != null and m.find_child("NotNowButton", true, false) != null and m.find_child("StakeButton", true, false) != null and m.find_child("Footer", true, false) != null, "%s: StakeConfirm with Footer, NotNowButton, StakeButton" % tag)
 	_check((s.find_child("NotNowButton", true, false) as Button).has_focus() and not Ui5Keycap.all_under(s.find_child("NotNowButton", true, false)).is_empty(), "%s: Not now has focus and the Space keycap" % tag)
+	_audit(s, sc, tag + " confirm")
 	s.close_modal()
 	s.get_parent().queue_free()
 	await get_tree().process_frame

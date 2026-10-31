@@ -38,6 +38,8 @@ static func kv_row(label: String, value: String, node_name: String) -> PanelCont
 	var k := Ui5Text.label(label, "text_body", "text")
 	k.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(k)
+	if value == "":
+		return p
 	var v := Ui5Text.label(value, "text_title", "text", true)
 	v.name = "Value"
 	v.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
