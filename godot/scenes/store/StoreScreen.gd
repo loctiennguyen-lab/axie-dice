@@ -337,6 +337,16 @@ func _build() -> void:
 	_detail = Ui5DetailPlate.new()
 	_detail.setup("store_detail_w", PICK, PICK_BODY, PICK)
 	row.add_child(_detail)
+	# Title + body live in their own VBox "Info", apart from the art: the Title is the item's heading (left, as in the frame),
+	# not a label of the Gem icon, so ui5_align_check must not pair it with the art.
+	var scol := _detail.scroll.get_child(0)
+	var info := VBoxContainer.new()
+	info.name = "Info"
+	info.add_theme_constant_override("separation", UI3Theme.space("8"))
+	scol.add_child(info)
+	for c in [_detail.title, _detail.body]:
+		c.get_parent().remove_child(c)
+		info.add_child(c)
 
 
 func _clear(n: Node) -> void:
@@ -350,10 +360,9 @@ func _fmt(n: int) -> String:
 ## Detail plate content for the picked item. `reason` != "" disables the primary and replaces its label.
 func _show_detail(art: Control, title: String, body: String, rows: Array, action_text: String, reason: String, on_press: Callable) -> void:
 	_detail.show_item(title)
-	_detail.title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER   # text under an icon is centred on it (Liam 29/10)
 	var ab := Ui5StoreParts.art_box(art, 200)
 	ab.name = "DetailArt"
-	var inner := _detail.title.get_parent()
+	var inner := _detail.scroll.get_child(0)
 	inner.add_child(ab)
 	inner.move_child(ab, 0)
 	_detail.add_line(body)
@@ -367,8 +376,7 @@ func _show_detail(art: Control, title: String, body: String, rows: Array, action
 
 func _show_empty() -> void:
 	_detail.show_empty()
-	_detail.title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	var inner := _detail.title.get_parent()
+	var inner := _detail.scroll.get_child(0)
 	var ab := Ui5StoreParts.art_box(null, 200)
 	ab.name = "DetailArt"
 	inner.add_child(ab)
@@ -411,7 +419,7 @@ func _refresh() -> void:
 
 
 func _remove_detail_art() -> void:
-	var inner := _detail.title.get_parent()
+	var inner := _detail.scroll.get_child(0)
 	for c in inner.get_children():
 		if c.name == "DetailArt":
 			inner.remove_child(c)
