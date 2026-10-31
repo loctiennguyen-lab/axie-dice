@@ -53,5 +53,19 @@ Legacy (single-row ids, nobody calls them any more; kept only because tests read
 - `currency_gain` (any HUD chip)
 - `run_end_win`, `run_end_lose` (10-result)
 
+## Meta moments (UI-05 b23 lane M3, `round-3/motion-batch3.md`)
+Eleven timeline ids, played with `UI3Motion.play_timeline` (screen in brackets):
+- `land-tier-up` (Land banner: `LandHud.show_tier_banner`; the Upgrade-screen layers press / confirm_out / stone_count / stone_pulse
+  are data because the scene changes at once), `currency-gain` (data + helper; no HUD chip hook yet)
+- `run-end-win`, `run-end-lose` (`ResultView`)
+- `echo-open-normal`, `echo-open-dup`, `echo-open-rare`, `echo-open-mythic`, `open-10` (`EchoBoxCeremony`; the chest tint and
+  title swap times are read from the row)
+- `pass-level-up` (`PassView`), `daily-claim` (`DailyScreen`)
+New layer kind `count`: number tween on a Label (`prefix` + thousands comma + `suffix`). The screen passes the numbers:
+`opts.counts = {layer_name: [from, to]}` (or `opts.count_cb` Callable(layer_name, int)); the row owns ms / delay / easing.
+Rows with `"proposal": true` are PROPOSAL (rays, sparks, gold ring, Mythic hit-stop + shake, Rare+ rays/sparks): they never run
+unless `UI3Motion.proposals_enabled` is set (tests only). Reduce flashing drops rows with `"flash": true`.
+Layers with `"owner": "data"` have no node in Godot yet (XP bar, Fragment meter, Back button unlock).
+
 ## 18-system
 - `toast`, `net_notice`, `update_bar`

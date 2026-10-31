@@ -317,6 +317,35 @@ func _build() -> void:
 	body.add_child(_detail)
 
 
+## Level the player last saw on this screen (session). -1 = not seen yet. ResultView may seed it before XP is paid.
+static var seen_level := -1
+## Account the level above belongs to; a different account (sign-in / sign-out) starts over.
+static var seen_account := ""
+
+
+## UI-05 b23 lane M3: `pass-level-up` when the level went up since the last time this screen drew. Level pop + the new
+## tile's Claim pulse; the XP bar rows and tag have no node here (data).
+func _level_moment() -> void:
+	var lv := level()
+	var acc := String(AccountService.account.get("id", ""))
+	if acc != seen_account:
+		seen_level = -1
+		seen_account = acc
+	var was := seen_level
+	seen_level = lv
+	if was < 0 or lv <= was or UI3Gacha.is_instant() or DisplayServer.get_name() == "headless" or not is_inside_tree():
+		return
+	var tg := {}
+	var num := _left.find_child("LevelNumber", true, false) as Control
+	if num != null:
+		num.pivot_offset = num.size / 2.0
+		tg["level"] = num
+	if _tiles.has(lv) and _tiles[lv] is Control:
+		(_tiles[lv] as Control).pivot_offset = (_tiles[lv] as Control).size / 2.0
+		tg["tile"] = _tiles[lv]
+	UI3Motion.play_timeline("pass-level-up", tg, {"host": self, "only": ["level_pop", "tile_claim"]})
+
+
 func refresh() -> void:
 	if _left == null:
 		return
@@ -352,6 +381,7 @@ func refresh() -> void:
 		select_level(selected_lv)
 	else:
 		_draw_detail()
+	_level_moment()
 
 
 ## How many levels "Claim all" would take now.

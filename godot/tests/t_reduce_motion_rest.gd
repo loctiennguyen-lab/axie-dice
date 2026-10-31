@@ -35,6 +35,7 @@ func _ready() -> void:
 	await _gacha_case()
 	_moment_table_case()
 	_b2_table_case()
+	_b3_table_case()
 	await _hitstop_case()
 	await _timeline_reduced_case()
 	await _turn_banner_case()
@@ -202,6 +203,24 @@ func _b2_table_case() -> void:
 	for rr in [["treasure-open", "flash"], ["treasure-open", "rays"], ["level-up", "pillar"], ["level-up", "axie_flash"], ["anchor-awaken", "rays"], ["anchor-awaken", "sweep"], ["anchor-awaken", "frame"], ["core-reveal", "rays"]]:
 		var l := UI3Motion.layer(String(rr[0]), String(rr[1]))
 		_ok(bool(l.get("flash", false)) and l.get("reduce") == "removed", "%s.%s must be a flash layer, removed" % rr)
+
+
+## UI-05 b23 lane M3: the eleven meta moments exist, validate; motion / flash rows follow motion-batch3.md.
+func _b3_table_case() -> void:
+	for id in ["land-tier-up", "currency-gain", "run-end-win", "run-end-lose", "echo-open-normal", "echo-open-dup", "echo-open-rare",
+			"echo-open-mythic", "open-10", "pass-level-up", "daily-claim"]:
+		_ok(UI3Motion.has_moment(id), "b3 row '%s' missing" % id)
+		_ok(UI3Motion.validate_moment(id, UI3Motion.table().get(id, {})).is_empty(), "b3 row '%s' invalid" % id)
+		for l in UI3Motion.layers(id):
+			var ld: Dictionary = l
+			if ld.has("particles") or ld.has("shake") or ld.has("hitstop_ms"):
+				_ok(ld.get("reduce") == "removed", "%s.%s must be removed under Reduce motion" % [id, ld.get("name")])
+			if bool(ld.get("proposal", false)):
+				_ok(bool(ld.get("flash", false)) and ld.get("reduce") == "removed", "%s.%s PROPOSAL must be flash + removed" % [id, ld.get("name")])
+	_ok(not UI3Motion.proposals_enabled, "PROPOSAL rows must be off")
+	for rr in [["open-10", "last_pop"], ["land-tier-up", "land_flash"], ["land-tier-up", "hitstop"], ["land-tier-up", "shake"]]:
+		_ok(bool(UI3Motion.layer(String(rr[0]), String(rr[1])).get("flash", false)), "%s.%s must be a flash layer" % rr)
+	_ok(UI3Motion.layer("echo-open-mythic", "chest_tint").get("ms") == 1500 and UI3Motion.layer("echo-open-normal", "chest_tint").get("ms") == 1200, "chest tint 1.2 s / Mythic 1.5 s")
 
 
 func _moment_table_case() -> void:

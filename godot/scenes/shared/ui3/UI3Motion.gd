@@ -172,11 +172,13 @@ static func validate_layer(id: String, l: Variant) -> Array[String]:
 	if not LAYER_REDUCE.has(String(ld.get("reduce", "fade"))):
 		errs.append("%s: unknown reduce '%s'" % [nm, ld.get("reduce")])
 	var kinds := 0
-	for k in ["kf", "shake", "hitstop_ms", "particles"]:
+	for k in ["kf", "shake", "hitstop_ms", "particles", "count"]:
 		if ld.has(k):
 			kinds += 1
 	if kinds != 1:
-		errs.append("%s: needs exactly one of kf / shake / hitstop_ms / particles" % nm)
+		errs.append("%s: needs exactly one of kf / shake / hitstop_ms / particles / count" % nm)
+	if ld.has("count") and (typeof(ld["count"]) != TYPE_DICTIONARY or float(ld.get("ms", -1)) <= 0.0):
+		errs.append("%s: count needs an object and 'ms'" % nm)
 	if ld.has("kf"):
 		if float(ld.get("ms", -1)) <= 0.0:
 			errs.append("%s: 'ms' missing" % nm)
@@ -588,6 +590,9 @@ static func sweep(parent: Control, delay_ms := 0.0, ms := 400.0, width := 120.0,
 ## _fade_plan: in <= 120 ms, out <= 120 ms at the time the table fades the layer); "cap" keeps the keyframes but at
 ## most 120 ms; "kept" plays as is. Delays stay (the order of the moment is kept).
 ## Returns a Timeline: skip() jumps every layer to its end state (no late particles / shake / hit-stop).
+## UI-05 b23 lane M3: rows marked "proposal": true (motion-batch3.md PROPOSAL: rays, sparks, gold ring, Mythic
+## hit-stop / shake) are not approved. They never run unless this is true. Tests only; keep it false in the game.
+static var proposals_enabled := false
 const KF_PROPS := ["alpha", "scale", "scale_x", "scale_y", "x", "y", "rot"]
 const LAYER_REDUCE := ["fade", "cap", "removed", "kept"]
 
@@ -662,6 +667,8 @@ static func timeline_sec(id: String, red := false) -> float:
 	var end := 0.0
 	for l in layers(id):
 		var ld: Dictionary = l
+		if bool(ld.get("proposal", false)) and not proposals_enabled:
+			continue
 		var r := String(ld.get("reduce", "fade"))
 		var d := float(ld.get("delay_ms", 0.0))
 		var ms := float(ld.get("ms", 0.0))
@@ -756,6 +763,8 @@ static func _prepare_layers(id: String, targets: Dictionary, opts: Dictionary) -
 	for l in layers(id):
 		var ld: Dictionary = (l as Dictionary).duplicate(true)
 		ld["base"] = String(ld.get("name", ""))
+		if bool(ld.get("proposal", false)) and not proposals_enabled:
+			continue
 		if bool(ld.get("crystal_only", false)) and tier != 2:
 			continue
 		if ld.has("ms_by_tier") and tier >= 0:
@@ -819,6 +828,9 @@ static func _play_layer(run: Timeline, l: Dictionary, targets: Dictionary, host:
 	if bool(l.get("flash", false)) and MetaState.reduce_flash:
 		return
 	var delay := float(l.get("delay_ms", 0.0)) / 1000.0
+	if l.has("count"):
+		_play_count(run, l, targets, opts, red, delay)
+		return
 	if l.has("kf"):
 		var node: Variant = targets.get(String(l.get("target", "")))
 		if not (node is CanvasItem) or not is_instance_valid(node):
@@ -902,6 +914,67 @@ static func _play_layer(run: Timeline, l: Dictionary, targets: Dictionary, host:
 	tw2.tween_interval(delay)
 	tw2.tween_callback(fx)
 	_track(run, tw2)
+
+
+## "count" layer: a number tween on a Label (text = prefix + thousands-comma number + suffix) or, when opts.count_cb
+## (Callable(base_name, int)) is set, on whatever the screen draws. Numbers: opts.counts[base_name] = [from, to] (the screen
+## owns the data; the row owns the timing). Skip / watchdog write the final number. Reduce motion "cap": at most 120 ms.
+static func _play_count(run: Timeline, l: Dictionary, targets: Dictionary, opts: Dictionary, red: bool, delay: float) -> void:
+	var base := String(l.get("base", l.get("name", "")))
+	var rng: Variant = (opts.get("counts", {}) as Dictionary).get(base)
+	if not (rng is Array) or (rng as Array).size() < 2:
+		return   # the screen has no number for this row: data only
+	var from_v := int(rng[0])
+	var to_v := int(rng[1])
+	var spec: Dictionary = l["count"]
+	var prefix := String(spec.get("prefix", ""))
+	var suffix := String(spec.get("suffix", ""))
+	var thousands := bool(spec.get("thousands", true))
+	var cb: Variant = opts.get("count_cb")
+	var node: Variant = targets.get(String(l.get("target", "")))
+	var nw: WeakRef = weakref(node) if node is Node else null
+	if nw == null and not (cb is Callable):
+		return
+	var write := func(v: int) -> void:
+		if cb is Callable and (cb as Callable).is_valid():
+			(cb as Callable).call(base, v)
+			return
+		var n: Node = nw.get_ref() if nw != null else null
+		if n is Label:
+			(n as Label).text = prefix + (commas(v) if thousands else str(v)) + suffix
+	var sec := float(l.get("ms", 0.0)) / 1000.0
+	if red and String(l.get("reduce", "cap")) == "cap":
+		sec = minf(sec, REDUCED_MAX_SEC)
+	write.call(from_v)
+	run._finals.append(func() -> void: write.call(to_v))
+	var host_node: Node = nw.get_ref() if nw != null else null
+	if host_node == null:
+		var h: Variant = opts.get("host")
+		host_node = h if h is Node else null
+	if host_node == null or not host_node.is_inside_tree():
+		write.call(to_v)
+		return
+	var tw := host_node.create_tween()
+	if delay > 0.0:
+		tw.tween_interval(delay)
+	var tr_: int = _TRANS.get(String(l.get("trans", "CUBIC")), Tween.TRANS_CUBIC)
+	var ez: int = _EASE.get(String(l.get("ease", "OUT")), Tween.EASE_OUT)
+	tw.tween_method(func(k: float) -> void: write.call(int(roundf(lerpf(float(from_v), float(to_v), k)))), 0.0, 1.0, maxf(sec, 0.001)).set_trans(tr_).set_ease(ez)
+	tw.tween_callback(func() -> void: write.call(to_v))
+	_track(run, tw)
+
+
+## 1234567 -> "1,234,567".
+static func commas(n: int) -> String:
+	var s := str(absi(n))
+	var out := ""
+	var i := 0
+	for ch in s.reverse():
+		if i > 0 and i % 3 == 0:
+			out = "," + out
+		out = ch + out
+		i += 1
+	return ("-" if n < 0 else "") + out
 
 
 static func _track(run: Timeline, tw: Tween) -> void:

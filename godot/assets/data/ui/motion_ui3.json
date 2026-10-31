@@ -4700,5 +4700,1652 @@
   "reduce_flash": "no flash, no rays, no shake, no hit-stop",
   "skippable": true,
   "star": true
+ },
+ "land-tier-up": {
+  "trigger": "Land upgrade confirmed (Stone spent, Land swaps tier, banner)",
+  "_note": "Upgrade presses, Stone counts down, tier swaps, banner rises. Source: design/handoffs/ui-05-figma/round-3/motion-batch3.md. Played with UI3Motion.play_timeline; layers whose target the screen does not pass are data only. Rows with proposal=true are PROPOSAL (not approved) and never run unless UI3Motion.proposals_enabled.",
+  "in": {
+   "ms": 120
+  },
+  "layers": [
+   {
+    "name": "press",
+    "target": "upgrade_btn",
+    "delay_ms": 0,
+    "ms": 120,
+    "trans": "QUAD",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "y": 0
+     },
+     {
+      "t": 0.5,
+      "y": 6
+     },
+     {
+      "t": 1,
+      "y": 0
+     }
+    ],
+    "reduce": "kept",
+    "sfx": "ui_confirm"
+   },
+   {
+    "name": "confirm_out",
+    "target": "confirm",
+    "delay_ms": 100,
+    "ms": 180,
+    "trans": "QUAD",
+    "ease": "IN",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "kept"
+   },
+   {
+    "name": "stone_count",
+    "target": "stone_chip",
+    "delay_ms": 200,
+    "ms": 600,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "count": {
+     "thousands": true
+    },
+    "reduce": "cap",
+    "sfx": "stone_spend"
+   },
+   {
+    "name": "stone_pulse",
+    "target": "stone_chip",
+    "delay_ms": 200,
+    "ms": 240,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 1
+     },
+     {
+      "t": 0.5,
+      "scale": 1.15
+     },
+     {
+      "t": 1,
+      "scale": 1
+     }
+    ],
+    "reduce": "removed"
+   },
+   {
+    "name": "camera_push",
+    "target": "camera",
+    "delay_ms": 200,
+    "ms": 700,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 1
+     },
+     {
+      "t": 1,
+      "scale": 1.04
+     }
+    ],
+    "reduce": "removed"
+   },
+   {
+    "name": "hitstop",
+    "delay_ms": 900,
+    "hitstop_ms": 60,
+    "reduce": "removed",
+    "flash": true
+   },
+   {
+    "name": "land_flash",
+    "target": "diorama_flash",
+    "delay_ms": 900,
+    "ms": 200,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 0.5,
+      "alpha": 0.7
+     },
+     {
+      "t": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "cap",
+    "flash": true
+   },
+   {
+    "name": "tier_swap",
+    "target": "diorama",
+    "delay_ms": 900,
+    "ms": 400,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "cap"
+   },
+   {
+    "name": "shake",
+    "delay_ms": 900,
+    "shake": {
+     "px": 6,
+     "ms": 200
+    },
+    "reduce": "removed",
+    "flash": true
+   },
+   {
+    "name": "stone_burst",
+    "target": "diorama",
+    "delay_ms": 900,
+    "particles": {
+     "texture": "res://assets/ui3/icons/cur_stone.png",
+     "amount": 18,
+     "lifetime_ms": 1100,
+     "speed": 620,
+     "spread_deg": 160,
+     "spread_full": true,
+     "gravity": 800,
+     "size_px": 30,
+     "direction_deg": -90
+    },
+    "reduce": "removed"
+   },
+   {
+    "name": "title_band",
+    "target": "title_band",
+    "delay_ms": 1000,
+    "ms": 1300,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 1.3,
+      "alpha": 0
+     },
+     {
+      "t": 0.15,
+      "scale": 1,
+      "alpha": 1
+     },
+     {
+      "t": 0.8,
+      "scale": 1,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "scale": 1,
+      "alpha": 0
+     }
+    ],
+    "reduce": "fade",
+    "reduce_to": 0
+   },
+   {
+    "name": "banner_scrim",
+    "target": "scrim",
+    "delay_ms": 2200,
+    "ms": 200,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "kept"
+   },
+   {
+    "name": "banner_rise",
+    "target": "banner",
+    "delay_ms": 2200,
+    "ms": 300,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "y": 40,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "y": 0,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade"
+   }
+  ],
+  "sfx_name": "land_tier_up",
+  "skip": "click / Space jumps to the banner, Stone at its final value",
+  "reduce_flash": "no cream flash, no shake, no hit-stop",
+  "skippable": true,
+  "star": true
+ },
+ "currency-gain": {
+  "trigger": "Any Shard / Stone / Ticket / Fragment / Gem gain",
+  "_note": "Amount pops, icons fly to the chip, chip counts up. Source: design/handoffs/ui-05-figma/round-3/motion-batch3.md. Played with UI3Motion.play_timeline; layers whose target the screen does not pass are data only. Rows with proposal=true are PROPOSAL (not approved) and never run unless UI3Motion.proposals_enabled.",
+  "in": {
+   "ms": 120
+  },
+  "layers": [
+   {
+    "name": "amount_pop",
+    "target": "amount",
+    "delay_ms": 0,
+    "ms": 360,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 0.6,
+      "alpha": 0
+     },
+     {
+      "t": 0.6,
+      "scale": 1.3,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "scale": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "icons_fly",
+    "target": "icons",
+    "delay_ms": 280,
+    "ms": 560,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 1,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "scale": 0.5,
+      "alpha": 1
+     }
+    ],
+    "reduce": "removed",
+    "stagger_ms": 45,
+    "fly": {
+     "control": [
+      0,
+      -440
+     ]
+    },
+    "sfx": "coin_tick"
+   },
+   {
+    "name": "plate_fade",
+    "target": "plate",
+    "delay_ms": 600,
+    "ms": 240,
+    "trans": "QUAD",
+    "ease": "IN",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1,
+      "scale": 1
+     },
+     {
+      "t": 1,
+      "alpha": 0,
+      "scale": 0.96
+     }
+    ],
+    "reduce": "kept"
+   },
+   {
+    "name": "chip_pulse",
+    "target": "chip",
+    "delay_ms": 780,
+    "ms": 260,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 1
+     },
+     {
+      "t": 0.5,
+      "scale": 1.15
+     },
+     {
+      "t": 1,
+      "scale": 1
+     }
+    ],
+    "reduce": "removed"
+   },
+   {
+    "name": "chip_count",
+    "target": "chip",
+    "delay_ms": 780,
+    "ms": 700,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "count": {
+     "thousands": true
+    },
+    "reduce": "cap"
+   }
+  ],
+  "sfx_name": "reward_pop",
+  "skip": "click / Space sets the chip to its final value",
+  "reduce_flash": "unchanged",
+  "skippable": true,
+  "star": true
+ },
+ "run-end-win": {
+  "trigger": "Run won: Result opens",
+  "_note": "Scrim, plate rises, title pops, stats tick in, Shards count up, confetti. Source: design/handoffs/ui-05-figma/round-3/motion-batch3.md. Played with UI3Motion.play_timeline; layers whose target the screen does not pass are data only. Rows with proposal=true are PROPOSAL (not approved) and never run unless UI3Motion.proposals_enabled.",
+  "in": {
+   "ms": 120
+  },
+  "layers": [
+   {
+    "name": "scrim",
+    "target": "scrim",
+    "delay_ms": 0,
+    "ms": 300,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "kept"
+   },
+   {
+    "name": "plate_rise",
+    "target": "plate",
+    "delay_ms": 150,
+    "ms": 360,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "y": 60,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "y": 0,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "title_pop",
+    "target": "title",
+    "delay_ms": 380,
+    "ms": 420,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 0.6,
+      "alpha": 0
+     },
+     {
+      "t": 0.6,
+      "scale": 1.3,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "scale": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "stats_tick",
+    "target": "stats",
+    "delay_ms": 640,
+    "ms": 200,
+    "trans": "QUAD",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "y": 8,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "y": 0,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade",
+    "stagger_ms": 60,
+    "sfx": "tick"
+   },
+   {
+    "name": "damage_count",
+    "target": "damage",
+    "delay_ms": 700,
+    "ms": 500,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "count": {
+     "thousands": true
+    },
+    "reduce": "cap"
+   },
+   {
+    "name": "cards_slide",
+    "target": "cards",
+    "delay_ms": 1000,
+    "ms": 260,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "y": 20,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "y": 0,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade",
+    "stagger_ms": 90
+   },
+   {
+    "name": "shards_count",
+    "target": "shards",
+    "delay_ms": 1100,
+    "ms": 500,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "count": {
+     "thousands": true,
+     "prefix": "+"
+    },
+    "reduce": "cap"
+   },
+   {
+    "name": "xp_fill",
+    "target": "xp_fill",
+    "delay_ms": 1250,
+    "ms": 500,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 0
+     },
+     {
+      "t": 1,
+      "scale_x": 1
+     }
+    ],
+    "reduce": "cap",
+    "owner": "data"
+   },
+   {
+    "name": "confetti",
+    "target": "title",
+    "delay_ms": 400,
+    "particles": {
+     "texture": "res://assets/ui3/icons/cur_shard.png",
+     "amount": 16,
+     "lifetime_ms": 1200,
+     "speed": 600,
+     "spread_deg": 120,
+     "spread_full": true,
+     "gravity": 900,
+     "size_px": 26,
+     "direction_deg": -90
+    },
+    "reduce": "removed"
+   },
+   {
+    "name": "back_unlock",
+    "target": "back",
+    "delay_ms": 1500,
+    "ms": 200,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "kept",
+    "owner": "data"
+   }
+  ],
+  "sfx_name": "run_won",
+  "skip": "click / Space shows the full plate",
+  "reduce_flash": "no change (confetti stays; it is not a flash)",
+  "skippable": true,
+  "star": true
+ },
+ "run-end-lose": {
+  "trigger": "Run lost: Result opens",
+  "_note": "Scrim, plate rises, Defeated drops in, stats tick in, no burst. Source: design/handoffs/ui-05-figma/round-3/motion-batch3.md. Played with UI3Motion.play_timeline; layers whose target the screen does not pass are data only. Rows with proposal=true are PROPOSAL (not approved) and never run unless UI3Motion.proposals_enabled.",
+  "in": {
+   "ms": 120
+  },
+  "layers": [
+   {
+    "name": "scrim",
+    "target": "scrim",
+    "delay_ms": 0,
+    "ms": 300,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "kept"
+   },
+   {
+    "name": "plate_rise",
+    "target": "plate",
+    "delay_ms": 150,
+    "ms": 360,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "y": 60,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "y": 0,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "title_pop",
+    "target": "title",
+    "delay_ms": 380,
+    "ms": 420,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "y": -16,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "y": 0,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "stats_tick",
+    "target": "stats",
+    "delay_ms": 640,
+    "ms": 200,
+    "trans": "QUAD",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "y": 8,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "y": 0,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade",
+    "stagger_ms": 60,
+    "sfx": "tick"
+   },
+   {
+    "name": "damage_count",
+    "target": "damage",
+    "delay_ms": 700,
+    "ms": 500,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "count": {
+     "thousands": true
+    },
+    "reduce": "cap"
+   },
+   {
+    "name": "cards_slide",
+    "target": "cards",
+    "delay_ms": 1000,
+    "ms": 260,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "y": 20,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "y": 0,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade",
+    "stagger_ms": 90
+   },
+   {
+    "name": "shards_count",
+    "target": "shards",
+    "delay_ms": 1100,
+    "ms": 500,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "count": {
+     "thousands": true,
+     "prefix": "+"
+    },
+    "reduce": "cap"
+   },
+   {
+    "name": "xp_fill",
+    "target": "xp_fill",
+    "delay_ms": 1250,
+    "ms": 500,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 0
+     },
+     {
+      "t": 1,
+      "scale_x": 1
+     }
+    ],
+    "reduce": "cap",
+    "owner": "data"
+   },
+   {
+    "name": "back_unlock",
+    "target": "back",
+    "delay_ms": 1500,
+    "ms": 200,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "kept",
+    "owner": "data"
+   }
+  ],
+  "sfx_name": "run_lost",
+  "skip": "click / Space shows the full plate",
+  "reduce_flash": "no change",
+  "skippable": true,
+  "star": true
+ },
+ "echo-open-normal": {
+  "trigger": "Open 1, new item, Common / Uncommon",
+  "_note": "Chest word tints, title Opening to Reveal, card flips in. Source: design/handoffs/ui-05-figma/round-3/motion-batch3.md. Played with UI3Motion.play_timeline; layers whose target the screen does not pass are data only. Rows with proposal=true are PROPOSAL (not approved) and never run unless UI3Motion.proposals_enabled.",
+  "in": {
+   "ms": 120
+  },
+  "layers": [
+   {
+    "name": "chest_tint",
+    "target": "tint",
+    "delay_ms": 0,
+    "ms": 1200,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "cap",
+    "sfx": "chest_shake",
+    "owner": "EchoBoxCeremony"
+   },
+   {
+    "name": "title_swap",
+    "target": "title",
+    "delay_ms": 1100,
+    "ms": 200,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "kept",
+    "owner": "EchoBoxCeremony"
+   },
+   {
+    "name": "card_flip",
+    "target": "card",
+    "delay_ms": 1200,
+    "ms": 360,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 0,
+      "alpha": 0
+     },
+     {
+      "t": 0.01,
+      "scale_x": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "scale_x": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade",
+    "sfx": "reveal_rare"
+   }
+  ],
+  "sfx_name": "reveal_rare",
+  "skip": "click / Space (Skip) jumps to the card",
+  "reduce_flash": "unchanged",
+  "skippable": true,
+  "star": true
+ },
+ "echo-open-dup": {
+  "trigger": "Open 1, duplicate becomes Fragments",
+  "_note": "As normal, then the +10 badge flies to the Fragment meter, which fills and wraps. Source: design/handoffs/ui-05-figma/round-3/motion-batch3.md. Played with UI3Motion.play_timeline; layers whose target the screen does not pass are data only. Rows with proposal=true are PROPOSAL (not approved) and never run unless UI3Motion.proposals_enabled.",
+  "in": {
+   "ms": 120
+  },
+  "layers": [
+   {
+    "name": "chest_tint",
+    "target": "tint",
+    "delay_ms": 0,
+    "ms": 1200,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "cap",
+    "sfx": "chest_shake",
+    "owner": "EchoBoxCeremony"
+   },
+   {
+    "name": "title_swap",
+    "target": "title",
+    "delay_ms": 1100,
+    "ms": 200,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "kept",
+    "owner": "EchoBoxCeremony"
+   },
+   {
+    "name": "card_flip",
+    "target": "card",
+    "delay_ms": 1200,
+    "ms": 360,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 0,
+      "alpha": 0
+     },
+     {
+      "t": 0.01,
+      "scale_x": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "scale_x": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade",
+    "sfx": "reveal_rare"
+   },
+   {
+    "name": "badge_fly",
+    "target": "badge",
+    "delay_ms": 1700,
+    "ms": 520,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 1
+     },
+     {
+      "t": 1,
+      "scale": 0.6
+     }
+    ],
+    "reduce": "removed",
+    "sfx": "fragment_in",
+    "fly": {
+     "control": [
+      0,
+      -120
+     ]
+    }
+   },
+   {
+    "name": "meter_fill",
+    "target": "meter",
+    "delay_ms": 2200,
+    "ms": 500,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 0.9
+     },
+     {
+      "t": 1,
+      "scale_x": 1
+     }
+    ],
+    "reduce": "cap",
+    "owner": "data"
+   },
+   {
+    "name": "fragment_count",
+    "target": "fragment_label",
+    "delay_ms": 2200,
+    "ms": 500,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "count": {
+     "thousands": true
+    },
+    "reduce": "cap"
+   }
+  ],
+  "sfx_name": "reveal_rare",
+  "skip": "click / Space (Skip) jumps to the card",
+  "reduce_flash": "unchanged",
+  "skippable": true,
+  "star": true
+ },
+ "echo-open-rare": {
+  "trigger": "Open 1, Rare or better",
+  "_note": "As normal; rays and sparks behind the art are a PROPOSAL (off). Source: design/handoffs/ui-05-figma/round-3/motion-batch3.md. Played with UI3Motion.play_timeline; layers whose target the screen does not pass are data only. Rows with proposal=true are PROPOSAL (not approved) and never run unless UI3Motion.proposals_enabled.",
+  "in": {
+   "ms": 120
+  },
+  "layers": [
+   {
+    "name": "chest_tint",
+    "target": "tint",
+    "delay_ms": 0,
+    "ms": 1200,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "cap",
+    "sfx": "chest_shake",
+    "owner": "EchoBoxCeremony"
+   },
+   {
+    "name": "title_swap",
+    "target": "title",
+    "delay_ms": 1100,
+    "ms": 200,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "kept",
+    "owner": "EchoBoxCeremony"
+   },
+   {
+    "name": "card_flip",
+    "target": "card",
+    "delay_ms": 1200,
+    "ms": 360,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 0,
+      "alpha": 0
+     },
+     {
+      "t": 0.01,
+      "scale_x": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "scale_x": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade",
+    "sfx": "reveal_legendary"
+   },
+   {
+    "name": "rays",
+    "target": "rays",
+    "delay_ms": 1200,
+    "ms": 2000,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "rot": 0
+     },
+     {
+      "t": 0.5,
+      "alpha": 0.6,
+      "rot": 45
+     },
+     {
+      "t": 1,
+      "alpha": 0.3,
+      "rot": 90
+     }
+    ],
+    "reduce": "removed",
+    "flash": true,
+    "proposal": true
+   },
+   {
+    "name": "sparks",
+    "target": "card",
+    "delay_ms": 1200,
+    "particles": {
+     "texture": "res://assets/ui3/icons/cur_fragment.png",
+     "amount": 12,
+     "lifetime_ms": 1100,
+     "speed": 520,
+     "spread_deg": 360,
+     "spread_full": true,
+     "gravity": 300,
+     "size_px": 24,
+     "direction_deg": -90
+    },
+    "reduce": "removed",
+    "proposal": true,
+    "flash": true
+   }
+  ],
+  "sfx_name": "reveal_legendary",
+  "skip": "click / Space (Skip) jumps to the card",
+  "reduce_flash": "rays and sparks removed (PROPOSAL rows, off anyway)",
+  "skippable": true,
+  "star": true
+ },
+ "echo-open-mythic": {
+  "trigger": "Open 1, Mythic",
+  "_note": "Tint 1.5 s. Hit-stop, ring, shake, rays and sparks are a PROPOSAL (off). Source: design/handoffs/ui-05-figma/round-3/motion-batch3.md. Played with UI3Motion.play_timeline; layers whose target the screen does not pass are data only. Rows with proposal=true are PROPOSAL (not approved) and never run unless UI3Motion.proposals_enabled.",
+  "in": {
+   "ms": 120
+  },
+  "layers": [
+   {
+    "name": "chest_tint",
+    "target": "tint",
+    "delay_ms": 0,
+    "ms": 1500,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "cap",
+    "sfx": "chest_shake",
+    "owner": "EchoBoxCeremony"
+   },
+   {
+    "name": "title_swap",
+    "target": "title",
+    "delay_ms": 1400,
+    "ms": 200,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "kept",
+    "owner": "EchoBoxCeremony"
+   },
+   {
+    "name": "hitstop",
+    "delay_ms": 1500,
+    "hitstop_ms": 90,
+    "reduce": "removed",
+    "flash": true,
+    "proposal": true
+   },
+   {
+    "name": "gold_ring",
+    "target": "ring",
+    "delay_ms": 1500,
+    "ms": 900,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 0.8,
+      "alpha": 0.9
+     },
+     {
+      "t": 1,
+      "scale": 1.15,
+      "alpha": 0
+     }
+    ],
+    "reduce": "removed",
+    "flash": true,
+    "proposal": true
+   },
+   {
+    "name": "shake",
+    "delay_ms": 1500,
+    "shake": {
+     "px": 6,
+     "ms": 220
+    },
+    "reduce": "removed",
+    "flash": true,
+    "proposal": true
+   },
+   {
+    "name": "card_flip",
+    "target": "card",
+    "delay_ms": 1500,
+    "ms": 360,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 0,
+      "alpha": 0
+     },
+     {
+      "t": 0.01,
+      "scale_x": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "scale_x": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade",
+    "sfx": "reveal_mythic"
+   },
+   {
+    "name": "rays",
+    "target": "rays",
+    "delay_ms": 1500,
+    "ms": 2000,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 0,
+      "rot": 0
+     },
+     {
+      "t": 0.5,
+      "alpha": 0.6,
+      "rot": 45
+     },
+     {
+      "t": 1,
+      "alpha": 0.3,
+      "rot": 90
+     }
+    ],
+    "reduce": "removed",
+    "flash": true,
+    "proposal": true
+   },
+   {
+    "name": "sparks",
+    "target": "card",
+    "delay_ms": 1500,
+    "particles": {
+     "texture": "res://assets/ui3/icons/cur_fragment.png",
+     "amount": 24,
+     "lifetime_ms": 1100,
+     "speed": 520,
+     "spread_deg": 360,
+     "spread_full": true,
+     "gravity": 300,
+     "size_px": 24,
+     "direction_deg": -90
+    },
+    "reduce": "removed",
+    "proposal": true,
+    "flash": true
+   }
+  ],
+  "sfx_name": "reveal_mythic",
+  "skip": "click / Space (Skip) jumps to the card",
+  "reduce_flash": "hit-stop, ring, shake, rays, sparks removed (PROPOSAL rows, off anyway)",
+  "skippable": true,
+  "star": true
+ },
+ "open-10": {
+  "trigger": "Open 10",
+  "_note": "Ten cards flip in one by one, best last. Source: design/handoffs/ui-05-figma/round-3/motion-batch3.md. Played with UI3Motion.play_timeline; layers whose target the screen does not pass are data only. Rows with proposal=true are PROPOSAL (not approved) and never run unless UI3Motion.proposals_enabled.",
+  "in": {
+   "ms": 120
+  },
+  "layers": [
+   {
+    "name": "cards_flip",
+    "target": "cards",
+    "delay_ms": 200,
+    "ms": 160,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 0,
+      "alpha": 0
+     },
+     {
+      "t": 0.01,
+      "scale_x": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "scale_x": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade",
+    "stagger_ms": 120,
+    "sfx": "card_flip"
+   },
+   {
+    "name": "last_pop",
+    "target": "last_card",
+    "delay_ms": 1460,
+    "ms": 300,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 1
+     },
+     {
+      "t": 0.5,
+      "scale": 1.08
+     },
+     {
+      "t": 1,
+      "scale": 1
+     }
+    ],
+    "reduce": "removed",
+    "flash": true,
+    "sfx": "reveal_epic"
+   }
+  ],
+  "sfx_name": "card_flip",
+  "skip": "click / Space shows all cards",
+  "reduce_flash": "Reduce flashing: all cards at once, no pop on the last",
+  "skippable": true,
+  "star": true
+ },
+ "pass-level-up": {
+  "trigger": "Pass XP crosses a level",
+  "_note": "Bar fills past the end, level number pops, tile turns Claim. Source: design/handoffs/ui-05-figma/round-3/motion-batch3.md. Played with UI3Motion.play_timeline; layers whose target the screen does not pass are data only. Rows with proposal=true are PROPOSAL (not approved) and never run unless UI3Motion.proposals_enabled.",
+  "in": {
+   "ms": 120
+  },
+  "layers": [
+   {
+    "name": "bar_fill",
+    "target": "bar_fill",
+    "delay_ms": 0,
+    "ms": 400,
+    "trans": "CUBIC",
+    "ease": "IN",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 0.5
+     },
+     {
+      "t": 1,
+      "scale_x": 1
+     }
+    ],
+    "reduce": "cap",
+    "owner": "data"
+   },
+   {
+    "name": "level_pop",
+    "target": "level",
+    "delay_ms": 400,
+    "ms": 360,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 1
+     },
+     {
+      "t": 0.5,
+      "scale": 1.3
+     },
+     {
+      "t": 1,
+      "scale": 1
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "level_tag",
+    "target": "tag",
+    "delay_ms": 420,
+    "ms": 1000,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "y": 12,
+      "alpha": 0
+     },
+     {
+      "t": 1,
+      "y": 0,
+      "alpha": 1
+     }
+    ],
+    "reduce": "fade"
+   },
+   {
+    "name": "bar_wrap",
+    "target": "bar_fill",
+    "delay_ms": 760,
+    "ms": 300,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale_x": 1
+     },
+     {
+      "t": 1,
+      "scale_x": 0.2
+     }
+    ],
+    "reduce": "cap",
+    "owner": "data"
+   },
+   {
+    "name": "tile_claim",
+    "target": "tile",
+    "delay_ms": 900,
+    "ms": 260,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 1
+     },
+     {
+      "t": 0.5,
+      "scale": 1.1
+     },
+     {
+      "t": 1,
+      "scale": 1
+     }
+    ],
+    "reduce": "cap"
+   }
+  ],
+  "sfx_name": "pass_level",
+  "skip": "click / Space",
+  "reduce_flash": "unchanged",
+  "skippable": true,
+  "star": true
+ },
+ "daily-claim": {
+  "trigger": "Daily Claim pressed",
+  "_note": "Button presses, rows pop, Shards and Stone fly to the chips, counts tick, button reads Claimed today. Source: design/handoffs/ui-05-figma/round-3/motion-batch3.md. Played with UI3Motion.play_timeline; layers whose target the screen does not pass are data only. Rows with proposal=true are PROPOSAL (not approved) and never run unless UI3Motion.proposals_enabled.",
+  "in": {
+   "ms": 120
+  },
+  "layers": [
+   {
+    "name": "claim_press",
+    "target": "claim_btn",
+    "delay_ms": 0,
+    "ms": 120,
+    "trans": "QUAD",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "y": 0
+     },
+     {
+      "t": 0.5,
+      "y": 6
+     },
+     {
+      "t": 1,
+      "y": 0
+     }
+    ],
+    "reduce": "kept",
+    "sfx": "ui_confirm"
+   },
+   {
+    "name": "rows_pop",
+    "target": "rows",
+    "delay_ms": 120,
+    "ms": 260,
+    "trans": "BACK",
+    "ease": "OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 1
+     },
+     {
+      "t": 0.5,
+      "scale": 1.06
+     },
+     {
+      "t": 1,
+      "scale": 1
+     }
+    ],
+    "reduce": "removed",
+    "stagger_ms": 80,
+    "sfx": "reward_pop"
+   },
+   {
+    "name": "shards_fly",
+    "target": "shard_icons",
+    "delay_ms": 300,
+    "ms": 560,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 1
+     },
+     {
+      "t": 1,
+      "scale": 0.5
+     }
+    ],
+    "reduce": "removed",
+    "stagger_ms": 45,
+    "fly": {
+     "control": [
+      0,
+      -440
+     ]
+    }
+   },
+   {
+    "name": "stone_fly",
+    "target": "stone_icons",
+    "delay_ms": 420,
+    "ms": 560,
+    "trans": "SINE",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "scale": 1
+     },
+     {
+      "t": 1,
+      "scale": 0.5
+     }
+    ],
+    "reduce": "removed",
+    "stagger_ms": 45,
+    "fly": {
+     "control": [
+      0,
+      -440
+     ]
+    }
+   },
+   {
+    "name": "shards_count",
+    "target": "shards_chip",
+    "delay_ms": 800,
+    "ms": 500,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "count": {
+     "thousands": true
+    },
+    "reduce": "cap"
+   },
+   {
+    "name": "stone_count",
+    "target": "stone_chip",
+    "delay_ms": 920,
+    "ms": 500,
+    "trans": "CUBIC",
+    "ease": "OUT",
+    "count": {
+     "thousands": true
+    },
+    "reduce": "cap"
+   },
+   {
+    "name": "claimed_btn",
+    "target": "claim_btn",
+    "delay_ms": 1200,
+    "ms": 200,
+    "trans": "LINEAR",
+    "ease": "IN_OUT",
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "alpha": 1
+     }
+    ],
+    "reduce": "kept",
+    "owner": "data"
+   }
+  ],
+  "sfx_name": "ui_confirm",
+  "skip": "click / Space",
+  "reduce_flash": "unchanged",
+  "skippable": true,
+  "star": true
  }
 }
