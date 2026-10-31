@@ -135,6 +135,8 @@ func _pass(sc: float, tag: String) -> void:
 	_check(spill.is_empty(), "%s: N6 detail Labels all inside the plate %s" % [tag, str(spill)])
 	var dsc := s.find_child("DetailScroll", true, false) as ScrollContainer
 	_check(dsc.get_v_scroll_bar().max_value <= dsc.get_v_scroll_bar().page + 1.0, "%s: N6 detail needs no scrolling (max %.0f page %.0f)" % [tag, dsc.get_v_scroll_bar().max_value, dsc.get_v_scroll_bar().page])
+	MetaState.set_mission_unlocks(["N1", "N2"], false)
+	s._refresh()
 	# locked tier
 	s.select_tier("N4")
 	await _settle()
