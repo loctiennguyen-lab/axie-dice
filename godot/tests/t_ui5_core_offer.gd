@@ -110,6 +110,16 @@ func _ready() -> void:
 	UI3Theme.set_scale_override(1.0)
 	rm._show_reward_overlay("x")
 	await _frames(3)
+	_ok(rm._reward_cards[0].has_focus() and int(rm._reward_sel) == -1 and not bool(rm._reward_cards[0].get("selected")),
+		"core: initial focus is card 0, not selected")
+	# A real per-card reroll with a card picked: the pick is cleared.
+	rm._select_reward(1)
+	await _frames(2)
+	var left0: int = RunState.core_reroll_left
+	await rm._on_core_card_reroll(1)
+	await _frames(6)
+	_ok(RunState.core_reroll_left == left0 - 1, "core reroll: a real reroll was spent (%d -> %d)" % [left0, RunState.core_reroll_left])
+	_ok(int(rm._reward_sel) == -1 and _take() != null and _take().disabled, "core reroll: pick cleared, Take off")
 	takes = _take_count()
 	var ll := _log_len()
 	rm._select_reward(0)
@@ -119,6 +129,17 @@ func _ready() -> void:
 	await get_tree().create_timer(0.8).timeout
 	await _frames(6)
 	_ok(_take_count() == takes + 1, "core: exactly one take_reward logged")
+
+	# Regular reward: a real reroll also clears the pick.
+	RunState._core_offer_active = false
+	RunState.reward_reroll_charges = 1
+	RunState.pending_rewards.assign(_fake_cards(false))
+	rm._show_reward_overlay("CHOOSE ONE REWARD")
+	await _frames(3)
+	rm._select_reward(0)
+	await rm._on_reward_reroll("CHOOSE ONE REWARD")
+	await _frames(4)
+	_ok(int(rm._reward_sel) == -1, "reward reroll: pick cleared (sel %d)" % int(rm._reward_sel))
 
 	# Regular reward and treasure (stand-in offers, never taken).
 	RunState._core_offer_active = false
@@ -132,6 +153,26 @@ func _ready() -> void:
 	await _frames(4)
 	await _contract("treasure", "Pick a reward", "Take and continue")
 
+	# AwakenChip: a house Core that takes the Anchor to 2/2 (real Anchors data, test_state).
+	var hcs: Array = Anchors.get_def("a_volley").get("house_cores", []) as Array
+	if hcs.size() >= Anchors.AWAKEN_NEED:
+		AnchorAdapter.test_state = {"anchor_id": "a_volley", "awakened": false, "owned": hcs.slice(0, Anchors.AWAKEN_NEED - 1)}
+		RunState._core_offer_active = true
+		var fc := _fake_cards(true)
+		fc[0]["key"] = String(hcs[Anchors.AWAKEN_NEED - 1])
+		RunState.pending_rewards.assign(fc)
+		rm._show_reward_overlay("x")
+		await _frames(4)
+		var c0: Control = rm._reward_cards[0]
+		_ok(c0.find_child("AwakenChip", true, false) != null and c0.find_child("ChipRow", true, false).find_child("AwakenChip", true, false) != null,
+			"awaken: AwakenChip sits in the ChipRow of the Core that awakens")
+		_ok(c0.find_child("AwakenEdge", true, false) != null, "awaken: awaken edge on the card")
+		_ok(rm._reward_cards[1].find_child("AwakenChip", true, false) == null, "awaken: other cards have none")
+		AnchorAdapter.test_state = null
+		RunState._core_offer_active = false
+	else:
+		_ok(false, "awaken: a_volley house_cores has too few entries")
+
 	# Face-down Core offer: Take reads the reveal reason, counter hidden, SkipHint up; all gone after the flip.
 	UI3Gacha.instant_override = 0
 	RunState._core_offer_active = true
@@ -143,8 +184,10 @@ func _ready() -> void:
 	_ok(cnt != null and not cnt.visible, "face-down: rerolls counter hidden")
 	_ok(rm._overlay_root.find_child("SkipHint", true, false) != null, "face-down: SkipHint shown")
 	_ok(rm._overlay_root.find_children("CoreCardBack", "", true, false).size() == 3, "face-down: 3 CoreCardBack")
+	_ok(not rm._reward_cards[0].has_focus(), "face-down: no focus ring on the face-down cards")
 	rm._reveal.skip()
 	await _frames(4)
+	_ok(rm._reward_cards[0].has_focus() and int(rm._reward_sel) == -1, "revealed: focus on card 0, nothing selected")
 	_ok(_take().text == "Pick a Core" and cnt.visible and rm._overlay_root.find_child("SkipHint", true, false) == null, "revealed: Take says why, counter back, SkipHint gone")
 	UI3Gacha.instant_override = -1
 	RunState._core_offer_active = false
@@ -172,7 +215,7 @@ func _core_frame(sc: float) -> void:
 		return
 	for n in ["Header", "Title", "TierLadder", "ShardChip", "CardRow", "Footer", "RerollCounter", "TakeButton"]:
 		_ok(root.find_child(n, true, false) != null, "%s: node %s" % [tag, n])
-	_ok(root.find_child("TierLadder", true, false).get_child_count() == 3, "%s: TierLadder has 3 TierChips" % tag)
+	_ok(root.find_child("TierLadder", true, false).find_children("TierChip", "", true, false).size() == 3, "%s: TierLadder has 3 TierChips" % tag)
 	var want := Vector2(UI3Theme.size_of("core_card_w"), UI3Theme.size_of("core_card_h"))
 	_ok(rm._reward_cards.size() >= 3, "%s: >= 3 cards" % tag)
 	for i in rm._reward_cards.size():
@@ -186,6 +229,21 @@ func _core_frame(sc: float) -> void:
 	_ok(Align.pairs(root) > 0, "%s: align check measured pairs" % tag)
 	var al: Array[String] = Align.check(root, 1.5, tag)
 	_ok(al.is_empty(), "%s: aligned %s" % [tag, str(al.slice(0, 4))])
+	var lad := root.find_child("TierLadder", true, false)
+	_ok(lad.get_child_count() == 7 and lad.find_children("Pip", "TextureRect", true, false).size() == 6, "%s: TierLadder label + 3 chips with 1/2/3 pips + arrows + (strongest)" % tag)
+	for bn in root.find_children("*", "Button", true, false):
+		var bt := bn as Button
+		if bt.is_visible_in_tree():
+			_ok(float(bt.get_theme_font_size("font_size")) * sc >= 13.99, "%s: button '%s' >= 14 real px" % [tag, bt.text.left(20)])
+	var vp := Vector2(1920, 1080)
+	for cn in root.find_children("*", "Control", true, false):
+		var ct := cn as Control
+		if ct.is_visible_in_tree() and ct.size.x > 0.0:
+			var rr := ct.get_global_rect()
+			if rr.end.x > vp.x + 0.5 or rr.position.x < -0.5:
+				_ok(false, "%s: %s outside 1920 (%s)" % [tag, ct.name, str(rr)])
+	var tk := _take()
+	_ok(tk.get_global_rect().end.y * sc <= 1080.0 * (sc if sc < 1.0 else 1.0) - 13.0 * sc + 0.5, "%s: Take bottom %.0f inside the safe area" % [tag, tk.get_global_rect().end.y])
 	for l in root.find_children("*", "Label", true, false):
 		var lab := l as Label
 		if lab.is_visible_in_tree() and lab.text != "":

@@ -8,6 +8,7 @@ extends "res://scenes/shared/ui5/RewardCard.gd"
 const _TIER_KEY := ["moss", "amber", "crystal"]
 
 var tier := 0
+var body: VBoxContainer
 var chip_row: HFlowContainer
 var rule_text: Label
 var reroll_button: Button
@@ -51,13 +52,21 @@ func setup_core(core_tier: int, tier_word: String, icon: Texture2D, title: Strin
 	art_icon.offset_bottom = px / 2.0
 	art.add_child(art_icon)
 
+	# Body (title, chips, rule) is its own box: the title is left-aligned card text, not a label under the ArtBox icon.
+	body = VBoxContainer.new()
+	body.name = "Body"
+	body.add_theme_constant_override("separation", UI3Theme.space("12"))
+	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(body)
+
 	name_label = PanelParts.text(title, "text_banner" if tier >= 2 else "text_screen_title", "text", true)
 	name_label.name = "CoreName"
-	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER   # Liam 29/10: text under an icon is centred on it
+	# Left-aligned like the HTML: the Core name is the card title, not a label under an icon.
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name_label.max_lines_visible = 2
 	name_label.custom_minimum_size.x = UI3Theme.size_of("core_card_w") - 2 * pad
-	column.add_child(name_label)
+	body.add_child(name_label)
 
 	chip_row = HFlowContainer.new()
 	chip_row.name = "ChipRow"
@@ -66,14 +75,14 @@ func setup_core(core_tier: int, tier_word: String, icon: Texture2D, title: Strin
 	chip_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	rarity_chip = tier_chip(tier, tier_word, "TierChip")
 	chip_row.add_child(rarity_chip)
-	column.add_child(chip_row)
+	body.add_child(chip_row)
 
 	rule_text = PanelParts.text(body)
 	rule_text.name = "RuleText"
 	rule_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	rule_text.custom_minimum_size.x = UI3Theme.size_of("core_card_w") - 2 * pad
 	rule_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	column.add_child(rule_text)
+	body.add_child(rule_text)
 
 	focus_entered.connect(queue_redraw)
 	focus_exited.connect(queue_redraw)
@@ -93,7 +102,22 @@ static func tier_chip(t: int, word: String, node_name := "TierChip") -> PanelCon
 	l.name = "Text"
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chip.add_child(l)
+	var hb := HBoxContainer.new()
+	hb.name = "Row"
+	hb.add_theme_constant_override("separation", UI3Theme.space("4"))
+	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var pips := HBoxContainer.new()
+	pips.name = "Pips"
+	pips.add_theme_constant_override("separation", 0)
+	pips.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pips.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var px := 14   # `.pip{width:14px;height:14px}` (a fixed token-size glyph, scaled by the window)
+	for _i in clampi(t, 0, 2) + 1:
+		var pip := PanelParts.icon_rect(UI3.currency_icon("cur_fragment", px), px, "Pip")
+		pips.add_child(pip)
+	hb.add_child(pips)
+	hb.add_child(l)
+	chip.add_child(hb)
 	return chip
 
 

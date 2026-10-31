@@ -109,8 +109,12 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 		ladder.name = "TierLadder"
 		ladder.add_theme_constant_override("separation", UI3Theme.space("8"))
 		ladder.mouse_filter = Control.MOUSE_FILTER_STOP
+		ladder.add_child(_PanelParts.on_view(_PanelParts.text(tr("Core tier:"))))
 		for lt in 3:
+			if lt > 0:
+				ladder.add_child(_PanelParts.on_view(_PanelParts.text("\u2192", "text_body", "text", false)))
 			ladder.add_child(_CoreCardUi.tier_chip(lt, tr(ctrl._CORE_TIER_NAME[lt])))
+		ladder.add_child(_PanelParts.on_view(_PanelParts.text(tr("(strongest)"))))
 		UI3Tooltip.bind(ladder, tr(ctrl.CORE_TIER_HINT))
 		head.add_child(ladder)
 	# Gacha pack: the NEXT pick's tier is never shown anywhere (Liam 22/10).
@@ -189,7 +193,14 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	_select_reward(-1)
 	_sync_face_down(col, host)
 	if not ctrl._reward_cards.is_empty():
-		ctrl._reward_cards[0].grab_focus.call_deferred()
+		var first_card: Control = ctrl._reward_cards[0]
+		if ctrl._reveal != null and is_instance_valid(ctrl._reveal) and ctrl._reveal.running:
+			# Face-down cards carry no focus ring (the design has none); card 0 gets focus once they are turned.
+			ctrl._reveal.finished.connect(func() -> void:
+				if is_instance_valid(first_card) and first_card.is_inside_tree():
+					first_card.grab_focus(), CONNECT_ONE_SHOT)
+		else:
+			first_card.grab_focus.call_deferred()
 	else:
 		take.grab_focus.call_deferred()
 
@@ -264,7 +275,7 @@ func _refresh_take() -> void:
 		if not face_down:
 			why = "Pick a card"
 			var r0: Dictionary = RunState.pending_rewards[0] if RunState.pending_rewards.size() > 0 else {}
-			if tb.get_parent().get_parent().name == "TreasureColumn":
+			if bool(tb.get_meta("treasure", false)):
 				why = "Pick a reward"
 			elif bool(r0.get("rule", false)):
 				why = "Pick a rule"
@@ -295,10 +306,12 @@ func _set_take_cap(tb: Button, on: bool) -> void:
 		cap = Ui5Keycap.make(KeyBindings.text(KeyBindings.COMBAT_END_TURN), &"primary")
 		cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		tb.add_child(cap)
-		tb.resized.connect(func() -> void:
-			var c := tb.get_node_or_null("KeyCap") as Control
-			if c != null:
-				Ui5HudStyle.place_trailing(tb, c, pad))
+		if not tb.has_meta("cap_wired"):
+			tb.set_meta("cap_wired", true)   # one resized hook per button, however often the cap is re-added
+			tb.resized.connect(func() -> void:
+				var c := tb.get_node_or_null("KeyCap") as Control
+				if c != null:
+					Ui5HudStyle.place_trailing(tb, c, pad))
 	Ui5HudStyle.place_trailing.call_deferred(tb, cap, pad)
 
 
@@ -743,7 +756,9 @@ func _add_core_card(r: Dictionary) -> PanelContainer:
 	_add_combo_labels(card.column, key, card.chip_row)
 	var tag := card.column.get_node_or_null("ComboTag")
 	if tag != null:
-		card.column.move_child(tag, card.name_label.get_index() + 1)
+		card.column.remove_child(tag)
+		card.body.add_child(tag)
+		card.body.move_child(tag, card.name_label.get_index() + 1)
 	var wc := card.chip_row.get_node_or_null("WorksWith")
 	if wc != null:
 		wc.name = "ComboChip"

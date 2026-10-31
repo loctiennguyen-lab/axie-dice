@@ -67,6 +67,7 @@ func _build_treasure(opened: bool) -> void:
 		ctrl._add_reward_card(reward)
 	var take := UI3.button(tr("Take and continue"), &"primary", &"L")
 	take.name = "TakeButton"
+	take.set_meta("treasure", true)   # RunMapOffers._refresh_take words the reason "Pick a reward"
 	take.pressed.connect(ctrl._take_selected_reward)
 	var tc := HBoxContainer.new()
 	tc.alignment = BoxContainer.ALIGNMENT_CENTER
