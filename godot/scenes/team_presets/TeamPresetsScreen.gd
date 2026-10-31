@@ -589,9 +589,13 @@ func _add_editor_modal() -> void:
 	var rows := VBoxContainer.new()
 	rows.name = "Seats"
 	rows.add_theme_constant_override("separation", UI3Theme.space("8"))
-	v.add_child(rows)
 	for sl in TeamPresets.PARTY_SIZE:
 		rows.add_child(_edit_seat(sl), true)
+	var sc := UI3Meta.scroll(rows)
+	sc.name = "SeatsScroll"
+	sc.custom_minimum_size.y = rows.get_combined_minimum_size().y
+	v.add_child(sc)
+	_fit_editor.call_deferred(p, sc, rows)
 	var foot := HBoxContainer.new()
 	foot.name = "Footer"
 	foot.add_theme_constant_override("separation", UI3Theme.space("16"))
@@ -619,6 +623,19 @@ func _add_editor_modal() -> void:
 	if _focus_name:
 		_focus_name = false
 		_focus_later(_name_edit)
+
+
+## The editor never grows past the screen: when the dialog is taller than the room (1280 raises the text to 14 real px),
+## the Seats list scrolls inside it.
+func _fit_editor(dlg: Control, sc: ScrollContainer, rows: Control) -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not is_instance_valid(dlg) or not is_instance_valid(sc) or not dlg.is_inside_tree():
+		return
+	var room := size.y - UI3Theme.space("40") * 2.0
+	var over := dlg.size.y - room
+	if over > 0.5:
+		sc.custom_minimum_size.y = maxf(sc.size.y - over, UI3Theme.size_of("seat") * 1.5)
 
 
 func _refresh_editor_state() -> void:
