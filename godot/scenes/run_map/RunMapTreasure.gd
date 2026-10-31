@@ -17,7 +17,7 @@ const _PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 ## ShardPill, OpenButton (Space). Opened: `TreasureReward` = one column from d_reward_top (the same as the reward pick):
 ## Title + ShardPill, CardRow of RewardCards, Footer with TakeButton (off and saying "Pick a reward" until a card is
 ## picked; nothing is preselected, that rule is R2a's and lives in RunMapOffers).
-func _build_treasure(opened: bool) -> void:
+func _build_treasure(opened: bool, animate := false) -> void:
 	UI3Theme.sync_scale()   # the 1280 text floor follows the window
 	var host := ctrl._open_ui3_screen()
 	var col := VBoxContainer.new()
@@ -56,7 +56,7 @@ func _build_treasure(opened: bool) -> void:
 	if not opened:
 		var open := UI3.button(tr("Open chest"), &"primary", &"L")
 		open.name = "OpenButton"
-		open.pressed.connect(_build_treasure.bind(true))
+		open.pressed.connect(_build_treasure.bind(true, true))
 		var oc := HBoxContainer.new()
 		oc.name = "Footer"
 		oc.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -102,3 +102,9 @@ func _build_treasure(opened: bool) -> void:
 	foot.add_child(take)
 	ctrl._select_reward(-1)
 	ctrl._reward_cards[0].grab_focus.call_deferred()
+	if animate and not UI3Gacha.is_instant():
+		# UI-05 b23 lane M2: `treasure-open`. The vault / flash / rays nodes do not exist (no 3D chest yet): those rows are data.
+		var tg := {"choose": col.find_child("Title", true, false)}
+		for k in ctrl._reward_cards.size():
+			tg["card%d" % (k + 1)] = ctrl._reward_cards[k]
+		UI3Motion.play_timeline("treasure-open", tg, {"host": ctrl, "only": ["card_1", "card_2", "card_3", "choose"]})

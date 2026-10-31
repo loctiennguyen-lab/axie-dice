@@ -471,6 +471,41 @@ func _start_core_reveal(shake_host: Control) -> void:
 	ctrl._reveal.start(ctrl._reward_cards, tier, first, jackpot, shake_host, -1.0, from_t)
 	for cv in ctrl._reveal._covers:
 		(cv as Node).name = "CoreCardBack"
+	_play_reveal_moment(tier, shake_host)
+
+
+## UI-05 b23 lane M2: the `core-reveal` rows GachaReveal does not draw (name punch, sparks, Crystal shake), timed from
+## the real first flip. GachaReveal still owns backs / aura / flips; the table is the shared timing.
+func _play_reveal_moment(tier: int, shake_host: Control) -> void:
+	var rv: GachaReveal = ctrl._reveal
+	if rv == null or not is_instance_valid(rv) or not rv.running or rv._plan.is_empty() or UI3Gacha.is_instant():
+		return
+	var tg := {}
+	for k in ctrl._reward_cards.size():
+		var card: Control = ctrl._reward_cards[k]
+		tg["card%d" % (k + 1)] = card
+		var nm := card.find_child("CoreName", true, false)
+		if nm is CanvasItem:
+			var nc := nm as Control
+			nc.pivot_offset = nc.size * 0.5
+			# The card has not been laid out yet at this point: keep the pivot on the centre through every resize.
+			nc.resized.connect(func() -> void: nc.pivot_offset = nc.size * 0.5)
+			tg["name%d" % (k + 1)] = nm
+	var first_flip_ms: float = float((rv._plan["flips"] as Array)[0]) * 1000.0
+	# A jackpot card is already shaken by GachaReveal: the table's Crystal shake would shake twice.
+	var only := ["name_1", "name_2", "name_3", "sparks_1", "sparks_2", "sparks_3"]
+	if not bool(rv._plan.get("jackpot", false)):
+		only.append("shake_last")
+	var tl := UI3Motion.play_timeline("core-reveal", tg, {"host": rv, "tier": tier, "delay_ms": first_flip_ms - 840.0,
+		"tier_color": UI3Gacha.tier_color(tier), "only": only,
+		"shake": func(px: float, sec: float) -> void:
+			if shake_host != null and is_instance_valid(shake_host):
+				UI3Motion.wobble(shake_host, px, sec)})
+	# click / Space skips GachaReveal ("skip" is logged before its `finished`); the timeline follows. A natural end must not
+	# cut the sparks that are still flying.
+	rv.finished.connect(func() -> void:
+		if tl != null and tl.running() and rv.events.has("skip"):
+			tl.skip())
 
 
 ## One UI-05 RewardCard (31-reward): Category + RarityChip, RewardArt (rarity edge), RewardName, then the body:
