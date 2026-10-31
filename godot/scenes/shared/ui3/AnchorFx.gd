@@ -21,6 +21,7 @@ var card_frame: PanelContainer = null
 var _card: Control = null
 var _waves: Control = null
 var _tw: Tween = null
+var _tl: UI3Motion.Timeline = null
 var _wave_r := [-1.0, -1.0]
 var _fly_to := Rect2()
 
@@ -96,7 +97,7 @@ func _build(extra_line: String) -> void:
 	var gold := UI3Theme.color("anchor_awake")
 	var scrim := ColorRect.new()
 	scrim.name = "AwakenScrim"
-	scrim.color = Color(UI3Theme.color("bg"), 0.8)
+	scrim.color = Color(UI3Theme.color("bg"), 0.6)   # round-2 moment: scrim 0 -> 0.6
 	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(scrim)
@@ -158,13 +159,22 @@ func _build(extra_line: String) -> void:
 	aw.name = "AwakenGlyph"
 	aw.texture = UI3.icon(CorePanel.AWAKEN_ICON)
 	aw.custom_minimum_size = Vector2(mark, mark)
+	aw.size = Vector2(mark, mark)
 	aw.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	aw.position = Vector2(tile - mark + UI3Theme.space("16") + 2, -UI3Theme.space("16") - 2)   # html #mark: right -18, top -18
 	aw.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	aw.visible = false
+	# Gold disc (56) behind the glyph: html #mark, right -18 / top -18 of the tile.
+	var disc := Panel.new()
+	disc.name = "AwakenDisc"
+	disc.size = Vector2(mark, mark)
+	disc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	disc.add_theme_stylebox_override("panel", UI3Theme.flat(gold, int(mark / 2.0)))
+	disc.visible = false
 	var holder := Control.new()
 	holder.name = "AwakenGlyphHolder"
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.position = Vector2(tile - mark + UI3Theme.space("16") + 2, -UI3Theme.space("16") - 2)
+	holder.add_child(disc)
 	holder.add_child(aw)
 	card_frame.add_child(holder)
 	var an := Ps.text(AnchorAdapter.awaken_name(anchor_id), "text_hero", "anchor_awake", true)
@@ -180,20 +190,47 @@ func _build(extra_line: String) -> void:
 	ar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card.add_child(ar)
 	var strip_text := extra_line if extra_line != "" else "%s %d/%d" % [TranslationServer.translate("House Cores"), Anchors.AWAKEN_NEED, Anchors.AWAKEN_NEED]
-	var strip := Ps.text(strip_text, "text_title" if extra_line != "" else "text_body", "text_muted", true)
+	# Pill plate, 48 high: label + two 16 px house-coloured dots (html #strip).
+	var strip := PanelContainer.new()
 	strip.name = "AwakenStrip"
-	strip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	strip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	strip.custom_minimum_size.x = text_w
+	strip.custom_minimum_size = Vector2(0, 48)
+	strip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	strip.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("plate"), 24, 0, Color.TRANSPARENT,
+		Vector4(20, 0, 20, 0), Ps.lip(UI3Theme.color("plate_ink"), true)))
 	_card.add_child(strip)
+	var srow := HBoxContainer.new()
+	srow.alignment = BoxContainer.ALIGNMENT_CENTER
+	srow.add_theme_constant_override("separation", UI3Theme.space("12"))
+	srow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	strip.add_child(srow)
+	var st := Ps.text(strip_text, "text_title" if extra_line != "" else "text_body", "text_muted", true)
+	st.name = "AwakenStripText"
+	st.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	st.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	st.custom_minimum_size.x = minf(text_w, 560.0)
+	st.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	srow.add_child(st)
+	for k in 2:
+		var dot := Panel.new()
+		dot.name = "AwakenPip%d" % (k + 1)
+		dot.custom_minimum_size = Vector2(16, 16)
+		dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		dot.add_theme_stylebox_override("panel", UI3Theme.flat(hcol, 8))
+		srow.add_child(dot)
+	# Hint: bottom-right corner of the screen, 24 / 24 (html .hint).
 	var hint := Ps.on_view(Ps.text(TranslationServer.translate("Click to continue"), "text_key_hint"))
 	hint.name = "AwakenHint"
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_card.add_child(hint)
-	for n in ["AwakenTag", "AwakenName", "AwakenRule", "AwakenStrip", "AwakenHint"]:
-		(_card.get_node(n) as Control).modulate.a = 0.0
+	hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	hint.offset_right = -24
+	hint.offset_bottom = -24
+	add_child(hint)
+	for n in _fade_nodes():
+		n.modulate.a = 0.0
 	card_frame.modulate.a = 0.0
 
 
@@ -201,7 +238,7 @@ func _build(extra_line: String) -> void:
 func _swap_frame() -> void:
 	var gold := UI3Theme.color("anchor_awake")
 	var hcol := AnchorAdapter.house_color(AnchorAdapter.house_id(anchor_id))
-	card_frame.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("xl"), UI3Theme.size_of("r3_fx_frame"), gold, Vector4(UI3Theme.size_of("r3_fx_frame"), UI3Theme.size_of("r3_fx_frame"), UI3Theme.size_of("r3_fx_frame"), UI3Theme.size_of("r3_fx_frame")), Ps.lip(UI3Theme.color("plate_ink"), true)))
+	card_frame.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("plate"), UI3Theme.radius("xl"), UI3Theme.size_of("r3_fx_frame"), gold, Vector4(UI3Theme.size_of("r3_fx_frame"), UI3Theme.size_of("r3_fx_frame"), UI3Theme.size_of("r3_fx_frame"), UI3Theme.size_of("r3_fx_frame")), Ps.lip(UI3Theme.color("plate_ink"), true)))
 	if card_frame.get_node_or_null("InnerFrame") == null:
 		var inner := Panel.new()
 		inner.name = "InnerFrame"
@@ -214,13 +251,24 @@ func _swap_frame() -> void:
 		inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		inner.add_theme_stylebox_override("panel", UI3Theme.flat(Color(0, 0, 0, 0), UI3Theme.radius("m"), UI3Theme.stroke("btn"), hcol))
 		card_frame.add_child(inner)
+	(card_frame.find_child("AwakenDisc", true, false) as Control).visible = true
 	(card_frame.find_child("AwakenGlyph", true, false) as Control).visible = true
+
+
+## The text nodes that fade in (hint lives on the screen, the rest in the column).
+func _fade_nodes() -> Array[Control]:
+	var out: Array[Control] = []
+	for n in ["AwakenTag", "AwakenName", "AwakenRule", "AwakenStrip"]:
+		out.append(_card.get_node(n) as Control)
+	out.append(get_node("AwakenHint") as Control)
+	return out
 
 
 func _show_final() -> void:
 	card_frame.modulate.a = 1.0
-	for n in ["AwakenTag", "AwakenName", "AwakenRule", "AwakenStrip", "AwakenHint"]:
-		(_card.get_node(n) as Control).modulate.a = 1.0
+	for n in _fade_nodes():
+		n.modulate.a = 1.0
+	(card_frame.find_child("AwakenGlyph", true, false) as Control).modulate.a = 1.0
 	_swap_frame()
 	_card.scale = Vector2.ONE
 
@@ -237,31 +285,35 @@ func _animate() -> void:
 		_tw.tween_property(card_frame, "modulate:a", 1.0, 0.3)
 		_tw.tween_callback(_swap_frame)
 		_tw.tween_property(card_frame, "modulate:a", 1.0, 0.3)
-		for n in ["AwakenTag", "AwakenName", "AwakenRule", "AwakenStrip", "AwakenHint"]:
-			_tw.parallel().tween_property(_card.get_node(n), "modulate:a", 1.0, 0.3)
+		for n in _fade_nodes():
+			_tw.parallel().tween_property(n, "modulate:a", 1.0, 0.3)
 		_tw.tween_interval(maxf(total - 0.9, 0.1))
 		_tw.tween_callback(_end)
 		return
-	var shake := float(UI3Gacha.timing().get("shake_px", 10))
-	_card.scale = Vector2(0.6, 0.6)
-	_tw.set_parallel(true)
-	_tw.tween_property(card_frame, "modulate:a", 1.0, 0.2).set_delay(0.1)
-	_tw.tween_property(_card, "scale", Vector2(1.1, 1.1), 0.3).set_delay(0.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_tw.tween_property(_card, "scale", Vector2.ONE, 0.1).set_delay(0.4)
-	_tw.tween_callback(_swap_frame).set_delay(0.5)
-	var reach := maxf(size.x, 900.0)
-	_tw.tween_method(func(r: float) -> void:
-		_wave_r[0] = r
-		_waves.queue_redraw(), 1.0, reach, 0.6).set_delay(0.5)
-	_tw.tween_method(func(r: float) -> void:
-		_wave_r[1] = r
-		_waves.queue_redraw(), 1.0, reach, 0.6).set_delay(0.6)
-	_tw.tween_callback(func() -> void: _shake(shake)).set_delay(0.5)
-	var at := {"AwakenTag": 0.6, "AwakenName": 0.9, "AwakenRule": 1.1, "AwakenStrip": 1.3, "AwakenHint": 1.6}
-	for n in at.keys():
-		_tw.tween_property(_card.get_node(n), "modulate:a", 1.0, 0.2).set_delay(float(at[n]))
-	_tw.chain().tween_interval(maxf(total - 0.5 - 1.5, 0.0))   # hold up to ~2.2 s
-	_tw.chain().tween_callback(_end)
+	# Full motion: the `anchor-awaken` layers of motion_ui3.json (round-2 moment-anchor-awaken). Rays have no texture yet.
+	var scrim := get_node("AwakenScrim") as Control
+	scrim.modulate.a = 0.0
+	card_frame.pivot_offset = card_frame.size * 0.5
+	var glyph := card_frame.find_child("AwakenGlyph", true, false) as Control
+	glyph.modulate.a = 0.0
+	glyph.pivot_offset = glyph.size * 0.5
+	var nm := _card.get_node("AwakenName") as Control
+	nm.pivot_offset = nm.size * 0.5
+	var pips: Array = []
+	for k in 2:
+		var pip := _card.find_child("AwakenPip%d" % (k + 1), true, false) as Control
+		pip.pivot_offset = pip.size * 0.5
+		pips.append(pip)
+	var tg := {"scrim": scrim, "tag": _card.get_node("AwakenTag"), "tile": card_frame, "glyph": glyph, "name": nm,
+		"rule": _card.get_node("AwakenRule"), "strip": _card.get_node("AwakenStrip"), "pip1": pips,
+		"hint": get_node("AwakenHint"), "group": _card}
+	var opts := {"host": self, "on_done": _end,
+		"shake": func(px: float, sec: float) -> void: UI3Motion.wobble(self, px, sec)}
+	if _fly_to.size != Vector2.ZERO:
+		opts["fly_to"] = _fly_to.get_center()
+	_tw.tween_interval(0.46)   # frame turns double (layer "frame": set at once, no tween)
+	_tw.tween_callback(_swap_frame)
+	_tl = UI3Motion.play_timeline("anchor-awaken", tg, opts)
 
 
 func _shake(px: float) -> void:
@@ -287,9 +339,11 @@ func _end() -> void:
 	running = false
 	if _tw != null and _tw.is_valid():
 		_tw.kill()
+	if _tl != null and not _tl.done:
+		_tl.skip()
 	log.append("end")
 	finished.emit()
-	if skipped or not is_inside_tree() or _fly_to.size == Vector2.ZERO or CombatView.motion_suppressed():
+	if skipped or _tl != null or not is_inside_tree() or _fly_to.size == Vector2.ZERO or CombatView.motion_suppressed():
 		queue_free()
 		return
 	var tw := create_tween().set_parallel(true)

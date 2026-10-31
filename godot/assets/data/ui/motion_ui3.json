@@ -4419,6 +4419,16 @@
     "target": "tile",
     "delay_ms": 460,
     "ms": 200,
+    "kf": [
+     {
+      "t": 0,
+      "alpha": 1
+     },
+     {
+      "t": 1,
+      "alpha": 1
+     }
+    ],
     "snap": true,
     "flash": true,
     "reduce": "removed"

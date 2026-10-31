@@ -38,7 +38,7 @@ func _ready() -> void:
 	add_child(host)
 	var fx := AnchorFx.play(host, "a_volley", "PAIR: Shield Engine . MUTATION: Spiked Shield")
 	_check((fx.find_child("AwakenName", true, false) as Label).text == AnchorAdapter.awaken_name("a_volley"), "shows the awaken name")
-	_check((fx.find_child("AwakenStrip", true, false) as Label).text.contains("Shield Engine"), "PAIR line merged in")
+	_check((fx.find_child("AwakenStripText", true, false) as Label).text.contains("Shield Engine"), "PAIR line merged in")
 	await _frames(2)
 	_check(not is_instance_valid(fx), "instant: node freed")
 	# 2b the three newer awakenings show their own name + rule, and each has its own combat float line
@@ -73,6 +73,23 @@ func _ready() -> void:
 		_check(not f.running and f.skipped, "input %d jumps to the end" % k)
 		await _frames(2)
 		_check(not is_instance_valid(f), "skipped moment freed (%d)" % k)
+	# 3b round-2 review (R3): strip = pill plate 48 high + 2 dots of 16, hint bottom-right 24/24, gold disc 56 behind the glyph
+	var fxs := AnchorFx.play(host, "a_volley")
+	await _frames(2)
+	fxs._show_final()
+	await _frames(2)
+	var strip := fxs.find_child("AwakenStrip", true, false) as Control
+	_check(strip != null and strip.size.y >= 47.9 and strip.size.y <= 48.1, "AwakenStrip is 48 high (%s)" % [strip.size if strip else null])
+	_check(fxs.find_child("AwakenPip1", true, false) != null and (fxs.find_child("AwakenPip2", true, false) as Control).size.is_equal_approx(Vector2(16, 16)), "two 16 px dots")
+	var hint := fxs.find_child("AwakenHint", true, false) as Control
+	_check(hint != null and absf(fxs.size.x - hint.get_rect().end.x - 24.0) < 1.5 and absf(fxs.size.y - hint.get_rect().end.y - 24.0) < 1.5, "AwakenHint sits 24/24 from the bottom-right corner")
+	var disc := fxs.find_child("AwakenDisc", true, false) as Control
+	var gl := fxs.find_child("AwakenGlyph", true, false) as Control
+	_check(disc != null and disc.visible and disc.size == Vector2(56, 56) and gl.visible and gl.get_index() > disc.get_index(), "gold disc 56 behind the glyph")
+	var tile_bg := (fxs.card_frame.get_theme_stylebox("panel") as StyleBoxFlat).bg_color
+	_check(tile_bg.is_equal_approx(UI3Theme.color("plate")), "tile fill is the plate token (#3b2416)")
+	fxs.skip()
+	await _frames(2)
 	# 4 timing: normal vs Reduce flashing
 	var t_full := AnchorFx.duration()
 	MetaState.reduce_flash = true

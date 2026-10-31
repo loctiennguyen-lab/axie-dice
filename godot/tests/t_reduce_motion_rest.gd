@@ -34,6 +34,7 @@ func _ready() -> void:
 	await _spinner_case()
 	await _gacha_case()
 	_moment_table_case()
+	_b2_table_case()
 	await _hitstop_case()
 	await _timeline_reduced_case()
 	await _turn_banner_case()
@@ -186,6 +187,21 @@ const PARTICLES := [
 	["victory", "shards", "cur_shard.png", 24, 1400, 760, 120, 900, 32, 420],
 	["victory", "stars", "cur_fragment.png", 18, 1600, 640, 160, 700, 28, 500],
 ]
+
+
+## UI-05 b23 lane M2: the six run moments exist, validate, and carry the reduce rule of motion-batch2.md.
+func _b2_table_case() -> void:
+	for id in ["core-reveal", "core-taken", "reward-taken", "treasure-open", "level-up", "anchor-awaken"]:
+		_ok(UI3Motion.has_moment(id), "b2 row '%s' missing" % id)
+		_ok(UI3Motion.validate_moment(id, UI3Motion.table().get(id, {})).is_empty(), "b2 row '%s' invalid: %s" % [id, UI3Motion.validate_moment(id, UI3Motion.table().get(id, {}))])
+		_ok(not UI3Motion.layers(id).is_empty(), "b2 row '%s' has no layers" % id)
+		for l in UI3Motion.layers(id):
+			var ld: Dictionary = l
+			if ld.has("particles") or ld.has("shake") or ld.has("hitstop_ms"):
+				_ok(ld.get("reduce") == "removed", "%s.%s must be removed under Reduce motion" % [id, ld.get("name")])
+	for rr in [["treasure-open", "flash"], ["treasure-open", "rays"], ["level-up", "pillar"], ["level-up", "axie_flash"], ["anchor-awaken", "rays"], ["anchor-awaken", "sweep"], ["anchor-awaken", "frame"], ["core-reveal", "rays"]]:
+		var l := UI3Motion.layer(String(rr[0]), String(rr[1]))
+		_ok(bool(l.get("flash", false)) and l.get("reduce") == "removed", "%s.%s must be a flash layer, removed" % rr)
 
 
 func _moment_table_case() -> void:

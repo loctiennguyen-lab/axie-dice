@@ -759,6 +759,9 @@ static func _prepare_layers(id: String, targets: Dictionary, opts: Dictionary) -
 			ld["ms"] = (ld["ms_by_tier"] as Array)[clampi(tier, 0, (ld["ms_by_tier"] as Array).size() - 1)]
 		if ld.has("particles"):
 			var pt: Dictionary = ld["particles"]
+			var tex_path := String(pt.get("texture", ""))
+			if tex_path != "" and ResourceLoader.exists(tex_path):
+				load(tex_path)   # cache it now: a first-use load inside the moment is a frame hitch (the watchdog is real time)
 			if pt.has("amount_by_tier") and tier >= 0:
 				pt["amount"] = (pt["amount_by_tier"] as Array)[clampi(tier, 0, (pt["amount_by_tier"] as Array).size() - 1)]
 			if bool(pt.get("tier_color", false)) and opts.get("tier_color") is Color:
