@@ -86,13 +86,15 @@ func _resume_row(col: VBoxContainer) -> void:
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.custom_minimum_size.y = UI3Theme.size_of("menu_row_h")
 	b.pressed.connect(func() -> void: resumed.emit())
-	for st in ["normal", "hover", "pressed", "disabled", "hover_pressed", "focus"]:   # .menu-row.btn-primary: padding 0 20
-		var sb := b.get_theme_stylebox(st).duplicate() as StyleBox
-		sb.content_margin_left = UI3Theme.space("20")
-		sb.content_margin_right = UI3Theme.space("20")
-		b.add_theme_stylebox_override(st, sb)
 	col.add_child(b)
 	rows["Resume"] = b
+	# .menu-row.btn-primary: padding 0 20. Theme styles only resolve once the button is in the tree.
+	b.ready.connect(func() -> void:
+		for st in ["normal", "hover", "pressed", "disabled", "hover_pressed", "focus"]:
+			var sb := b.get_theme_stylebox(st).duplicate() as StyleBox
+			sb.content_margin_left = UI3Theme.space("20")
+			sb.content_margin_right = UI3Theme.space("20")
+			b.add_theme_stylebox_override(st, sb), CONNECT_ONE_SHOT)
 	# Space-between: the keycap sits at the right edge (padding 20).
 	var cap := Ui5Keycap.make("Space", &"primary")
 	b.add_child(cap)
