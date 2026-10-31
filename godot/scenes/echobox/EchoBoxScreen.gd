@@ -321,17 +321,27 @@ func open_rates() -> void:
 		var total := 0.0
 		for r in rows:
 			total += float((r as Dictionary).get("weight", 0))
+		# frame 20-echo--rates: Stone rows on the left, cosmetic rows on the right (4 columns)
+		var stones: Array = []
+		var cosm: Array = []
+		for r in rows:
+			(stones if String((r as Dictionary).get("kind")) == "stone" else cosm).append(r)
 		var grid := GridContainer.new()
 		grid.name = "RatesTable"
-		grid.columns = 2
-		grid.add_theme_constant_override("h_separation", 40)
+		grid.columns = 4
+		grid.add_theme_constant_override("h_separation", UI3Theme.space("24"))
 		v.add_child(grid)
-		for r in rows:
-			var d: Dictionary = r
-			var nm := ("%s Stone" % UI3.fmt(int(d.get("amount", 0)))) if String(d.get("kind")) == "stone" \
-				else ("%s cosmetic" % String(d.get("rarity", "")).capitalize())
-			grid.add_child(UI3.label(nm))
-			grid.add_child(UI3.label("%.3f%%" % (float(d.get("weight", 0)) / total * 100.0)))
+		for i in maxi(stones.size(), cosm.size()):
+			for side in [stones, cosm]:
+				if i < side.size():
+					var d: Dictionary = side[i]
+					var nm := ("%s Stone" % UI3.fmt(int(d.get("amount", 0)))) if String(d.get("kind")) == "stone" \
+						else ("%s cosmetic" % String(d.get("rarity", "")).capitalize())
+					grid.add_child(UI3.label(nm))
+					grid.add_child(UI3.label("%.3f%%" % (float(d.get("weight", 0)) / total * 100.0)))
+				else:
+					grid.add_child(Control.new())
+					grid.add_child(Control.new())
 		var pt := UI3.label(_pity_text(), "LabelMuted")
 		pt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		v.add_child(pt)
@@ -345,7 +355,7 @@ func open_rates() -> void:
 func _season_rates(v: VBoxContainer) -> void:
 	var cfg := EchoBox.season_cfg()
 	v.add_child(UI3.label("Season box · each pull is exactly one reward", "LabelMuted"))
-	var txt := "Each pull tests Mythic, then Legendary, then Epic. The chance rises with every miss and resets on a hit: p(c) = (2c-1) / (N^2-(c-1)^2), certain at the cap."
+	var txt := "The chance of each tier rises with every pull that misses it, until it is certain."
 	for t in ["mythic", "legendary", "epic"]:
 		txt += "\n%s: cap %d" % [t.capitalize(), _season_cap(t)]
 	var l := UI3.label(txt)
@@ -433,7 +443,7 @@ func _build() -> void:
 	_stage_host.add_child(bar)
 	_stage_host.move_child(bar, 0)
 	_side_host = VBoxContainer.new()
-	_side_host.name = "Side"
+	_side_host.name = "SideColumn"
 	_side_host.custom_minimum_size = Vector2(UI3Theme.size_of("echo_side_w"), 0)
 	_side_host.add_theme_constant_override("separation", UI3Theme.space("16"))
 	_body.add_child(_side_host)
@@ -574,6 +584,8 @@ func _refresh_bar() -> void:
 			buy.text = "Buy ticket · " + why
 	buy.pressed.connect(_on_buy_pressed)
 	_bar_host.add_child(buy)
+	if why == "" and price >= 0:
+		Ui5EchoParts.shard_cluster(buy, "Buy ticket ·", UI3.fmt(price))
 
 
 func _on_buy_pressed() -> void:
@@ -699,13 +711,14 @@ func _refresh_stage() -> void:
 				v.add_child(sc)
 	_stage_host.add_child(stage)
 	if not results.is_empty():
-		# the result list takes the room: the stage shrinks, the summary scrolls instead of overflowing
-		stage.custom_minimum_size = Vector2(0, 0)
-		stage.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		# frame 20-echo--last-pull: Summary lives inside the Stage; the chest shrinks, the summary scrolls
 		chest.custom_minimum_size = Vector2(0, 80)
+		chest.size_flags_stretch_ratio = 0.4
 		var sc := UI3Meta.scroll(_build_summary())
 		sc.name = "SummaryScroll"
-		_stage_host.add_child(sc)
+		sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		sc.size_flags_stretch_ratio = 1.6
+		v.add_child(sc)
 
 
 ## Button text for a normal pull: the ticket cost is on the button ("Open 10 · 10 tickets").
@@ -1099,7 +1112,10 @@ func _result_cell(r: Dictionary, mode := "summary") -> Control:
 	if String(r.get("kind")) != "stone":
 		tag = ("Duplicate +%d frag" % int(r.get("fragments", 0))) if bool(r.get("duplicate", false)) else "NEW"
 	v.add_child(UI3.label(tag, "LabelMuted"))
-	v.add_child(UI3.label(_chest_tier(r) + " chest", "LabelMuted"))
+	# frame 20-echo--last-pull: two lines (title, tag), centred under the art
+	for l in v.get_children():
+		if l is Label:
+			(l as Label).horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	return c
 
 

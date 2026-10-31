@@ -85,7 +85,7 @@ static func dialog(layer: Control, node_name: String, title: String, body: Strin
 
 
 ## [Shard icon][text] centred as one HBox over a secondary button (Button.icon would overlap the text).
-static func shard_cluster(b: Button, text: String) -> void:
+static func shard_cluster(b: Button, text: String, after := "") -> void:
 	b.text = ""
 	var h := HBoxContainer.new()
 	h.name = "ShardCluster"
@@ -99,4 +99,9 @@ static func shard_cluster(b: Button, text: String) -> void:
 	var ic := PanelParts.icon_rect(UI3.currency_icon("cur_shard", UI3Theme.size_of("icon_s")), UI3Theme.size_of("icon_s"))
 	ic.name = "ShardIcon"
 	h.add_child(ic)
+	if after != "":
+		var a := Ui5Text.label(after, "text_body", "text", true)
+		a.name = "BuyAmount"
+		h.add_child(a)
 	b.add_child(h)
+	b.custom_minimum_size.x = maxf(b.custom_minimum_size.x, h.get_combined_minimum_size().x + 2.0 * UI3Theme.space("16"))

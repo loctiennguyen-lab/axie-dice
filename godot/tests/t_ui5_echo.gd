@@ -7,6 +7,7 @@ extends Node
 const Align := preload("res://tests/ui5_align_check.gd")
 const SHELL := ["Header", "BackButton", "Title", "SubLine", "RegularTab", "SeasonalTab", "Body", "TicketBar", "Tickets",
 	"FragmentMeter", "NextTicket", "BuyTicketButton", "Stage", "Open1Button", "Open10Button", "RatesButton", "PityPlate", "PoolPlate"]
+const CEREMONY := ["Ceremony", "DoneButton", "EquipButton", "FrameArt", "Line", "MilestoneChip", "Name", "NewChip", "OpenAgainButton", "RevealCard", "TierStrip"]
 const SEASON := ["ProgressPlate", "Milestones", "SeriesItems", "Open1Button", "OpenNButton", "RatesButton"]
 ## Example values of the HTML frames: they must come from the game, not from this screen.
 const ILLUSTRATION := ["22/200", "22/1000", "Rune Ring", "Seed 777006"]
@@ -14,6 +15,7 @@ const ILLUSTRATION := ["22/200", "22/1000", "Rune Ring", "Seed 777006"]
 var _guard := SaveGuard.new()
 var _fails: Array[String] = []
 var _checks := 0
+var _seen := {}   # every node name met in any state (for the S9a.txt data-name coverage)
 
 
 func _check(ok: bool, msg: String) -> void:
@@ -30,6 +32,20 @@ func _ready() -> void:
 		await _pass(sc, "1920" if sc == 1.0 else "1280")
 	UI3Theme.set_scale_override(1.0)
 	_guard.restore()
+	var nf := FileAccess.open("res://../production/ui05-b23/names/S9a.txt", FileAccess.READ)
+	_check(nf != null, "S9a.txt readable")
+	var want := 0
+	if nf != null:
+		while not nf.eof_reached():
+			var ln := nf.get_line()
+			if ln.strip_edges().begins_with("#") or ln.begins_with("=") or ln.strip_edges() == "":
+				continue
+			var nm := ln.strip_edges().split(" ")[0]
+			if CEREMONY.has(nm):
+				continue   # EchoBoxCeremony.gd (lane S9b) owns these
+			want += 1
+			_check(_seen.has(nm), "data-name '%s' has a node" % nm)
+	_check(want > 20, "S9a.txt had names (%d)" % want)
 	if _fails.is_empty():
 		print("t_ui5_echo: PASS (%d checks)" % _checks)
 		get_tree().quit(0)
@@ -100,6 +116,8 @@ func _names(s: Node, names: Array, tag: String) -> void:
 
 
 func _audit(s: Node, sc: float, tag: String) -> void:
+	for n in s.find_children("*", "", true, false):
+		_seen[String(n.name)] = true
 	_small(s, sc, tag)
 	_inside(s, Rect2(Vector2.ZERO, Vector2(1920, 1080) * sc), tag)
 	for pr in Align.check(s, 1.5, tag + ": "):
@@ -151,12 +169,60 @@ func _pass(sc: float, tag: String) -> void:
 	await _settle()
 	_names(s, ["BuyTicketConfirm", "CancelButton", "BuyButton"], tag + " buy-confirm")
 	_check(_btn(s, "CancelButton").has_focus(), tag + ": buy Cancel has focus")
+	_audit(s, sc, tag + " buy-confirm")
 	s.close_modal()
+	var bb := _btn(s, "BuyTicketButton")
+	_check(bb.find_child("ShardIcon", true, false) != null and bb.find_child("BuyText", true, false) != null, tag + ": Buy ticket carries the Shard icon cluster")
 	# seasonal
 	s.select_tab("seasonal")
 	await _settle()
 	_names(s, SEASON, tag + " seasonal")
 	_audit(s, sc, tag + " seasonal")
+	_check(String(_btn(s, "Open1Button").theme_type_variation).begins_with("ButtonPrimary"), tag + ": seasonal Open 1 is the primary")
+	_check(s.find_child("CostChip", true, false) != null, tag + ": season CostChip")
+	# rates (season)
+	s.open_rates()
+	await _settle()
+	_names(s, ["RatesModal", "CloseButton", "RatesTable"], tag + " rates-season")
+	_check(_btn(s, "CloseButton").has_focus(), tag + ": season Close has focus")
+	var rt := ""
+	for n in s.find_child("RatesModal", true, false).find_children("*", "Label", true, false):
+		rt += (n as Label).text + "\n"
+	_check(rt.find("Season box") >= 0 and rt.find("Mythic: cap") >= 0 and rt.find("rises with every pull that misses it") >= 0, tag + ": season rates text")
+	_audit(s, sc, tag + " rates-season")
+	s.close_modal()
+	# the first season pull confirms; nothing is spent before it
+	MetaState.tickets["normal"] = 24
+	var bt := int(MetaState.tickets["normal"])
+	s.season_confirmed = false
+	s._on_season_open(1)
+	await _settle()
+	var sconf := s.find_child("SeasonConfirm", true, false)
+	_check(sconf != null, tag + ": SeasonConfirm shown")
+	if sconf != null:
+		_names(s, ["CancelButton", "OpenButton"], tag + " seasonal-confirm")
+		_check(_btn(s, "CancelButton").has_focus(), tag + ": season Cancel has focus")
+		_check(Ui5Keycap.all_under(_btn(s, "OpenButton")).is_empty(), tag + ": season Open has no keycap")
+		_check(int(MetaState.tickets["normal"]) == bt, tag + ": nothing spent before the season confirm")
+		_audit(s, sc, tag + " seasonal-confirm")
+	s.close_modal()
+	# daily cap: Open 1 says so in its own label, disabled, no keycap
+	var sb0: Dictionary = (MetaState.season_box as Dictionary).duplicate(true)
+	var sid := String(EchoBox.season_cfg().get("series_id", "s1"))
+	var sb: Dictionary = (MetaState.season_box as Dictionary).duplicate(true)
+	var ent: Dictionary = sb.get(sid, {})
+	ent["day"] = s.today()
+	ent["day_pulls"] = s.season_cap_day()
+	sb[sid] = ent
+	MetaState.season_box = sb
+	s.select_tab("regular")
+	s.select_tab("seasonal")
+	await _settle()
+	_check(s.season_pulls_left() == 0, tag + ": no season pulls left")
+	_check(_btn(s, "Open1Button").disabled and _btn(s, "Open1Button").text.find("today") >= 0, tag + ": seasonal-cap text on Open 1 ('%s')" % _btn(s, "Open1Button").text)
+	_check(Ui5Keycap.all_under(_btn(s, "Open1Button")).is_empty(), tag + ": no keycap on the disabled Open 1")
+	_audit(s, sc, tag + " seasonal-cap")
+	MetaState.season_box = sb0
 	await _free(s)
 	# no tickets
 	s = await _make(sc, 0)
@@ -169,6 +235,14 @@ func _pass(sc: float, tag: String) -> void:
 		s = await _make(sc, 24, st, true)
 		s.set_state(st)
 		await _settle()
+		if st == "last_pull":
+			s.results = [{"kind": "stone", "amount": 250}, {"kind": "cosmetic", "rarity": "common", "item": "x", "duplicate": false}, {"kind": "cosmetic", "rarity": "rare", "item": "y", "duplicate": true}]
+			s.set_state("last_pull")
+			await _settle()
+			var sm := s.find_child("Summary", true, false)
+			var stg := s.find_child("Stage", true, false)
+			_check(sm != null and stg != null and stg.is_ancestor_of(sm), tag + ": last-pull Summary sits inside the Stage")
+			_check(s.find_child("ToneDisc", true, false) != null, tag + ": last-pull Banner has its ToneDisc")
 		if st != "loading":
 			_check(s.find_child("Banner", true, false) != null, "%s %s: Banner" % [tag, st])
 		if st == "offline" or st == "error":
