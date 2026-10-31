@@ -193,6 +193,17 @@ func _player_turn(v: CombatView, c: CombatEngine) -> void:
 	var key := "%s-%d" % [c.kind, _kinds_seen[c.kind]]
 	if first_turn and (c.kind != "battle" or _kinds_seen[c.kind] <= 2):
 		await _wait(0.4)
+		# The "Your turn" band slides out from 740 ms (motion_ui3.json turn_banner_player): a shot mid-slide shows a
+		# bare amber band over the enemy column (its label already off screen). Wait until the band is gone.
+		# Combat.tscn also has a static "TurnBanner" plate; the moving band is the U5TurnBanner (it has finish()).
+		for _i in 180:
+			var band_up := false
+			for n in v.find_children("TurnBanner", "", true, false):
+				if n.has_method("finish") and (n as CanvasItem).is_visible_in_tree():
+					band_up = true
+			if not band_up:
+				break
+			await get_tree().process_frame
 		_shot_once("turn1-%s" % key)
 	var guard := 0
 	while guard < 64:
