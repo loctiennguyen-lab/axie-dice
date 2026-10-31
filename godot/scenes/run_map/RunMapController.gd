@@ -1019,7 +1019,7 @@ const _RewardCardUi := preload("res://scenes/shared/ui5/RewardCard.gd")
 const _ConfirmBarUi := preload("res://scenes/shared/ui5/ConfirmBar.gd")
 const _PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 
-var _reward_sel := 0
+var _reward_sel := -1
 var _reward_cards: Array[PanelContainer] = []
 
 

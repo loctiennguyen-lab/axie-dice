@@ -62,15 +62,16 @@ func _build_treasure(opened: bool) -> void:
 	ctrl._overlay_vbox.sort_children.connect(ctrl._lift_selected_card)   # same UI-05 RewardCard as the reward pick
 	col.add_child(ctrl._overlay_vbox)
 	ctrl._reward_cards.clear()
-	ctrl._reward_sel = 0
+	ctrl._reward_sel = -1
 	for reward in RunState.pending_rewards:
 		ctrl._add_reward_card(reward)
 	var take := UI3.button(tr("Take and continue"), &"primary", &"L")
 	take.name = "TakeButton"
+	take.set_meta("treasure", true)   # RunMapOffers._refresh_take words the reason "Pick a reward"
 	take.pressed.connect(ctrl._take_selected_reward)
 	var tc := HBoxContainer.new()
 	tc.alignment = BoxContainer.ALIGNMENT_CENTER
 	tc.add_child(take)
 	col.add_child(tc)
-	ctrl._select_reward(0)
+	ctrl._select_reward(-1)
 	ctrl._reward_cards[0].grab_focus.call_deferred()

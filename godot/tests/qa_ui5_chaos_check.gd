@@ -55,6 +55,7 @@ func _ready() -> void:
 	await _frames(10)
 	_ok(foot != null and foot.visible, "Back puts the Footer back")
 	_ok(not RunState.owned_relic_ids.has(key) and RunState.pending_rewards.size() == 2, "Back takes nothing")
+	m.call("_select_reward", 0)
 	m.call("_take_selected_reward")
 	await _frames(10)
 	bar = null

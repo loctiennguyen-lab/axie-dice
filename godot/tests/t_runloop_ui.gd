@@ -454,6 +454,7 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 	RunState.pending_rewards = [{"t": "relic", "key": "r_seedling", "rar": 0, "title": "RELIC", "desc": "Seedling", "sub": ""}]
 	runmap.call("_show_reward_overlay", "CHOOSE A REWARD")
 	await get_tree().process_frame
+	runmap.call("_select_reward", 0)
 	runmap.call("_take_selected_reward")
 	await get_tree().process_frame
 	var sheet := runmap.find_child("SlotSwapSheet", true, false)

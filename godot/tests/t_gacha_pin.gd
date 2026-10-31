@@ -66,7 +66,7 @@ func _sample(label: String) -> void:
 		return
 	_samples.append([label, t.get_global_rect().position, b.get_global_rect().position])
 	for c in rm._reward_cards:
-		_check((c as Control).size.y <= UI3Theme.size_of("reward_card_h") + 1.0, "%s: card fits the fixed band (%s)" % [label, (c as Control).size.y])
+		_check((c as Control).size.y <= (c as Control).custom_minimum_size.y + 1.0, "%s: card fits the fixed band (%s)" % [label, (c as Control).size.y])
 
 
 func _ready() -> void:

@@ -53,7 +53,7 @@ func _f(n: String) -> Node:
 
 func _labels_fit(card: Control, tag: String) -> void:
 	# Content fits the fixed card: no clipped row, no label spilling out of the card.
-	_check(card.get_combined_minimum_size().y <= float(UI3Theme.size_of("reward_card_h")) + 0.5,
+	_check(card.get_combined_minimum_size().y <= card.custom_minimum_size.y + 0.5,   # the card's own fixed height (reward_card_h or core_card_h)
 		"%s: content fits the card (%.0f)" % [tag, card.get_combined_minimum_size().y])
 	var cr := card.get_global_rect().grow(1.0)
 	for l in card.find_children("*", "Label", true, false):
@@ -204,9 +204,9 @@ func _ready() -> void:
 			for i in rm._reward_cards.size():
 				var cc: Control = rm._reward_cards[i]
 				var tier := clampi(int((RunState.pending_rewards[i] as Dictionary).get("tier", 0)), 0, 2)
-				_check((cc.find_child("RarityChip", true, false).find_child("Text", true, false) as Label).text == ["Moss", "Amber", "Crystal"][tier],
+				_check((cc.find_child("TierChip", true, false).find_child("Text", true, false) as Label).text == ["Moss", "Amber", "Crystal"][tier],
 					"core offer %d card %d: tier word in the RarityChip" % [seed, i])
-				_check(cc.find_child("CardReroll%d" % i, true, false) != null, "core offer %d card %d: own Reroll" % [seed, i])
+				_check(cc.find_child("RerollButton", true, false) != null, "core offer %d card %d: own Reroll" % [seed, i])
 				_labels_fit(cc, "core offer %d card %d @%.2f" % [seed, i, sc])
 			_check((_f("Title") as Label).text == "Choose a Core", "core offer title")
 		RunState._core_offer_active = false
