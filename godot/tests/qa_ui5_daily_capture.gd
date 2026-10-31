@@ -35,6 +35,7 @@ func _ready() -> void:
 	MetaState.gem_gift_day = ""
 	MetaState.gems_cache = 300
 	MetaState.daily_date = ""
+	MetaState.daily_week = {"week": PassV2.week_key(today), "n": 2}
 	var d := _make("normal", false)
 	await _shot("41-daily--unclaimed", small)
 	d.claim_daily()
@@ -42,11 +43,17 @@ func _ready() -> void:
 	await _shot("41-daily--gem-gift", small)
 	d.claim_gift()
 	await _shot("41-daily--claimed", small)
+	d.daily_result = ""
+	d.last_result = ""
+	MetaState.daily_date = ""
+	MetaState.daily_week = {"week": PassV2.week_key(today), "n": 4, "paid": true}
 	MetaState.gem_gift_day = ""
 	MetaState.gems_cache = 900
 	d._refresh()
 	await _shot("41-daily--weekly-gem-cap", small)
 	MetaState.gems_cache = 300
+	MetaState.daily_date = today
+	MetaState.daily_week = {"week": PassV2.week_key(today), "n": 3}
 	d._gift_pending = true
 	d._refresh()
 	await _shot("41-daily--claiming", small)

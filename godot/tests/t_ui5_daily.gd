@@ -89,6 +89,12 @@ func _pass(sc: float) -> void:
 	_ok(_btn(d, "DailyClaim").theme_type_variation == "ButtonPrimaryL" and _btn(d, "GemClaim").theme_type_variation == "ButtonSecondary", "%s: one primary" % tag)
 	_ok(_btn(d, "GemClaim").text == "Claim 300 Gem" and _btn(d, "GemClaim").icon != null, "%s: Gem claim secondary with icon, data amount" % tag)
 	_ok(get_viewport().gui_get_focus_owner() == _btn(d, "DailyClaim"), "%s: initial focus on Daily Claim" % tag)
+	var gb := _btn(d, "GemClaim")
+	_ok(gb.icon_alignment == HORIZONTAL_ALIGNMENT_CENTER, "%s: Gem icon travels with the text (centre)" % tag)
+	var fnt := gb.get_theme_font("font")
+	var tw := fnt.get_string_size(gb.text, HORIZONTAL_ALIGNMENT_LEFT, -1, gb.get_theme_font_size("font_size")).x
+	var iw := float(gb.get_theme_constant("icon_max_width")) + float(gb.get_theme_constant("h_separation"))
+	_ok(gb.get_theme_constant("icon_max_width") > 0 and iw > 0.0 and gb.size.x > tw + iw, "%s: icon + text group fits the button centred (group %.0f in %.0f)" % [tag, tw + iw, gb.size.x])
 	_ok(_btn(d, "BackButton").text == "←", "%s: back arrow" % tag)
 	_ok(Ui5Keycap.all_under(d).is_empty(), "%s: no keycap (frames draw none)" % tag)
 	var txt := _texts(d)
@@ -103,11 +109,23 @@ func _pass(sc: float) -> void:
 	_ok(_btn(d, "DailyClaim").disabled and _btn(d, "DailyClaim").text == "Claim · Claimed today", "%s: claimed says why" % tag)
 	_ok(d.find_child("ResultLine", true, false) != null and d.find_child("ToneDisc", true, false) != null, "%s: result line with ToneDisc" % tag)
 	_ok(_btn(d, "GemClaim").theme_type_variation == "ButtonPrimaryL" and not _btn(d, "GemClaim").disabled, "%s: Gem claim is the primary now" % tag)
+	_ok(_btn(d, "GemClaim").icon == null, "%s: primary Gem claim has no icon (text only)" % tag)
 	_ok(get_viewport().gui_get_focus_owner() == _btn(d, "GemClaim"), "%s: focus moved to Gem claim" % tag)
 	d.claim_gift()
 	await _frames(3)
 	_ok(_btn(d, "GemClaim").disabled and _btn(d, "GemClaim").text == "Claim 300 Gem · Claimed today", "%s: gift claimed says why" % tag)
 	_small(d, tag + " claimed", sc)
+	# --- weekly paid: 4 of 4, Daily not claimed yet
+	MetaState.daily_date = ""
+	d.daily_result = ""
+	d.last_result = ""
+	MetaState.daily_week = {"week": PassV2.week_key(MetaState.today_utc()), "n": 4, "paid": true}
+	d._refresh()
+	await _frames(2)
+	_ok(_btn(d, "WeeklyStatus").text == "Paid this week", "%s: weekly paid says Paid this week" % tag)
+	_ok(_btn(d, "DailyClaim").text == "Claim" and not _btn(d, "DailyClaim").disabled, "%s: Daily still claimable when weekly is paid" % tag)
+	_ok(d.find_child("ToneDisc", true, false) == null, "%s: no ToneDisc without a result" % tag)
+	MetaState.daily_week = {}
 	# --- cap
 	MetaState.gem_gift_day = ""
 	MetaState.gems_cache = 900

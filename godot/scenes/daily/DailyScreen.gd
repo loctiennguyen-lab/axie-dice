@@ -4,9 +4,8 @@ extends Control
 ## Three cards: Daily reward (MetaState.claim_daily_mission, idempotent per UTC day), Weekly bonus
 ## (display only), L1 Gem gift (MetaState.claim_gem_gift_now). Numbers from daily.json / gem.json.
 ## No live countdown: the next claim is a date plus "00:00 UTC".
-## GAPS (lane E/S): claim_daily_mission grants Shard + Pass XP but not the 500 Stone in daily.json,
-## so Stone is not promised on the card; there is no "finished a run today" flag (M8b "Not yet") and
-## no weekly day counter (dots), so the weekly card shows the rule only.
+## claim_daily_mission grants Shard + Stone + Pass XP; the weekly card shows the day chips (MetaState.weekly_daily_days)
+## and pays itself on the last day. "Not yet" on the combo card = not formed today.
 ## Guest/offline only block claims when the remote wallet flag is on, otherwise an info banner.
 
 const _Econ := preload("res://scripts/meta/economy_db.gd")
@@ -192,9 +191,10 @@ func _claim_button(nm: String, label: String, reason: String, cb: Callable, prim
 		b = Ui5ClaimButton.make(label, &"L")
 	else:
 		b = PanelParts.button(label, &"secondary", &"M")
-		if gem_icon and reason == "":
-			b.icon = UI3.currency_icon("cur_gem", UI3Theme.size_of("icon_s"))
-			b.add_theme_constant_override("icon_max_width", UI3Theme.size_of("icon_s"))
+	if gem_icon and reason == "" and not primary:   # the amber primary draws no icon (icon + text overlapped in the primary style)
+		b.icon = UI3.currency_icon("cur_gem", UI3Theme.size_of("icon_s"))
+		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		b.add_theme_constant_override("icon_max_width", UI3Theme.size_of("icon_s"))
 	b.name = nm
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if reason != "":
