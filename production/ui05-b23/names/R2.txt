@@ -1,0 +1,1006 @@
+# R2: Offers: core, rule (TRU make-room + combo-banner cua R4; them components-run--cards)
+# Nguon HTML: design/handoffs/ui-05-figma/round-2/ui05-run-screens.html
+# So frame: 25 (13 id, tinh ca ban 1920 va 1280)
+# Tien to: 47-core-offer--amber 47-core-offer--combo-tags 47-core-offer--crystal 47-core-offer--facedown 47-core-offer--moss 47-core-offer--pick1-4cards 47-core-offer--reroll-used 47-core-offer--rerolls-none 47-core-offer--selected 05-run-rule-offer components-run--cards
+# Ghi chu: DOAN: 47-core-offer--combo-tags (the co nhan combo) o R2; chi combo-banner o R4. Plan ghi R2 '47-core-offer x12 (tru make-room)' nhung R4 cung nhan combo, nen tach combo-banner sang R4.
+# Id frame:
+#   components-run--cards
+#   05-run-rule-offer--offer
+#   05-run-rule-offer--offer--1280
+#   05-run-rule-offer--picked
+#   05-run-rule-offer--picked--1280
+#   47-core-offer--facedown
+#   47-core-offer--facedown--1280
+#   47-core-offer--moss
+#   47-core-offer--moss--1280
+#   47-core-offer--amber
+#   47-core-offer--amber--1280
+#   47-core-offer--crystal
+#   47-core-offer--crystal--1280
+#   47-core-offer--pick1-4cards
+#   47-core-offer--pick1-4cards--1280
+#   47-core-offer--selected
+#   47-core-offer--selected--1280
+#   47-core-offer--reroll-used
+#   47-core-offer--reroll-used--1280
+#   47-core-offer--rerolls-none
+#   47-core-offer--rerolls-none--1280
+#   47-core-offer--crystal-cap
+#   47-core-offer--crystal-cap--1280
+#   47-core-offer--combo-tags
+#   47-core-offer--combo-tags--1280
+
+=== components-run--cards (1920)
+  ComponentsCards [0,0]
+    # godot: CoreCardBack. Halo ring pulses (see moments/moment-core-reveal).
+    # godot: CoreCardBack. Halo ring pulses (see moments/moment-core-reveal).
+    # godot: CoreCardBack. Halo ring pulses (see moments/moment-core-reveal).
+    CoreCardBack
+      TierWord "Moss"
+    CoreCardBack
+      TierWord "Amber"
+    CoreCardBack
+      TierWord "Crystal"
+    AnchorCard
+      LockedReason "Your Run Rule leaves too few House Cores for this Anchor."
+      HouseGlyph
+      AnchorName "Kin"
+      HouseLine "House: Kin"
+      Summary "Groups of the same class hit harder, mixed groups hit weake…"
+      RuleBox "Rule A SET with 3+ dice of the same class gets +0.30."
+      PriceBox "Price − A SET without 3+ dice of the same class gets -0.25."
+      AwakensBox "Awakens Unison First turn of each fight, Axies of the same …"
+      HouseCores
+        HouseCoreChip "Nest"
+        HouseCoreChip "Golden Egg"
+        HouseCoreChip "Bloodline Ward"
+        HouseCoreChip "Early Scales"
+        HouseCoreChip "Last Testament"
+
+=== 05-run-rule-offer--offer (1920)
+  # godot: Focus: cards → Take. No tier chip, no reroll, no skip. The rule then sits in slot R all run.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  RunRuleOffer
+    Header
+      Title "Choose a run rule"
+      ShardPill "0"
+    CardRow
+      RuleCard
+        # godot: ui_settings.svg modulated by the house colour picked from the rule id (two cards never match). The tint/ file is a preview only.
+        Kind "Run rule"
+        ArtBox
+        RuleName "Upside Down"
+        RuleText "Single-target enemy attacks pick the back row first. The fr…"
+        PriceBox
+          PriceLine "− Enemy attacks hit your back row first"
+      RuleCard
+        # godot: ui_settings.svg modulated by the house colour picked from the rule id (two cards never match). The tint/ file is a preview only.
+        Kind "Run rule"
+        ArtBox
+        RuleName "Hard Shell"
+        RuleText "Every enemy has Armor 2: single-target damage faces deal 2 …"
+        PriceBox
+          PriceLine "− Every enemy has Armor 2"
+    Footer
+      TakeButton "Pick a rule"
+
+=== 05-run-rule-offer--offer--1280 (1280)
+  # godot: Focus: cards → Take. No tier chip, no reroll, no skip. The rule then sits in slot R all run.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  RunRuleOffer
+    Header
+      Title "Choose a run rule"
+      ShardPill "0"
+    CardRow
+      RuleCard
+        # godot: ui_settings.svg modulated by the house colour picked from the rule id (two cards never match). The tint/ file is a preview only.
+        Kind "Run rule"
+        ArtBox
+        RuleName "Upside Down"
+        RuleText "Single-target enemy attacks pick the back row first. The fr…"
+        PriceBox
+          PriceLine "− Enemy attacks hit your back row first"
+      RuleCard
+        # godot: ui_settings.svg modulated by the house colour picked from the rule id (two cards never match). The tint/ file is a preview only.
+        Kind "Run rule"
+        ArtBox
+        RuleName "Hard Shell"
+        RuleText "Every enemy has Armor 2: single-target damage faces deal 2 …"
+        PriceBox
+          PriceLine "− Every enemy has Armor 2"
+    Footer
+      TakeButton "Pick a rule"
+
+=== 05-run-rule-offer--picked (1920)
+  # godot: Focus: cards → Take. No tier chip, no reroll, no skip. The rule then sits in slot R all run.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  RunRuleOffer
+    Header
+      Title "Choose a run rule"
+      ShardPill "0"
+    CardRow
+      RuleCard
+        # godot: ui_settings.svg modulated by the house colour picked from the rule id (two cards never match). The tint/ file is a preview only.
+        Kind "Run rule"
+        ArtBox
+        RuleName "Pack Alpha"
+        RuleText "In normal and elite fights the enemy with the most HP is th…"
+        PriceBox
+          PriceLine "− The biggest enemy is a Pack Alpha (+25% HP) that shields …"
+      RuleCard
+        # godot: ui_settings.svg modulated by the house colour picked from the rule id (two cards never match). The tint/ file is a preview only.
+        Kind "Run rule"
+        ArtBox
+        RuleName "No Rule"
+        RuleText "Play this run with the base rules."
+    Footer
+      TakeButton
+        KeyCap "Space"
+
+=== 05-run-rule-offer--picked--1280 (1280)
+  # godot: Focus: cards → Take. No tier chip, no reroll, no skip. The rule then sits in slot R all run.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  RunRuleOffer
+    Header
+      Title "Choose a run rule"
+      ShardPill "0"
+    CardRow
+      RuleCard
+        # godot: ui_settings.svg modulated by the house colour picked from the rule id (two cards never match). The tint/ file is a preview only.
+        Kind "Run rule"
+        ArtBox
+        RuleName "Pack Alpha"
+        RuleText "In normal and elite fights the enemy with the most HP is th…"
+        PriceBox
+          PriceLine "− The biggest enemy is a Pack Alpha (+25% HP) that shields …"
+      RuleCard
+        # godot: ui_settings.svg modulated by the house colour picked from the rule id (two cards never match). The tint/ file is a preview only.
+        Kind "Run rule"
+        ArtBox
+        RuleName "No Rule"
+        RuleText "Play this run with the base rules."
+    Footer
+      TakeButton
+        KeyCap "Space"
+
+=== 47-core-offer--facedown (1920)
+  # godot: Face-down: input locked except skip. Click or Space flips all at once. Take is disabled with its reason; the rerolls counter is hidden until the cards are revealed.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      # godot: CoreCardBack. Halo ring pulses (see moments/moment-core-reveal).
+      # godot: CoreCardBack. Halo ring pulses (see moments/moment-core-reveal).
+      # godot: CoreCardBack. Halo ring pulses (see moments/moment-core-reveal).
+      CoreCardBack
+        TierWord "Moss"
+      CoreCardBack
+        TierWord "Moss"
+      CoreCardBack
+        TierWord "Moss"
+    Footer
+      TakeButton "Reveal the cards first"
+  SkipHint
+    KeyCap "Space"
+
+=== 47-core-offer--facedown--1280 (1280)
+  # godot: Face-down: input locked except skip. Click or Space flips all at once. Take is disabled with its reason; the rerolls counter is hidden until the cards are revealed.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      # godot: CoreCardBack. Halo ring pulses (see moments/moment-core-reveal).
+      # godot: CoreCardBack. Halo ring pulses (see moments/moment-core-reveal).
+      # godot: CoreCardBack. Halo ring pulses (see moments/moment-core-reveal).
+      CoreCardBack
+        TierWord "Moss"
+      CoreCardBack
+        TierWord "Moss"
+      CoreCardBack
+        TierWord "Moss"
+    Footer
+      TakeButton "Reveal the cards first"
+  SkipHint
+    KeyCap "Space"
+
+=== 47-core-offer--moss (1920)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Bastion"
+        ChipRow
+          TierChip "Moss"
+          CategoryChip "Position"
+        RuleText "Front-row Axies take 2 less from single-target hits."
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Early Scales"
+        ChipRow
+          TierChip "Moss"
+          CategoryChip "Stat"
+        RuleText "Start of combat: front-row Axies gain 5 Shield."
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Mana Pool"
+        ChipRow
+          TierChip "Moss"
+          CategoryChip "Mana"
+        RuleText "Mana faces give +1. End of turn: every 3 unspent Mana earns…"
+        RerollButton "Reroll"
+    Footer
+      RerollCounter "2 rerolls left"
+      TakeButton "Pick a Core"
+
+=== 47-core-offer--moss--1280 (1280)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Bastion"
+        ChipRow
+          TierChip "Moss"
+          CategoryChip "Position"
+        RuleText "Front-row Axies take 2 less from single-target hits."
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Early Scales"
+        ChipRow
+          TierChip "Moss"
+          CategoryChip "Stat"
+        RuleText "Start of combat: front-row Axies gain 5 Shield."
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Mana Pool"
+        ChipRow
+          TierChip "Moss"
+          CategoryChip "Mana"
+        RuleText "Mana faces give +1. End of turn: every 3 unspent Mana earns…"
+        RerollButton "Reroll"
+    Footer
+      RerollCounter "2 rerolls left"
+      TakeButton "Pick a Core"
+
+=== 47-core-offer--amber (1920)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Thorn Shield"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Stat"
+          AwakenChip "1/2 → AWAKEN"
+        RuleText "End of your turn, every 2 leftover Shield on an Axie turns …"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Kindle"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Dice faces"
+        RuleText "A Held die has Focus: used next turn it deals +4 (+8 if hel…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Mana Ward"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Mana"
+        RuleText "End of turn, spend up to 6 unused Mana: every 2 Mana gives …"
+        RerollButton "Reroll"
+    Footer
+      RerollCounter "2 rerolls left"
+      TakeButton "Pick a Core"
+
+=== 47-core-offer--amber--1280 (1280)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Thorn Shield"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Stat"
+          AwakenChip "1/2 → AWAKEN"
+        RuleText "End of your turn, every 2 leftover Shield on an Axie turns …"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Kindle"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Dice faces"
+        RuleText "A Held die has Focus: used next turn it deals +4 (+8 if hel…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Mana Ward"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Mana"
+        RuleText "End of turn, spend up to 6 unused Mana: every 2 Mana gives …"
+        RerollButton "Reroll"
+    Footer
+      RerollCounter "2 rerolls left"
+      TakeButton "Pick a Core"
+
+=== 47-core-offer--crystal (1920)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Living Wall"
+        ChipRow
+          TierChip "Crystal"
+          CategoryChip "Position"
+          HouseTag "House"
+        RuleText "Only slot 1 is the front row. That Axie gets +12 Max HP and…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Cascade"
+        ChipRow
+          TierChip "Crystal"
+          CategoryChip "Rule change"
+        RuleText "Damage faces used back to back form a chain: the 2nd gets +…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Deep Current"
+        ChipRow
+          TierChip "Crystal"
+          CategoryChip "Mana"
+        RuleText "Leftover Mana carries into the next combat (up to 12) inste…"
+        RerollButton "Reroll"
+    Footer
+      RerollCounter "2 rerolls left"
+      TakeButton "Pick a Core"
+
+=== 47-core-offer--crystal--1280 (1280)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Living Wall"
+        ChipRow
+          TierChip "Crystal"
+          CategoryChip "Position"
+          HouseTag "House"
+        RuleText "Only slot 1 is the front row. That Axie gets +12 Max HP and…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Cascade"
+        ChipRow
+          TierChip "Crystal"
+          CategoryChip "Rule change"
+        RuleText "Damage faces used back to back form a chain: the 2nd gets +…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Deep Current"
+        ChipRow
+          TierChip "Crystal"
+          CategoryChip "Mana"
+        RuleText "Leftover Mana carries into the next combat (up to 12) inste…"
+        RerollButton "Reroll"
+    Footer
+      RerollCounter "2 rerolls left"
+      TakeButton "Pick a Core"
+
+=== 47-core-offer--pick1-4cards (1920)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Bastion"
+        ChipRow
+          TierChip "Moss"
+          CategoryChip "Position"
+        RuleText "Front-row Axies take 2 less from single-target hits."
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Early Scales"
+        ChipRow
+          TierChip "Moss"
+          CategoryChip "Stat"
+        RuleText "Start of combat: front-row Axies gain 5 Shield."
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Mana Pool"
+        ChipRow
+          TierChip "Moss"
+          CategoryChip "Mana"
+        RuleText "Mana faces give +1. End of turn: every 3 unspent Mana earns…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Final Blow"
+        ChipRow
+          TierChip "Moss"
+          CategoryChip "Dice faces"
+        RuleText "The last die you use each turn gets +1 for every die used b…"
+        RerollButton "Reroll"
+    Footer
+      RerollCounter "2 rerolls left"
+      TakeButton "Pick a Core"
+
+=== 47-core-offer--pick1-4cards--1280 (1280)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Bastion"
+        ChipRow
+          TierChip "Moss"
+          CategoryChip "Position"
+        RuleText "Front-row Axies take 2 less from single-target hits."
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Early Scales"
+        ChipRow
+          TierChip "Moss"
+          CategoryChip "Stat"
+        RuleText "Start of combat: front-row Axies gain 5 Shield."
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Mana Pool"
+        ChipRow
+          TierChip "Moss"
+          CategoryChip "Mana"
+        RuleText "Mana faces give +1. End of turn: every 3 unspent Mana earns…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Final Blow"
+        ChipRow
+          TierChip "Moss"
+          CategoryChip "Dice faces"
+        RuleText "The last die you use each turn gets +1 for every die used b…"
+        RerollButton "Reroll"
+    Footer
+      RerollCounter "2 rerolls left"
+      TakeButton "Pick a Core"
+
+=== 47-core-offer--selected (1920)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Thorn Shield"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Stat"
+          AwakenChip "1/2 → AWAKEN"
+        RuleText "End of your turn, every 2 leftover Shield on an Axie turns …"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Kindle"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Dice faces"
+        RuleText "A Held die has Focus: used next turn it deals +4 (+8 if hel…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Mana Ward"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Mana"
+        RuleText "End of turn, spend up to 6 unused Mana: every 2 Mana gives …"
+        RerollButton "Reroll"
+    Footer
+      RerollCounter "2 rerolls left"
+      TakeButton
+        KeyCap "Space"
+
+=== 47-core-offer--selected--1280 (1280)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Thorn Shield"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Stat"
+          AwakenChip "1/2 → AWAKEN"
+        RuleText "End of your turn, every 2 leftover Shield on an Axie turns …"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Kindle"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Dice faces"
+        RuleText "A Held die has Focus: used next turn it deals +4 (+8 if hel…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Mana Ward"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Mana"
+        RuleText "End of turn, spend up to 6 unused Mana: every 2 Mana gives …"
+        RerollButton "Reroll"
+    Footer
+      RerollCounter "2 rerolls left"
+      TakeButton
+        KeyCap "Space"
+
+=== 47-core-offer--reroll-used (1920)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Thorn Shield"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Stat"
+          AwakenChip "1/2 → AWAKEN"
+        RuleText "End of your turn, every 2 leftover Shield on an Axie turns …"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Cache Plate"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Dice faces"
+        RuleText "When you Hold a die showing a shield face, its Axie gains h…"
+        RerollButton "Rerolled"
+      CoreCard
+        ArtBox
+        CoreName "Mana Ward"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Mana"
+        RuleText "End of turn, spend up to 6 unused Mana: every 2 Mana gives …"
+        RerollButton "Reroll"
+    Footer
+      RerollCounter "1 reroll left"
+      TakeButton
+        KeyCap "Space"
+
+=== 47-core-offer--reroll-used--1280 (1280)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Thorn Shield"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Stat"
+          AwakenChip "1/2 → AWAKEN"
+        RuleText "End of your turn, every 2 leftover Shield on an Axie turns …"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Cache Plate"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Dice faces"
+        RuleText "When you Hold a die showing a shield face, its Axie gains h…"
+        RerollButton "Rerolled"
+      CoreCard
+        ArtBox
+        CoreName "Mana Ward"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Mana"
+        RuleText "End of turn, spend up to 6 unused Mana: every 2 Mana gives …"
+        RerollButton "Reroll"
+    Footer
+      RerollCounter "1 reroll left"
+      TakeButton
+        KeyCap "Space"
+
+=== 47-core-offer--rerolls-none (1920)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Thorn Shield"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Stat"
+          AwakenChip "1/2 → AWAKEN"
+        RuleText "End of your turn, every 2 leftover Shield on an Axie turns …"
+        RerollButton "No rerolls left"
+      CoreCard
+        ArtBox
+        CoreName "Cache Plate"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Dice faces"
+        RuleText "When you Hold a die showing a shield face, its Axie gains h…"
+        RerollButton "No rerolls left"
+      CoreCard
+        ArtBox
+        CoreName "Mana Ward"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Mana"
+        RuleText "End of turn, spend up to 6 unused Mana: every 2 Mana gives …"
+        RerollButton "No rerolls left"
+    Footer
+      RerollCounter "0 rerolls left"
+      TakeButton
+        KeyCap "Space"
+
+=== 47-core-offer--rerolls-none--1280 (1280)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Thorn Shield"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Stat"
+          AwakenChip "1/2 → AWAKEN"
+        RuleText "End of your turn, every 2 leftover Shield on an Axie turns …"
+        RerollButton "No rerolls left"
+      CoreCard
+        ArtBox
+        CoreName "Cache Plate"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Dice faces"
+        RuleText "When you Hold a die showing a shield face, its Axie gains h…"
+        RerollButton "No rerolls left"
+      CoreCard
+        ArtBox
+        CoreName "Mana Ward"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Mana"
+        RuleText "End of turn, spend up to 6 unused Mana: every 2 Mana gives …"
+        RerollButton "No rerolls left"
+    Footer
+      RerollCounter "0 rerolls left"
+      TakeButton
+        KeyCap "Space"
+
+=== 47-core-offer--crystal-cap (1920)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Gatekeeper"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Position"
+        RuleText "Enemies that hit a front-row Axie with a single-target atta…"
+        CapStrip "Crystal cap reached — max 3 Crystal Cores this run"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Kindle"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Dice faces"
+        RuleText "A Held die has Focus: used next turn it deals +4 (+8 if hel…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Mana Ward"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Mana"
+        RuleText "End of turn, spend up to 6 unused Mana: every 2 Mana gives …"
+        RerollButton "Reroll"
+    Footer
+      RerollCounter "2 rerolls left"
+      TakeButton "Pick a Core"
+
+=== 47-core-offer--crystal-cap--1280 (1280)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Gatekeeper"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Position"
+        RuleText "Enemies that hit a front-row Axie with a single-target atta…"
+        CapStrip "Crystal cap reached — max 3 Crystal Cores this run"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Kindle"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Dice faces"
+        RuleText "A Held die has Focus: used next turn it deals +4 (+8 if hel…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Mana Ward"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Mana"
+        RuleText "End of turn, spend up to 6 unused Mana: every 2 Mana gives …"
+        RerollButton "Reroll"
+    Footer
+      RerollCounter "2 rerolls left"
+      TakeButton "Pick a Core"
+
+=== 47-core-offer--combo-tags (1920)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Gatekeeper"
+        ComboTag "FULL Golden Turtle Fortress"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Position"
+          ComboChip "With: Living Wall, Thorn Shield"
+        RuleText "Enemies that hit a front-row Axie with a single-target atta…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Backline Glow"
+        ComboTag "PAIR Toxic Bloom Guard"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Position"
+          ComboChip "With: Shield Wave"
+          HouseTag "House"
+        RuleText "Back-row Axies: buff, heal and mana faces get +50% (rounded…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Mana Ward"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Mana"
+        RuleText "End of turn, spend up to 6 unused Mana: every 2 Mana gives …"
+        RerollButton "Reroll"
+    Footer
+      RerollCounter "2 rerolls left"
+      TakeButton
+        KeyCap "Space"
+
+=== 47-core-offer--combo-tags--1280 (1280)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Gatekeeper"
+        ComboTag "FULL Golden Turtle Fortress"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Position"
+          ComboChip "With: Living Wall, Thorn Shield"
+        RuleText "Enemies that hit a front-row Axie with a single-target atta…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Backline Glow"
+        ComboTag "PAIR Toxic Bloom Guard"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Position"
+          ComboChip "With: Shield Wave"
+          HouseTag "House"
+        RuleText "Back-row Axies: buff, heal and mana faces get +50% (rounded…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Mana Ward"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Mana"
+        RuleText "End of turn, spend up to 6 unused Mana: every 2 Mana gives …"
+        RerollButton "Reroll"
+    Footer
+      RerollCounter "2 rerolls left"
+      TakeButton
+        KeyCap "Space"

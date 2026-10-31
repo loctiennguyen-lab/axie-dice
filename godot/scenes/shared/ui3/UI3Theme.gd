@@ -186,12 +186,13 @@ static func _text_px(logical: int) -> int:
 
 
 ## tokens._size_1280_overrides with kebab keys (die-card-w) mapped to the snake size tokens (die_card_w).
+## Keys starting with "_" (the _b2_keys/_b3_keys lists) are bookkeeping, not sizes.
 static func _overrides_logical() -> Dictionary:
 	var out := {}
 	var raw: Dictionary = tokens().get("_size_1280_overrides", {})
 	for k in raw:
 		var key := String(k)
-		if key == "note" or key == "min_text":
+		if key == "note" or key == "min_text" or key.begins_with("_"):
 			continue
 		out[key.replace("-", "_")] = raw[k]
 	return out

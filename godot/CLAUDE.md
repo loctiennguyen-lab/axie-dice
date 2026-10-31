@@ -7,11 +7,17 @@ Baloo) **không còn đúng** cho màn đã port.
 ## Thiết kế nằm ở đâu
 
 - **UI-05 (29/10) là bản mới nhất, thắng UI-04 cho mọi màn nó phủ.** Combat (đợt 1) đã code: `design/handoffs/ui-05-figma/round-1/`.
-  Run (đợt 2, chưa code): `round-2/`. Đợt cuối (Land, meta, còn lại) đang làm với Claude Design.
+  Run (đợt 2): `round-2/`. Land, meta, hệ thống (đợt 3): `round-3/` (thêm `FIXES-30-10.md`). Đợt 2+3 đang code theo
+  `production/ui05-b23-plan.md` + `production/ui05-b23-lane-brief.md`; cây `data-name` từng làn: `production/ui05-b23/names/<làn>.txt`
+  (sinh bởi `godot/tools/ui5_names.py`; `--list`, `--all`).
   - Nguồn số là HTML + `tokens.json` sinh từ `build/`. `data-name` = tên node Godot. `<!-- godot: … -->` = luật HTML không thể hiện.
   - Đọc phần "Our edits" ở đầu `README.md` của từng round.
-  - Style A "Toy Wood" cho mọi màn, token đã gộp vào `tokens_ui3.json`.
-  - Plan và luật code UI-05: `production/ui05-b1-plan.md` + `production/ui05-b1-lane-brief.md`. Component mới để ở `scenes/combat/ui5/` (hoặc `scenes/run_map/ui5/`), không nhồi thêm vào `UI3.gd`.
+  - Style A "Toy Wood" cho mọi màn. Token đợt 1, B2 (`_changed_b2`) và B3 (`_changed_b3`) đã gộp vào `tokens_ui3.json`; size là số
+    (không `{value, meaning}`). Cỡ 1280 riêng nằm ở `_size_1280_overrides` (key kebab, `_b2_keys`/`_b3_keys` chỉ là danh sách);
+    `t_ui5_tokens_b23` canh. Làn không sửa `tokens_ui3.json`/`UI3*.gd`; cần key mới thì ghi report.
+  - Component dùng chung ở `scenes/shared/ui5/` (Ellipsis, Keycap, SkipHint, StatusChip, CostButton, PanelParts, HudStyle,
+    WaitingPill, ConfirmBar, RewardCard) và `scenes/shared/ui5/meta/` (meta kit). Component riêng của màn ở `scenes/<màn>/ui5/`.
+    Không nhồi thêm vào `UI3.gd` (trùng tên helper = parse error = headless treo).
   - Luật Liam đã chốt:
     - Chỉ hiện phím **Space**: trên nút mà Space thực sự bấm, và trên "Click or Space to skip". Các phím khác vẫn hoạt động, chỉ ghi trong tooltip.
     - Không chọn sẵn khi chọn món để lấy hoặc mua. Nút primary bị tắt và nói lý do.

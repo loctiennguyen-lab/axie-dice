@@ -33,11 +33,11 @@ func _ready() -> void:
 	await _shot(tag, "settings")
 	(pm.rows["SaveQuit"] as Button).pressed.emit()
 	await _shot(tag, "save-quit")
-	(pm.find_child("ConfirmKeep", true, false) as Button).pressed.emit()
+	(pm.find_child("KeepPlayingButton", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
 	(pm.rows["Abandon"] as Button).pressed.emit()
 	await _shot(tag, "abandon")
-	(pm.find_child("ConfirmKeep", true, false) as Button).pressed.emit()
+	(pm.find_child("KeepPlayingButton", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
 	MetaState.mission_escrow = {"stake": 25}
 	(pm.rows["Abandon"] as Button).pressed.emit()

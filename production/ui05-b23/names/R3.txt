@@ -1,0 +1,549 @@
+# R3: Anchor
+# Nguon HTML: design/handoffs/ui-05-figma/round-2/ui05-run-screens.html
+# So frame: 8 (4 id, tinh ca ban 1920 va 1280)
+# Tien to: 48-anchor-pick 49-anchor-awaken
+# Id frame:
+#   49-anchor-awaken--after
+#   49-anchor-awaken--after--1280
+#   48-anchor-pick--none
+#   48-anchor-pick--none--1280
+#   48-anchor-pick--picked
+#   48-anchor-pick--picked--1280
+#   48-anchor-pick--gambler
+#   48-anchor-pick--gambler--1280
+
+=== 49-anchor-awaken--after (1920)
+  # godot: MapView (Control, full rect) draws edges, then one MapNode per node at the generator's position. Columns = floors, 140 px apart; lanes 160 px apart. The view scrolls so the current floor sits in column 2.
+  # godot: RunInfo = HBox anchored top-left (margin 24): MenuButton (tooltip "Menu", opens the in-run menu, same as Esc), RunPill.
+  # godot: NodeDetail anchored top-right (margin 24). Follows the picked node (mouse or arrows). Travel = Space / Enter / double-click (keys work, only Space is shown).
+  MapBackdrop [0,0 100%x100%] "run map backdrop (scene art)"
+  MapView
+    # godot: MapEdges = draw_line / draw_dashed_line in MapView._draw(). Dashed map_edge #fff3d6 with a plate_ink drop 2 px below; walked path solid map_edge_passed #ffb444. Width 4.
+    MapEdges
+    MapNode [472px,504px]
+      NodeToken
+        PassedTick
+    MapNode [612px,504px]
+      NodeToken
+      Caption "Battle"
+    MapNode [752px,344px]
+      NodeToken
+      Caption "Event"
+    MapNode [752px,504px]
+      NodeToken
+        RewardBadge
+      Caption "Battle"
+    MapNode [752px,664px]
+      NodeToken
+      Caption "Treasure"
+    MapNode [892px,344px]
+      NodeToken "?"
+    MapNode [892px,504px]
+      NodeToken "?"
+    MapNode [892px,664px]
+      NodeToken "?"
+    MapNode [1032px,344px]
+      NodeToken "?"
+    MapNode [1032px,504px]
+      NodeToken "?"
+    MapNode [1032px,664px]
+      NodeToken "?"
+    MapNode [1172px,495px]
+      NodeToken "?"
+    MapNode [1312px,344px]
+      NodeToken "?"
+    MapNode [1312px,664px]
+      NodeToken "?"
+  RunInfo
+    # godot: AnchorChip in the top bar (Liam approved 29/10): the Anchor reads without opening the Cores strip. It replaces the HouseChip that sat in the CoresPlate; the Anchor tile in the strip stays.
+    MenuButton
+    RunPill
+      FloorLabel "Floor 2 of 18"
+      AscensionChip "A0"
+      ShardChip "40"
+    AnchorChip "Kin Awakened"
+  PartyPlate
+    PartyRow
+      AxieName "Olek"
+      MaxHP "17"
+      HPBar
+    PartyRow
+      AxieName "Buba"
+      MaxHP "12"
+      HPBar
+    PartyRow
+      AxieName "Puffy"
+      MaxHP "13"
+      HPBar
+    PartyRow
+      AxieName "Machito"
+      MaxHP "16"
+      HPBar
+    PartyRow
+      AxieName "Pomodoro"
+      MaxHP "14"
+      HPBar
+  CoresPlate
+    # godot: CorePanel. Order: AnchorTile (only with an Anchor) · divider · 6 CoreSlot · RunRuleSlot. Slot 40 on the map, 44 elsewhere. Tooltips as game-data §1.
+    CoresTitle "Cores · 2"
+    CoreStrip
+      AnchorTile
+        AwakenGlyph
+      CoreSlot
+        HouseRing
+      CoreSlot
+        HouseRing
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      RunRuleSlot "R"
+    RunRuleChip "Run rule: Upside Down"
+    OwnedList
+      OwnedCore "Nest Moss"
+      OwnedCore "Golden Egg Amber"
+      OwnedRule "Upside Down Run rule"
+  NodeDetail
+    NodeTitle "Battle"
+    NodeDesc "A fight against a squad of enemies."
+    WinRows
+      WinRow "Choose 1 of 3 rewards"
+      RewardRow "Reward card: Level up"
+    PathNote "On your path"
+    RouteLine "Floor 3 of 18 · 3 floors to the boss"
+    TravelButton
+      KeyCap "Space"
+
+=== 49-anchor-awaken--after--1280 (1280)
+  # godot: MapView (Control, full rect) draws edges, then one MapNode per node at the generator's position. Columns = floors, 140 px apart; lanes 160 px apart. The view scrolls so the current floor sits in column 2.
+  # godot: RunInfo = HBox anchored top-left (margin 24): MenuButton (tooltip "Menu", opens the in-run menu, same as Esc), RunPill.
+  # godot: NodeDetail anchored top-right (margin 24). Follows the picked node (mouse or arrows). Travel = Space / Enter / double-click (keys work, only Space is shown).
+  MapBackdrop [0,0 100%x100%] "run map backdrop (scene art)"
+  MapView
+    # godot: MapEdges = draw_line / draw_dashed_line in MapView._draw(). Dashed map_edge #fff3d6 with a plate_ink drop 2 px below; walked path solid map_edge_passed #ffb444. Width 4.
+    MapEdges
+    MapNode [315px,336px]
+      NodeToken
+        PassedTick
+    MapNode [408px,336px]
+      NodeToken
+      Caption "Battle"
+    MapNode [501px,229px]
+      NodeToken
+      Caption "Event"
+    MapNode [501px,336px]
+      NodeToken
+        RewardBadge
+      Caption "Battle"
+    MapNode [501px,443px]
+      NodeToken
+      Caption "Treasure"
+    MapNode [595px,229px]
+      NodeToken "?"
+    MapNode [595px,336px]
+      NodeToken "?"
+    MapNode [595px,443px]
+      NodeToken "?"
+    MapNode [688px,229px]
+      NodeToken "?"
+    MapNode [688px,336px]
+      NodeToken "?"
+    MapNode [688px,443px]
+      NodeToken "?"
+    MapNode [781px,330px]
+      NodeToken "?"
+    MapNode [875px,229px]
+      NodeToken "?"
+    MapNode [875px,443px]
+      NodeToken "?"
+  RunInfo
+    # godot: AnchorChip in the top bar (Liam approved 29/10): the Anchor reads without opening the Cores strip. It replaces the HouseChip that sat in the CoresPlate; the Anchor tile in the strip stays.
+    MenuButton
+    RunPill
+      FloorLabel "Floor 2 of 18"
+      AscensionChip "A0"
+      ShardChip "40"
+    AnchorChip "Kin Awakened"
+  PartyPlate
+    PartyRow
+      AxieName "Olek"
+      MaxHP "17"
+      HPBar
+    PartyRow
+      AxieName "Buba"
+      MaxHP "12"
+      HPBar
+    PartyRow
+      AxieName "Puffy"
+      MaxHP "13"
+      HPBar
+    PartyRow
+      AxieName "Machito"
+      MaxHP "16"
+      HPBar
+    PartyRow
+      AxieName "Pomodoro"
+      MaxHP "14"
+      HPBar
+  CoresPlate
+    # godot: CorePanel. Order: AnchorTile (only with an Anchor) · divider · 6 CoreSlot · RunRuleSlot. Slot 40 on the map, 44 elsewhere. Tooltips as game-data §1.
+    CoresTitle "Cores · 2"
+    CoreStrip
+      AnchorTile
+        AwakenGlyph
+      CoreSlot
+        HouseRing
+      CoreSlot
+        HouseRing
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      CoreSlot
+      RunRuleSlot "R"
+    RunRuleChip "Run rule: Upside Down"
+    OwnedList
+      OwnedCore "Nest Moss"
+      OwnedCore "Golden Egg Amber"
+      OwnedRule "Upside Down Run rule"
+  NodeDetail
+    NodeTitle "Battle"
+    NodeDesc "A fight against a squad of enemies."
+    WinRows
+      WinRow "Choose 1 of 3 rewards"
+      RewardRow "Reward card: Level up"
+    PathNote "On your path"
+    RouteLine "Floor 3 of 18 · 3 floors to the boss"
+    TravelButton
+      KeyCap "Space"
+
+=== 48-anchor-pick--none (1920)
+  # godot: Cards flip face-down → up on open (same tween as the Core reveal, Moss timing). No Skip, no Reroll. Keys 1-3 still select (not shown).
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  AnchorPick
+    Header
+      Title "Choose your Anchor"
+      ShardPill "0"
+    SubLine "Anchor = a rule that stays all run. Hold 2 of its House Cor…"
+    CardRow
+      AnchorCard
+        HouseGlyph
+        AnchorName "Volley"
+        HouseLine "House: Volley"
+        Summary "A matching group of 3+ dice also hits every enemy."
+        RuleBox "Rule Every turn a SET of 3+ fires once: all enemies take 40…"
+        AwakensBox "Awakens Thorn Storm The SET fires a second time when you us…"
+        HouseCores
+          HouseCoreChip "Shield Wave"
+          HouseCoreChip "Thorn Shield"
+          HouseCoreChip "Living Wall"
+          HouseCoreChip "Backline Glow"
+          HouseCoreChip "Take The Field"
+      AnchorCard
+        HouseGlyph
+        AnchorName "Gambler"
+        HouseLine "House: Gambler"
+        Summary "Safer rerolls (Gambles) that make your groups stronger."
+        RuleBox "Rule A clean Gamble (2+ dice, none Cracked): every SET this…"
+        AwakensBox "Awakens Second Wind Once per turn, when a Gamble Cracks, th…"
+        HouseCores
+          HouseCoreChip "Elder Trunk"
+          HouseCoreChip "Thorn Shield"
+          HouseCoreChip "Hollow Core"
+          HouseCoreChip "Mana Ward"
+          HouseCoreChip "Thorn Pact"
+      AnchorCard
+        LockedReason "Unlocks at stage 3 (needs Overcast)."
+        HouseGlyph
+        AnchorName "Mana Mine"
+        HouseLine "House: Mana Mine"
+        Summary "Make a group on your first roll and get extra Mana."
+        RuleBox "Rule When the first roll of a turn makes a SET: +2 mana. Ov…"
+        AwakensBox "Awakens Double Beat Overcast can be used twice per turn (th…"
+        HouseCores
+          HouseCoreChip "Mana Pool"
+          HouseCoreChip "Deep Current"
+          HouseCoreChip "Rising Wave"
+          HouseCoreChip "Overflow"
+          HouseCoreChip "Dewdrop"
+    Glossary "SET = 3+ dice that match and fire together. M = a die's dam…"
+    Footer
+      TakeButton "Pick an Anchor"
+
+=== 48-anchor-pick--none--1280 (1280)
+  # godot: Cards flip face-down → up on open (same tween as the Core reveal, Moss timing). No Skip, no Reroll. Keys 1-3 still select (not shown).
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  AnchorPick
+    Header
+      Title "Choose your Anchor"
+      ShardPill "0"
+    SubLine "Anchor = a rule that stays all run. Hold 2 of its House Cor…"
+    CardRow
+      AnchorCard
+        HouseGlyph
+        AnchorName "Volley"
+        HouseLine "House: Volley"
+        Summary "A matching group of 3+ dice also hits every enemy."
+        RuleBox "Rule Every turn a SET of 3+ fires once: all enemies take 40…"
+        AwakensBox "Awakens Thorn Storm The SET fires a second time when you us…"
+        HouseCores
+          HouseCoreChip "Shield Wave"
+          HouseCoreChip "Thorn Shield"
+          HouseCoreChip "Living Wall"
+          HouseCoreChip "Backline Glow"
+          HouseCoreChip "Take The Field"
+      AnchorCard
+        HouseGlyph
+        AnchorName "Gambler"
+        HouseLine "House: Gambler"
+        Summary "Safer rerolls (Gambles) that make your groups stronger."
+        RuleBox "Rule A clean Gamble (2+ dice, none Cracked): every SET this…"
+        AwakensBox "Awakens Second Wind Once per turn, when a Gamble Cracks, th…"
+        HouseCores
+          HouseCoreChip "Elder Trunk"
+          HouseCoreChip "Thorn Shield"
+          HouseCoreChip "Hollow Core"
+          HouseCoreChip "Mana Ward"
+          HouseCoreChip "Thorn Pact"
+      AnchorCard
+        LockedReason "Unlocks at stage 3 (needs Overcast)."
+        HouseGlyph
+        AnchorName "Mana Mine"
+        HouseLine "House: Mana Mine"
+        Summary "Make a group on your first roll and get extra Mana."
+        RuleBox "Rule When the first roll of a turn makes a SET: +2 mana. Ov…"
+        AwakensBox "Awakens Double Beat Overcast can be used twice per turn (th…"
+        HouseCores
+          HouseCoreChip "Mana Pool"
+          HouseCoreChip "Deep Current"
+          HouseCoreChip "Rising Wave"
+          HouseCoreChip "Overflow"
+          HouseCoreChip "Dewdrop"
+    Glossary "SET = 3+ dice that match and fire together. M = a die's dam…"
+    Footer
+      TakeButton "Pick an Anchor"
+
+=== 48-anchor-pick--picked (1920)
+  # godot: Cards flip face-down → up on open (same tween as the Core reveal, Moss timing). No Skip, no Reroll. Keys 1-3 still select (not shown).
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  AnchorPick
+    Header
+      Title "Choose your Anchor"
+      ShardPill "0"
+    SubLine "Anchor = a rule that stays all run. Hold 2 of its House Cor…"
+    CardRow
+      AnchorCard
+        HouseGlyph
+        AnchorName "Kin"
+        HouseLine "House: Kin"
+        Summary "Groups of the same class hit harder, mixed groups hit weake…"
+        RuleBox "Rule A SET with 3+ dice of the same class gets +0.30."
+        PriceBox "Price − A SET without 3+ dice of the same class gets -0.25."
+        AwakensBox "Awakens Unison First turn of each fight, Axies of the same …"
+        HouseCores
+          HouseCoreChip "Nest"
+          HouseCoreChip "Golden Egg"
+          HouseCoreChip "Bloodline Ward"
+          HouseCoreChip "Early Scales"
+          HouseCoreChip "Last Testament"
+      AnchorCard
+        HouseGlyph
+        AnchorName "Embers"
+        HouseLine "House: Embers"
+        Summary "Keep 2 dice for next turn and they hit much harder."
+        RuleBox "Rule You may Hold 2 dice; a Held die used next turn gets +2…"
+        PriceBox "Price − Only Held dice carry over."
+        AwakensBox "Awakens Passed Flame Once per turn a carried Held die joins…"
+        HouseCores
+          HouseCoreChip "Kindle"
+          HouseCoreChip "Smoldering Coals"
+          HouseCoreChip "Cache Plate"
+          HouseCoreChip "Three Dice"
+          HouseCoreChip "Overflow"
+      AnchorCard
+        HouseGlyph
+        AnchorName "Big Hand"
+        HouseLine "House: Big Hand"
+        Summary "Groups of 4 or 5 dice hit harder, groups of 3 get nothing."
+        RuleBox "Rule A SET of four or five gets +0.90 (a die's M never goes…"
+        PriceBox "Price − A SET of three (the most common) gets no bonus."
+        AwakensBox "Awakens Sixth Hand Each turn with a SET of four or more, ro…"
+        HouseCores
+          HouseCoreChip "Hunter's Reward"
+          HouseCoreChip "Golden Thread"
+          HouseCoreChip "Support Hand"
+          HouseCoreChip "Sixth Die"
+          HouseCoreChip "Final Blow"
+    Glossary "SET = 3+ dice that match and fire together. M = a die's dam…"
+    Footer
+      TakeButton
+        KeyCap "Space"
+
+=== 48-anchor-pick--picked--1280 (1280)
+  # godot: Cards flip face-down → up on open (same tween as the Core reveal, Moss timing). No Skip, no Reroll. Keys 1-3 still select (not shown).
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  AnchorPick
+    Header
+      Title "Choose your Anchor"
+      ShardPill "0"
+    SubLine "Anchor = a rule that stays all run. Hold 2 of its House Cor…"
+    CardRow
+      AnchorCard
+        HouseGlyph
+        AnchorName "Kin"
+        HouseLine "House: Kin"
+        Summary "Groups of the same class hit harder, mixed groups hit weake…"
+        RuleBox "Rule A SET with 3+ dice of the same class gets +0.30."
+        PriceBox "Price − A SET without 3+ dice of the same class gets -0.25."
+        AwakensBox "Awakens Unison First turn of each fight, Axies of the same …"
+        HouseCores
+          HouseCoreChip "Nest"
+          HouseCoreChip "Golden Egg"
+          HouseCoreChip "Bloodline Ward"
+          HouseCoreChip "Early Scales"
+          HouseCoreChip "Last Testament"
+      AnchorCard
+        HouseGlyph
+        AnchorName "Embers"
+        HouseLine "House: Embers"
+        Summary "Keep 2 dice for next turn and they hit much harder."
+        RuleBox "Rule You may Hold 2 dice; a Held die used next turn gets +2…"
+        PriceBox "Price − Only Held dice carry over."
+        AwakensBox "Awakens Passed Flame Once per turn a carried Held die joins…"
+        HouseCores
+          HouseCoreChip "Kindle"
+          HouseCoreChip "Smoldering Coals"
+          HouseCoreChip "Cache Plate"
+          HouseCoreChip "Three Dice"
+          HouseCoreChip "Overflow"
+      AnchorCard
+        HouseGlyph
+        AnchorName "Big Hand"
+        HouseLine "House: Big Hand"
+        Summary "Groups of 4 or 5 dice hit harder, groups of 3 get nothing."
+        RuleBox "Rule A SET of four or five gets +0.90 (a die's M never goes…"
+        PriceBox "Price − A SET of three (the most common) gets no bonus."
+        AwakensBox "Awakens Sixth Hand Each turn with a SET of four or more, ro…"
+        HouseCores
+          HouseCoreChip "Hunter's Reward"
+          HouseCoreChip "Golden Thread"
+          HouseCoreChip "Support Hand"
+          HouseCoreChip "Sixth Die"
+          HouseCoreChip "Final Blow"
+    Glossary "SET = 3+ dice that match and fire together. M = a die's dam…"
+    Footer
+      TakeButton
+        KeyCap "Space"
+
+=== 48-anchor-pick--gambler (1920)
+  # godot: Cards flip face-down → up on open (same tween as the Core reveal, Moss timing). No Skip, no Reroll. Keys 1-3 still select (not shown).
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  AnchorPick
+    Header
+      Title "Choose your Anchor"
+      ShardPill "0"
+    SubLine "Anchor = a rule that stays all run. Hold 2 of its House Cor…"
+    CardRow
+      AnchorCard
+        HouseGlyph
+        AnchorName "Gambler"
+        HouseLine "House: Gambler"
+        Summary "Safer rerolls (Gambles) that make your groups stronger."
+        RuleBox "Rule A clean Gamble (2+ dice, none Cracked): every SET this…"
+        AwakensBox "Awakens Second Wind Once per turn, when a Gamble Cracks, th…"
+        HouseCores
+          HouseCoreChip "Elder Trunk"
+          HouseCoreChip "Thorn Shield"
+          HouseCoreChip "Hollow Core"
+          HouseCoreChip "Mana Ward"
+          HouseCoreChip "Thorn Pact"
+      AnchorCard
+        HouseGlyph
+        AnchorName "Mana Mine"
+        HouseLine "House: Mana Mine"
+        Summary "Make a group on your first roll and get extra Mana."
+        RuleBox "Rule When the first roll of a turn makes a SET: +2 mana. Ov…"
+        AwakensBox "Awakens Double Beat Overcast can be used twice per turn (th…"
+        HouseCores
+          HouseCoreChip "Mana Pool"
+          HouseCoreChip "Deep Current"
+          HouseCoreChip "Rising Wave"
+          HouseCoreChip "Overflow"
+          HouseCoreChip "Dewdrop"
+      AnchorCard
+        HouseGlyph
+        AnchorName "Big Hand"
+        HouseLine "House: Big Hand"
+        Summary "Groups of 4 or 5 dice hit harder, groups of 3 get nothing."
+        RuleBox "Rule A SET of four or five gets +0.90 (a die's M never goes…"
+        PriceBox "Price − A SET of three (the most common) gets no bonus."
+        AwakensBox "Awakens Sixth Hand Each turn with a SET of four or more, ro…"
+        HouseCores
+          HouseCoreChip "Hunter's Reward"
+          HouseCoreChip "Golden Thread"
+          HouseCoreChip "Support Hand"
+          HouseCoreChip "Sixth Die"
+          HouseCoreChip "Final Blow"
+    Glossary "SET = 3+ dice that match and fire together. M = a die's dam…"
+    Footer
+      TakeButton
+        KeyCap "Space"
+
+=== 48-anchor-pick--gambler--1280 (1280)
+  # godot: Cards flip face-down → up on open (same tween as the Core reveal, Moss timing). No Skip, no Reroll. Keys 1-3 still select (not shown).
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  AnchorPick
+    Header
+      Title "Choose your Anchor"
+      ShardPill "0"
+    SubLine "Anchor = a rule that stays all run. Hold 2 of its House Cor…"
+    CardRow
+      AnchorCard
+        HouseGlyph
+        AnchorName "Gambler"
+        HouseLine "House: Gambler"
+        Summary "Safer rerolls (Gambles) that make your groups stronger."
+        RuleBox "Rule A clean Gamble (2+ dice, none Cracked): every SET this…"
+        AwakensBox "Awakens Second Wind Once per turn, when a Gamble Cracks, th…"
+        HouseCores
+          HouseCoreChip "Elder Trunk"
+          HouseCoreChip "Thorn Shield"
+          HouseCoreChip "Hollow Core"
+          HouseCoreChip "Mana Ward"
+          HouseCoreChip "Thorn Pact"
+      AnchorCard
+        HouseGlyph
+        AnchorName "Mana Mine"
+        HouseLine "House: Mana Mine"
+        Summary "Make a group on your first roll and get extra Mana."
+        RuleBox "Rule When the first roll of a turn makes a SET: +2 mana. Ov…"
+        AwakensBox "Awakens Double Beat Overcast can be used twice per turn (th…"
+        HouseCores
+          HouseCoreChip "Mana Pool"
+          HouseCoreChip "Deep Current"
+          HouseCoreChip "Rising Wave"
+          HouseCoreChip "Overflow"
+          HouseCoreChip "Dewdrop"
+      AnchorCard
+        HouseGlyph
+        AnchorName "Big Hand"
+        HouseLine "House: Big Hand"
+        Summary "Groups of 4 or 5 dice hit harder, groups of 3 get nothing."
+        RuleBox "Rule A SET of four or five gets +0.90 (a die's M never goes…"
+        PriceBox "Price − A SET of three (the most common) gets no bonus."
+        AwakensBox "Awakens Sixth Hand Each turn with a SET of four or more, ro…"
+        HouseCores
+          HouseCoreChip "Hunter's Reward"
+          HouseCoreChip "Golden Thread"
+          HouseCoreChip "Support Hand"
+          HouseCoreChip "Sixth Die"
+          HouseCoreChip "Final Blow"
+    Glossary "SET = 3+ dice that match and fire together. M = a die's dam…"
+    Footer
+      TakeButton
+        KeyCap "Space"

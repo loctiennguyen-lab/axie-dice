@@ -1,0 +1,437 @@
+# S7b: Raid
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-meta1-screens.html
+# So frame: 20 (10 id, tinh ca ban 1920 va 1280)
+# Tien to: r0 r10
+# Id frame:
+#   r01-raid--list
+#   r01-raid--list--1280
+#   r02-raid--defence-set
+#   r02-raid--defence-set--1280
+#   r03-raid--win
+#   r03-raid--win--1280
+#   r04-raid--loss-no-points
+#   r04-raid--loss-no-points--1280
+#   r05-raid--loading
+#   r05-raid--loading--1280
+#   r06-raid--empty
+#   r06-raid--empty--1280
+#   r07-raid--failed
+#   r07-raid--failed--1280
+#   r08-raid--guest
+#   r08-raid--guest--1280
+#   r09-raid--offline
+#   r09-raid--offline--1280
+#   r10-raid--starter-all-badges
+#   r10-raid--starter-all-badges--1280
+
+=== r01-raid--list (1920)
+  # godot: RaidScreen. Nobody loses anything. Fight opens the normal combat screen against the ghost.
+  Header
+    BackButton "←"
+    Title "Raid"
+    SubLine "Fight another player's defence team"
+  Body
+    TopPlate
+      PointsLine "Raid points 8 · Next badge at 10 points"
+      RuleLine "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You…"
+      TeamButton "Team: Thorn Wall"
+      DefenceButton "Set as defence team"
+    GhostList
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+
+=== r01-raid--list--1280 (1280)
+  # godot: RaidScreen. Nobody loses anything. Fight opens the normal combat screen against the ghost.
+  Header
+    BackButton "←"
+    Title "Raid"
+    SubLine "Fight another player's defence team"
+  Body
+    TopPlate
+      PointsLine "Raid points 8 · Next badge at 10 points"
+      RuleLine "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You…"
+      TeamButton "Team: Thorn Wall"
+      DefenceButton "Set as defence team"
+    GhostList
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+
+=== r02-raid--defence-set (1920)
+  # godot: RaidScreen. Nobody loses anything. Fight opens the normal combat screen against the ghost.
+  Header
+    BackButton "←"
+    Title "Raid"
+    SubLine "Fight another player's defence team"
+  Body
+    TopPlate
+      PointsLine "Raid points 8 · Next badge at 10 points"
+      RuleLine "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You…"
+      InfoLine
+        ToneDisc
+      TeamButton "Team: Thorn Wall"
+      DefenceButton "Set as defence team"
+    GhostList
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+
+=== r02-raid--defence-set--1280 (1280)
+  # godot: RaidScreen. Nobody loses anything. Fight opens the normal combat screen against the ghost.
+  Header
+    BackButton "←"
+    Title "Raid"
+    SubLine "Fight another player's defence team"
+  Body
+    TopPlate
+      PointsLine "Raid points 8 · Next badge at 10 points"
+      RuleLine "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You…"
+      InfoLine
+        ToneDisc
+      TeamButton "Team: Thorn Wall"
+      DefenceButton "Set as defence team"
+    GhostList
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+
+=== r03-raid--win (1920)
+  # godot: RaidScreen. Nobody loses anything. Fight opens the normal combat screen against the ghost.
+  Header
+    BackButton "←"
+    Title "Raid"
+    SubLine "Fight another player's defence team"
+  Body
+    TopPlate
+      PointsLine "Raid points 11 · Next badge at 30 points"
+      RuleLine "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You…"
+      InfoLine
+        ToneDisc
+      TeamButton "Team: Thorn Wall"
+      DefenceButton "Set as defence team"
+    GhostList
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+
+=== r03-raid--win--1280 (1280)
+  # godot: RaidScreen. Nobody loses anything. Fight opens the normal combat screen against the ghost.
+  Header
+    BackButton "←"
+    Title "Raid"
+    SubLine "Fight another player's defence team"
+  Body
+    TopPlate
+      PointsLine "Raid points 11 · Next badge at 30 points"
+      RuleLine "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You…"
+      InfoLine
+        ToneDisc
+      TeamButton "Team: Thorn Wall"
+      DefenceButton "Set as defence team"
+    GhostList
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+
+=== r04-raid--loss-no-points (1920)
+  # godot: RaidScreen. Nobody loses anything. Fight opens the normal combat screen against the ghost.
+  Header
+    BackButton "←"
+    Title "Raid"
+    SubLine "Fight another player's defence team"
+  Body
+    TopPlate
+      PointsLine "Raid points 8 · Next badge at 10 points"
+      RuleLine "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You…"
+      InfoLine
+        ToneDisc "i"
+      TeamButton "Team: Thorn Wall"
+      DefenceButton "Set as defence team"
+    GhostList
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+
+=== r04-raid--loss-no-points--1280 (1280)
+  # godot: RaidScreen. Nobody loses anything. Fight opens the normal combat screen against the ghost.
+  Header
+    BackButton "←"
+    Title "Raid"
+    SubLine "Fight another player's defence team"
+  Body
+    TopPlate
+      PointsLine "Raid points 8 · Next badge at 10 points"
+      RuleLine "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You…"
+      InfoLine
+        ToneDisc "i"
+      TeamButton "Team: Thorn Wall"
+      DefenceButton "Set as defence team"
+    GhostList
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+
+=== r05-raid--loading (1920)
+  # godot: RaidScreen. Nobody loses anything. Fight opens the normal combat screen against the ghost.
+  Header
+    BackButton "←"
+    Title "Raid"
+    SubLine "Fight another player's defence team"
+  Body
+    TopPlate
+      PointsLine "Raid points 8 · Next badge at 10 points"
+      RuleLine "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You…"
+      TeamButton "Team: Thorn Wall"
+      DefenceButton "Set as defence team"
+    GhostList
+
+=== r05-raid--loading--1280 (1280)
+  # godot: RaidScreen. Nobody loses anything. Fight opens the normal combat screen against the ghost.
+  Header
+    BackButton "←"
+    Title "Raid"
+    SubLine "Fight another player's defence team"
+  Body
+    TopPlate
+      PointsLine "Raid points 8 · Next badge at 10 points"
+      RuleLine "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You…"
+      TeamButton "Team: Thorn Wall"
+      DefenceButton "Set as defence team"
+    GhostList
+
+=== r06-raid--empty (1920)
+  # godot: RaidScreen. Nobody loses anything. Fight opens the normal combat screen against the ghost.
+  Header
+    BackButton "←"
+    Title "Raid"
+    SubLine "Fight another player's defence team"
+  Body
+    TopPlate
+      PointsLine "Raid points 8 · Next badge at 10 points"
+      RuleLine "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You…"
+      TeamButton "Team: Thorn Wall"
+      DefenceButton "Set as defence team"
+    GhostList
+      EmptyState "No ghosts yet. Set your own defence team, others will find …"
+
+=== r06-raid--empty--1280 (1280)
+  # godot: RaidScreen. Nobody loses anything. Fight opens the normal combat screen against the ghost.
+  Header
+    BackButton "←"
+    Title "Raid"
+    SubLine "Fight another player's defence team"
+  Body
+    TopPlate
+      PointsLine "Raid points 8 · Next badge at 10 points"
+      RuleLine "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You…"
+      TeamButton "Team: Thorn Wall"
+      DefenceButton "Set as defence team"
+    GhostList
+      EmptyState "No ghosts yet. Set your own defence team, others will find …"
+
+=== r07-raid--failed (1920)
+  # godot: RaidScreen. Nobody loses anything. Fight opens the normal combat screen against the ghost.
+  Header
+    BackButton "←"
+    Title "Raid"
+    SubLine "Fight another player's defence team"
+  Body
+    TopPlate
+      PointsLine "Raid points 8 · Next badge at 10 points"
+      RuleLine "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You…"
+      TeamButton "Team: Thorn Wall"
+      DefenceButton "Set as defence team"
+    GhostList
+      FailedState
+        ToneDisc "!"
+        RetryButton "Retry"
+
+=== r07-raid--failed--1280 (1280)
+  # godot: RaidScreen. Nobody loses anything. Fight opens the normal combat screen against the ghost.
+  Header
+    BackButton "←"
+    Title "Raid"
+    SubLine "Fight another player's defence team"
+  Body
+    TopPlate
+      PointsLine "Raid points 8 · Next badge at 10 points"
+      RuleLine "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You…"
+      TeamButton "Team: Thorn Wall"
+      DefenceButton "Set as defence team"
+    GhostList
+      FailedState
+        ToneDisc "!"
+        RetryButton "Retry"
+
+=== r08-raid--guest (1920)
+  # godot: RaidScreen. Nobody loses anything. Fight opens the normal combat screen against the ghost.
+  Header
+    BackButton "←"
+    Title "Raid"
+    SubLine "Fight another player's defence team"
+  Body
+    TopPlate
+      PointsLine "Raid points 8 · Next badge at 10 points"
+      RuleLine "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You…"
+      TeamButton "Team: Thorn Wall"
+      DefenceButton "Sign in to raid"
+    GhostList
+      FailedState
+        ToneDisc "i"
+
+=== r08-raid--guest--1280 (1280)
+  # godot: RaidScreen. Nobody loses anything. Fight opens the normal combat screen against the ghost.
+  Header
+    BackButton "←"
+    Title "Raid"
+    SubLine "Fight another player's defence team"
+  Body
+    TopPlate
+      PointsLine "Raid points 8 · Next badge at 10 points"
+      RuleLine "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You…"
+      TeamButton "Team: Thorn Wall"
+      DefenceButton "Sign in to raid"
+    GhostList
+      FailedState
+        ToneDisc "i"
+
+=== r09-raid--offline (1920)
+  # godot: RaidScreen. Nobody loses anything. Fight opens the normal combat screen against the ghost.
+  Header
+    BackButton "←"
+    Title "Raid"
+    SubLine "Fight another player's defence team"
+  Body
+    TopPlate
+      PointsLine "Raid points 8 · Next badge at 10 points"
+      RuleLine "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You…"
+      TeamButton "Team: Thorn Wall"
+      DefenceButton "Raids need a connection"
+    GhostList
+      FailedState
+        ToneDisc "i"
+
+=== r09-raid--offline--1280 (1280)
+  # godot: RaidScreen. Nobody loses anything. Fight opens the normal combat screen against the ghost.
+  Header
+    BackButton "←"
+    Title "Raid"
+    SubLine "Fight another player's defence team"
+  Body
+    TopPlate
+      PointsLine "Raid points 8 · Next badge at 10 points"
+      RuleLine "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You…"
+      TeamButton "Team: Thorn Wall"
+      DefenceButton "Raids need a connection"
+    GhostList
+      FailedState
+        ToneDisc "i"
+
+=== r10-raid--starter-all-badges (1920)
+  # godot: RaidScreen. Nobody loses anything. Fight opens the normal combat screen against the ghost.
+  Header
+    BackButton "←"
+    Title "Raid"
+    SubLine "Fight another player's defence team"
+  Body
+    TopPlate
+      PointsLine "Raid points 312 · All Raid badges earned"
+      RuleLine "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You…"
+      InfoLine
+        ToneDisc "i"
+      TeamButton "Team: Starter team"
+      DefenceButton "Set as defence team"
+    GhostList
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+
+=== r10-raid--starter-all-badges--1280 (1280)
+  # godot: RaidScreen. Nobody loses anything. Fight opens the normal combat screen against the ghost.
+  Header
+    BackButton "←"
+    Title "Raid"
+    SubLine "Fight another player's defence team"
+  Body
+    TopPlate
+      PointsLine "Raid points 312 · All Raid badges earned"
+      RuleLine "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You…"
+      InfoLine
+        ToneDisc "i"
+      TeamButton "Team: Starter team"
+      DefenceButton "Set as defence team"
+    GhostList
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"
+      GhostRow
+        FightButton "Fight"

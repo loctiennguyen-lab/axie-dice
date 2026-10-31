@@ -1,0 +1,678 @@
+# S1a: Land HUD: idle + state RunPlate + tooltip + tier plate
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-land-screens.html
+# So frame: 19 (10 id, tinh ca ban 1920 va 1280)
+# Tien to: 01-land--signed-in 01-land--guest 01-land--loading 01-land--continue-run 01-land--continue-mission 01-land--tier-up 01-land--tier6-max 01-land--tooltip-building 01-land--tooltip-lock components-land--sheet
+# Ghi chu: Chia 01-land (nua dau): idle (signed-in, guest), state RunPlate (loading, continue-run, continue-mission), land tier (tier-up, tier6-max), tooltip; + components-land--sheet.
+# Id frame:
+#   components-land--sheet
+#   01-land--signed-in
+#   01-land--signed-in--1280
+#   01-land--guest
+#   01-land--guest--1280
+#   01-land--continue-run
+#   01-land--continue-run--1280
+#   01-land--continue-mission
+#   01-land--continue-mission--1280
+#   01-land--tooltip-building
+#   01-land--tooltip-building--1280
+#   01-land--tooltip-lock
+#   01-land--tooltip-lock--1280
+#   01-land--tier-up
+#   01-land--tier-up--1280
+#   01-land--tier6-max
+#   01-land--tier6-max--1280
+#   01-land--loading
+#   01-land--loading--1280
+
+=== components-land--sheet (1920)
+  ComponentsLand
+    CurrencyShard "2,450"
+    CurrencyStone "3,200"
+    CurrencyGem "120"
+    CurrencyShard "···"
+    CurrencyStone "···"
+    CurrencyGem "···"
+    DailyRunButton "Daily run"
+    DailyRunClaimButton "Daily run · claim"
+    DailyRun2Of3Button "Daily run · 2 of 3"
+    DailyRunNeedsConnectionButton "Daily run · needs connection"
+    ToneDisc
+    ToneDisc "!"
+    ToneDisc "i"
+    Title "Season Pass"
+    Status "Reward ready to claim · Season 1 · ends 29 Dec 2026"
+    Title "Echo Box"
+    LockReason "Sign in to use"
+    StartRunButton
+      KeyCap "Space"
+    ContinueRunButton
+      KeyCap "Space"
+    ContinueMissionButton
+      KeyCap "Space"
+    SignInToPlayButton
+      KeyCap "Space"
+    StartRunNeedsConnectionButton "Start run · needs connection"
+    ReconnectingButton "Reconnecting…"
+    StartRunButton "Start run"
+
+=== 01-land--signed-in (1920)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    DailyButton "Daily run · claim"
+    RunPlate [320px]
+      KeyCap "Space"
+
+=== 01-land--signed-in--1280 (1280)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    DailyButton "Daily run · claim"
+    RunPlate [213px]
+      KeyCap "Space"
+
+=== 01-land--guest (1920)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "?"
+      Name "Guest"
+      SubLine "Sign in to save online"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+  RunRow
+    RunPlate [320px]
+      KeyCap "Space"
+
+=== 01-land--guest--1280 (1280)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "?"
+      Name "Guest"
+      SubLine "Sign in to save online"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+  RunRow
+    RunPlate [213px]
+      KeyCap "Space"
+
+=== 01-land--continue-run (1920)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    NewRunButton "New run"
+    DailyButton "Daily run · 2 of 3"
+    RunPlateTooltip "Normal · Ascension 2"
+    RunPlate [320px]
+      KeyCap "Space"
+
+=== 01-land--continue-run--1280 (1280)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    NewRunButton "New run"
+    DailyButton "Daily run · 2 of 3"
+    RunPlateTooltip "Normal · Ascension 2"
+    RunPlate [213px]
+      KeyCap "Space"
+
+=== 01-land--continue-mission (1920)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    NewRunButton "New run"
+    DailyButton "Daily run"
+    RunPlateTooltip "Mission N3 · stake 800"
+    RunPlate [320px]
+      KeyCap "Space"
+
+=== 01-land--continue-mission--1280 (1280)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    NewRunButton "New run"
+    DailyButton "Daily run"
+    RunPlateTooltip "Mission N3 · stake 800"
+    RunPlate [213px]
+      KeyCap "Space"
+
+=== 01-land--tooltip-building (1920)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    DailyButton "Daily run · claim"
+    RunPlate [320px]
+      KeyCap "Space"
+  BuildingTooltip [860px,270px]
+    Title "Echo Box"
+    Status "Free roll ready · Rolled on the server"
+
+=== 01-land--tooltip-building--1280 (1280)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    DailyButton "Daily run · claim"
+    RunPlate [213px]
+      KeyCap "Space"
+  BuildingTooltip [573px,180px]
+    Title "Echo Box"
+    Status "Free roll ready · Rolled on the server"
+
+=== 01-land--tooltip-lock (1920)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    DailyButton "Daily run · claim"
+    RunPlate [320px]
+      KeyCap "Space"
+  BuildingTooltip [1460px,470px]
+    Title "Missions"
+    LockReason "Opens after 5 runs"
+
+=== 01-land--tooltip-lock--1280 (1280)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Savannah 1/6 · Stone 3,200/20,000 · 16,800 t…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "3,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    DailyButton "Daily run · claim"
+    RunPlate [213px]
+      KeyCap "Space"
+  BuildingTooltip [973px,313px]
+    Title "Missions"
+    LockReason "Opens after 5 runs"
+
+=== 01-land--tier-up (1920)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  # godot: UI3.modal("Your Land is now %s", body, [Look around], 0). Once per tier. Plays the Land tier-up moment first.
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Forest 2/6 · Stone 6,500/100,000 · 93,500 to…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "6,500"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    DailyButton "Daily run · claim"
+    RunPlate [320px] "Start run"
+  Scrim
+  TierUpBanner
+    Title "Your Land is now Forest"
+    Body "Forest is open. Used 20,000 Stone."
+    NewList
+      NewRow "+3 preset slots: House"
+      NewRow "New decor set and +2 Rare decor: Edit Land"
+    Footer
+      LookAroundButton
+        KeyCap "Space"
+
+=== 01-land--tier-up--1280 (1280)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  # godot: UI3.modal("Your Land is now %s", body, [Look around], 0). Once per tier. Plays the Land tier-up moment first.
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · Forest 2/6 · Stone 6,500/100,000 · 93,500 to…"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "6,500"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    DailyButton "Daily run · claim"
+    RunPlate [213px] "Start run"
+  Scrim
+  TierUpBanner
+    Title "Your Land is now Forest"
+    Body "Forest is open. Used 20,000 Stone."
+    NewList
+      NewRow "+3 preset slots: House"
+      NewRow "New decor set and +2 Rare decor: Edit Land"
+    Footer
+      LookAroundButton
+        KeyCap "Space"
+
+=== 01-land--tier6-max (1920)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Luna Landing Land · max tier"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "41,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    DailyButton "Daily run · claim"
+    RunPlate [320px]
+      KeyCap "Space"
+
+=== 01-land--tier6-max--1280 (1280)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Luna Landing Land · max tier"
+  CurrencyPlate
+    ShardValue "2,450"
+    StoneValue "41,200"
+    GemValue "120"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    DailyButton "Daily run · claim"
+    RunPlate [213px]
+      KeyCap "Space"
+
+=== 01-land--loading (1920)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · ···"
+  CurrencyPlate
+    ShardValue "···"
+    StoneValue "···"
+    GemValue "···"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    DailyButton "Daily run · claim"
+    RunPlate [320px] "Loading…"
+
+=== 01-land--loading--1280 (1280)
+  # godot: Land HUD. Top-left ProfilePlate (P) + LandPlate (L). Top-right CurrencyPlate + Settings. Bottom-left LinksPlate. Bottom-right RunRow (right aligned).
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  TopLeft
+    ProfilePlate
+      Avatar "L"
+      Name "Liam"
+      SubLine "Best: A3"
+    LandPlate "Upgrade Land · ···"
+  CurrencyPlate
+    ShardValue "···"
+    StoneValue "···"
+    GemValue "···"
+    SettingsButton
+  LinksPlate
+    CodexButton "Codex"
+    EditLandButton "Edit Land"
+    RaidButton "Raid"
+    MoonCardButton "Moon Card · Coming soon"
+  RunRow
+    DailyButton "Daily run · claim"
+    RunPlate [213px] "Loading…"

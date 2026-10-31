@@ -309,7 +309,7 @@ func _mission_block(col: VBoxContainer, d: Dictionary) -> void:
 		st.add_child(row)
 		var icon_px := UI3Theme.size_of("icon_l")
 		row.add_child(PanelParts.icon_rect(UI3.currency_icon("cur_shard", icon_px), icon_px))
-		var line := PanelParts.text(TranslationServer.translate("Mission lost: your %s Shard stake is gone") % UI3.fmt(stake),
+		var line := PanelParts.text(TranslationServer.translate("Mission lost: your %s Shards stake is gone") % UI3.fmt(stake),
 			"text_title", "text", true)
 		line.name = "StakeLine"
 		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

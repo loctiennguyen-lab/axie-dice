@@ -70,6 +70,8 @@ static func _icon_of(c: Node) -> Control:
 		return c
 	if c.get_class() == "Control" and c.get_script() != null and String(c.get_script().get_global_name()) == "ActionGlyph":
 		return c
+	if c is PanelContainer and c.has_meta("tone"):
+		return c   # Ui5ToneDisc: a round glyph disc that stands in for an icon before a toast / notice line
 	if c is Label or c is Container and not (c is PanelContainer) and not (c is Button):
 		return null
 	var found: Control = null

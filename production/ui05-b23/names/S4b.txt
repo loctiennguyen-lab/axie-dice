@@ -1,0 +1,2369 @@
+# S4b: Tutorial
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-land-screens.html
+# So frame: 22 (11 id, tinh ca ban 1920 va 1280)
+# Tien to: 37-tutorial
+# Id frame:
+#   37-tutorial--welcome
+#   37-tutorial--welcome--1280
+#   37-tutorial--step1
+#   37-tutorial--step1--1280
+#   37-tutorial--step2
+#   37-tutorial--step2--1280
+#   37-tutorial--step4
+#   37-tutorial--step4--1280
+#   37-tutorial--free
+#   37-tutorial--free--1280
+#   37-tutorial--lost
+#   37-tutorial--lost--1280
+#   37-tutorial--reward-none
+#   37-tutorial--reward-none--1280
+#   37-tutorial--reward-picked
+#   37-tutorial--reward-picked--1280
+#   37-tutorial--starter-pack
+#   37-tutorial--starter-pack--1280
+#   37-tutorial--replay-end
+#   37-tutorial--replay-end--1280
+#   37-tutorial--skip-confirm
+#   37-tutorial--skip-confirm--1280
+
+=== 37-tutorial--welcome (1920)
+  # godot: EnemyColumn = VBox anchored top-right (margin 24), gap 12: EnemyPlate × n, then AttritionCard. Same place as UI-04.
+  # godot: world label above the Axie head
+  # godot: DiceDock = VBox(SetBanners HBox, HeaderRow, HBox(DieCard×5)). No panel behind the cards. SetBanners keeps its height when empty so the tray never jumps.
+  # godot: TutorialCoach curtain over the real combat. Title banner size, body 560, one primary L (focus, Space) + Skip tutorial (secondary S).
+  SafeParty [150px,370px 540pxx360px] "party · keep clear"
+  SafeEnemy1 [1092px,418px 120pxx110px] "enemy"
+  SafeEnemy2 [1088px,612px 190pxx112px] "enemy"
+  ScenePortal [1370px,450px 140pxx240px] "portal (scene)"
+  RunInfo
+    MenuButton
+    RunPill
+      FightLabel "Fight 4 of 18"
+      AscensionChip "A6"
+      TurnChip "Turn 1"
+      ShardChip "0"
+  EnemyColumn
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    EnemyCluster1
+      EnemyPlate
+        EnemyMain
+          EnemyName "Ravenling"
+          HPValue "19 / 19"
+          HPBar
+        IntentBlock
+          IntentValue "8"
+          IntentVerb "ATTACK"
+    EnemyCluster2
+      EnemyPlate
+        EnemyMain
+          EnemyName "Bomblet"
+          HPValue "13 / 13"
+          HPBar
+        IntentBlock
+          IntentValue "11"
+          IntentVerb "ATTACK"
+  StatusChip [186px,574px] "2"
+  StatusChip [538px,394px] "2"
+  AidZone
+    AidButton "Aid 0 of 6 used"
+  DiceDock
+    SetBanners
+    DiceHeader "FRONT BACK"
+    DiceRow
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      DieCard1
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Horn"
+        OwnerRow
+          OwnerName "Olek"
+          OwnerHP "17/17"
+        OwnerHPBar
+      DieCard2
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Mouth"
+        OwnerRow
+          OwnerName "Buba"
+          OwnerHP "12/12"
+        OwnerHPBar
+      DieCard3
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "HEAL"
+        PartRow
+          PartChip "Eyes"
+        OwnerRow
+          OwnerName "Puffy"
+          OwnerHP "13/13"
+        OwnerHPBar
+      DieCard4
+        Die
+          FaceValue "4"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Back"
+        OwnerRow
+          OwnerName "Machito"
+          OwnerHP "16/16"
+        OwnerHPBar
+      DieCard5
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Tail"
+        OwnerRow
+          OwnerName "Pomodor"
+          OwnerHP "14/14"
+        OwnerHPBar
+  ActionDock
+    ToolKeys
+      UndoKey "Undo"
+      HoldKey "Hold"
+      WildKey "✦ Wild"
+      OvercastKey "ϟ Overcast"
+    RerollButton
+      CostChip "1"
+    EndTurnButton "End turn"
+    StatusLine "5 dice unused"
+  Scrim
+  Curtain
+    Title "Welcome to Axie Dice!"
+    Body "Every Axie is a die, and every face is a real body part. Le…"
+    CtaButton
+      KeyCap "Space"
+    SkipTutorialButton "Skip tutorial"
+
+=== 37-tutorial--welcome--1280 (1280)
+  # godot: EnemyColumn = VBox anchored top-right (margin 24), gap 12: EnemyPlate × n, then AttritionCard. Same place as UI-04.
+  # godot: world label above the Axie head
+  # godot: DiceDock = VBox(SetBanners HBox, HeaderRow, HBox(DieCard×5)). No panel behind the cards. SetBanners keeps its height when empty so the tray never jumps.
+  # godot: TutorialCoach curtain over the real combat. Title banner size, body 560, one primary L (focus, Space) + Skip tutorial (secondary S).
+  SafeParty [100px,247px 360pxx240px] "party · keep clear"
+  SafeEnemy1 [728px,279px 80pxx73px] "enemy"
+  SafeEnemy2 [725px,408px 127pxx75px] "enemy"
+  ScenePortal [913px,300px 93pxx160px] "portal (scene)"
+  RunInfo
+    MenuButton
+    RunPill
+      FightLabel "Fight 4 of 18"
+      AscensionChip "A6"
+      TurnChip "Turn 1"
+      ShardChip "0"
+  EnemyColumn
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    EnemyCluster1
+      EnemyPlate
+        EnemyMain
+          EnemyName "Ravenling"
+          HPValue "19 / 19"
+          HPBar
+        IntentBlock
+          IntentValue "8"
+          IntentVerb "ATTACK"
+    EnemyCluster2
+      EnemyPlate
+        EnemyMain
+          EnemyName "Bomblet"
+          HPValue "13 / 13"
+          HPBar
+        IntentBlock
+          IntentValue "11"
+          IntentVerb "ATTACK"
+  StatusChip [124px,383px] "2"
+  StatusChip [359px,263px] "2"
+  AidZone
+    AidButton "Aid 0 of 6 used"
+  DiceDock
+    SetBanners
+    DiceHeader "FRONT BACK"
+    DiceRow
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      DieCard1
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Horn"
+        OwnerRow
+          OwnerName "Olek"
+          OwnerHP "17/17"
+        OwnerHPBar
+      DieCard2
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Mouth"
+        OwnerRow
+          OwnerName "Buba"
+          OwnerHP "12/12"
+        OwnerHPBar
+      DieCard3
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "HEAL"
+        PartRow
+          PartChip "Eyes"
+        OwnerRow
+          OwnerName "Puffy"
+          OwnerHP "13/13"
+        OwnerHPBar
+      DieCard4
+        Die
+          FaceValue "4"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Back"
+        OwnerRow
+          OwnerName "Machito"
+          OwnerHP "16/16"
+        OwnerHPBar
+      DieCard5
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Tail"
+        OwnerRow
+          OwnerName "Pomodor"
+          OwnerHP "14/14"
+        OwnerHPBar
+  ActionDock
+    ToolKeys
+      UndoKey "Undo"
+      HoldKey "Hold"
+      WildKey "✦ Wild"
+      OvercastKey "ϟ Overcast"
+    RerollButton
+      CostChip "1"
+    EndTurnButton "End turn"
+    StatusLine "5 dice unused"
+  Scrim
+  Curtain
+    Title "Welcome to Axie Dice!"
+    Body "Every Axie is a die, and every face is a real body part. Le…"
+    CtaButton
+      KeyCap "Space"
+    SkipTutorialButton "Skip tutorial"
+
+=== 37-tutorial--step1 (1920)
+  # godot: EnemyColumn = VBox anchored top-right (margin 24), gap 12: EnemyPlate × n, then AttritionCard. Same place as UI-04.
+  # godot: world label above the Axie head
+  # godot: DiceDock = VBox(SetBanners HBox, HeaderRow, HBox(DieCard×5)). No panel behind the cards. SetBanners keeps its height when empty so the tray never jumps.
+  # godot: TutorialCoach step card, 640 plate beside the spotlight. Got it has focus (Space).
+  SafeParty [150px,370px 540pxx360px] "party · keep clear"
+  SafeEnemy1 [1092px,418px 120pxx110px] "enemy"
+  SafeEnemy2 [1088px,612px 190pxx112px] "enemy"
+  ScenePortal [1370px,450px 140pxx240px] "portal (scene)"
+  RunInfo
+    MenuButton
+    RunPill
+      FightLabel "Fight 4 of 18"
+      AscensionChip "A6"
+      TurnChip "Turn 1"
+      ShardChip "0"
+  EnemyColumn
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    EnemyCluster1
+      EnemyPlate
+        EnemyMain
+          EnemyName "Ravenling"
+          HPValue "19 / 19"
+          HPBar
+        IntentBlock
+          IntentValue "8"
+          IntentVerb "ATTACK"
+    EnemyCluster2
+      EnemyPlate
+        EnemyMain
+          EnemyName "Bomblet"
+          HPValue "13 / 13"
+          HPBar
+        IntentBlock
+          IntentValue "11"
+          IntentVerb "ATTACK"
+  StatusChip [186px,574px] "2"
+  StatusChip [538px,394px] "2"
+  AidZone
+    AidButton "Aid 0 of 6 used"
+  DiceDock
+    SetBanners
+    DiceHeader "FRONT BACK"
+    DiceRow
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      DieCard1
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Horn"
+        OwnerRow
+          OwnerName "Olek"
+          OwnerHP "17/17"
+        OwnerHPBar
+      DieCard2
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Mouth"
+        OwnerRow
+          OwnerName "Buba"
+          OwnerHP "12/12"
+        OwnerHPBar
+      DieCard3
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "HEAL"
+        PartRow
+          PartChip "Eyes"
+        OwnerRow
+          OwnerName "Puffy"
+          OwnerHP "13/13"
+        OwnerHPBar
+      DieCard4
+        Die
+          FaceValue "4"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Back"
+        OwnerRow
+          OwnerName "Machito"
+          OwnerHP "16/16"
+        OwnerHPBar
+      DieCard5
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Tail"
+        OwnerRow
+          OwnerName "Pomodor"
+          OwnerHP "14/14"
+        OwnerHPBar
+  ActionDock
+    ToolKeys
+      UndoKey "Undo"
+      HoldKey "Hold"
+      WildKey "✦ Wild"
+      OvercastKey "ϟ Overcast"
+    RerollButton
+      CostChip "1"
+    EndTurnButton "End turn"
+    StatusLine "5 dice unused"
+  Spotlight [552px,800px 816pxx260px]
+  StepCard [640px,480px]
+    StepLabel "STEP 1 OF 6"
+    Title "These five are your team"
+    Body "Each card is one Axie's die, showing the face it just rolle…"
+    SkipButton "Skip tutorial"
+    GotItButton
+      KeyCap "Space"
+
+=== 37-tutorial--step1--1280 (1280)
+  # godot: EnemyColumn = VBox anchored top-right (margin 24), gap 12: EnemyPlate × n, then AttritionCard. Same place as UI-04.
+  # godot: world label above the Axie head
+  # godot: DiceDock = VBox(SetBanners HBox, HeaderRow, HBox(DieCard×5)). No panel behind the cards. SetBanners keeps its height when empty so the tray never jumps.
+  # godot: TutorialCoach step card, 640 plate beside the spotlight. Got it has focus (Space).
+  SafeParty [100px,247px 360pxx240px] "party · keep clear"
+  SafeEnemy1 [728px,279px 80pxx73px] "enemy"
+  SafeEnemy2 [725px,408px 127pxx75px] "enemy"
+  ScenePortal [913px,300px 93pxx160px] "portal (scene)"
+  RunInfo
+    MenuButton
+    RunPill
+      FightLabel "Fight 4 of 18"
+      AscensionChip "A6"
+      TurnChip "Turn 1"
+      ShardChip "0"
+  EnemyColumn
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    EnemyCluster1
+      EnemyPlate
+        EnemyMain
+          EnemyName "Ravenling"
+          HPValue "19 / 19"
+          HPBar
+        IntentBlock
+          IntentValue "8"
+          IntentVerb "ATTACK"
+    EnemyCluster2
+      EnemyPlate
+        EnemyMain
+          EnemyName "Bomblet"
+          HPValue "13 / 13"
+          HPBar
+        IntentBlock
+          IntentValue "11"
+          IntentVerb "ATTACK"
+  StatusChip [124px,383px] "2"
+  StatusChip [359px,263px] "2"
+  AidZone
+    AidButton "Aid 0 of 6 used"
+  DiceDock
+    SetBanners
+    DiceHeader "FRONT BACK"
+    DiceRow
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      DieCard1
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Horn"
+        OwnerRow
+          OwnerName "Olek"
+          OwnerHP "17/17"
+        OwnerHPBar
+      DieCard2
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Mouth"
+        OwnerRow
+          OwnerName "Buba"
+          OwnerHP "12/12"
+        OwnerHPBar
+      DieCard3
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "HEAL"
+        PartRow
+          PartChip "Eyes"
+        OwnerRow
+          OwnerName "Puffy"
+          OwnerHP "13/13"
+        OwnerHPBar
+      DieCard4
+        Die
+          FaceValue "4"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Back"
+        OwnerRow
+          OwnerName "Machito"
+          OwnerHP "16/16"
+        OwnerHPBar
+      DieCard5
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Tail"
+        OwnerRow
+          OwnerName "Pomodor"
+          OwnerHP "14/14"
+        OwnerHPBar
+  ActionDock
+    ToolKeys
+      UndoKey "Undo"
+      HoldKey "Hold"
+      WildKey "✦ Wild"
+      OvercastKey "ϟ Overcast"
+    RerollButton
+      CostChip "1"
+    EndTurnButton "End turn"
+    StatusLine "5 dice unused"
+  Spotlight [368px,533px 544pxx173px]
+  StepCard [427px,320px]
+    StepLabel "STEP 1 OF 6"
+    Title "These five are your team"
+    Body "Each card is one Axie's die, showing the face it just rolle…"
+    SkipButton "Skip tutorial"
+    GotItButton
+      KeyCap "Space"
+
+=== 37-tutorial--step2 (1920)
+  # godot: EnemyColumn = VBox anchored top-right (margin 24), gap 12: EnemyPlate × n, then AttritionCard. Same place as UI-04.
+  # godot: world label above the Axie head
+  # godot: DiceDock = VBox(SetBanners HBox, HeaderRow, HBox(DieCard×5)). No panel behind the cards. SetBanners keeps its height when empty so the tray never jumps.
+  # godot: TutorialCoach step card, 640 plate beside the spotlight. Got it has focus (Space).
+  SafeParty [150px,370px 540pxx360px] "party · keep clear"
+  SafeEnemy1 [1092px,418px 120pxx110px] "enemy"
+  SafeEnemy2 [1088px,612px 190pxx112px] "enemy"
+  ScenePortal [1370px,450px 140pxx240px] "portal (scene)"
+  RunInfo
+    MenuButton
+    RunPill
+      FightLabel "Fight 4 of 18"
+      AscensionChip "A6"
+      TurnChip "Turn 1"
+      ShardChip "0"
+  EnemyColumn
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    EnemyCluster1
+      EnemyPlate
+        EnemyMain
+          EnemyName "Ravenling"
+          HPValue "19 / 19"
+          HPBar
+        IntentBlock
+          IntentValue "8"
+          IntentVerb "ATTACK"
+    EnemyCluster2
+      EnemyPlate
+        EnemyMain
+          EnemyName "Bomblet"
+          HPValue "13 / 13"
+          HPBar
+        IntentBlock
+          IntentValue "11"
+          IntentVerb "ATTACK"
+  StatusChip [186px,574px] "2"
+  StatusChip [538px,394px] "2"
+  AidZone
+    AidButton "Aid 0 of 6 used"
+  DiceDock
+    SetBanners
+    DiceHeader "FRONT BACK"
+    DiceRow
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      DieCard1
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Horn"
+        OwnerRow
+          OwnerName "Olek"
+          OwnerHP "17/17"
+        OwnerHPBar
+      DieCard2
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Mouth"
+        OwnerRow
+          OwnerName "Buba"
+          OwnerHP "12/12"
+        OwnerHPBar
+      DieCard3
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "HEAL"
+        PartRow
+          PartChip "Eyes"
+        OwnerRow
+          OwnerName "Puffy"
+          OwnerHP "13/13"
+        OwnerHPBar
+      DieCard4
+        Die
+          FaceValue "4"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Back"
+        OwnerRow
+          OwnerName "Machito"
+          OwnerHP "16/16"
+        OwnerHPBar
+      DieCard5
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Tail"
+        OwnerRow
+          OwnerName "Pomodor"
+          OwnerHP "14/14"
+        OwnerHPBar
+  ActionDock
+    ToolKeys
+      UndoKey "Undo"
+      HoldKey "Hold"
+      WildKey "✦ Wild"
+      OvercastKey "ϟ Overcast"
+    RerollButton
+      CostChip "1"
+    EndTurnButton "End turn"
+    StatusLine "5 dice unused"
+  Spotlight [1520px,20px 390pxx330px]
+  StepCard [840px,40px]
+    StepLabel "STEP 2 OF 6"
+    Title "The enemy shows its hand"
+    Body "That badge above its head is exactly what it will do on its…"
+    SkipButton "Skip tutorial"
+    GotItButton
+      KeyCap "Space"
+
+=== 37-tutorial--step2--1280 (1280)
+  # godot: EnemyColumn = VBox anchored top-right (margin 24), gap 12: EnemyPlate × n, then AttritionCard. Same place as UI-04.
+  # godot: world label above the Axie head
+  # godot: DiceDock = VBox(SetBanners HBox, HeaderRow, HBox(DieCard×5)). No panel behind the cards. SetBanners keeps its height when empty so the tray never jumps.
+  # godot: TutorialCoach step card, 640 plate beside the spotlight. Got it has focus (Space).
+  SafeParty [100px,247px 360pxx240px] "party · keep clear"
+  SafeEnemy1 [728px,279px 80pxx73px] "enemy"
+  SafeEnemy2 [725px,408px 127pxx75px] "enemy"
+  ScenePortal [913px,300px 93pxx160px] "portal (scene)"
+  RunInfo
+    MenuButton
+    RunPill
+      FightLabel "Fight 4 of 18"
+      AscensionChip "A6"
+      TurnChip "Turn 1"
+      ShardChip "0"
+  EnemyColumn
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    EnemyCluster1
+      EnemyPlate
+        EnemyMain
+          EnemyName "Ravenling"
+          HPValue "19 / 19"
+          HPBar
+        IntentBlock
+          IntentValue "8"
+          IntentVerb "ATTACK"
+    EnemyCluster2
+      EnemyPlate
+        EnemyMain
+          EnemyName "Bomblet"
+          HPValue "13 / 13"
+          HPBar
+        IntentBlock
+          IntentValue "11"
+          IntentVerb "ATTACK"
+  StatusChip [124px,383px] "2"
+  StatusChip [359px,263px] "2"
+  AidZone
+    AidButton "Aid 0 of 6 used"
+  DiceDock
+    SetBanners
+    DiceHeader "FRONT BACK"
+    DiceRow
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      DieCard1
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Horn"
+        OwnerRow
+          OwnerName "Olek"
+          OwnerHP "17/17"
+        OwnerHPBar
+      DieCard2
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Mouth"
+        OwnerRow
+          OwnerName "Buba"
+          OwnerHP "12/12"
+        OwnerHPBar
+      DieCard3
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "HEAL"
+        PartRow
+          PartChip "Eyes"
+        OwnerRow
+          OwnerName "Puffy"
+          OwnerHP "13/13"
+        OwnerHPBar
+      DieCard4
+        Die
+          FaceValue "4"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Back"
+        OwnerRow
+          OwnerName "Machito"
+          OwnerHP "16/16"
+        OwnerHPBar
+      DieCard5
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Tail"
+        OwnerRow
+          OwnerName "Pomodor"
+          OwnerHP "14/14"
+        OwnerHPBar
+  ActionDock
+    ToolKeys
+      UndoKey "Undo"
+      HoldKey "Hold"
+      WildKey "✦ Wild"
+      OvercastKey "ϟ Overcast"
+    RerollButton
+      CostChip "1"
+    EndTurnButton "End turn"
+    StatusLine "5 dice unused"
+  Spotlight [1013px,13px 260pxx220px]
+  StepCard [560px,27px]
+    StepLabel "STEP 2 OF 6"
+    Title "The enemy shows its hand"
+    Body "That badge above its head is exactly what it will do on its…"
+    SkipButton "Skip tutorial"
+    GotItButton
+      KeyCap "Space"
+
+=== 37-tutorial--step4 (1920)
+  # godot: EnemyColumn = VBox anchored top-right (margin 24), gap 12: EnemyPlate × n, then AttritionCard. Same place as UI-04.
+  # godot: world label above the Axie head
+  # godot: DiceDock = VBox(SetBanners HBox, HeaderRow, HBox(DieCard×5)). No panel behind the cards. SetBanners keeps its height when empty so the tray never jumps.
+  # godot: TutorialCoach step card, 640 plate beside the spotlight. No button: the player does the action in the hole.
+  SafeParty [150px,370px 540pxx360px] "party · keep clear"
+  SafeEnemy1 [1092px,418px 120pxx110px] "enemy"
+  SafeEnemy2 [1088px,612px 190pxx112px] "enemy"
+  ScenePortal [1370px,450px 140pxx240px] "portal (scene)"
+  RunInfo
+    MenuButton
+    RunPill
+      FightLabel "Fight 4 of 18"
+      AscensionChip "A6"
+      TurnChip "Turn 1"
+      ShardChip "0"
+  EnemyColumn
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    EnemyCluster1
+      EnemyPlate
+        EnemyMain
+          EnemyName "Ravenling"
+          HPValue "19 / 19"
+          HPBar
+        IntentBlock
+          IntentValue "8"
+          IntentVerb "ATTACK"
+    EnemyCluster2
+      EnemyPlate
+        EnemyMain
+          EnemyName "Bomblet"
+          HPValue "13 / 13"
+          HPBar
+        IntentBlock
+          IntentValue "11"
+          IntentVerb "ATTACK"
+  StatusChip [186px,574px] "2"
+  StatusChip [538px,394px] "2"
+  AidZone
+    AidButton "Aid 0 of 6 used"
+  DiceDock
+    SetBanners
+    DiceHeader "FRONT BACK"
+    DiceRow
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      DieCard1
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Horn"
+        OwnerRow
+          OwnerName "Olek"
+          OwnerHP "17/17"
+        OwnerHPBar
+      DieCard2
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Mouth"
+        OwnerRow
+          OwnerName "Buba"
+          OwnerHP "12/12"
+        OwnerHPBar
+      DieCard3
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "HEAL"
+        PartRow
+          PartChip "Eyes"
+        OwnerRow
+          OwnerName "Puffy"
+          OwnerHP "13/13"
+        OwnerHPBar
+      DieCard4
+        Die
+          FaceValue "4"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Back"
+        OwnerRow
+          OwnerName "Machito"
+          OwnerHP "16/16"
+        OwnerHPBar
+      DieCard5
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Tail"
+        OwnerRow
+          OwnerName "Pomodor"
+          OwnerHP "14/14"
+        OwnerHPBar
+  ActionDock
+    ToolKeys
+      UndoKey "Undo"
+      HoldKey "Hold"
+      WildKey "✦ Wild"
+      OvercastKey "ϟ Overcast"
+    RerollButton
+      CostChip "1"
+    EndTurnButton "End turn"
+    StatusLine "5 dice unused"
+  Spotlight [712px,830px 160pxx240px]
+  StepCard [460px,520px]
+    StepLabel "STEP 4 OF 6"
+    Title "Pick this die"
+    Body "It rolled an attack face. Click it to pick it up. The highl…"
+    SkipButton "Skip tutorial"
+
+=== 37-tutorial--step4--1280 (1280)
+  # godot: EnemyColumn = VBox anchored top-right (margin 24), gap 12: EnemyPlate × n, then AttritionCard. Same place as UI-04.
+  # godot: world label above the Axie head
+  # godot: DiceDock = VBox(SetBanners HBox, HeaderRow, HBox(DieCard×5)). No panel behind the cards. SetBanners keeps its height when empty so the tray never jumps.
+  # godot: TutorialCoach step card, 640 plate beside the spotlight. No button: the player does the action in the hole.
+  SafeParty [100px,247px 360pxx240px] "party · keep clear"
+  SafeEnemy1 [728px,279px 80pxx73px] "enemy"
+  SafeEnemy2 [725px,408px 127pxx75px] "enemy"
+  ScenePortal [913px,300px 93pxx160px] "portal (scene)"
+  RunInfo
+    MenuButton
+    RunPill
+      FightLabel "Fight 4 of 18"
+      AscensionChip "A6"
+      TurnChip "Turn 1"
+      ShardChip "0"
+  EnemyColumn
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    EnemyCluster1
+      EnemyPlate
+        EnemyMain
+          EnemyName "Ravenling"
+          HPValue "19 / 19"
+          HPBar
+        IntentBlock
+          IntentValue "8"
+          IntentVerb "ATTACK"
+    EnemyCluster2
+      EnemyPlate
+        EnemyMain
+          EnemyName "Bomblet"
+          HPValue "13 / 13"
+          HPBar
+        IntentBlock
+          IntentValue "11"
+          IntentVerb "ATTACK"
+  StatusChip [124px,383px] "2"
+  StatusChip [359px,263px] "2"
+  AidZone
+    AidButton "Aid 0 of 6 used"
+  DiceDock
+    SetBanners
+    DiceHeader "FRONT BACK"
+    DiceRow
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      DieCard1
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Horn"
+        OwnerRow
+          OwnerName "Olek"
+          OwnerHP "17/17"
+        OwnerHPBar
+      DieCard2
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Mouth"
+        OwnerRow
+          OwnerName "Buba"
+          OwnerHP "12/12"
+        OwnerHPBar
+      DieCard3
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "HEAL"
+        PartRow
+          PartChip "Eyes"
+        OwnerRow
+          OwnerName "Puffy"
+          OwnerHP "13/13"
+        OwnerHPBar
+      DieCard4
+        Die
+          FaceValue "4"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Back"
+        OwnerRow
+          OwnerName "Machito"
+          OwnerHP "16/16"
+        OwnerHPBar
+      DieCard5
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Tail"
+        OwnerRow
+          OwnerName "Pomodor"
+          OwnerHP "14/14"
+        OwnerHPBar
+  ActionDock
+    ToolKeys
+      UndoKey "Undo"
+      HoldKey "Hold"
+      WildKey "✦ Wild"
+      OvercastKey "ϟ Overcast"
+    RerollButton
+      CostChip "1"
+    EndTurnButton "End turn"
+    StatusLine "5 dice unused"
+  Spotlight [475px,553px 107pxx160px]
+  StepCard [307px,347px]
+    StepLabel "STEP 4 OF 6"
+    Title "Pick this die"
+    Body "It rolled an attack face. Click it to pick it up. The highl…"
+    SkipButton "Skip tutorial"
+
+=== 37-tutorial--free (1920)
+  # godot: EnemyColumn = VBox anchored top-right (margin 24), gap 12: EnemyPlate × n, then AttritionCard. Same place as UI-04.
+  # godot: world label above the Axie head
+  # godot: DiceDock = VBox(SetBanners HBox, HeaderRow, HBox(DieCard×5)). No panel behind the cards. SetBanners keeps its height when empty so the tray never jumps.
+  # godot: TutorialCoach step card, 640 plate beside the spotlight. No button: the player does the action in the hole.
+  SafeParty [150px,370px 540pxx360px] "party · keep clear"
+  SafeEnemy1 [1092px,418px 120pxx110px] "enemy"
+  SafeEnemy2 [1088px,612px 190pxx112px] "enemy"
+  ScenePortal [1370px,450px 140pxx240px] "portal (scene)"
+  RunInfo
+    MenuButton
+    RunPill
+      FightLabel "Fight 4 of 18"
+      AscensionChip "A6"
+      TurnChip "Turn 1"
+      ShardChip "0"
+  EnemyColumn
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    EnemyCluster1
+      EnemyPlate
+        EnemyMain
+          EnemyName "Ravenling"
+          HPValue "19 / 19"
+          HPBar
+        IntentBlock
+          IntentValue "8"
+          IntentVerb "ATTACK"
+    EnemyCluster2
+      EnemyPlate
+        EnemyMain
+          EnemyName "Bomblet"
+          HPValue "13 / 13"
+          HPBar
+        IntentBlock
+          IntentValue "11"
+          IntentVerb "ATTACK"
+  StatusChip [186px,574px] "2"
+  StatusChip [538px,394px] "2"
+  AidZone
+    AidButton "Aid 0 of 6 used"
+  DiceDock
+    SetBanners
+    DiceHeader "FRONT BACK"
+    DiceRow
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      DieCard1
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Horn"
+        OwnerRow
+          OwnerName "Olek"
+          OwnerHP "17/17"
+        OwnerHPBar
+      DieCard2
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Mouth"
+        OwnerRow
+          OwnerName "Buba"
+          OwnerHP "12/12"
+        OwnerHPBar
+      DieCard3
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "HEAL"
+        PartRow
+          PartChip "Eyes"
+        OwnerRow
+          OwnerName "Puffy"
+          OwnerHP "13/13"
+        OwnerHPBar
+      DieCard4
+        Die
+          FaceValue "4"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Back"
+        OwnerRow
+          OwnerName "Machito"
+          OwnerHP "16/16"
+        OwnerHPBar
+      DieCard5
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Tail"
+        OwnerRow
+          OwnerName "Pomodor"
+          OwnerHP "14/14"
+        OwnerHPBar
+  ActionDock
+    ToolKeys
+      UndoKey "Undo"
+      HoldKey "Hold"
+      WildKey "✦ Wild"
+      OvercastKey "ϟ Overcast"
+    RerollButton
+      CostChip "1"
+    EndTurnButton "End turn Space"
+    StatusLine "5 dice unused"
+  Scrim
+  StepCard [640px,360px]
+    Title "Over to you"
+    Body "That's the whole loop. Finish the fight. Everything on this…"
+    SkipButton "Skip tutorial"
+
+=== 37-tutorial--free--1280 (1280)
+  # godot: EnemyColumn = VBox anchored top-right (margin 24), gap 12: EnemyPlate × n, then AttritionCard. Same place as UI-04.
+  # godot: world label above the Axie head
+  # godot: DiceDock = VBox(SetBanners HBox, HeaderRow, HBox(DieCard×5)). No panel behind the cards. SetBanners keeps its height when empty so the tray never jumps.
+  # godot: TutorialCoach step card, 640 plate beside the spotlight. No button: the player does the action in the hole.
+  SafeParty [100px,247px 360pxx240px] "party · keep clear"
+  SafeEnemy1 [728px,279px 80pxx73px] "enemy"
+  SafeEnemy2 [725px,408px 127pxx75px] "enemy"
+  ScenePortal [913px,300px 93pxx160px] "portal (scene)"
+  RunInfo
+    MenuButton
+    RunPill
+      FightLabel "Fight 4 of 18"
+      AscensionChip "A6"
+      TurnChip "Turn 1"
+      ShardChip "0"
+  EnemyColumn
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    EnemyCluster1
+      EnemyPlate
+        EnemyMain
+          EnemyName "Ravenling"
+          HPValue "19 / 19"
+          HPBar
+        IntentBlock
+          IntentValue "8"
+          IntentVerb "ATTACK"
+    EnemyCluster2
+      EnemyPlate
+        EnemyMain
+          EnemyName "Bomblet"
+          HPValue "13 / 13"
+          HPBar
+        IntentBlock
+          IntentValue "11"
+          IntentVerb "ATTACK"
+  StatusChip [124px,383px] "2"
+  StatusChip [359px,263px] "2"
+  AidZone
+    AidButton "Aid 0 of 6 used"
+  DiceDock
+    SetBanners
+    DiceHeader "FRONT BACK"
+    DiceRow
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      DieCard1
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Horn"
+        OwnerRow
+          OwnerName "Olek"
+          OwnerHP "17/17"
+        OwnerHPBar
+      DieCard2
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Mouth"
+        OwnerRow
+          OwnerName "Buba"
+          OwnerHP "12/12"
+        OwnerHPBar
+      DieCard3
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "HEAL"
+        PartRow
+          PartChip "Eyes"
+        OwnerRow
+          OwnerName "Puffy"
+          OwnerHP "13/13"
+        OwnerHPBar
+      DieCard4
+        Die
+          FaceValue "4"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Back"
+        OwnerRow
+          OwnerName "Machito"
+          OwnerHP "16/16"
+        OwnerHPBar
+      DieCard5
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Tail"
+        OwnerRow
+          OwnerName "Pomodor"
+          OwnerHP "14/14"
+        OwnerHPBar
+  ActionDock
+    ToolKeys
+      UndoKey "Undo"
+      HoldKey "Hold"
+      WildKey "✦ Wild"
+      OvercastKey "ϟ Overcast"
+    RerollButton
+      CostChip "1"
+    EndTurnButton "End turn Space"
+    StatusLine "5 dice unused"
+  Scrim
+  StepCard [427px,240px]
+    Title "Over to you"
+    Body "That's the whole loop. Finish the fight. Everything on this…"
+    SkipButton "Skip tutorial"
+
+=== 37-tutorial--lost (1920)
+  # godot: EnemyColumn = VBox anchored top-right (margin 24), gap 12: EnemyPlate × n, then AttritionCard. Same place as UI-04.
+  # godot: world label above the Axie head
+  # godot: DiceDock = VBox(SetBanners HBox, HeaderRow, HBox(DieCard×5)). No panel behind the cards. SetBanners keeps its height when empty so the tray never jumps.
+  # godot: TutorialCoach curtain over the real combat. Title banner size, body 560, one primary L (focus, Space) + Skip tutorial (secondary S).
+  SafeParty [150px,370px 540pxx360px] "party · keep clear"
+  SafeEnemy1 [1092px,418px 120pxx110px] "enemy"
+  SafeEnemy2 [1088px,612px 190pxx112px] "enemy"
+  ScenePortal [1370px,450px 140pxx240px] "portal (scene)"
+  RunInfo
+    MenuButton
+    RunPill
+      FightLabel "Fight 4 of 18"
+      AscensionChip "A6"
+      TurnChip "Turn 1"
+      ShardChip "0"
+  EnemyColumn
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    EnemyCluster1
+      EnemyPlate
+        EnemyMain
+          EnemyName "Ravenling"
+          HPValue "19 / 19"
+          HPBar
+        IntentBlock
+          IntentValue "8"
+          IntentVerb "ATTACK"
+    EnemyCluster2
+      EnemyPlate
+        EnemyMain
+          EnemyName "Bomblet"
+          HPValue "13 / 13"
+          HPBar
+        IntentBlock
+          IntentValue "11"
+          IntentVerb "ATTACK"
+  StatusChip [186px,574px] "2"
+  StatusChip [538px,394px] "2"
+  AidZone
+    AidButton "Aid 0 of 6 used"
+  DiceDock
+    SetBanners
+    DiceHeader "FRONT BACK"
+    DiceRow
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      DieCard1
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Horn"
+        OwnerRow
+          OwnerName "Olek"
+          OwnerHP "17/17"
+        OwnerHPBar
+      DieCard2
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Mouth"
+        OwnerRow
+          OwnerName "Buba"
+          OwnerHP "12/12"
+        OwnerHPBar
+      DieCard3
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "HEAL"
+        PartRow
+          PartChip "Eyes"
+        OwnerRow
+          OwnerName "Puffy"
+          OwnerHP "13/13"
+        OwnerHPBar
+      DieCard4
+        Die
+          FaceValue "4"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Back"
+        OwnerRow
+          OwnerName "Machito"
+          OwnerHP "16/16"
+        OwnerHPBar
+      DieCard5
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Tail"
+        OwnerRow
+          OwnerName "Pomodor"
+          OwnerHP "14/14"
+        OwnerHPBar
+  ActionDock
+    ToolKeys
+      UndoKey "Undo"
+      HoldKey "Hold"
+      WildKey "✦ Wild"
+      OvercastKey "ϟ Overcast"
+    RerollButton
+      CostChip "1"
+    EndTurnButton "End turn"
+    StatusLine "5 dice unused"
+  Scrim
+  Curtain
+    Title "That fight didn't go your way."
+    Body "That shouldn't happen in the tutorial, so let's just get yo…"
+    CtaButton
+      KeyCap "Space"
+    SkipTutorialButton "Skip tutorial"
+
+=== 37-tutorial--lost--1280 (1280)
+  # godot: EnemyColumn = VBox anchored top-right (margin 24), gap 12: EnemyPlate × n, then AttritionCard. Same place as UI-04.
+  # godot: world label above the Axie head
+  # godot: DiceDock = VBox(SetBanners HBox, HeaderRow, HBox(DieCard×5)). No panel behind the cards. SetBanners keeps its height when empty so the tray never jumps.
+  # godot: TutorialCoach curtain over the real combat. Title banner size, body 560, one primary L (focus, Space) + Skip tutorial (secondary S).
+  SafeParty [100px,247px 360pxx240px] "party · keep clear"
+  SafeEnemy1 [728px,279px 80pxx73px] "enemy"
+  SafeEnemy2 [725px,408px 127pxx75px] "enemy"
+  ScenePortal [913px,300px 93pxx160px] "portal (scene)"
+  RunInfo
+    MenuButton
+    RunPill
+      FightLabel "Fight 4 of 18"
+      AscensionChip "A6"
+      TurnChip "Turn 1"
+      ShardChip "0"
+  EnemyColumn
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    EnemyCluster1
+      EnemyPlate
+        EnemyMain
+          EnemyName "Ravenling"
+          HPValue "19 / 19"
+          HPBar
+        IntentBlock
+          IntentValue "8"
+          IntentVerb "ATTACK"
+    EnemyCluster2
+      EnemyPlate
+        EnemyMain
+          EnemyName "Bomblet"
+          HPValue "13 / 13"
+          HPBar
+        IntentBlock
+          IntentValue "11"
+          IntentVerb "ATTACK"
+  StatusChip [124px,383px] "2"
+  StatusChip [359px,263px] "2"
+  AidZone
+    AidButton "Aid 0 of 6 used"
+  DiceDock
+    SetBanners
+    DiceHeader "FRONT BACK"
+    DiceRow
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      DieCard1
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Horn"
+        OwnerRow
+          OwnerName "Olek"
+          OwnerHP "17/17"
+        OwnerHPBar
+      DieCard2
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Mouth"
+        OwnerRow
+          OwnerName "Buba"
+          OwnerHP "12/12"
+        OwnerHPBar
+      DieCard3
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "HEAL"
+        PartRow
+          PartChip "Eyes"
+        OwnerRow
+          OwnerName "Puffy"
+          OwnerHP "13/13"
+        OwnerHPBar
+      DieCard4
+        Die
+          FaceValue "4"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Back"
+        OwnerRow
+          OwnerName "Machito"
+          OwnerHP "16/16"
+        OwnerHPBar
+      DieCard5
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Tail"
+        OwnerRow
+          OwnerName "Pomodor"
+          OwnerHP "14/14"
+        OwnerHPBar
+  ActionDock
+    ToolKeys
+      UndoKey "Undo"
+      HoldKey "Hold"
+      WildKey "✦ Wild"
+      OvercastKey "ϟ Overcast"
+    RerollButton
+      CostChip "1"
+    EndTurnButton "End turn"
+    StatusLine "5 dice unused"
+  Scrim
+  Curtain
+    Title "That fight didn't go your way."
+    Body "That shouldn't happen in the tutorial, so let's just get yo…"
+    CtaButton
+      KeyCap "Space"
+    SkipTutorialButton "Skip tutorial"
+
+=== 37-tutorial--reward-none (1920)
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  TutorialRewardPick
+    Title "You won. Pick one."
+    Body "All three are good picks. This is where you start shaping y…"
+    CardRow [12px]
+      RewardCard
+        Category "Max HP"
+        RarityChip "Common"
+        RewardArt
+        RewardName "+3 Max HP"
+        RewardBody "A sturdier Axie survives more turns."
+      RewardCard
+        Category "Core"
+        RarityChip "Rare"
+        RewardArt
+        RewardName "New Core"
+        RewardBody "A passive effect that helps your whole team."
+      RewardCard
+        Category "Shards"
+        RarityChip "Common"
+        RewardArt
+        RewardName "Gene Shard ×20"
+        RewardBody "Currency to unlock permanent upgrades between runs."
+    Footer
+      TakeButton [240px] "Pick a reward"
+
+=== 37-tutorial--reward-none--1280 (1280)
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  TutorialRewardPick
+    Title "You won. Pick one."
+    Body "All three are good picks. This is where you start shaping y…"
+    CardRow [12px]
+      RewardCard
+        Category "Max HP"
+        RarityChip "Common"
+        RewardArt
+        RewardName "+3 Max HP"
+        RewardBody "A sturdier Axie survives more turns."
+      RewardCard
+        Category "Core"
+        RarityChip "Rare"
+        RewardArt
+        RewardName "New Core"
+        RewardBody "A passive effect that helps your whole team."
+      RewardCard
+        Category "Shards"
+        RarityChip "Common"
+        RewardArt
+        RewardName "Gene Shard ×20"
+        RewardBody "Currency to unlock permanent upgrades between runs."
+    Footer
+      TakeButton [240px] "Pick a reward"
+
+=== 37-tutorial--reward-picked (1920)
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  TutorialRewardPick
+    Title "You won. Pick one."
+    Body "All three are good picks. This is where you start shaping y…"
+    CardRow [12px]
+      RewardCard
+        Category "Max HP"
+        RarityChip "Common"
+        RewardArt
+        RewardName "+3 Max HP"
+        RewardBody "A sturdier Axie survives more turns."
+      RewardCard
+        Category "Core"
+        RarityChip "Rare"
+        RewardArt
+        RewardName "New Core"
+        RewardBody "A passive effect that helps your whole team."
+      RewardCard
+        Category "Shards"
+        RarityChip "Common"
+        RewardArt
+        RewardName "Gene Shard ×20"
+        RewardBody "Currency to unlock permanent upgrades between runs."
+    Footer
+      TakeButton [240px]
+        KeyCap "Space"
+
+=== 37-tutorial--reward-picked--1280 (1280)
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  TutorialRewardPick
+    Title "You won. Pick one."
+    Body "All three are good picks. This is where you start shaping y…"
+    CardRow [12px]
+      RewardCard
+        Category "Max HP"
+        RarityChip "Common"
+        RewardArt
+        RewardName "+3 Max HP"
+        RewardBody "A sturdier Axie survives more turns."
+      RewardCard
+        Category "Core"
+        RarityChip "Rare"
+        RewardArt
+        RewardName "New Core"
+        RewardBody "A passive effect that helps your whole team."
+      RewardCard
+        Category "Shards"
+        RarityChip "Common"
+        RewardArt
+        RewardName "Gene Shard ×20"
+        RewardBody "Currency to unlock permanent upgrades between runs."
+    Footer
+      TakeButton [240px]
+        KeyCap "Space"
+
+=== 37-tutorial--starter-pack (1920)
+  # godot: EnemyColumn = VBox anchored top-right (margin 24), gap 12: EnemyPlate × n, then AttritionCard. Same place as UI-04.
+  # godot: world label above the Axie head
+  # godot: DiceDock = VBox(SetBanners HBox, HeaderRow, HBox(DieCard×5)). No panel behind the cards. SetBanners keeps its height when empty so the tray never jumps.
+  # godot: TutorialCoach curtain over the real combat. Title banner size, body 560, one primary L (focus, Space) + Skip tutorial (secondary S).
+  SafeParty [150px,370px 540pxx360px] "party · keep clear"
+  SafeEnemy1 [1092px,418px 120pxx110px] "enemy"
+  SafeEnemy2 [1088px,612px 190pxx112px] "enemy"
+  ScenePortal [1370px,450px 140pxx240px] "portal (scene)"
+  RunInfo
+    MenuButton
+    RunPill
+      FightLabel "Fight 4 of 18"
+      AscensionChip "A6"
+      TurnChip "Turn 1"
+      ShardChip "0"
+  EnemyColumn
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    EnemyCluster1
+      EnemyPlate
+        EnemyMain
+          EnemyName "Ravenling"
+          HPValue "19 / 19"
+          HPBar
+        IntentBlock
+          IntentValue "8"
+          IntentVerb "ATTACK"
+    EnemyCluster2
+      EnemyPlate
+        EnemyMain
+          EnemyName "Bomblet"
+          HPValue "13 / 13"
+          HPBar
+        IntentBlock
+          IntentValue "11"
+          IntentVerb "ATTACK"
+  StatusChip [186px,574px] "2"
+  StatusChip [538px,394px] "2"
+  AidZone
+    AidButton "Aid 0 of 6 used"
+  DiceDock
+    SetBanners
+    DiceHeader "FRONT BACK"
+    DiceRow
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      DieCard1
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Horn"
+        OwnerRow
+          OwnerName "Olek"
+          OwnerHP "17/17"
+        OwnerHPBar
+      DieCard2
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Mouth"
+        OwnerRow
+          OwnerName "Buba"
+          OwnerHP "12/12"
+        OwnerHPBar
+      DieCard3
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "HEAL"
+        PartRow
+          PartChip "Eyes"
+        OwnerRow
+          OwnerName "Puffy"
+          OwnerHP "13/13"
+        OwnerHPBar
+      DieCard4
+        Die
+          FaceValue "4"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Back"
+        OwnerRow
+          OwnerName "Machito"
+          OwnerHP "16/16"
+        OwnerHPBar
+      DieCard5
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Tail"
+        OwnerRow
+          OwnerName "Pomodor"
+          OwnerHP "14/14"
+        OwnerHPBar
+  ActionDock
+    ToolKeys
+      UndoKey "Undo"
+      HoldKey "Hold"
+      WildKey "✦ Wild"
+      OvercastKey "ϟ Overcast"
+    RerollButton
+      CostChip "1"
+    EndTurnButton "End turn"
+    StatusLine "5 dice unused"
+  Scrim
+  Curtain
+    Title "Nice work. You're ready."
+    StarterPackCard
+      ShardCell "500 Shards Spend them in the Land. Can't be staked on missi…"
+      TicketCell "3 Tickets Open Echo Boxes"
+    CtaButton
+      KeyCap "Space"
+
+=== 37-tutorial--starter-pack--1280 (1280)
+  # godot: EnemyColumn = VBox anchored top-right (margin 24), gap 12: EnemyPlate × n, then AttritionCard. Same place as UI-04.
+  # godot: world label above the Axie head
+  # godot: DiceDock = VBox(SetBanners HBox, HeaderRow, HBox(DieCard×5)). No panel behind the cards. SetBanners keeps its height when empty so the tray never jumps.
+  # godot: TutorialCoach curtain over the real combat. Title banner size, body 560, one primary L (focus, Space) + Skip tutorial (secondary S).
+  SafeParty [100px,247px 360pxx240px] "party · keep clear"
+  SafeEnemy1 [728px,279px 80pxx73px] "enemy"
+  SafeEnemy2 [725px,408px 127pxx75px] "enemy"
+  ScenePortal [913px,300px 93pxx160px] "portal (scene)"
+  RunInfo
+    MenuButton
+    RunPill
+      FightLabel "Fight 4 of 18"
+      AscensionChip "A6"
+      TurnChip "Turn 1"
+      ShardChip "0"
+  EnemyColumn
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    EnemyCluster1
+      EnemyPlate
+        EnemyMain
+          EnemyName "Ravenling"
+          HPValue "19 / 19"
+          HPBar
+        IntentBlock
+          IntentValue "8"
+          IntentVerb "ATTACK"
+    EnemyCluster2
+      EnemyPlate
+        EnemyMain
+          EnemyName "Bomblet"
+          HPValue "13 / 13"
+          HPBar
+        IntentBlock
+          IntentValue "11"
+          IntentVerb "ATTACK"
+  StatusChip [124px,383px] "2"
+  StatusChip [359px,263px] "2"
+  AidZone
+    AidButton "Aid 0 of 6 used"
+  DiceDock
+    SetBanners
+    DiceHeader "FRONT BACK"
+    DiceRow
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      DieCard1
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Horn"
+        OwnerRow
+          OwnerName "Olek"
+          OwnerHP "17/17"
+        OwnerHPBar
+      DieCard2
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Mouth"
+        OwnerRow
+          OwnerName "Buba"
+          OwnerHP "12/12"
+        OwnerHPBar
+      DieCard3
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "HEAL"
+        PartRow
+          PartChip "Eyes"
+        OwnerRow
+          OwnerName "Puffy"
+          OwnerHP "13/13"
+        OwnerHPBar
+      DieCard4
+        Die
+          FaceValue "4"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Back"
+        OwnerRow
+          OwnerName "Machito"
+          OwnerHP "16/16"
+        OwnerHPBar
+      DieCard5
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Tail"
+        OwnerRow
+          OwnerName "Pomodor"
+          OwnerHP "14/14"
+        OwnerHPBar
+  ActionDock
+    ToolKeys
+      UndoKey "Undo"
+      HoldKey "Hold"
+      WildKey "✦ Wild"
+      OvercastKey "ϟ Overcast"
+    RerollButton
+      CostChip "1"
+    EndTurnButton "End turn"
+    StatusLine "5 dice unused"
+  Scrim
+  Curtain
+    Title "Nice work. You're ready."
+    StarterPackCard
+      ShardCell "500 Shards Spend them in the Land. Can't be staked on missi…"
+      TicketCell "3 Tickets Open Echo Boxes"
+    CtaButton
+      KeyCap "Space"
+
+=== 37-tutorial--replay-end (1920)
+  # godot: EnemyColumn = VBox anchored top-right (margin 24), gap 12: EnemyPlate × n, then AttritionCard. Same place as UI-04.
+  # godot: world label above the Axie head
+  # godot: DiceDock = VBox(SetBanners HBox, HeaderRow, HBox(DieCard×5)). No panel behind the cards. SetBanners keeps its height when empty so the tray never jumps.
+  # godot: TutorialCoach curtain over the real combat. Title banner size, body 560, one primary L (focus, Space) + Skip tutorial (secondary S).
+  SafeParty [150px,370px 540pxx360px] "party · keep clear"
+  SafeEnemy1 [1092px,418px 120pxx110px] "enemy"
+  SafeEnemy2 [1088px,612px 190pxx112px] "enemy"
+  ScenePortal [1370px,450px 140pxx240px] "portal (scene)"
+  RunInfo
+    MenuButton
+    RunPill
+      FightLabel "Fight 4 of 18"
+      AscensionChip "A6"
+      TurnChip "Turn 1"
+      ShardChip "0"
+  EnemyColumn
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    EnemyCluster1
+      EnemyPlate
+        EnemyMain
+          EnemyName "Ravenling"
+          HPValue "19 / 19"
+          HPBar
+        IntentBlock
+          IntentValue "8"
+          IntentVerb "ATTACK"
+    EnemyCluster2
+      EnemyPlate
+        EnemyMain
+          EnemyName "Bomblet"
+          HPValue "13 / 13"
+          HPBar
+        IntentBlock
+          IntentValue "11"
+          IntentVerb "ATTACK"
+  StatusChip [186px,574px] "2"
+  StatusChip [538px,394px] "2"
+  AidZone
+    AidButton "Aid 0 of 6 used"
+  DiceDock
+    SetBanners
+    DiceHeader "FRONT BACK"
+    DiceRow
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      DieCard1
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Horn"
+        OwnerRow
+          OwnerName "Olek"
+          OwnerHP "17/17"
+        OwnerHPBar
+      DieCard2
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Mouth"
+        OwnerRow
+          OwnerName "Buba"
+          OwnerHP "12/12"
+        OwnerHPBar
+      DieCard3
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "HEAL"
+        PartRow
+          PartChip "Eyes"
+        OwnerRow
+          OwnerName "Puffy"
+          OwnerHP "13/13"
+        OwnerHPBar
+      DieCard4
+        Die
+          FaceValue "4"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Back"
+        OwnerRow
+          OwnerName "Machito"
+          OwnerHP "16/16"
+        OwnerHPBar
+      DieCard5
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Tail"
+        OwnerRow
+          OwnerName "Pomodor"
+          OwnerHP "14/14"
+        OwnerHPBar
+  ActionDock
+    ToolKeys
+      UndoKey "Undo"
+      HoldKey "Hold"
+      WildKey "✦ Wild"
+      OvercastKey "ϟ Overcast"
+    RerollButton
+      CostChip "1"
+    EndTurnButton "End turn"
+    StatusLine "5 dice unused"
+  Scrim
+  Curtain
+    Title "Nice work. You're ready."
+    Body "That's the whole tutorial again. Your starter pack is alrea…"
+    CtaButton
+      KeyCap "Space"
+
+=== 37-tutorial--replay-end--1280 (1280)
+  # godot: EnemyColumn = VBox anchored top-right (margin 24), gap 12: EnemyPlate × n, then AttritionCard. Same place as UI-04.
+  # godot: world label above the Axie head
+  # godot: DiceDock = VBox(SetBanners HBox, HeaderRow, HBox(DieCard×5)). No panel behind the cards. SetBanners keeps its height when empty so the tray never jumps.
+  # godot: TutorialCoach curtain over the real combat. Title banner size, body 560, one primary L (focus, Space) + Skip tutorial (secondary S).
+  SafeParty [100px,247px 360pxx240px] "party · keep clear"
+  SafeEnemy1 [728px,279px 80pxx73px] "enemy"
+  SafeEnemy2 [725px,408px 127pxx75px] "enemy"
+  ScenePortal [913px,300px 93pxx160px] "portal (scene)"
+  RunInfo
+    MenuButton
+    RunPill
+      FightLabel "Fight 4 of 18"
+      AscensionChip "A6"
+      TurnChip "Turn 1"
+      ShardChip "0"
+  EnemyColumn
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    EnemyCluster1
+      EnemyPlate
+        EnemyMain
+          EnemyName "Ravenling"
+          HPValue "19 / 19"
+          HPBar
+        IntentBlock
+          IntentValue "8"
+          IntentVerb "ATTACK"
+    EnemyCluster2
+      EnemyPlate
+        EnemyMain
+          EnemyName "Bomblet"
+          HPValue "13 / 13"
+          HPBar
+        IntentBlock
+          IntentValue "11"
+          IntentVerb "ATTACK"
+  StatusChip [124px,383px] "2"
+  StatusChip [359px,263px] "2"
+  AidZone
+    AidButton "Aid 0 of 6 used"
+  DiceDock
+    SetBanners
+    DiceHeader "FRONT BACK"
+    DiceRow
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      DieCard1
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Horn"
+        OwnerRow
+          OwnerName "Olek"
+          OwnerHP "17/17"
+        OwnerHPBar
+      DieCard2
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Mouth"
+        OwnerRow
+          OwnerName "Buba"
+          OwnerHP "12/12"
+        OwnerHPBar
+      DieCard3
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "HEAL"
+        PartRow
+          PartChip "Eyes"
+        OwnerRow
+          OwnerName "Puffy"
+          OwnerHP "13/13"
+        OwnerHPBar
+      DieCard4
+        Die
+          FaceValue "4"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Back"
+        OwnerRow
+          OwnerName "Machito"
+          OwnerHP "16/16"
+        OwnerHPBar
+      DieCard5
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Tail"
+        OwnerRow
+          OwnerName "Pomodor"
+          OwnerHP "14/14"
+        OwnerHPBar
+  ActionDock
+    ToolKeys
+      UndoKey "Undo"
+      HoldKey "Hold"
+      WildKey "✦ Wild"
+      OvercastKey "ϟ Overcast"
+    RerollButton
+      CostChip "1"
+    EndTurnButton "End turn"
+    StatusLine "5 dice unused"
+  Scrim
+  Curtain
+    Title "Nice work. You're ready."
+    Body "That's the whole tutorial again. Your starter pack is alrea…"
+    CtaButton
+      KeyCap "Space"
+
+=== 37-tutorial--skip-confirm (1920)
+  # godot: EnemyColumn = VBox anchored top-right (margin 24), gap 12: EnemyPlate × n, then AttritionCard. Same place as UI-04.
+  # godot: world label above the Axie head
+  # godot: DiceDock = VBox(SetBanners HBox, HeaderRow, HBox(DieCard×5)). No panel behind the cards. SetBanners keeps its height when empty so the tray never jumps.
+  # godot: TutorialCoach curtain over the real combat. Title banner size, body 560, one primary L (focus, Space) + Skip tutorial (secondary S).
+  # godot: UI3.modal
+  SafeParty [150px,370px 540pxx360px] "party · keep clear"
+  SafeEnemy1 [1092px,418px 120pxx110px] "enemy"
+  SafeEnemy2 [1088px,612px 190pxx112px] "enemy"
+  ScenePortal [1370px,450px 140pxx240px] "portal (scene)"
+  RunInfo
+    MenuButton
+    RunPill
+      FightLabel "Fight 4 of 18"
+      AscensionChip "A6"
+      TurnChip "Turn 1"
+      ShardChip "0"
+  EnemyColumn
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    EnemyCluster1
+      EnemyPlate
+        EnemyMain
+          EnemyName "Ravenling"
+          HPValue "19 / 19"
+          HPBar
+        IntentBlock
+          IntentValue "8"
+          IntentVerb "ATTACK"
+    EnemyCluster2
+      EnemyPlate
+        EnemyMain
+          EnemyName "Bomblet"
+          HPValue "13 / 13"
+          HPBar
+        IntentBlock
+          IntentValue "11"
+          IntentVerb "ATTACK"
+  StatusChip [186px,574px] "2"
+  StatusChip [538px,394px] "2"
+  AidZone
+    AidButton "Aid 0 of 6 used"
+  DiceDock
+    SetBanners
+    DiceHeader "FRONT BACK"
+    DiceRow
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      DieCard1
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Horn"
+        OwnerRow
+          OwnerName "Olek"
+          OwnerHP "17/17"
+        OwnerHPBar
+      DieCard2
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Mouth"
+        OwnerRow
+          OwnerName "Buba"
+          OwnerHP "12/12"
+        OwnerHPBar
+      DieCard3
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "HEAL"
+        PartRow
+          PartChip "Eyes"
+        OwnerRow
+          OwnerName "Puffy"
+          OwnerHP "13/13"
+        OwnerHPBar
+      DieCard4
+        Die
+          FaceValue "4"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Back"
+        OwnerRow
+          OwnerName "Machito"
+          OwnerHP "16/16"
+        OwnerHPBar
+      DieCard5
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Tail"
+        OwnerRow
+          OwnerName "Pomodor"
+          OwnerHP "14/14"
+        OwnerHPBar
+  ActionDock
+    ToolKeys
+      UndoKey "Undo"
+      HoldKey "Hold"
+      WildKey "✦ Wild"
+      OvercastKey "ϟ Overcast"
+    RerollButton
+      CostChip "1"
+    EndTurnButton "End turn"
+    StatusLine "5 dice unused"
+  Scrim
+  Curtain
+    Title "Welcome to Axie Dice!"
+    Body "Every Axie is a die, and every face is a real body part. Le…"
+    CtaButton "Start"
+    SkipTutorialButton "Skip tutorial"
+  Scrim
+  SkipConfirm
+    Title "Skip the tutorial?"
+    Body "You miss the step-by-step tips on rolling dice, picking tar…"
+    Footer
+      KeepGoingButton
+        KeyCap "Space"
+      SkipTutorialButton "Skip tutorial"
+
+=== 37-tutorial--skip-confirm--1280 (1280)
+  # godot: EnemyColumn = VBox anchored top-right (margin 24), gap 12: EnemyPlate × n, then AttritionCard. Same place as UI-04.
+  # godot: world label above the Axie head
+  # godot: DiceDock = VBox(SetBanners HBox, HeaderRow, HBox(DieCard×5)). No panel behind the cards. SetBanners keeps its height when empty so the tray never jumps.
+  # godot: TutorialCoach curtain over the real combat. Title banner size, body 560, one primary L (focus, Space) + Skip tutorial (secondary S).
+  # godot: UI3.modal
+  SafeParty [100px,247px 360pxx240px] "party · keep clear"
+  SafeEnemy1 [728px,279px 80pxx73px] "enemy"
+  SafeEnemy2 [725px,408px 127pxx75px] "enemy"
+  ScenePortal [913px,300px 93pxx160px] "portal (scene)"
+  RunInfo
+    MenuButton
+    RunPill
+      FightLabel "Fight 4 of 18"
+      AscensionChip "A6"
+      TurnChip "Turn 1"
+      ShardChip "0"
+  EnemyColumn
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    # godot: world-anchored. EnemyPlate = HBox(EnemyMain VBox(NameRow, HPBar), IntentColumn VBox("Next", GlyphRow, Verb)) — same tree as UI-04. Right edge 12 px left of the enemy's bounding box (camera.unproject_position of the enemy root), vertically centred on its body. Never overlaps the enemy or the party box. Lower bound: cluster bottom (incl. BigHitStrip + lip) ≤ DiceDock top − 12; if the enemy sits lower, the cluster clamps up.
+    EnemyCluster1
+      EnemyPlate
+        EnemyMain
+          EnemyName "Ravenling"
+          HPValue "19 / 19"
+          HPBar
+        IntentBlock
+          IntentValue "8"
+          IntentVerb "ATTACK"
+    EnemyCluster2
+      EnemyPlate
+        EnemyMain
+          EnemyName "Bomblet"
+          HPValue "13 / 13"
+          HPBar
+        IntentBlock
+          IntentValue "11"
+          IntentVerb "ATTACK"
+  StatusChip [124px,383px] "2"
+  StatusChip [359px,263px] "2"
+  AidZone
+    AidButton "Aid 0 of 6 used"
+  DiceDock
+    SetBanners
+    DiceHeader "FRONT BACK"
+    DiceRow
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      # godot: DieCard = VBox(Die, FaceRow, PartRow, OwnerRow, OwnerHPBar). PartRow sits under the die, so a lifted die never covers it.
+      DieCard1
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Horn"
+        OwnerRow
+          OwnerName "Olek"
+          OwnerHP "17/17"
+        OwnerHPBar
+      DieCard2
+        Die
+          FaceValue "2"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Mouth"
+        OwnerRow
+          OwnerName "Buba"
+          OwnerHP "12/12"
+        OwnerHPBar
+      DieCard3
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "HEAL"
+        PartRow
+          PartChip "Eyes"
+        OwnerRow
+          OwnerName "Puffy"
+          OwnerHP "13/13"
+        OwnerHPBar
+      DieCard4
+        Die
+          FaceValue "4"
+        FaceRow
+          FaceWord "SHIELD"
+        PartRow
+          PartChip "Back"
+        OwnerRow
+          OwnerName "Machito"
+          OwnerHP "16/16"
+        OwnerHPBar
+      DieCard5
+        Die
+          FaceValue "3"
+        FaceRow
+          FaceWord "ATTACK"
+        PartRow
+          PartChip "Tail"
+        OwnerRow
+          OwnerName "Pomodor"
+          OwnerHP "14/14"
+        OwnerHPBar
+  ActionDock
+    ToolKeys
+      UndoKey "Undo"
+      HoldKey "Hold"
+      WildKey "✦ Wild"
+      OvercastKey "ϟ Overcast"
+    RerollButton
+      CostChip "1"
+    EndTurnButton "End turn"
+    StatusLine "5 dice unused"
+  Scrim
+  Curtain
+    Title "Welcome to Axie Dice!"
+    Body "Every Axie is a die, and every face is a real body part. Le…"
+    CtaButton "Start"
+    SkipTutorialButton "Skip tutorial"
+  Scrim
+  SkipConfirm
+    Title "Skip the tutorial?"
+    Body "You miss the step-by-step tips on rolling dice, picking tar…"
+    Footer
+      KeepGoingButton
+        KeyCap "Space"
+      SkipTutorialButton "Skip tutorial"

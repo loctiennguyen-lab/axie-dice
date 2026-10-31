@@ -1,0 +1,947 @@
+# S2: Edit Land + Land upgrade
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-land-screens.html
+# So frame: 20 (10 id, tinh ca ban 1920 va 1280)
+# Tien to: e0 u0
+# Id frame:
+#   u01-land-upgrade--short
+#   u01-land-upgrade--short--1280
+#   u02-land-upgrade--ready
+#   u02-land-upgrade--ready--1280
+#   u03-land-upgrade--confirm
+#   u03-land-upgrade--confirm--1280
+#   u04-land-upgrade--tier3
+#   u04-land-upgrade--tier3--1280
+#   u05-land-upgrade--max
+#   u05-land-upgrade--max--1280
+#   e01-edit-land--place
+#   e01-edit-land--place--1280
+#   e02-edit-land--placing
+#   e02-edit-land--placing--1280
+#   e03-edit-land--craft
+#   e03-edit-land--craft--1280
+#   e04-edit-land--rewards
+#   e04-edit-land--rewards--1280
+#   e05-edit-land--empty
+#   e05-edit-land--empty--1280
+
+=== u01-land-upgrade--short (1920)
+  # godot: LandUpgradeScreen (key L). Rows: focus / hover selects into the detail plate; Space on a focused row asks. Esc = back.
+  Header
+    BackButton "←"
+    Title "Land upgrade"
+    StoneChip [var(--space-16)] "3,200"
+  Body
+    TierList
+      TierHeader
+        StoneBar
+      TierRow1
+        TierSwatch
+        Name "Savannah Land"
+        Adds "Starting Land"
+        RowButton "Current"
+      TierRow2
+        TierSwatch
+        Name "Forest Land"
+        Adds "+3 preset slots · New decor set · +2 Rare decor"
+        CostCol "20,000 Stone 20,000 total from here"
+        RowButton "Need 16,800 more"
+      TierRow3
+        TierSwatch
+        Name "Arctic Land"
+        Adds "+3 preset slots · Mastery house"
+        CostCol "100,000 Stone 120,000 total from here"
+        RowButton "Upgrade Forest first"
+      TierRow4
+        TierSwatch
+        Name "Mystic Land"
+        Adds "New decor set"
+        CostCol "180,000 Stone 300,000 total from here"
+        RowButton "Upgrade Arctic first"
+      TierRow5
+        TierSwatch
+        Name "Genesis Land"
+        Adds "Gallery"
+        CostCol "500,000 Stone 800,000 total from here"
+        RowButton "Upgrade Mystic first"
+      TierRow6
+        TierSwatch
+        Name "Luna Landing Land"
+        Adds "Final Land · new decor set"
+        CostCol "1,000,000 Stone 1,800,000 total from here"
+        RowButton "Upgrade Genesis first"
+    DetailPlate
+      TierArt "tier art (art request)"
+      Name "Forest Land"
+      StateTag "Next"
+      Adds "+3 preset slots · New decor set · +2 Rare decor"
+      CostRow "Cost 20,000 Stone"
+      TotalRow "Total from here 20,000 Stone"
+      UpgradeButton "Need 16,800 more Stone"
+
+=== u01-land-upgrade--short--1280 (1280)
+  # godot: LandUpgradeScreen (key L). Rows: focus / hover selects into the detail plate; Space on a focused row asks. Esc = back.
+  Header
+    BackButton "←"
+    Title "Land upgrade"
+    StoneChip [var(--space-16)] "3,200"
+  Body
+    TierList
+      TierHeader
+        StoneBar
+      TierRow1
+        TierSwatch
+        Name "Savannah Land"
+        Adds "Starting Land"
+        RowButton "Current"
+      TierRow2
+        TierSwatch
+        Name "Forest Land"
+        Adds "+3 preset slots · New decor set · +2 Rare decor"
+        CostCol "20,000 Stone 20,000 total from here"
+        RowButton "Need 16,800 more"
+      TierRow3
+        TierSwatch
+        Name "Arctic Land"
+        Adds "+3 preset slots · Mastery house"
+        CostCol "100,000 Stone 120,000 total from here"
+        RowButton "Upgrade Forest first"
+      TierRow4
+        TierSwatch
+        Name "Mystic Land"
+        Adds "New decor set"
+        CostCol "180,000 Stone 300,000 total from here"
+        RowButton "Upgrade Arctic first"
+      TierRow5
+        TierSwatch
+        Name "Genesis Land"
+        Adds "Gallery"
+        CostCol "500,000 Stone 800,000 total from here"
+        RowButton "Upgrade Mystic first"
+      TierRow6
+        TierSwatch
+        Name "Luna Landing Land"
+        Adds "Final Land · new decor set"
+        CostCol "1,000,000 Stone 1,800,000 total from here"
+        RowButton "Upgrade Genesis first"
+    DetailPlate
+      TierArt "tier art (art request)"
+      Name "Forest Land"
+      StateTag "Next"
+      Adds "+3 preset slots · New decor set · +2 Rare decor"
+      CostRow "Cost 20,000 Stone"
+      TotalRow "Total from here 20,000 Stone"
+      UpgradeButton "Need 16,800 more Stone"
+
+=== u02-land-upgrade--ready (1920)
+  # godot: LandUpgradeScreen (key L). Rows: focus / hover selects into the detail plate; Space on a focused row asks. Esc = back.
+  Header
+    BackButton "←"
+    Title "Land upgrade"
+    StoneChip [var(--space-16)] "26,500"
+  Body
+    TierList
+      TierHeader
+        StoneBar
+      TierRow1
+        TierSwatch
+        Name "Savannah Land"
+        Adds "Starting Land"
+        RowButton "Current"
+      TierRow2
+        TierSwatch
+        Name "Forest Land"
+        Adds "+3 preset slots · New decor set · +2 Rare decor"
+        CostCol "20,000 Stone 20,000 total from here"
+        RowButton "Upgrade"
+      TierRow3
+        TierSwatch
+        Name "Arctic Land"
+        Adds "+3 preset slots · Mastery house"
+        CostCol "100,000 Stone 120,000 total from here"
+        RowButton "Upgrade Forest first"
+      TierRow4
+        TierSwatch
+        Name "Mystic Land"
+        Adds "New decor set"
+        CostCol "180,000 Stone 300,000 total from here"
+        RowButton "Upgrade Arctic first"
+      TierRow5
+        TierSwatch
+        Name "Genesis Land"
+        Adds "Gallery"
+        CostCol "500,000 Stone 800,000 total from here"
+        RowButton "Upgrade Mystic first"
+      TierRow6
+        TierSwatch
+        Name "Luna Landing Land"
+        Adds "Final Land · new decor set"
+        CostCol "1,000,000 Stone 1,800,000 total from here"
+        RowButton "Upgrade Genesis first"
+    DetailPlate
+      TierArt "tier art (art request)"
+      Name "Forest Land"
+      StateTag "Next"
+      Adds "+3 preset slots · New decor set · +2 Rare decor"
+      CostRow "Cost 20,000 Stone"
+      TotalRow "Total from here 20,000 Stone"
+      AfterRow "Stone after 6,500 Stone"
+      UpgradeButton "Upgrade"
+
+=== u02-land-upgrade--ready--1280 (1280)
+  # godot: LandUpgradeScreen (key L). Rows: focus / hover selects into the detail plate; Space on a focused row asks. Esc = back.
+  Header
+    BackButton "←"
+    Title "Land upgrade"
+    StoneChip [var(--space-16)] "26,500"
+  Body
+    TierList
+      TierHeader
+        StoneBar
+      TierRow1
+        TierSwatch
+        Name "Savannah Land"
+        Adds "Starting Land"
+        RowButton "Current"
+      TierRow2
+        TierSwatch
+        Name "Forest Land"
+        Adds "+3 preset slots · New decor set · +2 Rare decor"
+        CostCol "20,000 Stone 20,000 total from here"
+        RowButton "Upgrade"
+      TierRow3
+        TierSwatch
+        Name "Arctic Land"
+        Adds "+3 preset slots · Mastery house"
+        CostCol "100,000 Stone 120,000 total from here"
+        RowButton "Upgrade Forest first"
+      TierRow4
+        TierSwatch
+        Name "Mystic Land"
+        Adds "New decor set"
+        CostCol "180,000 Stone 300,000 total from here"
+        RowButton "Upgrade Arctic first"
+      TierRow5
+        TierSwatch
+        Name "Genesis Land"
+        Adds "Gallery"
+        CostCol "500,000 Stone 800,000 total from here"
+        RowButton "Upgrade Mystic first"
+      TierRow6
+        TierSwatch
+        Name "Luna Landing Land"
+        Adds "Final Land · new decor set"
+        CostCol "1,000,000 Stone 1,800,000 total from here"
+        RowButton "Upgrade Genesis first"
+    DetailPlate
+      TierArt "tier art (art request)"
+      Name "Forest Land"
+      StateTag "Next"
+      Adds "+3 preset slots · New decor set · +2 Rare decor"
+      CostRow "Cost 20,000 Stone"
+      TotalRow "Total from here 20,000 Stone"
+      AfterRow "Stone after 6,500 Stone"
+      UpgradeButton "Upgrade"
+
+=== u03-land-upgrade--confirm (1920)
+  # godot: LandUpgradeScreen (key L). Rows: focus / hover selects into the detail plate; Space on a focused row asks. Esc = back.
+  # godot: UI3Meta.confirm, focus on Keep Stone (safe): Space presses Keep Stone, no keycap on Upgrade.
+  Header
+    BackButton "←"
+    Title "Land upgrade"
+    StoneChip [var(--space-16)] "26,500"
+  Body
+    TierList
+      TierHeader
+        StoneBar
+      TierRow1
+        TierSwatch
+        Name "Savannah Land"
+        Adds "Starting Land"
+        RowButton "Current"
+      TierRow2
+        TierSwatch
+        Name "Forest Land"
+        Adds "+3 preset slots · New decor set · +2 Rare decor"
+        CostCol "20,000 Stone 20,000 total from here"
+        RowButton "Upgrade"
+      TierRow3
+        TierSwatch
+        Name "Arctic Land"
+        Adds "+3 preset slots · Mastery house"
+        CostCol "100,000 Stone 120,000 total from here"
+        RowButton "Upgrade Forest first"
+      TierRow4
+        TierSwatch
+        Name "Mystic Land"
+        Adds "New decor set"
+        CostCol "180,000 Stone 300,000 total from here"
+        RowButton "Upgrade Arctic first"
+      TierRow5
+        TierSwatch
+        Name "Genesis Land"
+        Adds "Gallery"
+        CostCol "500,000 Stone 800,000 total from here"
+        RowButton "Upgrade Mystic first"
+      TierRow6
+        TierSwatch
+        Name "Luna Landing Land"
+        Adds "Final Land · new decor set"
+        CostCol "1,000,000 Stone 1,800,000 total from here"
+        RowButton "Upgrade Genesis first"
+    DetailPlate
+      TierArt "tier art (art request)"
+      Name "Forest Land"
+      StateTag "Next"
+      Adds "+3 preset slots · New decor set · +2 Rare decor"
+      CostRow "Cost 20,000 Stone"
+      TotalRow "Total from here 20,000 Stone"
+      AfterRow "Stone after 6,500 Stone"
+      UpgradeButton "Upgrade"
+  Scrim
+  UpgradeConfirm
+    Title "Spend 20,000 Stone?"
+    Body "Savannah becomes Forest. This cannot be undone. Stone after…"
+    Footer
+      KeepStoneButton
+        KeyCap "Space"
+      UpgradeToButton "Upgrade to Forest"
+
+=== u03-land-upgrade--confirm--1280 (1280)
+  # godot: LandUpgradeScreen (key L). Rows: focus / hover selects into the detail plate; Space on a focused row asks. Esc = back.
+  # godot: UI3Meta.confirm, focus on Keep Stone (safe): Space presses Keep Stone, no keycap on Upgrade.
+  Header
+    BackButton "←"
+    Title "Land upgrade"
+    StoneChip [var(--space-16)] "26,500"
+  Body
+    TierList
+      TierHeader
+        StoneBar
+      TierRow1
+        TierSwatch
+        Name "Savannah Land"
+        Adds "Starting Land"
+        RowButton "Current"
+      TierRow2
+        TierSwatch
+        Name "Forest Land"
+        Adds "+3 preset slots · New decor set · +2 Rare decor"
+        CostCol "20,000 Stone 20,000 total from here"
+        RowButton "Upgrade"
+      TierRow3
+        TierSwatch
+        Name "Arctic Land"
+        Adds "+3 preset slots · Mastery house"
+        CostCol "100,000 Stone 120,000 total from here"
+        RowButton "Upgrade Forest first"
+      TierRow4
+        TierSwatch
+        Name "Mystic Land"
+        Adds "New decor set"
+        CostCol "180,000 Stone 300,000 total from here"
+        RowButton "Upgrade Arctic first"
+      TierRow5
+        TierSwatch
+        Name "Genesis Land"
+        Adds "Gallery"
+        CostCol "500,000 Stone 800,000 total from here"
+        RowButton "Upgrade Mystic first"
+      TierRow6
+        TierSwatch
+        Name "Luna Landing Land"
+        Adds "Final Land · new decor set"
+        CostCol "1,000,000 Stone 1,800,000 total from here"
+        RowButton "Upgrade Genesis first"
+    DetailPlate
+      TierArt "tier art (art request)"
+      Name "Forest Land"
+      StateTag "Next"
+      Adds "+3 preset slots · New decor set · +2 Rare decor"
+      CostRow "Cost 20,000 Stone"
+      TotalRow "Total from here 20,000 Stone"
+      AfterRow "Stone after 6,500 Stone"
+      UpgradeButton "Upgrade"
+  Scrim
+  UpgradeConfirm
+    Title "Spend 20,000 Stone?"
+    Body "Savannah becomes Forest. This cannot be undone. Stone after…"
+    Footer
+      KeepStoneButton
+        KeyCap "Space"
+      UpgradeToButton "Upgrade to Forest"
+
+=== u04-land-upgrade--tier3 (1920)
+  # godot: LandUpgradeScreen (key L). Rows: focus / hover selects into the detail plate; Space on a focused row asks. Esc = back.
+  Header
+    BackButton "←"
+    Title "Land upgrade"
+    StoneChip [var(--space-16)] "64,000"
+  Body
+    TierList
+      TierHeader
+        StoneBar
+      TierRow1
+        TierSwatch
+        Name "Savannah Land"
+        Adds "Starting Land"
+        RowButton "Owned"
+      TierRow2
+        TierSwatch
+        Name "Forest Land"
+        Adds "+3 preset slots · New decor set · +2 Rare decor"
+        RowButton "Owned"
+      TierRow3
+        TierSwatch
+        Name "Arctic Land"
+        Adds "+3 preset slots · Mastery house"
+        RowButton "Current"
+      TierRow4
+        TierSwatch
+        Name "Mystic Land"
+        Adds "New decor set"
+        CostCol "180,000 Stone 180,000 total from here"
+        RowButton "Need 116,000 more"
+      TierRow5
+        TierSwatch
+        Name "Genesis Land"
+        Adds "Gallery"
+        CostCol "500,000 Stone 680,000 total from here"
+        RowButton "Upgrade Mystic first"
+      TierRow6
+        TierSwatch
+        Name "Luna Landing Land"
+        Adds "Final Land · new decor set"
+        CostCol "1,000,000 Stone 1,680,000 total from here"
+        RowButton "Upgrade Genesis first"
+    DetailPlate
+      TierArt "tier art (art request)"
+      Name "Mystic Land"
+      StateTag "Next"
+      Adds "New decor set"
+      CostRow "Cost 180,000 Stone"
+      TotalRow "Total from here 180,000 Stone"
+      UpgradeButton "Need 116,000 more Stone"
+
+=== u04-land-upgrade--tier3--1280 (1280)
+  # godot: LandUpgradeScreen (key L). Rows: focus / hover selects into the detail plate; Space on a focused row asks. Esc = back.
+  Header
+    BackButton "←"
+    Title "Land upgrade"
+    StoneChip [var(--space-16)] "64,000"
+  Body
+    TierList
+      TierHeader
+        StoneBar
+      TierRow1
+        TierSwatch
+        Name "Savannah Land"
+        Adds "Starting Land"
+        RowButton "Owned"
+      TierRow2
+        TierSwatch
+        Name "Forest Land"
+        Adds "+3 preset slots · New decor set · +2 Rare decor"
+        RowButton "Owned"
+      TierRow3
+        TierSwatch
+        Name "Arctic Land"
+        Adds "+3 preset slots · Mastery house"
+        RowButton "Current"
+      TierRow4
+        TierSwatch
+        Name "Mystic Land"
+        Adds "New decor set"
+        CostCol "180,000 Stone 180,000 total from here"
+        RowButton "Need 116,000 more"
+      TierRow5
+        TierSwatch
+        Name "Genesis Land"
+        Adds "Gallery"
+        CostCol "500,000 Stone 680,000 total from here"
+        RowButton "Upgrade Mystic first"
+      TierRow6
+        TierSwatch
+        Name "Luna Landing Land"
+        Adds "Final Land · new decor set"
+        CostCol "1,000,000 Stone 1,680,000 total from here"
+        RowButton "Upgrade Genesis first"
+    DetailPlate
+      TierArt "tier art (art request)"
+      Name "Mystic Land"
+      StateTag "Next"
+      Adds "New decor set"
+      CostRow "Cost 180,000 Stone"
+      TotalRow "Total from here 180,000 Stone"
+      UpgradeButton "Need 116,000 more Stone"
+
+=== u05-land-upgrade--max (1920)
+  # godot: LandUpgradeScreen (key L). Rows: focus / hover selects into the detail plate; Space on a focused row asks. Esc = back.
+  Header
+    BackButton "←"
+    Title "Land upgrade"
+    StoneChip [var(--space-16)] "41,200"
+  Body
+    TierList
+      TierHeader
+        StoneBar
+      TierRow1
+        TierSwatch
+        Name "Savannah Land"
+        Adds "Starting Land"
+        RowButton "Owned"
+      TierRow2
+        TierSwatch
+        Name "Forest Land"
+        Adds "+3 preset slots · New decor set · +2 Rare decor"
+        RowButton "Owned"
+      TierRow3
+        TierSwatch
+        Name "Arctic Land"
+        Adds "+3 preset slots · Mastery house"
+        RowButton "Owned"
+      TierRow4
+        TierSwatch
+        Name "Mystic Land"
+        Adds "New decor set"
+        RowButton "Owned"
+      TierRow5
+        TierSwatch
+        Name "Genesis Land"
+        Adds "Gallery"
+        RowButton "Owned"
+      TierRow6
+        TierSwatch
+        Name "Luna Landing Land"
+        Adds "Final Land · new decor set"
+        RowButton "Current"
+    DetailPlate
+      TierArt "tier art (art request)"
+      Name "Luna Landing Land"
+      StateTag "Current"
+      Adds "Final Land · new decor set"
+      TopLine "Top tier reached. Nothing to buy."
+
+=== u05-land-upgrade--max--1280 (1280)
+  # godot: LandUpgradeScreen (key L). Rows: focus / hover selects into the detail plate; Space on a focused row asks. Esc = back.
+  Header
+    BackButton "←"
+    Title "Land upgrade"
+    StoneChip [var(--space-16)] "41,200"
+  Body
+    TierList
+      TierHeader
+        StoneBar
+      TierRow1
+        TierSwatch
+        Name "Savannah Land"
+        Adds "Starting Land"
+        RowButton "Owned"
+      TierRow2
+        TierSwatch
+        Name "Forest Land"
+        Adds "+3 preset slots · New decor set · +2 Rare decor"
+        RowButton "Owned"
+      TierRow3
+        TierSwatch
+        Name "Arctic Land"
+        Adds "+3 preset slots · Mastery house"
+        RowButton "Owned"
+      TierRow4
+        TierSwatch
+        Name "Mystic Land"
+        Adds "New decor set"
+        RowButton "Owned"
+      TierRow5
+        TierSwatch
+        Name "Genesis Land"
+        Adds "Gallery"
+        RowButton "Owned"
+      TierRow6
+        TierSwatch
+        Name "Luna Landing Land"
+        Adds "Final Land · new decor set"
+        RowButton "Current"
+    DetailPlate
+      TierArt "tier art (art request)"
+      Name "Luna Landing Land"
+      StateTag "Current"
+      Adds "Final Land · new decor set"
+      TopLine "Top tier reached. Nothing to buy."
+
+=== e01-edit-land--place (1920)
+  # godot: LandEdit (key E). Keys still work (R rotate, Del store, Esc done) but are not printed on the buttons.
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  CurrencyPlate
+    SettingsButton
+  EditLandPanel
+    Title "Edit Land"
+    AestheticLine "Aesthetic 12 · next reward at 20"
+    PlacedLine "Placed 4 of 32 (Land tier 4)"
+    Tabs
+      PlaceTab "Place"
+      CraftTab "Craft"
+      RewardsTab "Rewards"
+    List
+      DecorRow
+        PlaceButton "Place"
+      DecorRow
+        PlaceButton "Place"
+      DecorRow
+        PlaceButton "Place"
+      DecorRow
+        PlaceButton "Place"
+      DecorRow
+        PlaceButton "Place"
+      DecorRow
+        PlaceButton "Place"
+    Tools
+      RotateButton "Rotate · pick a decor"
+      StoreButton "Store · pick a decor"
+    DoneButton "Done"
+
+=== e01-edit-land--place--1280 (1280)
+  # godot: LandEdit (key E). Keys still work (R rotate, Del store, Esc done) but are not printed on the buttons.
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  CurrencyPlate
+    SettingsButton
+  EditLandPanel
+    Title "Edit Land"
+    AestheticLine "Aesthetic 12 · next reward at 20"
+    PlacedLine "Placed 4 of 32 (Land tier 4)"
+    Tabs
+      PlaceTab "Place"
+      CraftTab "Craft"
+      RewardsTab "Rewards"
+    List
+      DecorRow
+        PlaceButton "Place"
+      DecorRow
+        PlaceButton "Place"
+      DecorRow
+        PlaceButton "Place"
+      DecorRow
+        PlaceButton "Place"
+      DecorRow
+        PlaceButton "Place"
+      DecorRow
+        PlaceButton "Place"
+    Tools
+      RotateButton "Rotate · pick a decor"
+      StoreButton "Store · pick a decor"
+    DoneButton "Done"
+
+=== e02-edit-land--placing (1920)
+  # godot: LandEdit (key E). Keys still work (R rotate, Del store, Esc done) but are not printed on the buttons.
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  PlacingGhost [700px,560px 150pxx150px]
+  GhostHint [640px,740px] "Placing: Savannah Tree"
+  CurrencyPlate
+    SettingsButton
+  EditLandPanel
+    Title "Edit Land"
+    AestheticLine "Aesthetic 12 · next reward at 20"
+    PlacedLine "Placed 4 of 32 (Land tier 4)"
+    Tabs
+      PlaceTab "Place"
+      CraftTab "Craft"
+      RewardsTab "Rewards"
+    List
+      DecorRow
+        PlaceButton "Place"
+      DecorRow
+        PlaceButton "Place"
+      DecorRow
+        PlaceButton "Place"
+      DecorRow
+        PlaceButton "Place"
+      DecorRow
+        PlaceButton "Place"
+      DecorRow
+        PlaceButton "Place"
+    Tools
+      RotateButton "Rotate"
+      StoreButton "Store · pick a decor"
+    DoneButton "Done"
+
+=== e02-edit-land--placing--1280 (1280)
+  # godot: LandEdit (key E). Keys still work (R rotate, Del store, Esc done) but are not printed on the buttons.
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  PlacingGhost [467px,373px 100pxx100px]
+  GhostHint [427px,493px] "Placing: Savannah Tree"
+  CurrencyPlate
+    SettingsButton
+  EditLandPanel
+    Title "Edit Land"
+    AestheticLine "Aesthetic 12 · next reward at 20"
+    PlacedLine "Placed 4 of 32 (Land tier 4)"
+    Tabs
+      PlaceTab "Place"
+      CraftTab "Craft"
+      RewardsTab "Rewards"
+    List
+      DecorRow
+        PlaceButton "Place"
+      DecorRow
+        PlaceButton "Place"
+      DecorRow
+        PlaceButton "Place"
+      DecorRow
+        PlaceButton "Place"
+      DecorRow
+        PlaceButton "Place"
+      DecorRow
+        PlaceButton "Place"
+    Tools
+      RotateButton "Rotate"
+      StoreButton "Store · pick a decor"
+    DoneButton "Done"
+
+=== e03-edit-land--craft (1920)
+  # godot: LandEdit (key E). Keys still work (R rotate, Del store, Esc done) but are not printed on the buttons.
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  CurrencyPlate
+    SettingsButton
+  EditLandPanel
+    Title "Edit Land"
+    AestheticLine "Aesthetic 12 · next reward at 20"
+    PlacedLine "Placed 4 of 32 (Land tier 4)"
+    Tabs
+      PlaceTab "Place"
+      CraftTab "Craft"
+      RewardsTab "Rewards"
+    List
+      CraftRow
+        CraftButton "Craft · 40"
+      CraftRow
+        CraftButton "Craft · 20"
+      CraftRow
+        CraftButton "Craft · 25"
+      CraftRow
+        CraftButton "Craft · 20"
+      CraftRow
+        CraftButton "Craft · 30"
+      CraftRow
+        CraftButton "Craft · 40"
+    Tools
+      RotateButton "Rotate · pick a decor"
+      StoreButton "Store · pick a decor"
+    DoneButton "Done"
+
+=== e03-edit-land--craft--1280 (1280)
+  # godot: LandEdit (key E). Keys still work (R rotate, Del store, Esc done) but are not printed on the buttons.
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  CurrencyPlate
+    SettingsButton
+  EditLandPanel
+    Title "Edit Land"
+    AestheticLine "Aesthetic 12 · next reward at 20"
+    PlacedLine "Placed 4 of 32 (Land tier 4)"
+    Tabs
+      PlaceTab "Place"
+      CraftTab "Craft"
+      RewardsTab "Rewards"
+    List
+      CraftRow
+        CraftButton "Craft · 40"
+      CraftRow
+        CraftButton "Craft · 20"
+      CraftRow
+        CraftButton "Craft · 25"
+      CraftRow
+        CraftButton "Craft · 20"
+      CraftRow
+        CraftButton "Craft · 30"
+      CraftRow
+        CraftButton "Craft · 40"
+    Tools
+      RotateButton "Rotate · pick a decor"
+      StoreButton "Store · pick a decor"
+    DoneButton "Done"
+
+=== e04-edit-land--rewards (1920)
+  # godot: LandEdit (key E). Keys still work (R rotate, Del store, Esc done) but are not printed on the buttons.
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  CurrencyPlate
+    SettingsButton
+  EditLandPanel
+    Title "Edit Land"
+    AestheticLine "Aesthetic 12 · next reward at 20"
+    PlacedLine "Placed 4 of 32 (Land tier 4)"
+    Tabs
+      PlaceTab "Place"
+      CraftTab "Craft"
+      RewardsTab "Rewards"
+    List
+      RewardRow
+        ClaimButton "Claimed"
+      RewardRow
+        ClaimButton "Claim"
+      RewardRow
+        ClaimButton "Need 20"
+      RewardRow
+        ClaimButton "Need 30"
+      RewardRow
+        ClaimButton "Need 42"
+    Tools
+      RotateButton "Rotate · pick a decor"
+      StoreButton "Store · pick a decor"
+    DoneButton "Done"
+
+=== e04-edit-land--rewards--1280 (1280)
+  # godot: LandEdit (key E). Keys still work (R rotate, Del store, Esc done) but are not printed on the buttons.
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  CurrencyPlate
+    SettingsButton
+  EditLandPanel
+    Title "Edit Land"
+    AestheticLine "Aesthetic 12 · next reward at 20"
+    PlacedLine "Placed 4 of 32 (Land tier 4)"
+    Tabs
+      PlaceTab "Place"
+      CraftTab "Craft"
+      RewardsTab "Rewards"
+    List
+      RewardRow
+        ClaimButton "Claimed"
+      RewardRow
+        ClaimButton "Claim"
+      RewardRow
+        ClaimButton "Need 20"
+      RewardRow
+        ClaimButton "Need 30"
+      RewardRow
+        ClaimButton "Need 42"
+    Tools
+      RotateButton "Rotate · pick a decor"
+      StoreButton "Store · pick a decor"
+    DoneButton "Done"
+
+=== e05-edit-land--empty (1920)
+  # godot: LandEdit (key E). Keys still work (R rotate, Del store, Esc done) but are not printed on the buttons.
+  LandScene
+    HitAreaRun [870px,365px 180pxx130px] "Run"
+    HitAreaHouse [470px,455px 180pxx130px] "House"
+    HitAreaMissions [1270px,455px 180pxx130px] "Missions"
+    HitAreaEchoBox [670px,255px 180pxx130px] "Echo Box"
+    HitAreaSeasonPass [1070px,255px 180pxx130px] "Season Pass"
+    HitAreaVault [530px,665px 180pxx130px] "Vault"
+    HitAreaStore [1210px,665px 180pxx130px] "Store"
+    HitAreaLeaderboard [870px,735px 180pxx130px] "Leaderboard"
+    HitAreaGallery [1530px,555px 180pxx130px] "Gallery (empty plot)"
+  CurrencyPlate
+    SettingsButton
+  EditLandPanel
+    Title "Edit Land"
+    AestheticLine "Aesthetic 12 · next reward at 20"
+    PlacedLine "Placed 4 of 32 (Land tier 4)"
+    Tabs
+      PlaceTab "Place"
+      CraftTab "Craft"
+      RewardsTab "Rewards"
+    List
+      EmptyState "Nothing to place yet. Craft decor with Shards in the Craft …"
+    Tools
+      RotateButton "Rotate · pick a decor"
+      StoreButton "Store · pick a decor"
+    DoneButton "Done"
+
+=== e05-edit-land--empty--1280 (1280)
+  # godot: LandEdit (key E). Keys still work (R rotate, Del store, Esc done) but are not printed on the buttons.
+  LandScene
+    HitAreaRun [580px,243px 120pxx87px] "Run"
+    HitAreaHouse [313px,303px 120pxx87px] "House"
+    HitAreaMissions [847px,303px 120pxx87px] "Missions"
+    HitAreaEchoBox [447px,170px 120pxx87px] "Echo Box"
+    HitAreaSeasonPass [713px,170px 120pxx87px] "Season Pass"
+    HitAreaVault [353px,443px 120pxx87px] "Vault"
+    HitAreaStore [807px,443px 120pxx87px] "Store"
+    HitAreaLeaderboard [580px,490px 120pxx87px] "Leaderboard"
+    HitAreaGallery [1020px,370px 120pxx87px] "Gallery (empty plot)"
+  CurrencyPlate
+    SettingsButton
+  EditLandPanel
+    Title "Edit Land"
+    AestheticLine "Aesthetic 12 · next reward at 20"
+    PlacedLine "Placed 4 of 32 (Land tier 4)"
+    Tabs
+      PlaceTab "Place"
+      CraftTab "Craft"
+      RewardsTab "Rewards"
+    List
+      EmptyState "Nothing to place yet. Craft decor with Shards in the Craft …"
+    Tools
+      RotateButton "Rotate · pick a decor"
+      StoreButton "Store · pick a decor"
+    DoneButton "Done"
