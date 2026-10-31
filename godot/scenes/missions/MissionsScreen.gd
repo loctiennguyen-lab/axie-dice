@@ -493,7 +493,6 @@ func _build() -> void:
 	main.add_child(sc)
 	var dp := Ui5DetailPlate.new()
 	dp.setup("mission_detail_w", "Pick a tier", "Select a tier to see its stake, payout and rules.", "Pick a tier")
-	dp.scroll.get_v_scroll_bar().custom_minimum_size.x = UI3Theme.SCROLL_W   # visible overflow (t_ui_laws L2)
 	_detail = dp
 	main.add_child(dp)
 

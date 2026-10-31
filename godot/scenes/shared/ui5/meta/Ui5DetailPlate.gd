@@ -35,6 +35,7 @@ func setup(width_token: String, empty_title: String, empty_body := "", empty_rea
 	scroll.name = "DetailScroll"
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.get_v_scroll_bar().custom_minimum_size.x = UI3Theme.SCROLL_W   # visible overflow (t_ui_laws L2)
 	col.add_child(scroll)
 	var inner := VBoxContainer.new()
 	inner.name = "ScrollCol"

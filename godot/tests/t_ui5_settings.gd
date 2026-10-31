@@ -179,6 +179,8 @@ func _accounts() -> void:
 			_check(absf(dy - ty) <= 1.5 or lbl.get_visible_line_count() > 1, "[%s] ToneDisc centred on the text (%.1f vs %.1f)" % [tag, dy, ty])
 		# Align checker: the error disc carries a "!" label, not an icon, so it is measured by hand above; the checker still runs.
 		_check(Align.check(v).is_empty(), "[%s] expired: align_check clean" % tag)
+		# The text sits in a VBox next to the disc, not beside it in one box, so Align.pairs() cannot see this pair;
+		# the disc-vs-text centre check above measures it instead.
 		print("t_ui5_settings: align pairs expired [%s] = %d" % [tag, Align.pairs(v)])
 		v.queue_free()
 		await get_tree().process_frame
