@@ -1377,9 +1377,9 @@ func _build_open_run() -> void:
 	area.add_child(holder)
 	var card := UI3.plate(&"dialog")
 	card.name = "OpenRunCard"
-	card.custom_minimum_size.x = 560
+	card.custom_minimum_size.x = UI3Theme.size_of("modal_s_w")   # frame .dialog.s
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", UI3Theme.space("16"))
+	v.add_theme_constant_override("separation", UI3Theme.space("20"))
 	card.add_child(v)
 	var ttl := _lbl(tr("You have an unfinished run"), "LabelScreenTitle")
 	ttl.name = "Title"
@@ -1406,7 +1406,7 @@ func _build_open_run() -> void:
 	var note := _lbl(tr("A new run ends the current run. Aid you used is not refunded."), "LabelMuted")
 	note.name = "Note"
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	note.custom_minimum_size.x = 496
+	note.custom_minimum_size.x = 0
 	v.add_child(note)
 	holder.add_child(card)
 	add_child(area)
