@@ -51,7 +51,8 @@ func setup(id: String) -> void:
 		column.add_child(strip)
 	var body := VBoxContainer.new()
 	body.name = "Body"
-	body.add_theme_constant_override("separation", UI3Theme.space("12"))
+	# Deviation: at 1280 (text floor 14 px real) the longest card (Big Hand) is 13 px over anchor_card_h with gap 12: gap 8 there.
+	body.add_theme_constant_override("separation", UI3Theme.space("12") if UI3Theme.layout_scale() >= 1.0 else UI3Theme.space("8"))
 	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	if reason != "":
@@ -89,7 +90,7 @@ func setup(id: String) -> void:
 
 	var summary := String(AnchorPick.SUMMARY.get(id, ""))
 	if summary != "":
-		var sm := PanelParts.text(tr(summary), "text_body", "text", true)
+		var sm := PanelParts.text(tr(summary), "text_body", "text")
 		sm.name = "Summary"
 		sm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		sm.custom_minimum_size.x = inner
@@ -106,7 +107,9 @@ func setup(id: String) -> void:
 	an.name = "AwakenName"
 	ab.add_child(an)
 	ab.add_child(_wrapped("AwakenRule", AnchorAdapter.awaken_rule(id), "text", inner - 24))
-	ab.add_child(_wrapped("AwakenCondition", TranslationServer.translate("Awakens when you hold 2 of these 5 Cores"), "text_muted", inner - 24))
+	var cond := _wrapped("AwakenCondition", TranslationServer.translate("Awakens when you hold 2 of these 5 Cores"), "text_muted", inner - 24)
+	cond.add_theme_font_size_override("font_size", UI3Theme.size_of("text_key"))
+	ab.add_child(cond)
 	body.add_child(ab.get_parent())
 	var cap := PanelParts.text(tr("House Cores"), "text_key", "text_muted", true)
 	cap.name = "HouseCap"

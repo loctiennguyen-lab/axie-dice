@@ -44,6 +44,7 @@ func _case(ids: Array, reasons: Dictionary, sc: float, tag: String) -> void:
 	_check(v.take_button.disabled and v.take_button.text == "Pick an Anchor", "%s: Take disabled, says why" % tag)
 	_check(v.find_child("Keycap", true, false) == null, "%s: no keycap on the disabled button" % tag)
 	for c in v.cards:
+		_check(c.size.y <= UI3Theme.size_of("anchor_card_h") + 1.0, "%s: card not taller than anchor_card_h (%f)" % [tag, c.size.y])
 		_check(absf(c.size.x - UI3Theme.size_of("anchor_card_w")) < 1.0, "%s: card width %f" % [tag, c.size.x])
 		_check(c.size.y >= UI3Theme.size_of("anchor_card_h") - 1.0, "%s: card height %f" % [tag, c.size.y])
 		var col := c.get_child(0) as Control
