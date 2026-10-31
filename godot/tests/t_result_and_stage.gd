@@ -44,7 +44,7 @@ const RESULT_SCENE := "res://scenes/result/Result.tscn"
 ## ("where the spec and a mockup disagree, the mockup is right") that literal order is what
 ## ResultView.gd now builds — see that file's `_build_card_row()` comment. So this file no
 ## longer asserts relics-before-currency; it only checks that all three cards are still present.
-const EXPECTED_BAND_ORDER: Array[String] = ["PartyRow", "StatRibbon", "CardRow", "Footer"]
+const EXPECTED_BAND_ORDER: Array[String] = ["PartyRow", "StatGrid", "CardScroll", "Actions"]
 const EXPECTED_CARD_ROW_CAPTIONS: Array[String] = ["GENE SHARD", "SEASON PASS", "CORES"]
 
 const EXPECTED_TESTS: Array[String] = [
@@ -198,7 +198,7 @@ func test_the_result_screen_reads_build_before_currency() -> void:
 	# The card row's three captions are all present — see EXPECTED_CARD_ROW_CAPTIONS' comment
 	# for why their RELATIVE order is no longer asserted here.
 	var card_text := ""
-	var card_row := screen.find_child("CardRow", true, false)
+	var card_row := screen.find_child("CardScroll", true, false)
 	if card_row != null:
 		for node in _descendants_for_text(card_row):
 			var lbl := node as Label

@@ -158,7 +158,7 @@ func test_the_screen_never_prints_a_null() -> void:
 ## (with Retry) all come from real run data.
 func test_round_two_cards_stake_title_and_offline() -> void:
 	var view := await _build_result(true, {})
-	for n in ["ShardCard", "PassCard", "RelicsCard", "XpIcon", "PartyRow", "StatRibbon", "Footer"]:
+	for n in ["ShardCard", "PassCard", "CoresCard", "XpDisc", "PartyRow", "StatGrid", "Actions"]:
 		_assert(view.find_child(n, true, false) != null, "Result has no %s" % n)
 	_assert(view.find_child("StakeBox", true, false) == null, "a non-Mission run shows a stake box")
 	_assert(view.find_child("NetNotice", true, false) == null, "the offline notice shows before any failure")
@@ -173,7 +173,7 @@ func test_round_two_cards_stake_title_and_offline() -> void:
 	# Not clipped at the worst state (offline notice on): plate and actions stay inside the window.
 	var vh: float = (view as Control).get_viewport_rect().size.y
 	var plate := view.find_child("ResultPlate", true, false) as Control
-	var foot := view.find_child("Footer", true, false) as Control
+	var foot := view.find_child("Actions", true, false) as Control
 	_assert(plate.global_position.y >= 0.0 and plate.global_position.y + plate.size.y <= vh + 0.5,
 		"offline: the result plate runs off the window (%s..%s of %s)" % [plate.global_position.y, plate.global_position.y + plate.size.y, vh])
 	_assert(foot.global_position.y + foot.size.y <= vh + 0.5, "offline: the actions are clipped")
@@ -198,10 +198,10 @@ func test_round_two_cards_stake_title_and_offline() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_assert(v2.find_child("StakeBox", true, false) != null, "a lost Mission run shows no stake settlement")
-	_assert(_all_text(v2).contains("lose your 25 Shard stake"), "stake loss line is missing")
-	_assert(_all_text(v2).contains("(-25 Shards). No payout, no Stone."), "loss line: Shards lost, no Stone")
+	_assert(_all_text(v2).contains("lose your 25 Shards stake"), "stake loss line is missing")
+	_assert(_all_text(v2).contains("(−25 Shards). No payout, no Stone."), "loss line: Shards lost, no Stone")
 	_assert(_all_text(v2).contains("N4 stays locked until you win N3.") or _all_text(v2).contains("N4 is still open."), "loss line: what happens to the next tier")
-	_assert((v2.find_child("BackButton", true, false) as Button).text == "Back to Missions" and (v2.find_child("RunAgain", true, false) as Button).text == "Play a normal run", "Mission result: two clear buttons")
+	_assert((v2.find_child("BackButton", true, false) as Button).text == "Back to Missions" and (v2.find_child("RunAgainButton", true, false) as Button).text == "Play a normal run", "Mission result: two clear buttons")
 	_assert(_all_text(v2).contains("Defeated"), "a loss does not say Defeated")
 	_assert(v2.find_child("RankedCaption", true, false) == null and not _all_text(v2).contains("not Ranked"), "a Mission run never says it was not Ranked")
 	v2.queue_free()
