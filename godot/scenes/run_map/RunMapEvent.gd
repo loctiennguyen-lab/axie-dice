@@ -94,13 +94,13 @@ func _build_event_screen(picked: int, outcome: String) -> void:
 		var ol := UI3.label(outcome, "LabelTitle")
 		ol.name = "Text"
 		ol.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		ol.custom_minimum_size.x = 400
+		ol.custom_minimum_size.x = _wrap_w(40)
 		oc.add_child(ol)
 	else:
 		var body := _PanelParts.on_view(UI3.label(String(ev.get("desc", ""))))
 		body.name = "EventBody"
 		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		body.custom_minimum_size.x = 400
+		body.custom_minimum_size.x = _wrap_w(0)
 		col.add_child(body)
 
 	ctrl._overlay_vbox = VBoxContainer.new()
@@ -120,14 +120,19 @@ func _build_event_screen(picked: int, outcome: String) -> void:
 	go.name = "ContinueButton" if picked >= 0 else "ChooseButton"
 	acts.add_child(go)
 	if picked >= 0:
-		go.pressed.connect(func() -> void: ctrl._finish_node())
+		go.pressed.connect(_on_continue)
 		Ui5RunScreenParts.set_space_cap(go, true)
 		go.grab_focus.call_deferred()
 	else:
 		UI3.set_disabled_reason(go, tr("Pick a choice"))
-		go.pressed.connect(func() -> void: _on_event_choice(ctrl._event_sel))
+		go.pressed.connect(_on_choose)
 		if not ctrl._event_cards.is_empty():
 			ctrl._event_cards[0].grab_focus.call_deferred()
+
+
+## Wrap width for text in the event column: event_col_w less `pad` (side padding / icon) and the card padding.
+func _wrap_w(pad: float) -> float:
+	return UI3Theme.size_of("event_col_w") - pad - 2.0 * UI3Theme.space("20")
 
 
 func _action_button() -> Button:
@@ -178,7 +183,7 @@ func _add_event_option(raw: Dictionary, index: int, picked: int) -> Control:
 	tc.add_child(tl)
 	var d := UI3.label(String(raw.get("desc", "")))
 	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	d.custom_minimum_size.x = 400   # a wrap width from the first layout pass (else the min height spikes)
+	d.custom_minimum_size.x = _wrap_w(40 + 2 * 16 + UI3Theme.size_of("choice_icon"))   # a wrap width from the first layout pass (else the min height spikes)
 	d.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tc.add_child(d)
 	card.set_meta("opt", index)
@@ -189,20 +194,35 @@ func _add_event_option(raw: Dictionary, index: int, picked: int) -> Control:
 	ctrl._event_cards.append(card)
 	card.focus_mode = Control.FOCUS_ALL
 	card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	card.draw.connect(func() -> void:
-		if card.has_focus():
-			card.draw_style_box(UI3Theme.focus_style(UI3Theme.radius("l")), Rect2(Vector2.ZERO, card.size)))
+	card.draw.connect(_draw_focus.bind(card))
 	card.focus_entered.connect(card.queue_redraw)
 	card.focus_exited.connect(card.queue_redraw)
-	card.gui_input.connect(func(ev: InputEvent) -> void:
-		var by_mouse: bool = ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT
-		if by_mouse or (ev.is_action_pressed("ui_accept") and not ev.is_echo()):
-			_select_event(index)
-			var go := _action_button()
-			if go != null:
-				go.grab_focus.call_deferred()   # Space then really presses Choose (the keycap on it says so)
-			card.accept_event())
+	card.gui_input.connect(_card_input.bind(card, index))
 	return card
+
+
+func _on_continue() -> void:
+	ctrl._finish_node()
+
+
+func _on_choose() -> void:
+	_on_event_choice(ctrl._event_sel)
+
+
+func _draw_focus(card: Control) -> void:
+	if card.has_focus():
+		card.draw_style_box(UI3Theme.focus_style(UI3Theme.radius("l")), Rect2(Vector2.ZERO, card.size))
+
+
+## Click or Space on a row picks it; focus then moves to Choose so Space really presses it (the keycap says so).
+func _card_input(ev: InputEvent, card: Control, index: int) -> void:
+	var by_mouse: bool = ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT
+	if by_mouse or (ev.is_action_pressed("ui_accept") and not ev.is_echo()):
+		_select_event(index)
+		var go := _action_button()
+		if go != null:
+			go.grab_focus.call_deferred()
+		card.accept_event()
 
 
 func _on_event_choice(index: int) -> void:

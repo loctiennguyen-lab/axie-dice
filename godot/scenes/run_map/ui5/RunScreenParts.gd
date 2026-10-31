@@ -48,8 +48,22 @@ static func set_space_cap(b: Button, on: bool) -> void:
 		b.add_child(cap)
 		if not b.has_meta("cap_wired"):
 			b.set_meta("cap_wired", true)
-			b.resized.connect(func() -> void:
-				var c := b.get_node_or_null("KeyCap") as Control
-				if c != null:
-					Ui5HudStyle.place_trailing(b, c, pad))
-	Ui5HudStyle.place_trailing.call_deferred(b, cap, pad)
+			b.resized.connect(_on_cap_resized.bind(b, pad))
+	# Placed next frame, by instance id: a screen rebuilt before then frees the button, and a Callable that captured
+	# the node itself would log "Lambda capture ... freed".
+	(Engine.get_main_loop() as SceneTree).process_frame.connect(_place_by_id.bind(b.get_instance_id(), pad), CONNECT_ONE_SHOT)
+
+
+static func _on_cap_resized(b: Button, pad: int) -> void:
+	var c := b.get_node_or_null("KeyCap") as Control
+	if c != null:
+		Ui5HudStyle.place_trailing(b, c, pad)
+
+
+static func _place_by_id(id: int, pad: int) -> void:
+	var b := instance_from_id(id) as Button
+	if b == null or not is_instance_valid(b) or not b.is_inside_tree():
+		return
+	var c := b.get_node_or_null("KeyCap") as Control
+	if c != null:
+		Ui5HudStyle.place_trailing(b, c, pad)

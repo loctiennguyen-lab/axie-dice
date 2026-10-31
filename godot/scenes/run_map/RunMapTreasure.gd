@@ -56,7 +56,7 @@ func _build_treasure(opened: bool) -> void:
 	if not opened:
 		var open := UI3.button(tr("Open chest"), &"primary", &"L")
 		open.name = "OpenButton"
-		open.pressed.connect(func() -> void: _build_treasure(true))
+		open.pressed.connect(_build_treasure.bind(true))
 		var oc := HBoxContainer.new()
 		oc.name = "Footer"
 		oc.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -75,7 +75,7 @@ func _build_treasure(opened: bool) -> void:
 		col.add_child(_PanelParts.on_view(UI3.label(tr("The vault was empty."))))
 		var cont := UI3.button(tr("Continue"), &"primary", &"L")
 		cont.name = "TakeButton"
-		cont.pressed.connect(func() -> void: ctrl._finish_node())
+		cont.pressed.connect(ctrl._finish_node)
 		foot.add_child(cont)
 		col.add_child(foot)
 		Ui5RunScreenParts.set_space_cap(cont, true)

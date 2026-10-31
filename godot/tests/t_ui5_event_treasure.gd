@@ -72,7 +72,7 @@ func _event(sc: float) -> void:
 	_ok(rm._event_cards[0].has_focus(), "%s: initial focus on the first choice" % tag)
 	for c in rm._event_cards:
 		_ok(c.theme_type_variation == "PanelCard", "%s: no row shows selected" % tag)
-		_ok(absf(c.get_global_rect().size.y - UI3Theme.size_of("choice_h")) >= -0.5, "%s: row min height" % tag)
+		_ok(c.get_global_rect().size.y >= UI3Theme.size_of("choice_h") * sc - 0.5, "%s: row min height" % tag)
 		var ic := (c.get_child(0) as Node).get_child(0) as Control
 		_vcentre((c.get_child(0) as Node).get_node("Text") as Control, ic, tag)
 	_vcentre(root.find_child("EventHeadText", true, false) as Control, root.find_child("EventHead", true, false).get_child(0) as Control, tag)
@@ -83,7 +83,6 @@ func _event(sc: float) -> void:
 	_ok(Ui5Keycap.text_of(go.get_node("KeyCap")) == "Space", "%s: keycap is Space" % tag)
 	_ok(rm._event_cards[1].theme_type_variation == "PanelCardSelected" and rm._event_cards[0].theme_type_variation == "PanelCard", "%s: only the picked row is selected" % tag)
 	_ok((RunState.action_log.entries as Array).size() == ll, "%s: picking logs nothing" % tag)
-	var es := root.find_child("EventScreen", true, false) as Control
 	_fit(root.find_child("EventScreen", true, false), sc, tag)
 	# Outcome frame
 	rm.call("_build_event_screen", 1, "A made-up outcome line.")
@@ -147,6 +146,16 @@ func _ready() -> void:
 		await _frames(3)
 		await _event(sc)
 		await _treasure(sc)
+	# Empty vault: Continue (TakeButton) with the Space keycap and focus, pressing it finishes the node.
+	RunState.pending_rewards.assign([])
+	rm.call("_build_treasure", true)
+	await _frames(4)
+	var ct := rm._overlay_root.find_child("TakeButton", true, false) as Button
+	_ok(ct != null and ct.text == "Continue" and not ct.disabled and ct.has_focus() and ct.get_node_or_null("KeyCap") != null, "empty vault: Continue with keycap and focus")
+	_ok(rm._overlay_root.find_child("CardRow", true, false) == null, "empty vault: no card row")
+	ct.pressed.emit()
+	await _frames(6)
+	_ok(rm._overlay_root.find_child("TakeButton", true, false) == null or not rm._overlay_root.visible, "empty vault: Continue finished the node (screen closed)")
 	# One real choose: exactly one event_choose in the log, ChooseButton drives it.
 	UI3Theme.set_scale_override(1.0)
 	rm.call("_on_event_node", "x")
