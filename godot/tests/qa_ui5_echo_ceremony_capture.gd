@@ -31,9 +31,10 @@ func _shot(id: String, res: Array, instant := true, opening := false) -> void:
 		s.pull(res.size())
 	else:
 		await s.pull(res.size())
-	for i in 40:
+	for i in 150:
 		await get_tree().process_frame
-	await RenderingServer.frame_post_draw
+	for i in 4:
+		await RenderingServer.frame_post_draw
 	Util.save(get_viewport(), id)
 	s.queue_free()
 	await get_tree().process_frame

@@ -2,6 +2,7 @@ extends Node
 ## UI-05 b23 lane S9b: Echo Box ceremony against 20-echo--opening / reveal-* / open10. Node names, one reveal per tier,
 ## Open 10 grid, 1920 + 1280 inside the frame, align check > 0 pairs, real text >= 14 px, initial focus (Done),
 ## Skip by a real Space, Equip now writes MetaState, no illustrative strings.
+const CeremonyPartsRef := preload("res://scenes/echobox/ui5/ceremony/CeremonyParts.gd")
 const Align := preload("res://tests/ui5_align_check.gd")
 var _guard := SaveGuard.new()
 var _fails: Array[String] = []
@@ -13,6 +14,21 @@ func _ok(c: bool, m: String) -> void:
 	_checks += 1
 	if not c:
 		_fails.append(m)
+
+
+## CostChip sits inside the OpenAgainButton rect and does not overlap its text.
+func _chip_in_button(root: Node, t: String) -> void:
+	var b := root.find_child("OpenAgainButton", true, false) as Button
+	var chip := root.find_child("CostChip", true, false) as Control
+	if b == null or chip == null:
+		return
+	var br := b.get_global_rect()
+	var cr := chip.get_global_rect()
+	_ok(br.grow(0.5).encloses(cr), "%s: CostChip inside OpenAgainButton %s vs %s" % [t, str(cr), str(br)])
+	var font := b.get_theme_font("font")
+	var tw := font.get_string_size(b.text, HORIZONTAL_ALIGNMENT_LEFT, -1, b.get_theme_font_size("font_size")).x
+	var text_right := br.position.x + (br.size.x - tw) * 0.0 + b.get_theme_stylebox("normal").content_margin_left + tw
+	_ok(cr.position.x >= text_right - 0.5, "%s: CostChip clear of the text (%f >= %f)" % [t, cr.position.x, text_right])
 
 
 func _frames(n := 6) -> void:
@@ -133,7 +149,7 @@ func _pass(sc: float) -> void:
 			_ok(sc_.find_child("EquipButton", true, false) != null or bool(res.get("duplicate")), "%s: equip on a new cosmetic" % t2)
 			_ok((sc_.find_child("NewChip", true, false) != null) != bool(res.get("duplicate")), "%s: New chip xor dup badge" % t2)
 			_ok((sc_.find_child("FragmentBadge", true, false) != null) == bool(res.get("duplicate")), "%s: FragmentBadge on dup" % t2)
-			_ok((sc_.find_child("RaysProposal", true, false) != null) == (tier >= 2), "%s: rays on Rare+" % t2)
+			_ok(sc_.find_child("RaysProposal", true, false) == null or not CeremonyPartsRef.PROPOSAL_FX, "%s: no visible rays (PROPOSAL off)" % t2)
 			_ok(((card as PanelContainer).get_theme_stylebox("panel") as StyleBoxFlat).border_width_left == (3 if tier >= 3 else 2), "%s: epic+ 3 px border" % t2)
 		else:
 			_ok(sc_.find_child("StoneIcon", true, false) != null and sc_.find_child("EquipButton", true, false) == null, "%s: stone art, no equip" % t2)
@@ -141,6 +157,7 @@ func _pass(sc: float) -> void:
 		_ok(dn.has_focus(), "%s: initial focus on DoneButton" % t2)
 		_ok(dn.theme_type_variation == "ButtonPrimary" or dn.theme_type_variation.begins_with("ButtonPrimary"), "%s: Done is the primary" % t2)
 		_inside(sc_, t2)
+		_chip_in_button(sc_, t2)
 		_small(sc_.find_child("Ceremony", true, false), t2, sc)
 		_pairs += Align.pairs(sc_.find_child("Ceremony", true, false))
 		var prob := Align.check(sc_.find_child("Ceremony", true, false), 1.5, t2)

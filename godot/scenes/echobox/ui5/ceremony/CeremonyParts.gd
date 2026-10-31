@@ -6,6 +6,8 @@ extends RefCounted
 ## result + cosmetics_manifest (CosmeticTile.any_name). Use through `preload`.
 
 const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
+## README/motion mark rays, sparks, ring, shake and hit-stop as PROPOSAL (not approved): code kept, off by default.
+const PROPOSAL_FX := false
 const Rays := preload("res://scenes/echobox/ui5/ceremony/CeremonyRays.gd")
 
 
@@ -100,8 +102,11 @@ static func attach_trailing(b: Button, trailing: Control) -> void:
 					b.add_theme_stylebox_override(st, src.duplicate())
 		trailing.visible = not b.disabled
 		Ui5HudStyle.place_trailing(b, trailing, pad)
+		b.update_minimum_size()
+		b.queue_redraw()
 	b.resized.connect(sync)
-	b.draw.connect(sync)
+	b.minimum_size_changed.connect(func() -> void: sync.call_deferred())
+	b.tree_entered.connect(func() -> void: sync.call_deferred())
 	sync.call_deferred()
 
 
@@ -191,7 +196,7 @@ static func card(screen: Node, r: Dictionary, single: bool, flashy: bool) -> Pan
 	var title := ""
 	var line := ""
 	var line_col := DiceSkin.tier_text_color(tier)
-	if not stone and tier >= 2 and flashy:
+	if PROPOSAL_FX and not stone and tier >= 2 and flashy:
 		var rays := Rays.new()
 		rays.ray_color = col
 		rays.spin = not UI3Motion.reduced()

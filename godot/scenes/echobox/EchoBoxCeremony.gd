@@ -84,8 +84,15 @@ func _reveal(out: Array, col: VBoxContainer, title: Label) -> void:
 		grid.add_theme_constant_override("v_separation", UI3Theme.space("16"))
 		for i in out.size():
 			cards[i] = Parts.card(_s, out[i], false, flashy)
+			(cards[i] as Control).custom_minimum_size.y = 0.0   # grid cards fit their content (frame: no empty tail)
 			grid.add_child(cards[i], true)
 		host = grid
+		# frame: .ceremony transform:scale(.94) on Open 10, so the Title keeps clear of the first row.
+		col.scale = Vector2(0.94, 0.94)
+		(func() -> void:
+			if is_instance_valid(col):
+				col.pivot_offset = col.size * 0.5).call_deferred()
+		col.resized.connect(func() -> void: col.pivot_offset = col.size * 0.5)
 	var hc := CenterContainer.new()
 	hc.name = "RevealHost"
 	hc.add_child(host)
