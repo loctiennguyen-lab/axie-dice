@@ -7,10 +7,10 @@ const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 
 
 ## `.hud.plate` box: plate fill, rim, hard lip. `warn_rim` swaps the rim for notice_warn (the update bar). Padding per side.
-static func hud_box(rad: String, pad_v: int, pad_l: int, pad_r: int, warn_rim := false) -> StyleBoxFlat:
+static func hud_box(rad: String, pad_v: int, pad_l: int, pad_r: int, warn_rim := false, pad_b := -1) -> StyleBoxFlat:
 	var rim := UI3Theme.color("notice_warn") if warn_rim else UI3Theme.color("plate_rim")
 	return UI3Theme.flat(UI3Theme.color("plate"), UI3Theme.radius(rad), UI3Theme.stroke("rim"), rim,
-		Vector4(pad_l, pad_v, pad_r, pad_v), PanelParts.lip(UI3Theme.color("plate_ink")))
+		Vector4(pad_l, pad_v, pad_r, pad_v if pad_b < 0 else pad_b), PanelParts.lip(UI3Theme.color("plate_ink")))
 
 
 ## Scrim over the screen under the notice. Never takes the mouse: the notice never locks input (see NetNotice).

@@ -20,6 +20,7 @@ var _guard := SaveGuard.new()
 var _fails: Array[String] = []
 var _checks := 0
 var _pairs := 0
+var _sc := 1.0   ## current design scale: the frame is 1920x1080 logical * _sc
 
 
 func _check(ok: bool, msg: String) -> void:
@@ -34,6 +35,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	for sc in [1.0, 2.0 / 3.0]:
 		UI3Theme.set_scale_override(sc)
+		_sc = sc
 		for n in NOTICES:
 			await _notice(sc, n)
 		await _update(sc, 0, "version")
@@ -43,7 +45,7 @@ func _ready() -> void:
 		await _bar(sc, 1)
 	UI3Theme.set_scale_override(-1.0)
 	UpdateRequired.web_override = -1
-	_check(_pairs >= 0, "pairs counted")
+	_check(_pairs > 0, "pairs counted")
 	print("t_ui5_system: icon/label pairs measured = %d" % _pairs)
 	_guard.restore()
 	print("=== t_ui5_system: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
@@ -80,12 +82,13 @@ func _texts_ok(root: Node, tag: String, sc: float) -> void:
 			_check((n as Control).size.x >= w, "[%s] button '%s' text not clipped" % [tag, n.get("text")])
 
 
+## Sizes are design (logical) px: a 1280 screen is 1920x1080 logical at scale 2/3, so the box must fit 1920x1080 at both
+## cases. Position is checked against the real viewport (the headless viewport is not 1920x1080, so not against the frame).
 func _inside(c: Control, tag: String) -> void:
 	var r := c.get_global_rect()
 	var vp := get_viewport().get_visible_rect()
-	_check(r.size.x > 0.0 and r.size.x <= 1920.0 + 0.5, "[%s] %s width %s within 1920 logical" % [tag, c.name, r.size.x])
-	_check(r.position.x >= -0.5 and r.end.x <= vp.size.x + 0.5 and r.position.y >= -0.5 and r.end.y <= vp.size.y + 0.5,
-		"[%s] %s %s inside viewport %s" % [tag, c.name, r, vp])
+	_check(r.size.x > 0.0 and r.size.x <= 1920.0 + 0.5 and r.size.y <= 1080.0 + 0.5, "[%s] %s size %s fits 1920x1080 logical (scale %.2f)" % [tag, c.name, r.size, _sc])
+	_check(vp.grow(0.5).encloses(r), "[%s] %s %s inside viewport %s" % [tag, c.name, r, vp])
 
 
 func _align(root: Node, tag: String) -> void:
@@ -172,12 +175,20 @@ func _update(sc: float, web: int, code: String) -> void:
 	_align(layer, tag)
 	var opened: Array = []
 	UpdateRequired.open_url_hook = func(u: String) -> void: opened.append(u)
-	dl.pressed.emit()
-	_check(web == 1 or opened == [UpdateRequired.DOWNLOAD_URL], "[%s] primary opens the download" % tag)
-	UpdateRequired.open_url_hook = Callable()
-	cl.pressed.emit()
+	for pressed in [true, false]:   # a real Space key press on the focused UpdateButton
+		var ev := InputEventKey.new()
+		ev.keycode = KEY_SPACE
+		ev.physical_keycode = KEY_SPACE
+		ev.pressed = pressed
+		Input.parse_input_event(ev)
+		await get_tree().process_frame
 	await get_tree().process_frame
-	_check(closed[0] == 1, "[%s] Close runs on_close" % tag)
+	_check(opened == [UpdateRequired.DOWNLOAD_URL], "[%s] Space on UpdateButton opens the download (%s)" % [tag, opened])
+	UpdateRequired.open_url_hook = Callable()
+	# Esc = Close: on_close once, the bar stays
+	(layer.find_child("Modal", true, false) as UI3.ModalRoot).cancelled.emit()
+	await get_tree().process_frame
+	_check(closed[0] == 1, "[%s] Esc runs on_close once (%d)" % [tag, closed[0]])
 	var bar := get_tree().root.get_node_or_null(UpdateRequired.BAR_NAME)
 	_check(bar != null, "[%s] Close leaves the update bar" % tag)
 	if bar != null:

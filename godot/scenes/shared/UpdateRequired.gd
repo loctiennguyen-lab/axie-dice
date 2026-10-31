@@ -138,7 +138,7 @@ static func show_bar(tree: SceneTree) -> Node:
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(top)
 	# 18-update--bar: pill plate with a warn rim, [ToneDisc, message, UpdateButton]; stays after Close on every screen.
-	var panel := PanelParts.panel(NetParts.hud_box("pill", UI3Theme.space("4"), UI3Theme.space("16"), UI3Theme.space("8"), true), "UpdateBar")
+	var panel := PanelParts.panel(NetParts.hud_box("pill", UI3Theme.space("4"), UI3Theme.space("16"), UI3Theme.space("8"), true, UI3Theme.space("4") + int(PanelParts.lip(Color.BLACK).y)), "UpdateBar")
 	panel.custom_minimum_size.y = UI3Theme.size_of("update_bar_h")
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE   # only the button takes clicks
 	top.add_child(panel)
