@@ -84,9 +84,11 @@ func _pass(sc: float) -> void:
 	var rp := h.find_child("RunPlate", true, false) as Button
 	_ok(rp.text == "Start run" and rp.get_meta("state") == "start", tag + ": RunPlate Start run")
 	_ok(_caps(h) == 1 and Ui5Keycap.text_of(Ui5Keycap.all_under(rp)[0]) == "Space", tag + ": one Space keycap on the RunPlate")
-	var shard := (h.find_child("CurrencyShard", true, false).get_node("Value") as Label).text
+	await get_tree().process_frame
+	_cap_ok(rp, tag + " Start run")
+	var shard := (h.find_child("ShardValue", true, false).get_node("Value") as Label).text
 	_ok(shard == UI3.fmt(MetaState.shard_pool), tag + ": shard from MetaState")
-	_ok((h.find_child("CurrencyStone", true, false).get_node("Value") as Label).text == UI3.fmt(MetaState.stone), tag + ": stone from MetaState")
+	_ok((h.find_child("StoneValue", true, false).get_node("Value") as Label).text == UI3.fmt(MetaState.stone), tag + ": stone from MetaState")
 	_ok(h.find_child("EditLandButton", true, false) is Button and not _has_key_hint(h.find_child("LinksPlate", true, false)), tag + ": no key hint on links")
 	var name_l := h.find_child("Name", true, false) as Label
 	_ok(name_l.text != "Liam" or AccountService.display_name() == "Liam", tag + ": name not the HTML one")
@@ -117,7 +119,7 @@ func _pass(sc: float) -> void:
 	h = await _hub({"guest": true, "first_launch": false})
 	var gp := h.find_child("ProfilePlate", true, false)
 	_ok((gp.find_child("Name", true, false) as Label).text == "Guest", tag + ": guest name")
-	_ok(not (h.find_child("CurrencyShard", true, false) as Control).visible, tag + ": guest hides currencies")
+	_ok(not (h.find_child("ShardValue", true, false) as Control).visible, tag + ": guest hides currencies")
 	_ok(not (h.find_child("MoonCardButton", true, false) as Control).visible, tag + ": guest hides Moon Card")
 	await _free(h)
 	# continue run / continue mission
@@ -125,11 +127,15 @@ func _pass(sc: float) -> void:
 	rp = h.find_child("RunPlate", true, false) as Button
 	_ok(rp.text in ["Continue run", "Continue mission"] and (h.find_child("NewRunButton", true, false) as Control).visible, tag + ": continue state + New run")
 	_ok(_caps(h) == 1, tag + ": keycap on Continue")
+	await get_tree().process_frame
+	_cap_ok(rp, tag + " Continue")
 	await _free(h)
 	MetaState.mission_escrow = {"mission_id": "n1", "stake": 100}
 	h = await _hub({"guest": false, "newcomer": false, "first_launch": false, "mission": true}, 1, true)
 	rp = h.find_child("RunPlate", true, false) as Button
 	_ok(rp.text == "Continue mission" and rp.get_meta("state") == "continue_mission", tag + ": Continue mission")
+	await get_tree().process_frame
+	_cap_ok(rp, tag + " Continue mission")
 	_ok(rp.tooltip_text.begins_with("Mission N1"), tag + ": mission tooltip from escrow")
 	await _free(h)
 	MetaState.mission_escrow = {}
@@ -152,12 +158,35 @@ func _pass(sc: float) -> void:
 	_ok(tb != null and tb.find_child("NewList", true, false) != null and tb.find_child("NewRow", true, false) != null, tag + ": TierUpBanner NewList")
 	_ok(tb != null and tb.find_child("LookAroundButton", true, false) != null and _has_cap(tb), tag + ": LookAround has Space keycap")
 	_small(h, tag + " banner", sc)
+	await get_tree().process_frame
+	_cap_ok(tb.find_child("LookAroundButton", true, false) as Button, tag + " LookAround")
 	await _free(h)
 	# no illustration strings in any Land HUD label
 	h = await _hub({"guest": false, "newcomer": false, "first_launch": false})
 	for l in h.find_child("TopLeft", true, false).find_children("*", "Label", true, false):
 		_ok(not ((l as Label).text in ILLUSTRATION) or (l as Label).text == AccountService.display_name(), tag + ": illustration string " + (l as Label).text)
 	await _free(h)
+
+
+## Button with a trailing Space cap: label never overlaps the cap, [label + cap] centred on the button (+-2 px), the
+## button keeps its variant fill.
+func _cap_ok(b: Button, tag: String) -> void:
+	var cap: Control = null
+	for c in Ui5Keycap.all_under(b):
+		cap = c
+	_ok(cap != null and cap.visible, tag + ": cap visible")
+	if cap == null:
+		return
+	var sb := b.get_theme_stylebox("normal") as StyleBoxFlat
+	var want := UI3Theme.get_theme().get_stylebox("normal", b.theme_type_variation) as StyleBoxFlat
+	_ok(sb != null and want != null and sb.bg_color == want.bg_color and sb.get_corner_radius(CORNER_TOP_LEFT) == want.get_corner_radius(CORNER_TOP_LEFT), tag + ": button keeps its fill and radius")
+	var font := b.get_theme_font("font")
+	var tw := font.get_string_size(b.text, HORIZONTAL_ALIGNMENT_LEFT, -1, b.get_theme_font_size("font_size")).x
+	var avail := b.size.x - sb.content_margin_left - sb.content_margin_right
+	var left := sb.content_margin_left + (avail - tw) * 0.5
+	_ok(left + tw <= cap.position.x + 0.5, "%s: label (right %.1f) clear of cap (left %.1f)" % [tag, left + tw, cap.position.x])
+	var centre := (left + cap.position.x + cap.size.x) * 0.5
+	_ok(absf(centre - b.size.x * 0.5) <= 2.0, "%s: group centre %.1f vs button centre %.1f (ml %.1f mr %.1f tw %.1f cap %s size %s min %s)" % [tag, centre, b.size.x * 0.5, sb.content_margin_left, sb.content_margin_right, tw, str(cap.position) + str(cap.size), str(b.size), str(b.get_combined_minimum_size())])
 
 
 func _has_key_hint(root: Node) -> bool:

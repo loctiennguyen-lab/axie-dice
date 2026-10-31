@@ -114,8 +114,11 @@ func build_hud() -> void:
 	var cp := Ui5CurrencyPlate.make(vals, st)
 	_l._wallet = cp
 	_l._currencies = null
-	for n in ["CurrencyShard", "CurrencyStone", "CurrencyGem"]:
-		(cp.find_child(n, true, false) as Control).visible = not guest
+	# frame 01-land names the cells ShardValue / StoneValue / GemValue (the components sheet says Currency*).
+	for pair in [["CurrencyShard", "ShardValue"], ["CurrencyStone", "StoneValue"], ["CurrencyGem", "GemValue"]]:
+		var cell := cp.find_child(pair[0], true, false) as Control
+		cell.name = pair[1]
+		cell.visible = not guest
 	_l._ui.add_child(cp)
 
 	# LinksPlate: Codex / Edit Land / Raid cells + Moon Card (no key hints: only Space is printed).
@@ -296,7 +299,8 @@ func tip_show_now(c: Control) -> void:
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_theme_constant_override("separation", s4)
 	plate.add_child(v)
-	var maxw := float(UI3Theme.size_of("tooltip_w") - 2 * UI3Theme.space("16"))
+	# 400 design px at 18 px text; the 1280 text floor makes the text bigger, so the budget grows with it
+	var maxw := float(UI3Theme.size_of("tooltip_w")) * maxf(1.0, float(UI3Theme.size_of("text_body")) / 18.0) - 2.0 * UI3Theme.space("16")
 	var tl := PanelParts.text(head, "text_body", "text", true)
 	tl.name = "Title"
 	v.add_child(tl)
@@ -317,10 +321,13 @@ func tip_show_now(c: Control) -> void:
 		if tail != "":
 			var l2 := PanelParts.text(tail, "text_body", "text")
 			l2.name = "Rest"
-			l2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			var f := l2.get_theme_font("font")
 			var w := f.get_string_size(tail, HORIZONTAL_ALIGNMENT_LEFT, -1, l2.get_theme_font_size("font_size")).x + 2.0
-			l2.custom_minimum_size.x = minf(w, maxw - (st.get_child(0).get_combined_minimum_size().x if st.get_child_count() > 0 else 0.0))
+			var lead_w := f.get_string_size(lead, HORIZONTAL_ALIGNMENT_LEFT, -1, l2.get_theme_font_size("font_size")).x if lead != "" else 0.0
+			var avail := maxw - lead_w * 1.15
+			if w > avail:   # only a long status wraps; a short one stays on the Title's line width
+				l2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				l2.custom_minimum_size.x = avail
 			st.add_child(l2)
 		v.add_child(st)
 	plate.set_meta("tip_owner_id", id)

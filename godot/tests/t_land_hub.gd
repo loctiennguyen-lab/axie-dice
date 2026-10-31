@@ -161,7 +161,7 @@ func _ready() -> void:
 			_check("Needs a connection" in UI3Tooltip.text_of(h2.find_child("Hit_pass", true, false) as Control), "offline: tooltip Pass ghi lý do")
 		if bool(st.get("guest", false)):
 			_check((h2.find_child("RunPlate", true, false) as Button).text == "Sign in to play", "chưa đăng nhập: nút chính là Sign in to play")
-			_check(not (h2.find_child("CurrencyShard", true, false) as Control).visible, "chưa đăng nhập: ẩn tiền")
+			_check(not (h2.find_child("ShardValue", true, false) as Control).visible, "chưa đăng nhập: ẩn tiền")
 			_check(not (h2.find_child("DailyButton", true, false) as Control).visible, "lần đầu: ẩn Daily")
 			_check(h2.call("_block_reason", "pass") == "Sign in to use" and h2.call("_block_reason", "store") == "Sign in to use", "chưa đăng nhập: ô online ghi Sign in to use")
 			_check(h2.call("_block_reason", "board") != "Sign in to use", "chưa đăng nhập: Leaderboard vẫn đọc được")
@@ -169,7 +169,7 @@ func _ready() -> void:
 			(h2.find_child("RunPlate", true, false) as Button).emit_signal("pressed")
 			_check(LandNav.last_path == "", "chưa đăng nhập: không vào Run Setup")
 		if st.has("loading"):
-			_check(String((h2.find_child("CurrencyShard", true, false).get_node("Value") as Label).text) == "···", "loading: tiền hiện ···")
+			_check(String((h2.find_child("ShardValue", true, false).get_node("Value") as Label).text) == "···", "loading: tiền hiện ···")
 		h2.queue_free()
 		await get_tree().process_frame
 	# C4: "New run" on a Mission run settles the open stake as a loss (no refund, escrow cleared).

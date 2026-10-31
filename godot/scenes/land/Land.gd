@@ -1234,27 +1234,6 @@ func _add_plot(id: String) -> void:
 
 # ---------------------------------------------------------------- HUD (UI-03: 4 corner groups)
 
-## Flat clickable layer over a plate cell: hover tint, amber focus ring, content passes mouse through.
-func _cell(btn_name: String, content: Control, on_press: Callable) -> MarginContainer:
-	var mc := MarginContainer.new()
-	mc.theme = UI3Theme.get_theme()
-	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	mc.add_child(content)
-	var b := Button.new()
-	b.name = btn_name
-	b.flat = true
-	b.focus_mode = Control.FOCUS_ALL
-	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	var empty := StyleBoxEmpty.new()
-	for st in ["normal", "pressed", "focus", "disabled"]:
-		b.add_theme_stylebox_override(st, empty)
-	b.add_theme_stylebox_override("hover", UI3Theme.flat(Color(1, 1, 1, 0.08), UI3Theme.radius("s")))
-	b.pressed.connect(on_press)
-	mc.add_child(b)
-	UI3.attach_focus_ring(b)
-	return mc
-
-
 func _build_hud() -> void:
 	_hud.build_hud()   # S1a: plates live in LandHud + land/ui5/LandPlates.gd
 
@@ -1290,44 +1269,6 @@ func _apply_daily_tries(t: Dictionary) -> void:
 		_layout()
 
 
-func _profile_cell() -> Control:
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", UI3Theme.space("16"))
-	var name := "Guest"
-	if not _guest:
-		name = AccountService.display_name() if AccountService.is_signed_in() else "Player"
-	var av := PanelContainer.new()
-	av.add_theme_stylebox_override("panel", UI3Theme.flat(
-		UI3Theme.color("disabled") if _guest else UI3Theme.color("accent"), 24))
-	av.custom_minimum_size = Vector2(48, 48)
-	av.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	av.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var ini := UI3.label("?" if _guest else name.left(1).to_upper(), "LabelDisplay")
-	ini.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
-	ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	av.add_child(ini)
-	h.add_child(AvatarFrame.wrap_holder(av, 48.0, MetaState.equipped_frame))
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 0)
-	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	var nl := UI3.label(name.left(16), "LabelTitle")
-	nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	col.custom_minimum_size.x = 220   # name budget 220 px, best line 260 px (ellipsis)
-	col.add_child(nl)
-	var sub := "Sign in to save online"
-	if not _guest:
-		sub = _best_line()
-		if MetaState.equipped_title != "":
-			sub = TitleNames.display(MetaState.equipped_title)
-	var bl := UI3.label(sub.left(24), "LabelMuted")
-	bl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	bl.custom_minimum_size.x = 220
-	col.add_child(bl)
-	h.add_child(col)
-	return _cell("ProfileChip", h, _open_profile)
-
-
 ## "Best: A3" from the real won-ascension record, "No wins yet" otherwise (never a made-up number).
 func _best_line() -> String:
 	var best := -1
@@ -1335,27 +1276,6 @@ func _best_line() -> String:
 		if int(MetaState.asc_wins[k]) > 0:
 			best = maxi(best, int(k))
 	return "Best: A%d" % best if best >= 0 else "No wins yet"
-
-
-## Land tier link under the profile plate (key L). Tier 6 has nothing left to upgrade.
-func _land_link() -> Control:
-	var tn: String = TIER_NAMES[_tier - 1]
-	if _tier >= 6:
-		var l := UI3.label("%s Land · max tier" % tn, "LabelMuted")
-		l.name = "LandChip"
-		return l
-	var need := _upgrade_cost()
-	var have := _meta_int("stone")
-	var can_up := preload("res://scripts/meta/economy_db.gd").land_upgrade_enabled() and have >= need
-	var txt := "Upgrade Land · %s %d/6 · Stone %s/%s" % [tn, _tier, _fmt(mini(have, need)), _fmt(need)]
-	txt += " · ready" if can_up else " · %s to %s" % [_fmt(maxi(need - have, 0)), TIER_NAMES[_tier]]
-	# S3-13: it opens the upgrade screen, so it is drawn as a (secondary) button, not a label.
-	var btn := UI3.button(txt, &"secondary", &"S")
-	btn.name = "UpgradeLand"
-	btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	btn.tooltip_text = "%s / %s Land Stone" % [_fmt(have), _fmt(need)]
-	btn.pressed.connect(_on_land_pressed)
-	return btn
 
 
 ## True when a guest cannot start a run: the live build rolls dice on the server (axie/epoch_source
