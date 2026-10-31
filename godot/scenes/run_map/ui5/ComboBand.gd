@@ -46,22 +46,18 @@ static func build(parent: Node, tier: String, combo_name: String, house: String,
 	nm.name = "ComboName"
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	nm.add_theme_color_override("font_shadow_color", UI3Theme.color("plate_ink"))
-	nm.add_theme_constant_override("shadow_offset_y", 4)
+	nm.add_theme_constant_override("shadow_offset_y", UI3Theme.space("4"))
 	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(nm)
 	if with_mutation:
 		var mb := _mutation(house, full)
 		mb.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		v.add_child(mb)
-	var hint := PanelParts.on_view(PanelParts.text(TranslationServer.translate("Click to continue"), "text_body"))
+	var hint := PanelParts.text(TranslationServer.translate("Click to continue"), "text_body", "text_muted")
 	hint.name = "ContinueHint"
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	hint.offset_right = -UI3Theme.space("screen")
-	hint.offset_bottom = -UI3Theme.space("screen")
-	root.add_child(hint)
+	v.add_child(hint)   # inside the band: the run map's own key hint sits at the screen bottom-right
 	parent.add_child(root)
 	root.set_meta("tier", tier)
 	UI3Gacha.play_sfx(root, "full" if full else "pair")
@@ -78,7 +74,7 @@ static func build(parent: Node, tier: String, combo_name: String, house: String,
 static func _tag(full: bool) -> PanelContainer:
 	var ink := UI3Theme.color("text_ink")
 	var box := UI3Theme.flat(UI3Theme.color("combo_full" if full else "combo_pair"), UI3Theme.radius("m"),
-		3 if full else 0, ink, Vector4(UI3Theme.space("8"), UI3Theme.space("8"), UI3Theme.space("12"), UI3Theme.space("8")))
+		UI3Theme.stroke("btn") if full else 0, ink, Vector4(UI3Theme.space("8"), UI3Theme.space("8"), UI3Theme.space("12"), UI3Theme.space("8")))
 	var p := PanelParts.panel(box, "ComboTag")
 	p.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -88,10 +84,10 @@ static func _tag(full: bool) -> PanelContainer:
 	p.add_child(h)
 	var moons := HBoxContainer.new()
 	moons.name = "Moons"
-	moons.add_theme_constant_override("separation", 2)
+	moons.add_theme_constant_override("separation", UI3Theme.stroke("hairline"))
 	moons.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for i in (3 if full else 2):
-		moons.add_child(PanelParts.icon_rect(UI3.icon("ui_mooncard"), 24, "Moon"))
+		moons.add_child(PanelParts.icon_rect(UI3.icon("ui_mooncard"), UI3Theme.space("24"), "Moon"))
 	h.add_child(moons)
 	var kb := PanelParts.panel(UI3Theme.flat(ink, UI3Theme.radius("pill"), 0, Color.TRANSPARENT,
 		Vector4(UI3Theme.space("8"), 0, UI3Theme.space("8"), 0)), "Kind")
@@ -140,9 +136,9 @@ static func _mutation(house: String, full: bool) -> PanelContainer:
 	rl.name = "MutationRule"
 	rl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	var vw := parent_width()
-	rl.custom_minimum_size.x = minf(rl.get_theme_font("font").get_string_size(rule_txt, HORIZONTAL_ALIGNMENT_LEFT, -1,
-		UI3Theme.size_of("text_body")).x + 4.0, vw * 900.0 / 1920.0)
+	var font: Font = UI3Theme.get_theme().get_font("font", "Label")
+	var tw := font.get_string_size(rule_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, UI3Theme.size_of("text_body")).x
+	rl.custom_minimum_size.x = minf(ceilf(tw) + UI3Theme.space("8"), parent_width() * 900.0 / 1920.0)
 	s.add_child(rl)
 	return p
 

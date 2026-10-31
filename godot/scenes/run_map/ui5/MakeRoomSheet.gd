@@ -10,7 +10,7 @@ const Parts := preload("res://scenes/run_map/ui5/RunMenuParts.gd")
 
 
 static func build(new_title: String, new_tier: int, line: String, cells: Array, on_confirm: Callable,
-		on_back: Callable) -> UI3.ModalRoot:
+		on_back: Callable, title_text := "") -> UI3.ModalRoot:
 	var root := UI3.ModalRoot.new()
 	root.name = "SlotSwapSheet"
 	root.theme = UI3Theme.get_theme()
@@ -38,7 +38,7 @@ static func build(new_title: String, new_tier: int, line: String, cells: Array, 
 	head.name = "Head"
 	head.add_theme_constant_override("separation", UI3Theme.space("4"))
 	col.add_child(head)
-	var title := PanelParts.text(TranslationServer.translate("Make room"), "text_banner", "text", true)
+	var title := PanelParts.text(title_text if title_text != "" else TranslationServer.translate("Make room"), "text_banner", "text", true)
 	title.name = "Title"
 	head.add_child(title)
 	var ln := PanelParts.text(line, "text_body", "text")

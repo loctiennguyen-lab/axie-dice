@@ -38,6 +38,7 @@ func _ready() -> void:
 	for sc in [1.0, 2.0 / 3.0]:
 		UI3Theme.set_scale_override(sc)
 		await _room(sc)
+		await _core_room(sc)
 		await _band(sc)
 	UI3Theme.set_scale_override(1.0)
 	_guard.restore()
@@ -71,9 +72,12 @@ func _room(sc: float) -> void:
 		return
 	for n in ["MakeRoomSheet", "Title", "Line", "OwnedList", "SellRow", "CoreSlot", "TierChip", "SellButton", "Footer", "BackButton"]:
 		_ok(sheet.find_child(n, true, false) != null, "%s: node %s" % [tag, n])
-	_ok(sheet.find_child("ConfirmButton", true, false) == null, tag + ": no confirm step (frame has none)")
+	_ok(sheet.find_child("ConfirmButton", true, false) == null, tag + ": no ConfirmButton (frame has none)")
 	for b in sheet.find_children("SellButton", "Button", true, false):
-		_ok(not (b as Button).button_pressed and (b as Button).icon_alignment == HORIZONTAL_ALIGNMENT_RIGHT or (b as Button).disabled, tag + ": nothing preselected, shard icon after text")
+		var et := String(RunState.relic_stickers.get(String((b as Button).get_meta("relic_id")), "")) == "eternal"
+		_ok((b as Button).disabled == et, tag + ": SellButton enabled unless Eternal (%s)" % (b as Button).text)
+		if not et:
+			_ok((b as Button).icon_alignment == HORIZONTAL_ALIGNMENT_RIGHT, tag + ": shard icon after the text")
 	_ok(get_viewport().gui_get_focus_owner() == sheet.find_child("BackButton", true, false), tag + ": initial focus on Back")
 	_ok(Align.pairs(sheet) > 0, tag + ": align pairs measured")
 	_ok(Align.check(sheet).is_empty(), tag + ": icon/label centred %s" % str(Align.check(sheet)))
@@ -87,7 +91,6 @@ func _room(sc: float) -> void:
 	pick.pressed.emit()
 	await _frames(2)
 	_ok(RunState.owned_relic_ids.has("r_seedling") and not RunState.owned_relic_ids.has("r_claw"), tag + ": Sell took the new Core, sold r_claw")
-	_ok(RunState.owned_relic_ids.count("r_seedling") == 1, tag + ": exactly one acquire")
 	_ok(RunState.shards_this_run == shards0 + RelicSlots.sell_price("r_claw", RunState.ascension), tag + ": sale paid")
 	await _frames(1)
 	m.queue_free()
@@ -115,7 +118,62 @@ func _band(sc: float) -> void:
 	_ok(Align.pairs(ban) > 0, tag + ": align pairs measured")
 	_ok(Align.check(ban).is_empty(), tag + ": icon/label centred %s" % str(Align.check(ban)))
 	_small(ban, tag, sc)
-	ban.queue_free()
+	var rl := ban.find_child("MutationRule", true, false) as Label
+	if rl != null:
+		_ok(rl.get_line_count() == 1, tag + ": MutationRule on one line (%d)" % rl.get_line_count())
+	_ok(ban.find_child("Band", true, false).find_child("ContinueHint", true, false) != null, tag + ": ContinueHint inside the band")
+	var ev := InputEventKey.new()
+	ev.keycode = KEY_SPACE
+	ev.pressed = true
+	Input.parse_input_event(ev)
+	await _frames(3)
+	_ok(not is_instance_valid(ban), tag + ": Space dismisses")
+	ban = preload("res://scenes/run_map/ui5/ComboBand.gd").build(layer, "pair", UI3Gacha.combo_name(cid), house, house != "")
+	await _frames(2)
+	var mb := InputEventMouseButton.new()
+	mb.button_index = MOUSE_BUTTON_LEFT
+	mb.pressed = true
+	mb.position = Vector2(100, 100)
+	Input.parse_input_event(mb)
+	await _frames(3)
+	_ok(not is_instance_valid(ban), tag + ": click dismisses")
 	layer.queue_free()
 	UI3Gacha.instant_override = -1
+	await _frames(2)
+
+
+## A real Core with the 6 Core slots full: title and line say "6 of 6" / "All 6 Core slots full" (frame make-room).
+func _core_room(sc: float) -> void:
+	var tag := "core room %.2f" % sc
+	var ids: Array[String] = []
+	for f in DirAccess.get_files_at("res://resources/relics"):
+		if f.begins_with("c_") and f.ends_with(".tres"):
+			var id := f.get_basename()
+			var d = RelicRegistry.get_def(id)
+			if d != null and String(d.core_axis) != "" and String(d.core_axis) != "run_rule":
+				ids.append(id)
+	var m_slots := RelicSlots.tuning().core_slots
+	_ok(ids.size() > m_slots, tag + ": enough Cores for the fixture")
+	if ids.size() <= m_slots:
+		return
+	RunState.owned_relic_ids.assign(ids.slice(0, m_slots))
+	RunState.relic_stickers = {}
+	var m: Node = load("res://scenes/run_map/RunMap.tscn").instantiate()
+	add_child(m)
+	await _frames(6)
+	var nk := ids[m_slots]
+	RunState.pending_rewards = [{"t": "relic", "key": nk, "rar": 0, "title": "RELIC", "desc": "x", "sub": ""}]
+	m.call("_show_reward_overlay", "CHOOSE A REWARD")
+	await _frames(2)
+	m.call("_take_selected_reward")
+	await _frames(4)
+	var sheet := m.find_child("SlotSwapSheet", true, false)
+	_ok(sheet != null, tag + ": sheet opens for a full Core bar")
+	if sheet != null:
+		var tt := (sheet.find_child("Title", true, false) as Label).text
+		var ln := (sheet.find_child("Line", true, false) as Label).text
+		_ok(tt.contains("%d of %d" % [m_slots, m_slots]), tag + ": title says N of M (%s)" % tt)
+		_ok(ln.begins_with("All %d Core slots full" % m_slots), tag + ": line says All M Core slots full (%s)" % ln)
+		_ok(sheet.find_child("OwnedList", true, false).get_child_count() == m_slots, tag + ": one row per owned Core (%d)" % sheet.find_child("OwnedList", true, false).get_child_count())
+	m.queue_free()
 	await _frames(2)

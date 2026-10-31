@@ -29,24 +29,34 @@ func open_slot_swap(reward: Dictionary, chk: Dictionary) -> void:
 		if od == null or id.begins_with("__"):
 			continue
 		var eternal := String(RunState.relic_stickers.get(id, "")) == RelicSlots.STICKER_ETERNAL
-		if not sell_from.has(id) and not (eternal and RelicSlots._is_active(od) == active):
+		var same_pool := RelicSlots.is_core(od) if RelicSlots.is_core(nd) else RelicSlots._is_active(od) == active
+		if not sell_from.has(id) and not (eternal and same_pool):
 			continue
 		cells.append({"id": id, "name": UI3.title_case(UI3.player_text(String(od.name))),
 			"kind": tr("Active") if RelicSlots._is_active(od) else tr("Passive"),
 			"sell": RelicSlots.sell_price(id, RunState.ascension), "eternal": eternal})
-	var kind_owned := 0
-	for oid in RunState.owned_relic_ids:
-		var kd = RelicRegistry.get_def(String(oid))
-		if kd != null and not String(oid).begins_with("__") and RelicSlots._is_active(kd) == active:
-			kind_owned += 1
-	var rule := (tr("Active slots are full (%d of %d). Sell one to take the new Core.") if active
-		else tr("Passive slots are full (%d of %d). Sell one to take the new Core.")) % [
-		kind_owned, int(cap["active"] if active else cap["passive"])]
+	var rule := ""
+	var title_text := ""
+	if RelicSlots.is_core(nd):
+		# Real Core: the 6 Core slots are what is full (frame make-room: "Make room (6 of 6)" + "All 6 Core slots full").
+		var n := RelicSlots.owned_cores(RunState.owned_relic_ids).size()
+		var m := RelicSlots.tuning().core_slots
+		title_text = tr("Make room (%d of %d)") % [n, m]
+		rule = tr("All %d Core slots full. Sell one; the sold Core gives Shards.") % m
+	else:
+		var kind_owned := 0
+		for oid in RunState.owned_relic_ids:
+			var kd = RelicRegistry.get_def(String(oid))
+			if kd != null and not String(oid).begins_with("__") and RelicSlots._is_active(kd) == active:
+				kind_owned += 1
+		rule = (tr("Active slots are full (%d of %d). Sell one to take the new Core.") if active
+			else tr("Passive slots are full (%d of %d). Sell one to take the new Core.")) % [
+			kind_owned, int(cap["active"] if active else cap["passive"])]
 	var sheet := MakeRoomSheet.build(UI3.title_case(UI3.player_text(String(nd.name))), int(nd.rarity), rule, cells,
 		func(sell_id: String) -> void:
 			var ok := RunState.acquire_relic(key, "reward", sell_id)
 			sheet_closed(ok, reward),
-		func() -> void: sheet_closed(false, {}, true))
+		func() -> void: sheet_closed(false, {}, true), title_text)
 	sheet.name = "SlotSwapSheet"
 	ctrl._overlay_root.add_child(sheet)
 
