@@ -22,8 +22,14 @@ func _snap() -> Dictionary:
 	return srv.duplicate(true)
 
 
+## A missing node fails the check and hands back a stand-in, so the coroutine never dies on null (that hangs headless).
 func _btn(d: Node, n: String) -> Button:
-	return d.find_child(n, true, false) as Button
+	var b := d.find_child(n, true, false) as Button
+	if b == null:
+		_check(false, "node %s exists" % n)
+		b = Button.new()
+		add_child(b)
+	return b
 
 
 func _ready() -> void:

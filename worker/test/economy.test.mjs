@@ -109,7 +109,8 @@ test('economy: the snapshot carries the Daily state; the min_days-th daily claim
   env.DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, rules_version, state, created_at, closed_at, outcome, battles_done) VALUES (?, 'p1', 'normal', 'x', 'closed', ?, ?, 'won', 3)`).run('a'.repeat(32), now - 5, now - 1);
   // three earlier daily claims this week (same shape as the ledger rows the claim writes; `at` inside this week)
   const ins = env.DB.db.prepare(`INSERT INTO wallet_ledger (player_id, currency, delta, reason, idem_key, at) VALUES ('p1', 'shard', 60, 'daily', ?, ?)`);
-  for (const d of ['2000-01-01', '2000-01-02', '2000-01-03']) ins.run(`shard:claim:daily:${d}`, now - 2);
+  const wkStart = (Math.floor((Math.floor(now / 86400) + 3) / 7) * 7 - 3) * 86400;   // Monday 00:00 UTC: rows stay in this week
+  for (const d of ['2000-01-01', '2000-01-02', '2000-01-03']) ins.run(`shard:claim:daily:${d}`, Math.max(wkStart, now - 2));
   const pre = (await j(call(env, '/api/econ'))).shard;
   const c = await j(call(env, '/api/econ/claim', 'POST', { kind: 'daily' }));
   assert.equal(c.ok, true);
