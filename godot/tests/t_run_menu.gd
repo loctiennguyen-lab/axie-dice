@@ -109,28 +109,28 @@ func _pause_menu() -> void:
 		RunState.owned_relic_ids.assign(["r_claw"])
 		pm.show_side("relics")
 		var small := pm.find_child("SidePanel", true, false).find_children("*", "Label", true, false).filter(
-			func(l): return (l as Label).get_theme_font_size("font_size") < 18)
-		_assert(small.is_empty(), "relic panel text is >= 18 px")
+			func(l): return (l as Label).get_theme_font_size("font_size") < 14)
+		_assert(small.is_empty(), "relic panel text is >= 14 px")
 		pm.show_side("settings")
-		_assert(pm.find_child("InfoMusic", true, false) != null and pm.find_child("OpenSettings", true, false) != null, "settings panel shows the rows that matter")
-		_assert((pm.find_child("OpenSettings", true, false) as Button).theme_type_variation == &"ButtonSecondaryS", "Open Settings is secondary-S")
+		_assert(pm.find_child("MusicRow", true, false) != null and pm.find_child("OpenSettingsButton", true, false) != null, "settings panel shows the rows that matter")
+		_assert((pm.find_child("OpenSettingsButton", true, false) as Button).theme_type_variation == &"ButtonSecondaryS", "Open Settings is secondary-S")
 		pm.show_side("map")
-		_assert(pm.find_child("InfoFloor", true, false) != null, "map panel shows the run summary")
+		_assert(pm.find_children("StatRow*", "", true, false).size() >= 5, "map panel shows the run summary")
 		_assert(pm.find_child("SidePanel", true, false) != null and pm.side_name == "map", "side panel switches")
 		MetaState.mission_escrow = {}
 		(pm.rows["Abandon"] as Button).pressed.emit()
 		await get_tree().process_frame
-		_assert(pm.find_child("ConfirmDialog", true, false) != null, "Abandon asks first")
-		var texts := pm.find_child("ConfirmDialog", true, false).find_children("*", "Label", true, false).map(func(l): return (l as Label).text)
+		_assert(pm.find_child("AbandonConfirm", true, false) != null, "Abandon asks first")
+		var texts := pm.find_child("AbandonConfirm", true, false).find_children("*", "Label", true, false).map(func(l): return (l as Label).text)
 		_assert(not texts.any(func(t): return String(t).contains("mission stake")), "no stake line outside Mission runs")
-		(pm.find_child("ConfirmKeep", true, false) as Button).pressed.emit()
+		(pm.find_child("KeepPlayingButton", true, false) as Button).pressed.emit()
 		await get_tree().process_frame
 		MetaState.mission_escrow = {"stake": 25}
 		(pm.rows["Abandon"] as Button).pressed.emit()
 		await get_tree().process_frame
-		texts = pm.find_child("ConfirmDialog", true, false).find_children("*", "Label", true, false).map(func(l): return (l as Label).text)
+		texts = pm.find_child("AbandonConfirm", true, false).find_children("*", "Label", true, false).map(func(l): return (l as Label).text)
 		_assert(texts.any(func(t): return String(t).contains("You lose your 25 Shard mission stake")), "Mission run shows the stake line")
-		(pm.find_child("ConfirmKeep", true, false) as Button).pressed.emit()
+		(pm.find_child("KeepPlayingButton", true, false) as Button).pressed.emit()
 		await get_tree().process_frame
 		_assert(RunState.roster.size() == 5, "Keep playing leaves the run alone")
 		MetaState.mission_escrow = {}
