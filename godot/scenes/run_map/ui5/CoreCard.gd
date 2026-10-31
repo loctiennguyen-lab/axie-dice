@@ -114,7 +114,7 @@ static func tier_chip(t: int, word: String, node_name := "TierChip") -> PanelCon
 	var px := 14   # `.pip{width:14px;height:14px}` (a fixed token-size glyph, scaled by the window)
 	for _i in clampi(t, 0, 2) + 1:
 		var pip := PanelParts.icon_rect(UI3.currency_icon("cur_fragment", px), px, "Pip")
-		pips.add_child(pip)
+		pips.add_child(pip, true)   # readable names: Pip, Pip2, Pip3
 	hb.add_child(pips)
 	hb.add_child(l)
 	chip.add_child(hb)

@@ -113,7 +113,7 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 		for lt in 3:
 			if lt > 0:
 				ladder.add_child(_PanelParts.on_view(_PanelParts.text("\u2192", "text_body", "text", false)))
-			ladder.add_child(_CoreCardUi.tier_chip(lt, tr(ctrl._CORE_TIER_NAME[lt])))
+			ladder.add_child(_CoreCardUi.tier_chip(lt, tr(ctrl._CORE_TIER_NAME[lt])), true)   # TierChip, TierChip2, TierChip3
 		ladder.add_child(_PanelParts.on_view(_PanelParts.text(tr("(strongest)"))))
 		UI3Tooltip.bind(ladder, tr(ctrl.CORE_TIER_HINT))
 		head.add_child(ladder)
