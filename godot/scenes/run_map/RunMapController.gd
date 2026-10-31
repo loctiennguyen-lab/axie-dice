@@ -1,3 +1,4 @@
+class_name RunMapController
 extends Node2D
 ## RunMap.tscn root, plus the four node screens the map opens.
 ##
@@ -75,6 +76,7 @@ const _DOUBLE_PRESS_MS := 400
 ## Tests: stop _on_node_pressed before it asks RunState to enter the node.
 var no_travel := false
 signal travel_requested(node_id: String)
+var _treasure: RunMapTreasure = RunMapTreasure.new(self)
 var _travel_btn: Button = null
 
 
@@ -2583,67 +2585,6 @@ func _on_treasure_node(node_id: String) -> void:
 	_build_treasure(false)
 
 
+## -> RunMapTreasure._build_treasure
 func _build_treasure(opened: bool) -> void:
-	var host := _open_ui3_screen()
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	host.add_child(center)
-	var col := VBoxContainer.new()
-	col.name = "TreasureColumn"
-	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	col.add_theme_constant_override("separation", 24)
-	center.add_child(col)
-	var chest := TextureRect.new()
-	chest.name = "Chest"
-	chest.texture = UI3.icon("node_treasure")
-	# Opened: 192 so the fixed UI-05 reward cards (reward_card_h) + Take still fit inside the 24 px screen margin.
-	chest.custom_minimum_size = Vector2(0, 192 if opened else 384)
-	chest.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	chest.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	col.add_child(chest)
-	var hrow := HBoxContainer.new()
-	hrow.alignment = BoxContainer.ALIGNMENT_CENTER
-	hrow.add_theme_constant_override("separation", 24)
-	col.add_child(hrow)
-	hrow.add_child(UI3.label(tr("A sealed Gene vault") if not opened else tr("Choose one"), "LabelScreenTitle"))
-	hrow.add_child(UI3.currency_pill([{"icon": "cur_shard", "value": str(RunState.shards_this_run)}]))
-
-	if not opened:
-		var open := UI3.button(tr("Open chest"), &"primary", &"L")
-		open.name = "OpenChest"
-		open.pressed.connect(func() -> void: _build_treasure(true))
-		var oc := HBoxContainer.new()
-		oc.alignment = BoxContainer.ALIGNMENT_CENTER
-		oc.add_child(open)
-		col.add_child(oc)
-		open.grab_focus.call_deferred()
-		return
-
-	if RunState.pending_rewards.is_empty():
-		col.add_child(UI3.label(tr("The vault was empty.")))
-		var cont := UI3.button(tr("Continue"), &"primary", &"L")
-		cont.name = "TakeButton"
-		cont.pressed.connect(func() -> void: _finish_node())
-		col.add_child(cont)
-		cont.grab_focus.call_deferred()
-		return
-	_overlay_vbox = HBoxContainer.new()
-	_overlay_vbox.name = "TreasureCards"
-	_overlay_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	_overlay_vbox.add_theme_constant_override("separation", 32)
-	_overlay_vbox.sort_children.connect(_lift_selected_card)   # same UI-05 RewardCard as the reward pick
-	col.add_child(_overlay_vbox)
-	_reward_cards.clear()
-	_reward_sel = 0
-	for reward in RunState.pending_rewards:
-		_add_reward_card(reward)
-	var take := UI3.button(tr("Take and continue"), &"primary", &"L")
-	take.name = "TakeButton"
-	take.pressed.connect(_take_selected_reward)
-	var tc := HBoxContainer.new()
-	tc.alignment = BoxContainer.ALIGNMENT_CENTER
-	tc.add_child(take)
-	col.add_child(tc)
-	_select_reward(0)
-	_reward_cards[0].grab_focus.call_deferred()
+	_treasure._build_treasure(opened)
