@@ -59,6 +59,12 @@ Xem `production/session-state/active.md` mục "Việc lớn còn lại" (moneti
 kế hoạch phase: combat batch + bump RULES_VERSION, quái Atia 3D, server RNG, store).
 
 ## Dọn máy / git còn treo
+- **1/11 tối, Liam duyệt "xoá rác":** đã xoá 55 worktree đã gộp và sạch (nhánh giữ nguyên), ổ trống 32 → 97 GB.
+  Còn giữ: `verifier` (đang chạy `verifier/runner.sh`), `.claude/worktrees/agent-ab462b22488911dcf` (khoá bởi phiên Claude
+  khác còn sống, pid 2948), và các worktree có file chưa commit mà cây chính không có: `b2-epoch`, `ns-sim1`, `soak`
+  (59 file sim), `u5-0`, `u5-c` (18 ảnh), `u5-e`, `u5-stage`, `u5b-0`, `ui4`, `agent-a39fd…`, `agent-aa6f…` (test qa_ux
+  staged), `~/soak-sim1..3` (sửa `sim_balance.gd`). Dọn `build/` (web-prev-*, desktop cũ, ~15 GB) CHƯA làm: lệnh bị từ chối.
+  Mục worktree cũ ngay dưới đây đã lỗi thời.
 - Worktree còn: `../my-game-wt/u5b-0` (detached ở `1a04951`, dùng chạy suite bản gộp 1/11 — xoá được),
   `../my-game-wt/u5b-s7a` (S7a đã gộp — xoá được), `../my-game-wt/daily` (`fix/daily-remote`, đã gộp — xoá được), `../my-game-wt/u5b-s9a` (đã gộp; có thư mục rác `godot/production/` — Liam cho phép thì
   `git worktree remove --force`). Thêm `~/soak-sim1..3` (worktree cũ từ trước, detached).
