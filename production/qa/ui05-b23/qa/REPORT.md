@@ -17,8 +17,12 @@ Trạng thái: phần 1 (chụp) xong, phần xem ảnh CHƯA làm, nên chưa c
 ## Đã xem bằng mắt (chỉ 3 contact sheet: moments b2/b3, core offer selected, treasure opened, echo mythic)
 Chưa xem: phần lớn 660 ảnh còn lại (meta screens, 1280 hàng loạt, Land, Settings, Store...). Báo cáo này KHÔNG xác nhận chúng OK.
 
+### Chặn kiểm chứng (không phải lỗi game đã chứng minh)
+0. Luồng CẢ RUN qua UI không đi được: `qa_ui5_flow_capture` (win 1920, win 1280, free 1920; paid/boost/reduce cùng kẹt) dừng ngay ở màn "Choose a run rule" (bản đồ run, power level 0, run ranked stage 3 seed 59): driver không nhận ra overlay rule offer mới của R2b (`[Scrim, ScreenContent]`, 124 anomaly, "no progress 90 s", 0 trận). Ảnh: `flows/win-1920/flow-win--unknown-overlay-0-1920x1080.png`. Màn bản thân trông đúng (không chọn sẵn, "Pick a rule" tắt), nhưng driver chưa xử lý nên KHÔNG có run nào do UI đi được đưa qua `RunVerifier` ở đợt này, không có ảnh combat/reward/shop/event/result thật liên tiếp, và reduce-motion qua flow không chạy được. Cần sửa driver (thêm nhánh rule offer, chọn thẻ 0 + Take) rồi chạy lại: `QA_FLOW=win QA_SEED=59 ... shot.sh res://tests/qa_ui5_flow_capture.tscn`. Tôi không sửa code theo luật.
+   Thẻ rule này hiện kicker "Run rule" rồi lại nhãn "Rule" ngay dưới tiêu đề (trùng, nhỏ).
+
 ### Chặn deploy
-Chưa thấy.
+Chưa thấy lỗi game nào chặn deploy trong phần đã xem; nhưng phần chưa xem + luồng cả run chưa kiểm nên KHÔNG đủ cơ sở kết luận cho phép deploy.
 
 ### Nên sửa
 1. Echo open Mythic (moment M3, ảnh `1920/moments_b3/echo-open-mythic-flip.png`): thẻ "Heart of Luna" khung art TRỐNG (tối, không có xúc xắc). Cùng màn chụp bằng `qa_ui5_echo_ceremony_capture` thì art HIỆN đủ (`1920/echo_ceremony/20-echo--reveal-mythic-1920x1080.png`, 1280 cũng vậy). Nghi: art nạp chưa kịp ở lần reveal đầu của phiên, đúng như ghi chú "ảnh M3 chụp lúc art chưa nạp". Chưa tái hiện trong chơi thật; cần Liam/làn M3 mở hộp thật 1 lần xem.
