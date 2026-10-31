@@ -240,8 +240,7 @@ func _show_reset_notice() -> void:
 		MetaState.dismiss_reset_notice()
 		_close_modal()
 		_gift_and_tier_notices())
-	var m := UI3.modal("Beta reset", "Beta reset: everyone starts fresh. Shards, Stone, tickets, unlocks and run history were cleared. Your account and sign-in are kept.", [ok], 0)
-	m.name = "ResetNotice"
+	var m := _hud.reset_notice("Beta reset: everyone starts fresh. Shards, Stone, tickets, unlocks and run history were cleared. Your account and sign-in are kept.", ok)
 	m.cancelled.connect(ok.pressed.emit)
 	_modal = m
 	_ui.add_child(_modal)
@@ -1374,14 +1373,22 @@ func _place_hud(f: float) -> void:
 	var bsz := _hud_br.get_combined_minimum_size()
 	_hud_br.scale = sc
 	_hud_br.position = Vector2(w - 24.0 - bsz.x * f, h - 24.0 - bsz.y * f)
+	var lk := Rect2(_hud_bl.position, _hud_bl.get_combined_minimum_size() * f)
+	if _hud_br.position.x < lk.end.x + 16.0:   # too narrow for both on one line (1280 + long reasons): RunRow rides above LinksPlate
+		_hud_br.position.y = lk.position.y - 12.0 * f - bsz.y * f
 	_start_hint.reset_size()
 	var hs := _start_hint.get_combined_minimum_size()
 	_start_hint.scale = sc
-	_start_hint.position = Vector2(w - 24.0 - hs.x * f, h - 24.0 - bsz.y * f - 4.0 * f - hs.y * f)
+	_start_hint.position = Vector2(w - 24.0 - hs.x * f, _hud_br.position.y - 4.0 * f - hs.y * f)
 	_offline_banner.reset_size()
 	var os := _offline_banner.get_combined_minimum_size()
 	_offline_banner.scale = sc
-	_offline_banner.position = Vector2((w - os.x * f) * 0.5, h - 24.0 - os.y * f)   # bottom centre: clear of every place chip
+	var bx := (w - os.x * f) * 0.5
+	var by := float(UI3Theme.size_of("offline_banner_top"))   # frame token, already logical
+	var tl := Rect2(_hud_tl.position, _hud_tl.get_combined_minimum_size() * f)
+	if bx < tl.end.x + 8.0 and bx + os.x * f > tl.position.x:   # would sit on the Upgrade Land chip: go under it
+		by = maxf(by, tl.end.y + 8.0)
+	_offline_banner.position = Vector2(bx, by)   # frame: top centre
 
 
 # ================================================================ actions
@@ -1443,7 +1450,7 @@ func _on_run_pressed() -> void:
 
 func _on_continue_pressed() -> void:
 	if RunContinue.busy:
-		_show_toast("Still reconnecting to the server…")   # never a silent press
+		_show_toast("Still reconnecting to the server…", 1.6, &"info")   # never a silent press
 		return
 	if not RunState.load_run():
 		push_warning("LandHub: saved run could not be loaded")
@@ -1508,7 +1515,7 @@ func _on_new_run_pressed() -> void:
 		_open_confirm("Abandon this mission?",
 			"Starting a new run abandons Mission %s. The stake is not returned." % mid,
 			"Abandon · −%s" % _fmt(stake), _end_run_and_setup, true, "Keep playing",
-			["You lose %s Gene Shard" % _fmt(stake), "Mission %s stake · this run's progress is lost too" % mid],
+			["You lose %s Shards" % _fmt(stake), "Mission %s stake · this run's progress is lost too" % mid],
 			Color("A3261A"))
 	else:
 		_open_confirm("Start a new run?", "Your current run ends now and cannot be continued.",
