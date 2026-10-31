@@ -757,8 +757,8 @@ func _add_core_card(r: Dictionary) -> PanelContainer:
 	var tag := card.column.get_node_or_null("ComboTag")
 	if tag != null:
 		card.column.remove_child(tag)
-		card.body.add_child(tag)
-		card.body.move_child(tag, card.name_label.get_index() + 1)
+		card.body_box.add_child(tag)
+		card.body_box.move_child(tag, card.name_label.get_index() + 1)
 	var wc := card.chip_row.get_node_or_null("WorksWith")
 	if wc != null:
 		wc.name = "ComboChip"

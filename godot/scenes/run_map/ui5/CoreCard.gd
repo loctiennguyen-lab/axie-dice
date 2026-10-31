@@ -8,7 +8,7 @@ extends "res://scenes/shared/ui5/RewardCard.gd"
 const _TIER_KEY := ["moss", "amber", "crystal"]
 
 var tier := 0
-var body: VBoxContainer
+var body_box: VBoxContainer
 var chip_row: HFlowContainer
 var rule_text: Label
 var reroll_button: Button
@@ -53,12 +53,12 @@ func setup_core(core_tier: int, tier_word: String, icon: Texture2D, title: Strin
 	art.add_child(art_icon)
 
 	# Body (title, chips, rule) is its own box: the title is left-aligned card text, not a label under the ArtBox icon.
-	body = VBoxContainer.new()
-	body.name = "Body"
-	body.add_theme_constant_override("separation", UI3Theme.space("12"))
-	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	column.add_child(body)
+	body_box = VBoxContainer.new()
+	body_box.name = "Body"
+	body_box.add_theme_constant_override("separation", UI3Theme.space("12"))
+	body_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(body_box)
 
 	name_label = PanelParts.text(title, "text_banner" if tier >= 2 else "text_screen_title", "text", true)
 	name_label.name = "CoreName"
@@ -66,7 +66,7 @@ func setup_core(core_tier: int, tier_word: String, icon: Texture2D, title: Strin
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name_label.max_lines_visible = 2
 	name_label.custom_minimum_size.x = UI3Theme.size_of("core_card_w") - 2 * pad
-	body.add_child(name_label)
+	body_box.add_child(name_label)
 
 	chip_row = HFlowContainer.new()
 	chip_row.name = "ChipRow"
@@ -75,14 +75,14 @@ func setup_core(core_tier: int, tier_word: String, icon: Texture2D, title: Strin
 	chip_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	rarity_chip = tier_chip(tier, tier_word, "TierChip")
 	chip_row.add_child(rarity_chip)
-	body.add_child(chip_row)
+	body_box.add_child(chip_row)
 
 	rule_text = PanelParts.text(body)
 	rule_text.name = "RuleText"
 	rule_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	rule_text.custom_minimum_size.x = UI3Theme.size_of("core_card_w") - 2 * pad
 	rule_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body.add_child(rule_text)
+	body_box.add_child(rule_text)
 
 	focus_entered.connect(queue_redraw)
 	focus_exited.connect(queue_redraw)
