@@ -5,7 +5,7 @@ extends PanelContainer
 ## d = {name, tag_word, facts: [{text, color, icon(Texture2D|null), sub(muted, optional)}], rhythm: ["Prep", ...],
 ##      rhythm_now: int (-1 = none)}. Every string comes from the caller (game data), none from the mockup.
 
-const PanelParts := preload("res://scenes/combat/ui5/PanelParts.gd")
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 
 var name_label: Label
 var facts_row: HBoxContainer

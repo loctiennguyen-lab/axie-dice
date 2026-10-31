@@ -26,8 +26,8 @@ signal end_run_pressed
 signal continue_pressed
 signal get_gem_pressed
 
-const PanelParts := preload("res://scenes/combat/ui5/PanelParts.gd")
-const CostButton := preload("res://scenes/combat/ui5/CostButton.gd")
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
+const CostButton := preload("res://scenes/shared/ui5/CostButton.gd")
 ## Design `<!-- godot: Primary becomes clickable after 1000 ms -->`: the click that ended the fight must not
 ## answer the panel. Tests set `primary_delay_ms` to 0.
 const PRIMARY_DELAY_MS := 1000

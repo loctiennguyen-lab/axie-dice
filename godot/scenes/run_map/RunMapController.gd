@@ -1270,9 +1270,9 @@ const _REWARD_ICON := {
 ## mockup draws Skip. Pending Liam's call, flip this one flag. Skipping keeps the shards and ends the node.
 const _REWARD_ALLOW_SKIP := false
 ## UI-05 b1 lane D components (31-reward): fixed-size RewardCard and the chaos ConfirmBar.
-const _RewardCardUi := preload("res://scenes/run_map/ui5/RewardCard.gd")
-const _ConfirmBarUi := preload("res://scenes/run_map/ui5/ConfirmBar.gd")
-const _PanelParts := preload("res://scenes/combat/ui5/PanelParts.gd")
+const _RewardCardUi := preload("res://scenes/shared/ui5/RewardCard.gd")
+const _ConfirmBarUi := preload("res://scenes/shared/ui5/ConfirmBar.gd")
+const _PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 
 var _reward_sel := 0
 var _reward_cards: Array[PanelContainer] = []

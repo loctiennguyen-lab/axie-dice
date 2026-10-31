@@ -4,7 +4,7 @@ extends Button
 ## shows; `show_reason()` turns it into a plain disabled button that says why ("Need 90 Gem"), without the chip.
 ## Build: `var b := CostButton.new(); b.setup("Continue", &"gem", 90)`.
 
-const PanelParts := preload("res://scenes/combat/ui5/PanelParts.gd")
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 
 var caption := ""
 var reason := ""
