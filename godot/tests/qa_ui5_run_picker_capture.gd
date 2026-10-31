@@ -26,10 +26,21 @@ func _ready() -> void:
 	s.no_scene_change = true
 	add_child(s)
 	await get_tree().process_frame
-	s.party = ["plant1", "beast1", "aqua1", "reptile1", ""]
+	var vk := MetaState.vault_key({"axie_id": "9001"})
+	ContentDB.heroes[vk] = (ContentDB.heroes["bird1"] as Dictionary).duplicate(true)
+	ContentDB.heroes[vk]["n"] = "Vault Bird"
+	MetaState.vault = [{"axie_id": "9001", "schema": MetaState.VAULT_SCHEMA}]
+	s.party = ["plant1", vk, "aqua1", "reptile1", ""]
 	s._refresh_party()
+	s._refresh_footer()
 	s.open_picker(4)
+	for _i in 10:
+		await get_tree().process_frame
+	for b in s.find_children("AxieTile*", "Button", true, false):
+		if String(b.get_meta("hero_key")) == vk:
+			b.mouse_entered.emit()
 	await _shot("06-run-setup--picker", small)
+	ContentDB.heroes.erase(vk)
 	MetaState.vault = []
 	s._picker_tab = "vault"
 	s._show_picker()

@@ -5,6 +5,9 @@ extends RefCounted
 ## Names repeated on purpose (AxieTile, Row, TeamButton, Skeleton) are added with add_child(x, true) by the caller.
 
 
+const RANK_W := 56   ## .lb-row .rank width at 1920 (design px)
+
+
 ## Modal layer + centred dialog plate. Closes any open modal first. Returns {root, dialog, v}.
 static func modal(s: RunSetup, kind: StringName, dialog_name: String, width_token: String) -> Dictionary:
 	s.close_modal()
@@ -173,7 +176,7 @@ static func lb_row(rank: int, who: String, score: String, own: bool, you: String
 	p.add_child(h)
 	var rk := Ui5Text.label("#%d" % rank, "text_body", "text", true)
 	rk.name = "Rank"
-	rk.custom_minimum_size.x = int(56.0 * float(UI3Theme.size_of("btn_m")) / 56.0)
+	rk.custom_minimum_size.x = int(round(RANK_W * UI3Theme.layout_scale()))
 	h.add_child(rk)
 	var nm := Ui5Text.label("", "text_body", "text")
 	nm.name = "Who"

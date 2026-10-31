@@ -100,7 +100,11 @@ func _lb_load(rows_box: VBoxContainer, acts: HBoxContainer, full: Button, _loadi
 			rows_box.add_child(Ui5RunPickerParts.center_block(_s.tr("No scores yet this season.")))
 		for i in mini(5, rows.size()):
 			rows_box.add_child(_lb_row(rows[i], false), true)
-		if not me.is_empty():
+		var me_dup := false   # already one of the rows above: same rank and name
+		for i in mini(5, rows.size()):
+			if int(rows[i].get("rank", -1)) == int(me.get("rank", -2)) and String(rows[i].get("name", "")) == String(me.get("name", "?")):
+				me_dup = true
+		if not me.is_empty() and not me_dup:
 			rows_box.add_child(_lb_row(me, true), true)
 		if String(res.get("updated", "")) != "":
 			var up := Ui5Text.label(_s.tr("Last updated %s") % String(res["updated"]), "text_body", "text_muted")
@@ -171,7 +175,7 @@ func _load_list(v: VBoxContainer) -> Button:
 		for i in TeamPresets.count():
 			var e: Dictionary = MetaState.team_presets[i]
 			var miss := TeamPresets.missing_count(e)
-			var b := Ui5RunPickerParts.team_button("%s%s" % [String(e["name"]).substr(0, 20), (" · %d seats empty" % miss) if miss > 0 else ""])
+			var b := Ui5RunPickerParts.team_button("%s%s" % [String(e["name"]).substr(0, 20), (" · %d %s empty" % [miss, "seat" if miss == 1 else "seats"]) if miss > 0 else ""])
 			b.set_meta("preset", i)
 			b.pressed.connect(func() -> void:
 				for o in rows:
@@ -272,7 +276,7 @@ func _show_picker() -> void:
 			for o in tiles:
 				_s._outline(o, o == b)
 			Ui5DisabledReason.clear(put))
-		if _s.party.has(k):
+		if taken:   # only a Vault Axie seated elsewhere: starters repeat and never swap
 			b.mouse_entered.connect(func() -> void: _show_tip(tip, b, k))
 			b.focus_entered.connect(func() -> void: _show_tip(tip, b, k))
 			b.mouse_exited.connect(func() -> void: tip.visible = false)

@@ -160,15 +160,29 @@ func _pass(sc: float, tag: String) -> void:
 	put.pressed.emit()
 	await _settle()
 	_check(s.party[4] == tkey and _modal(s) == null, "%s picker: Put seats the Axie and closes" % tag)
-	# taken tile shows the tip
+	# tip + dim only for a Vault Axie seated elsewhere; a starter repeats and never swaps
+	var vk := MetaState.vault_key({"axie_id": "9001"})
+	ContentDB.heroes[vk] = (ContentDB.heroes["plant1"] as Dictionary).duplicate(true)
+	MetaState.vault = [{"axie_id": "9001", "schema": MetaState.VAULT_SCHEMA}]
+	s.party = ["plant1", vk, "aqua1", "reptile1", ""]
+	s._refresh_party()
 	s.open_picker(0)
 	await _settle()
 	m = _modal(s)
+	var vt: Button = null
+	var st_tile: Button = null
 	for b in m.find_children("AxieTile*", "Button", true, false):
-		if String(b.get_meta("hero_key")) == s.party[1]:
-			b.mouse_entered.emit()
+		if String(b.get_meta("hero_key")) == vk:
+			vt = b
+		elif String(b.get_meta("hero_key")) == "aqua1":
+			st_tile = b
 	var tip := m.find_child("InPartyTooltip", true, false) as Control
-	_check(tip.visible and (tip.get_child(0) as Label).text.contains("swaps"), "%s picker: in-party tip" % tag)
+	st_tile.mouse_entered.emit()
+	_check(not tip.visible and is_equal_approx(st_tile.modulate.a, 1.0), "%s picker: starter in party has no tip and no dim" % tag)
+	vt.mouse_entered.emit()
+	_check(tip.visible and (tip.get_child(0) as Label).text.contains("slot 2") and vt.modulate.a < 0.9, "%s picker: Vault Axie in another slot has tip + dim" % tag)
+	s.close_modal()
+	ContentDB.heroes.erase(vk)
 	# picker-empty (Vault empty)
 	MetaState.vault = []
 	s._picker_tab = "vault"
@@ -194,7 +208,7 @@ func _pass(sc: float, tag: String) -> void:
 	var go := _btn(m, "LoadButton")
 	_check(go.disabled and go.text.contains("Pick a team") and _caps(go) == 0, "%s presets-load: nothing picked, Load off with reason" % tag)
 	_check(m.find_children("TeamButton*", "Button", true, false).size() == 2, "%s presets-load: one button per saved team" % tag)
-	_check((m.find_children("TeamButton*", "Button", true, false)[1] as Button).text.contains("1 seats empty"), "%s presets-load: missing seat said" % tag)
+	_check((m.find_children("TeamButton*", "Button", true, false)[1] as Button).text.contains("1 seat empty"), "%s presets-load: missing seat said" % tag)
 	_focus(m, "CancelButton", tag + " presets-load")
 	_check(_caps(_btn(m, "CancelButton")) == 1, "%s presets-load: Cancel keycap" % tag)
 	_audit(m, sc, tag + " presets-load")
@@ -243,6 +257,14 @@ func _pass(sc: float, tag: String) -> void:
 	await _settle()
 	_has(m, ["Row", "UpdatedLine", "YouTag"], tag + " lb-rows")
 	_check(m.find_children("Row*", "PanelContainer", true, false).size() == 3, "%s lb-rows: 2 rows + own" % tag)
+	s.close_modal()
+	st.boards[LeaderboardSource.query_key({"asc": s.ascension, "period": "season"})] = {"rows": [
+		{"rank": 1, "name": "Zed", "score": 9000}, {"rank": 2, "name": "Yan", "score": 8000}, {"rank": 3, "name": "Me", "score": 700}], "me": {"rank": 3, "name": "Me", "score": 700}}
+	st.pending = false
+	s.open_leaderboard()
+	await _settle()
+	m = _modal(s)
+	_check(m.find_children("Row*", "PanelContainer", true, false).size() == 3, "%s lb-rows: own rank 3 is not shown twice" % tag)
 	_audit(m, sc, tag + " lb-rows")
 	s.close_modal()
 	st.boards.clear()
