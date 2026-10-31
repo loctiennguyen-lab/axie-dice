@@ -103,6 +103,7 @@ func set_primary(text: String, reason := "") -> Button:
 	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.custom_minimum_size.y = UI3Theme.size_of("btn_l")
+	footer.add_child(b)
 	for st in ["normal", "hover", "pressed", "disabled"]:
 		var sb := b.get_theme_stylebox(st) as StyleBoxFlat
 		if sb != null:
@@ -112,7 +113,6 @@ func set_primary(text: String, reason := "") -> Button:
 			d.content_margin_top = UI3Theme.space("8")
 			d.content_margin_bottom = UI3Theme.space("8")
 			b.add_theme_stylebox_override(st, d)
-	footer.add_child(b)
 	primary = b
 	if reason != "":
 		Ui5DisabledReason.apply(b, reason)
