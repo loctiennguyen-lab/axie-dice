@@ -1,0 +1,64 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Metal 4.0 - Forward+ - Using Device #0: Apple - Apple M3 Pro (Apple9)
+
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_files_at (core/io/dir_access.cpp:578)
+   GDScript backtrace (most recent call first):
+       [0] _acct_files (res://tests/save_guard.gd:121)
+       [1] capture (res://tests/save_guard.gd:63)
+       [2] _ready (res://tests/qa_ui5_settings_capture.gd:11)
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_directories_at (core/io/dir_access.cpp:588)
+   GDScript backtrace (most recent call first):
+       [0] _acct_files (res://tests/save_guard.gd:123)
+       [1] capture (res://tests/save_guard.gd:63)
+       [2] _ready (res://tests/qa_ui5_settings_capture.gd:11)
+QA: saved 26-settings--audio (1920x1080)
+QA: saved 26-settings--controls (1920x1080)
+QA: saved 26-settings--key-capture (1920x1080)
+QA: saved 26-settings--controls-combat (1920x1080)
+QA: saved 26-settings--run (1920x1080)
+QA: saved 26-settings--abandon-armed (1920x1080)
+QA: saved 26-settings--account-out (1920x1080)
+QA: saved 26-settings--accessibility (1920x1080)
+QA: saved 26-settings--abandon-mission (1920x1080)
+QA: saved 26-settings--in-run (1920x1080)
+QA: saved 26-settings--account-out-web (1920x1080)
+QA: saved 26-settings--account-in (1920x1080)
+QA: saved 26-settings--account-confirm (1920x1080)
+QA: saved 26-settings--account-expired (1920x1080)
+QA: saved 26-settings--audio--1280 (1280x720)
+QA: saved 26-settings--controls--1280 (1280x720)
+QA: saved 26-settings--key-capture--1280 (1280x720)
+QA: saved 26-settings--controls-combat--1280 (1280x720)
+QA: saved 26-settings--run--1280 (1280x720)
+QA: saved 26-settings--abandon-armed--1280 (1280x720)
+QA: saved 26-settings--account-out--1280 (1280x720)
+QA: saved 26-settings--accessibility--1280 (1280x720)
+QA: saved 26-settings--abandon-mission--1280 (1280x720)
+QA: saved 26-settings--in-run--1280 (1280x720)
+QA: saved 26-settings--account-out-web--1280 (1280x720)
+QA: saved 26-settings--account-in--1280 (1280x720)
+QA: saved 26-settings--account-confirm--1280 (1280x720)
+QA: saved 26-settings--account-expired--1280 (1280x720)
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_files_at (core/io/dir_access.cpp:578)
+   GDScript backtrace (most recent call first):
+       [0] _acct_files (res://tests/save_guard.gd:121)
+       [1] restore (res://tests/save_guard.gd:102)
+       [2] _ready (res://tests/qa_ui5_settings_capture.gd:61)
+       [3] _frame (res://tests/qa_ui5_settings_capture.gd:95)
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_directories_at (core/io/dir_access.cpp:588)
+   GDScript backtrace (most recent call first):
+       [0] _acct_files (res://tests/save_guard.gd:123)
+       [1] restore (res://tests/save_guard.gd:102)
+       [2] _ready (res://tests/qa_ui5_settings_capture.gd:61)
+       [3] _frame (res://tests/qa_ui5_settings_capture.gd:95)
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_directories_at (core/io/dir_access.cpp:588)
+   GDScript backtrace (most recent call first):
+       [0] _prune_empty_dirs (res://tests/save_guard.gd:130)
+       [1] restore (res://tests/save_guard.gd:115)
+       [2] _ready (res://tests/qa_ui5_settings_capture.gd:61)
+       [3] _frame (res://tests/qa_ui5_settings_capture.gd:95)
