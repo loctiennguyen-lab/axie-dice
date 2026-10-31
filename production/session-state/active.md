@@ -1,8 +1,10 @@
 # Axie Dice — trạng thái hiện tại
 
-## ⇢ BẮT ĐẦU TỪ ĐÂY (1/11 chiều) — S7a + POLISH DAILY/LAND ĐÃ GỘP, CHƯA DEPLOY; ĐỌC `production/ui05-next-session.md`
-- axiedice.fun chạy `godot-port` @ 68fd93a. `godot-port` local @ 1a04951 có thêm S7a Leaderboard + sửa Daily online + nút
-  "Upgrade Land" — chưa push, chưa deploy; deploy lần này cần `wrangler deploy` (Worker đổi). Worker 397/397.
+## ⇢ BẮT ĐẦU TỪ ĐÂY (1/11 tối) — S7a + DAILY/LAND ĐÃ DEPLOY; UI-06 PROMPT CHO CLAUDE DESIGN; ĐỌC `production/ui05-next-session.md`
+- axiedice.fun chạy `godot-port` @ 247f283 (S7a Leaderboard + Daily online + "Upgrade Land"), Worker ed4c90bb, pck 037b5087.
+  Ghi đợt: `production/release/deploy-2026-11-01-s7a-daily.md`. Gate 331/331 (AXIE_RELEASE=1), Worker 397/397.
+- UI-06 (thẻ Lõi/Anchor/Luật run + thay art lộ AI): prompt `design/handoffs/ui-06-run-cards/PROMPT.md` (Liam duyệt),
+  zip đính kèm dựng ở `design/handoffs/ui-06-run-cards/send/`. Chờ Claude Design gửi bản thử 2 hướng.
 - Liam 1/11: máy này sẽ chạy làm server 24/24 (memory `mac-as-24h-server`; chưa rõ chạy gì, đã hỏi).
 - Việc còn lại + thứ tự + trạng thái worktree: **`production/ui05-next-session.md`**.
 - Trước khi chạy agent: memory `ui-lane-token-savers`.

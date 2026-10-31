@@ -1,7 +1,7 @@
 # UI-05 — việc còn lại (bàn giao 1/11/2026)
 
 ## Trạng thái
-- **Mới (1/11 chiều), CHƯA push/deploy:** `godot-port` @ `1a04951` = S7a Leaderboard (`12eceba`) + sửa polish của Liam
+- **ĐÃ DEPLOY 1/11 tối** (`production/release/deploy-2026-11-01-s7a-daily.md`, Worker ed4c90bb, pck 037b5087). Trước đó: `godot-port` @ `1a04951` = S7a Leaderboard (`12eceba`) + sửa polish của Liam
   (`fix/daily-remote` → merge `1a04951`): Daily online lấy trạng thái từ server (nút Claim tắt sau khi nhận, thẻ tuần đếm
   đúng, server tự trả thưởng tuần ở lần nhận thứ 4, nút Claim có cờ chờ), nút Land chỉ ghi "Upgrade Land" (chi tiết vào
   tooltip). **Deploy lần này phải `cd worker && npx wrangler deploy`** (Worker đổi `economy.js`), rồi export + R2.
