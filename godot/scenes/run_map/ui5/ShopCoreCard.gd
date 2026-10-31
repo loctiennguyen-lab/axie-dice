@@ -45,6 +45,7 @@ func setup(it: Dictionary, shop_index: int, why: String) -> void:
 	column.add_child(art)
 	var nm := PanelParts.text(String(it.get("title", "")), "text_title", "text", true)
 	nm.name = "CoreName"
+	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER   # text under an icon is centred on it (Liam 29/10)
 	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	column.add_child(nm)
 	var chips := HFlowContainer.new()

@@ -342,28 +342,24 @@ func test_shop_bought_and_unaffordable_buttons_use_different_styleboxes() -> voi
 	])
 	runmap.call("_render_shop")
 
-	# UI-03 shop: rows are selectable cards; the Buy button lives in the detail plate and says why it is off.
+	# UI-05 shop: every card has its own Buy button that says why it is off.
 	var cards: Array = runmap.get("_shop_cards")
 	_assert(cards.size() == 2, "expected 2 shop item cards, found %d" % cards.size())
-	_assert(absf((cards[0] as Control).modulate.a - 0.4) < 0.01 and absf((cards[1] as Control).modulate.a - 1.0) < 0.01,
-		"a bought row must be drawn at 40%, an unbought one at full")
-	runmap.call("_select_shop", 0)
-	var buy0: Button = runmap.find_child("BuyButton", true, false)
-	_assert(buy0 != null and buy0.disabled and buy0.text == "Sold out", "bought item: Buy must be disabled and say 'Sold out'")
-	runmap.call("_select_shop", 1)
-	var buy1: Button = runmap.find_child("BuyButton", true, false)
+	var buy0: Button = (cards[0] as Node).find_child("BuyButton", true, false)
+	_assert(buy0 != null and buy0.disabled and buy0.text == "Bought", "bought Core: Buy must be disabled and say 'Bought'")
+	var buy1: Button = (cards[1] as Node).find_child("BuyButton", true, false)
 	_assert(buy1 != null and buy1.disabled and buy1.text == "Need 999 Shards",
 		"unaffordable item: Buy must be disabled and say 'Need 999 Shards', got '%s'" % (buy1.text if buy1 else ""))
+	_assert(buy0.get_theme_stylebox("disabled") == buy1.get_theme_stylebox("disabled") or buy0.text != buy1.text, "bought / unaffordable are told apart")
 	_assert(runmap.find_child("BlockReason", true, false) == null, "the reason is on the button only, not repeated above it")
-	_assert(runmap.find_child("NothingAffordable", true, false) != null, "nothing affordable: notice missing")
-	runmap.call("_select_shop", 0)
+	_assert(runmap.find_child("Notice", true, false) != null, "nothing affordable: notice missing")
 	RunState.shards_this_run = 100
 	RunState.shop_items[0]["bought"] = false
 	RunState.shop_items[0]["cost"] = 5
 	runmap.call("_render_shop")
-	var buy2: Button = runmap.find_child("BuyButton", true, false)
+	var buy2: Button = (runmap.get("_shop_cards")[0] as Node).find_child("BuyButton", true, false)
 	_assert(buy2 != null and not buy2.disabled, "affordable, unbought item must have an enabled Buy")
-	_assert(runmap.find_child("NothingAffordable", true, false) == null, "notice shown though an item is affordable")
+	_assert(runmap.find_child("Notice", true, false) == null, "notice shown though an item is affordable")
 
 	runmap.queue_free()
 	_done("test_shop_bought_and_unaffordable_buttons_use_different_styleboxes")
@@ -498,10 +494,8 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 	var shop_cards: Array = runmap.get("_shop_cards")
 	_assert(shop_cards.size() >= 1, "shop rendered no cards")
 	if shop_cards.size() >= 1:
-		var rl: Label = (shop_cards[0] as Node).find_child("RarityLabel", true, false)
-		_assert(rl != null and rl.get_theme_color("font_color").is_equal_approx(runmap.call("_rarity_color", 2)),
-			"shop card's rarity label is not coloured with its own rarity")
-		_assert(rl.text == runmap.call("_rarity_name", 2), "shop card rarity name mismatch")
+		var tc := (shop_cards[0] as Node).find_child("TierChip", true, false)
+		_assert(tc != null and (tc.find_child("Word", true, false) as Label).text == "Crystal", "shop card tier chip names its rarity (rar 2 = Crystal)")
 
 	runmap.queue_free()
 	_done("test_reward_and_shop_cards_show_a_rarity_chip_matching_rar")

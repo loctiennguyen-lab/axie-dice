@@ -106,7 +106,7 @@ func _render_shop() -> void:
 		main.add_child(stock)
 		for i in idxs:
 			var card := _add_shop_row(RunState.shop_items[i], i)
-			stock.add_child(card)
+			stock.add_child(card, true)   # readable unique names: ShopCoreCard, ShopCoreCard2 ...
 			var bb := card.find_child("BuyButton", true, false) as Button
 			if first_buy == null and bb != null and not bb.disabled:
 				first_buy = bb
