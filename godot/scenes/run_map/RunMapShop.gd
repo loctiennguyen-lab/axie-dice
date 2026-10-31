@@ -118,6 +118,12 @@ func _render_shop() -> void:
 	leave.pressed.connect(func() -> void: ctrl._finish_node())
 	root.add_child(leave)
 	Plates.attach_space_cap(leave, UI3Theme.space("32"))
+	# First build on a cold start: the cap can be placed before the font is ready; poke a re-sync two frames later.
+	for _i in 2:
+		ctrl.get_tree().process_frame.connect(func() -> void:
+			if is_instance_valid(leave):
+				leave.set_meta("cap_sig", "")
+				leave.queue_redraw(), CONNECT_ONE_SHOT)
 
 	if ctrl._shop_sel >= RunState.shop_items.size():
 		ctrl._shop_sel = 0
