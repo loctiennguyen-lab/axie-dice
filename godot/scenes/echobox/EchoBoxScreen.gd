@@ -1040,9 +1040,12 @@ func _season_tile(item: String, tier: String, have: bool) -> Control:
 	v.add_child(art)
 	var nm := UI3.label(_reward_name(item) if have else "?")
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nm.name = "ItemName"
+	nm.autowrap_mode = TextServer.AUTOWRAP_OFF   # one line, ellipsis; the tile tooltip carries the full name
 	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	nm.custom_minimum_size.x = 80
 	nm.clip_text = true
+	nm.tooltip_text = tile.tooltip_text
 	v.add_child(nm)
 	if not have:
 		art.modulate = Color(0.1, 0.1, 0.12, 0.9)   # named silhouette, nothing hidden

@@ -215,6 +215,11 @@ func _pass(sc: float, tag: String) -> void:
 	_audit(s, sc, tag + " seasonal")
 	_check(String(_btn(s, "Open1Button").theme_type_variation).begins_with("ButtonPrimary"), tag + ": seasonal Open 1 is the primary")
 	_check(s.find_child("CostChip", true, false) != null, tag + ": season CostChip")
+	var long_tiles := 0
+	for tn in s.find_children("ItemName", "Label", true, false):
+		long_tiles += 1
+		_check((tn as Label).get_line_count() <= 1, tag + ": Series item name stays on one line ('%s')" % (tn as Label).text)
+	_check(long_tiles > 0, tag + ": Series item names measured (%d)" % long_tiles)
 	# a taken milestone reads "Done"
 	var sid0 := String(EchoBox.season_cfg().get("series_id", "s1"))
 	var sbm: Dictionary = (MetaState.season_box as Dictionary).duplicate(true)
