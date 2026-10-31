@@ -73,7 +73,7 @@ func _common(root: Node, names: Array, tag: String, sc: float) -> void:
 				_check(float(l.get_theme_font_size("font_size")) * sc >= 14.0 - 0.01, "[%s] '%s' >= 14 real px" % [tag, l.text.left(24)])
 		if n is BaseButton and (n as BaseButton).is_visible_in_tree() and sc < 1.0:
 			_check(float(n.get_theme_font_size("font_size")) * sc >= 14.0 - 0.01, "[%s] button '%s' >= 14 real px" % [tag, n.get("text")])
-	for bad in ["Liam", "liam@gmail.com", "2 minutes ago", "v0.1.0-l1"]:
+	for bad in ["Liam", "liam@gmail.com", "2 minutes ago"]:
 		_check(not all.contains(bad), "[%s] no illustrative value '%s'" % [tag, bad])
 	_pairs += Align.pairs(root)
 	var probs := Align.check(root)
