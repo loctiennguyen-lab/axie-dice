@@ -172,10 +172,18 @@ static func reset_all() -> void:
 ## Display name of one keycode ("Space", "Enter", "R", "1").
 static func key_name(keycode: int) -> String:
 	match keycode:
-		KEY_ENTER, KEY_KP_ENTER:
+		KEY_ENTER:
 			return "Enter"
+		KEY_KP_ENTER:
+			return "Num Enter"
 		KEY_ESCAPE:
 			return "Esc"
+	match keycode:
+		KEY_KP_ADD: return "Num +"
+		KEY_KP_SUBTRACT: return "Num -"
+		KEY_KP_MULTIPLY: return "Num *"
+		KEY_KP_DIVIDE: return "Num /"
+		KEY_KP_PERIOD: return "Num ."
 	var s := OS.get_keycode_string(keycode as Key)
 	if keycode >= KEY_KP_0 and keycode <= KEY_KP_9:
 		return "Num " + str(keycode - KEY_KP_0)
@@ -193,16 +201,17 @@ static func text(action: StringName) -> String:
 	return key_name(int(ks[0]))
 
 
-## Text of all keys of an action ("Space / E").
+## Text of all keys of an action, keypad keys included, joined with ", " ("Space, E", "Enter, Num Enter", "1, Num 1").
+## Settings and the Codex list show this; hints on screen use `text()` (one key).
 static func text_all(action: StringName) -> String:
 	var seen: Array[String] = []
 	for k in keys_of(action):
 		var n := key_name(int(k))
-		if not seen.has(n) and not (int(k) >= KEY_KP_0 and int(k) <= KEY_KP_9) and int(k) != KEY_KP_ENTER:
+		if not seen.has(n):
 			seen.append(n)
 	if seen.is_empty():
 		return "-"
-	return " / ".join(seen)
+	return ", ".join(seen)
 
 
 ## Other actions in the same group that already use `keycode`. Land, Combat and Map are separate

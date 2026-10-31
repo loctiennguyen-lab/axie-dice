@@ -73,6 +73,10 @@ func _ready() -> void:
 	_check(hub.call("_tip_text", "portal").contains("1"), "portal tooltip shows its key")
 	hub.queue_free()
 	await get_tree().process_frame
+	_check(KeyBindings.key_name(KEY_KP_ENTER) == "Num Enter", "key_name KP Enter is Num Enter")
+	_check(KeyBindings.key_name(KEY_KP_ADD) == "Num +" and KeyBindings.key_name(KEY_KP_SUBTRACT) == "Num -"
+		and KeyBindings.key_name(KEY_KP_MULTIPLY) == "Num *" and KeyBindings.key_name(KEY_KP_DIVIDE) == "Num /"
+		and KeyBindings.key_name(KEY_KP_PERIOD) == "Num .", "key_name keypad operators")
 
 	# Settings > Controls
 	KeyBindings.reset_all()
@@ -82,10 +86,10 @@ func _ready() -> void:
 	add_child(st)
 	for i in 4:
 		await get_tree().process_frame
-	var btn := st.find_child("Key_combat_reroll", true, false) as Button
+	var btn := st._key_buttons[&"combat_reroll"] as Button
 	_check(btn != null and btn.text == "R", "Controls lists Reroll with R")
 	btn.pressed.emit()
-	_check(btn.text == "Press a key...", "click waits for a key")
+	_check(btn.text == "Press a key…", "click waits for a key")
 	st.call("_input", _ev(KEY_ESCAPE))
 	_check(btn.text == "R" and KeyBindings.keys_of(&"combat_reroll") == [KEY_R], "Esc cancels, binding unchanged")
 	btn.pressed.emit()
@@ -95,7 +99,7 @@ func _ready() -> void:
 	var status := (st.find_child("ControlsStatus", true, false) as Label).text
 	_check(status.contains("was on") , "conflict warning shown: " + status)
 	_check(MetaState.key_bindings.has("combat_reroll"), "Settings saved the change")
-	(st.find_child("ResetKeysButton", true, false) as Button).pressed.emit()
+	(st.find_child("ResetButton", true, false) as Button).pressed.emit()
 	_check(KeyBindings.keys_of(&"combat_reroll") == [KEY_R] and MetaState.key_bindings.is_empty(), "Reset restores defaults and clears the save")
 	st.queue_free()
 
