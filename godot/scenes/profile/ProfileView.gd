@@ -1,53 +1,77 @@
 class_name ProfileView
 extends Control
-## Profile + cosmetics + titles on the UI-03 meta shell (screen 24, round 2). Tabs in the header
-## (Overview / Cosmetics / Titles), content column + 440 detail plate. Overview: identity in the detail
-## plate, 5 stat tiles, last 10 runs (MetaState.run_log). Guest: banner with Sign in. Cosmetics: categories
-## with counts, tiles (Equipped / Owned / Locked), preview 392 + Equip / Unequip. Titles: A5 / A10 tiles,
-## detail Equip. Cosmetic only; state lives in MetaState (equip API checks ownership, saves via SaveStore).
-## `no_scene_change` lets tests build it without leaving.
+## Profile + cosmetics + titles, UI-05 (frames 24-profile*, round 3). One header plate (Back, Title, SubLine, Overview /
+## Cosmetics / Titles tabs). Overview + Titles: left column and a ProfileCard (profile_detail_w). Cosmetics: CategoryTabs,
+## Grid of CosmeticTile (5 cols) and a PreviewPlate (preview_w) with the 3D die. Names and rarity come from
+## cosmetics_manifest.json, numbers from MetaState. Nothing is picked on open except the item really equipped.
+## Cosmetic only; state lives in MetaState (equip API checks ownership, saves via SaveStore). `no_scene_change` lets tests build it.
 
+const Parts := preload("res://scenes/profile/ui5/ProfileParts.gd")
 const TABS: Array[String] = ["Overview", "Cosmetics", "Titles"]
+const TAB_NODES: Array[String] = ["OverviewTab", "CosmeticsTab", "TitlesTab"]
 const CATS: Array[String] = [Cosmetics.SLOT_DIE, Cosmetics.SLOT_FRAME]
 const RARITY_NAMES: Array[String] = ["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic"]
 const CAT_NAMES := {"die": "Dice skins", "frame": "Avatar frames"}
+const GRID_COLS := 5
 
 var no_scene_change := false
 ## Injectable so tests can stub the account (default: the AccountService autoload).
 var service: Node
 var tab := 0
 var cat := Cosmetics.SLOT_DIE
-var selected := ""
-## Titles tab selection ("" = No title). `_title_sel_set` false = follow the equipped title.
-var title_sel := ""
-var _title_sel_set := false
+## Cosmetics pick. Follows the equipped item until the player clicks another tile.
+var selected := "":
+	get:
+		return selected if _sel_set else equipped_for(cat)
+	set(v):
+		selected = v
+		_sel_set = true
+var _sel_set := false
 var _shell: Dictionary
 var _body: HBoxContainer
 var _tab_btns: Array[Button] = []
+var _preview_gen := 0
+var _stage: DiceStage = null
+var _equip_busy := false
 
 
 func _ready() -> void:
 	if service == null:
 		service = AccountService
 	_shell = UI3Meta.build(self, "Profile", "", _on_back)
+	(_shell["back"] as Button).name = "BackButton"
+	(_shell["sub"] as Control).name = "SubLine"
+	(_shell["panel"] as Control).name = "PlateHost"
+	var cur := find_child("Currencies", true, false)
+	if cur != null:
+		cur.visible = false   # frame: the header plate holds Back, Title, SubLine and the tabs only
 	_body = HBoxContainer.new()
 	_body.name = "Body"
 	_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_body.add_theme_constant_override("separation", UI3Meta.GAP)
 	(_shell["col"] as VBoxContainer).add_child(_body)
-	var hr: HBoxContainer = _shell["header_right"]
+	var hr: Control = _shell["header_right"]
+	var trow := (_shell["sub"] as Control).get_parent()
+	hr.get_parent().remove_child(hr)
+	hr.name = "Tabs"
+	hr.add_theme_constant_override("separation", UI3Theme.space("8"))
+	trow.add_child(hr)
+	var bar := Ui5TabBar.new()
+	bar.setup(TABS, tab, true)
+	bar.name = "TabBar"
+	hr.add_child(bar)
 	for i in TABS.size():
-		var b := UI3Meta.tab(TABS[i], i == tab)
-		b.name = "Tab_" + TABS[i]
-		b.pressed.connect(set_tab.bind(i))
-		hr.add_child(b)
+		var b := bar.get_child(i) as Button
+		b.name = TAB_NODES[i]
 		_tab_btns.append(b)
+	bar.tab_selected.connect(set_tab)
 	if service.has_signal("changed"):
 		service.changed.connect(refresh)
 		tree_exiting.connect(func() -> void:
 			if is_instance_valid(service) and service.changed.is_connected(refresh):
 				service.changed.disconnect(refresh))
 	refresh()
+	_tab_btns[tab].call_deferred("grab_focus")
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
@@ -63,6 +87,7 @@ func _on_back() -> void:
 
 func set_tab(i: int) -> void:
 	tab = clampi(i, 0, TABS.size() - 1)
+	_sel_set = false
 	refresh()
 
 
@@ -77,15 +102,13 @@ func _name() -> String:
 func refresh() -> void:
 	if _body == null:
 		return
+	_preview_gen += 1
+	_stage = null
 	UI3Meta.clear(_body)
-	UI3Meta.clear(_shell["banner_host"])
 	for i in _tab_btns.size():
 		_tab_btns[i].button_pressed = (i == tab)
 	var land := "%s Land" % LandUpgradeScreen.TIER_NAMES[clampi(MetaState.land_tier, 1, LandUpgradeScreen.TIER_NAMES.size()) - 1]
 	(_shell["sub"] as Label).text = ("Guest · local stats on this computer" if not _signed_in() else "%s · %s" % [_name(), land])
-	if not _signed_in():
-		UI3Meta.banner(_shell["banner_host"], "Sign in to keep them.", "These stats live on this computer only.",
-			[{"name": "SignIn", "text": "Sign in", "primary": true, "cb": _open_account}])
 	match tab:
 		1:
 			_cosmetics_tab()
@@ -100,130 +123,127 @@ func _open_account() -> void:
 		LandNav.open(&"account")
 
 
-## Content column (expands) + detail plate (440) added to the body; returns [left VBox, detail plate].
-func _frame() -> Array:
+func _left() -> VBoxContainer:
 	var left := VBoxContainer.new()
 	left.name = "Content"
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.add_theme_constant_override("separation", UI3Meta.GAP)
+	left.add_theme_constant_override("separation", UI3Theme.space("16"))
 	_body.add_child(left)
-	var d := UI3.plate(&"plate")
-	d.name = "DetailPlate"
-	d.custom_minimum_size = Vector2(440, 0)
-	_body.add_child(d)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", UI3Theme.space("16"))
-	d.add_child(v)
-	return [left, v]
-
-
-func _info_row(k: String, val: String, nm: String) -> Control:
-	var r := UI3.plate(&"row")
-	r.custom_minimum_size = Vector2(0, 48)
-	var h := HBoxContainer.new()
-	r.add_child(h)
-	var a := UI3.label(k, "LabelMuted")
-	a.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	h.add_child(a)
-	var b := UI3.label(val, "LabelTitle")
-	b.name = nm
-	h.add_child(b)
-	return r
-
-
-## Selectable tile (a toggle Button so Enter / click / focus all work): content stacked inside.
-func _tile(nm: String, on: bool, art: Control, label: String, badge: String, dim: bool) -> Button:
-	var b := UI3.button("", &"secondary", &"M")
-	b.name = nm
-	b.toggle_mode = true
-	b.button_pressed = on
-	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	b.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	b.custom_minimum_size = Vector2(0, 120)
-	b.clip_contents = true
-	var v := VBoxContainer.new()
-	v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 8)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	if art != null:
-		art.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		if dim:
-			art.modulate = Color(1, 1, 1, 0.4)   # locked art at 40%
-		v.add_child(art)
-	var l := UI3.label(label, "LabelTitle")
-	l.name = "Name"
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(l)
-	var bl := UI3.label(badge)
-	bl.name = "Badge"
-	bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	bl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(bl)
-	b.add_child(v)
-	return b
+	return left
 
 
 # ============================================================================ Overview
 
 func _overview_tab() -> void:
-	var fr := _frame()
-	var left: VBoxContainer = fr[0]
-	var d: VBoxContainer = fr[1]
-	(d.get_parent() as Control).size_flags_vertical = Control.SIZE_SHRINK_BEGIN   # identity card hugs its content
-	# identity in the detail plate
-	var hc := CenterContainer.new()
-	hc.name = "HeaderCard"
-	hc.add_child(make_avatar(128.0, service))
-	d.add_child(hc)
-	var nrow := HBoxContainer.new()
-	nrow.alignment = BoxContainer.ALIGNMENT_CENTER
-	nrow.add_theme_constant_override("separation", UI3Theme.space("8"))
-	var nm := UI3.label(_name(), "LabelScreenTitle")
-	nm.name = "PlayerName"
-	nrow.add_child(nm)
-	if _signed_in() and bool(service.account.get("sky_mavis", false)):
-		nrow.add_child(UI3Meta.tag("Sky Mavis"))
-	d.add_child(nrow)
-	var tl := UI3.label(
-		("Title: %s" % TitleNames.display(MetaState.equipped_title)) if MetaState.equipped_title != "" else "No title",
-		"LabelMuted")
-	tl.name = "EquippedTitle"
-	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	d.add_child(tl)
-	d.add_child(_sync_chip())
-
+	var left := _left()
+	if not _signed_in():
+		left.add_child(_guest_banner())
 	var tiles := HBoxContainer.new()
-	tiles.name = "Stats"
-	tiles.add_theme_constant_override("separation", UI3Theme.space("16"))
+	tiles.name = "StatTiles"
+	tiles.add_theme_constant_override("separation", UI3Theme.space("12"))
 	for t in stat_tiles():
-		tiles.add_child(_stat_tile(t))
+		tiles.add_child(Parts.stat_tile(t))
 	left.add_child(tiles)
 	left.add_child(_land_section())
-	left.add_child(UI3.label("Last %d runs" % MetaState.RUN_LOG_MAX, "LabelTitle"))
+	var rl := Parts.plate("RunList", UI3Theme.space("16"), UI3Theme.space("16"))
+	rl.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var rv := VBoxContainer.new()
+	rv.add_theme_constant_override("separation", UI3Theme.space("8"))
+	rl.add_child(rv)
+	rv.add_child(Ui5Text.label("Last %d runs" % MetaState.RUN_LOG_MAX, "text_title", "text", true))
+	var sc := ScrollContainer.new()
+	sc.name = "RunScroll"
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sc.get_v_scroll_bar().custom_minimum_size.x = UI3Theme.SCROLL_W
+	rv.add_child(sc)
 	var list := VBoxContainer.new()
-	list.name = "RunList"
-	list.add_theme_constant_override("separation", UI3Theme.space("8"))
-	left.add_child(UI3Meta.scroll(list))
+	list.name = "Runs"
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("separation", UI3Theme.space("4"))
+	sc.add_child(list)
 	if MetaState.run_log.is_empty():
 		# The counter above (MetaState.runs) can be ahead of the list (older saves, or the list was cleared).
-		var e := UI3.label(empty_runs_text(MetaState.runs), "LabelMuted")
+		var e := Ui5Text.label(empty_runs_text(MetaState.runs), "text_body", "text_muted")
 		e.name = "RunsEmpty"
+		e.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		list.add_child(e)
 	for i in MetaState.run_log.size():
 		list.add_child(_run_row(MetaState.run_log[i] as Dictionary, i))
+	left.add_child(rl)
+	_body.add_child(_profile_card())
 
 
-## Land section (LD-A 3, minimal UI3; Claude Design redoes it at polish): tier, aesthetic score, milestones claimed.
+func _guest_banner() -> Control:
+	var p := Parts.plate("GuestBanner", UI3Theme.space("12"), UI3Theme.space("16"))
+	var sb := p.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+	sb.border_color = UI3Theme.color("notice_warn")
+	p.add_theme_stylebox_override("panel", sb)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", UI3Theme.space("12"))
+	p.add_child(h)
+	h.add_child(Ui5ToneDisc.make(&"info"))
+	var t := VBoxContainer.new()
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	t.add_theme_constant_override("separation", 0)
+	t.add_child(Ui5Text.label("Sign in to keep them.", "text_body", "text", true))
+	t.add_child(Ui5Text.label("These stats live on this computer only.", "text_body", "text"))
+	h.add_child(t)
+	var b := UI3.button("Sign in", &"secondary", &"S")
+	b.name = "SignInButton"
+	b.pressed.connect(_open_account)
+	h.add_child(b)
+	return p
+
+
+func _profile_card() -> Control:
+	var p := Parts.plate("ProfileCard", UI3Theme.space("20"), UI3Theme.space("20"))
+	p.custom_minimum_size.x = UI3Theme.size_of("profile_detail_w")
+	p.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	var v := VBoxContainer.new()
+	v.alignment = BoxContainer.ALIGNMENT_BEGIN
+	v.add_theme_constant_override("separation", UI3Theme.space("12"))
+	p.add_child(v)
+	var hc := CenterContainer.new()
+	hc.add_child(make_avatar(UI3Theme.size_of("avatar_l"), service, not _signed_in()))
+	v.add_child(hc)
+	var nm := Ui5Text.label(_name(), "text_screen_title", "text", true)
+	nm.name = "Name"
+	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(nm)
+	if _signed_in() and bool(service.account.get("sky_mavis", false)):
+		var tc := CenterContainer.new()
+		tc.add_child(Parts.tag("Sky Mavis", "SkyMavisTag"))
+		v.add_child(tc)
+	var tl := Ui5Text.label(
+		("Title: %s" % TitleNames.display(MetaState.equipped_title)) if MetaState.equipped_title != "" else "No title",
+		"text_body", "text")
+	tl.name = "TitleLine"
+	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(tl)
+	v.add_child(_sync_chip())
+	return p
+
+
+func _sync_chip() -> Control:
+	var txt := "Guest · not saved to cloud"
+	if _signed_in():
+		var line: Array = AccountUI.status_line(service)
+		txt = String(line[0])
+	var row := CenterContainer.new()
+	if txt == "Saved":
+		row.add_child(Parts.tag(txt, "SyncChip", UI3Theme.color("success_text"), UI3Theme.color("success_bg"), "ui_check"))
+	else:
+		row.add_child(Parts.tag(txt, "SyncChip"))
+	return row
+
+
 func _land_section() -> Control:
-	var box := VBoxContainer.new()
-	box.name = "LandSection"
-	box.add_theme_constant_override("separation", UI3Theme.space("8"))
-	box.add_child(UI3.label("Land", "LabelTitle"))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", UI3Theme.space("16"))
+	var box := Parts.plate("LandSection", UI3Theme.space("16"), UI3Theme.space("16"))
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", UI3Theme.space("8"))
+	box.add_child(v)
+	v.add_child(Ui5Text.label("Land", "text_title", "text", true))
 	var tier := clampi(MetaState.land_tier, 1, LandUpgradeScreen.TIER_NAMES.size())
 	var score := LandDecor.aesthetic(MetaState.land_decor_placed)
 	var ms := LandDecor.milestones()
@@ -231,19 +251,15 @@ func _land_section() -> Control:
 	for m in ms:
 		if MetaState.land_milestones_claimed.has(String((m as Dictionary).get("id", ""))):
 			got += 1
-	for r in [["Tier", "%s %d/6" % [LandUpgradeScreen.TIER_NAMES[tier - 1], tier], "LandTier"],
-			["Aesthetic score", str(score), "LandScore"],
-			["Milestones claimed", "%d / %d" % [got, ms.size()], "LandMilestones"]]:
-		var ir := _info_row(r[0], r[1], r[2])
-		ir.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		if r[2] == "LandScore":
-			UI3Tooltip.bind(ir, "Points from decor placed on your Land. They unlock milestone rewards.")
-		row.add_child(ir)
-	box.add_child(row)
-	var help := UI3.label("Aesthetic score = points from decor you place. Claim each milestone reward in Edit Land (key E), Rewards tab.", "LabelMuted")
+	v.add_child(Parts.kv("Tier", "%s %d/6" % [LandUpgradeScreen.TIER_NAMES[tier - 1], tier], "LandTier"))
+	var sr := Parts.kv("Aesthetic score", str(score), "LandScore")
+	UI3Tooltip.bind(sr, "Points from decor placed on your Land. They unlock milestone rewards.")
+	v.add_child(sr)
+	v.add_child(Parts.kv("Milestones claimed", "%d / %d" % [got, ms.size()], "LandMilestones"))
+	var help := Ui5Text.label("Aesthetic score = points from decor you place. Claim each milestone reward in Edit Land, Rewards tab.", "text_body", "text_muted")
 	help.name = "LandHelp"
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	box.add_child(help)
+	v.add_child(help)
 	return box
 
 
@@ -254,7 +270,7 @@ static func empty_runs_text(finished: int) -> String:
 	return "No runs yet. Finish a run and it shows up here."
 
 
-## [{k, v, s}] x 5 from saved data. Missing data reads "—", never a made-up number.
+## [{k, v, s}] x 5 from saved data. No finished run yet reads "—" everywhere, never a made-up number.
 static func stat_tiles() -> Array[Dictionary]:
 	var best := -1
 	for k in MetaState.asc_wins:
@@ -263,30 +279,14 @@ static func stat_tiles() -> Array[Dictionary]:
 	var runs := MetaState.runs
 	var ps: Dictionary = MetaState.profile_stats
 	var ms_played := int(ps.get("ms_played", 0))
+	var none := runs <= 0
 	return [
-		{"k": "Runs", "v": str(runs), "s": "finished runs"},
-		{"k": "Wins", "v": str(MetaState.wins), "s": "%d%%" % int(round(100.0 * MetaState.wins / runs)) if runs > 0 else "—"},
+		{"k": "Runs", "v": "—" if none else str(runs), "s": "finished runs"},
+		{"k": "Wins", "v": "—" if none else str(MetaState.wins), "s": "" if none else "%d%%" % int(round(100.0 * MetaState.wins / runs))},
 		{"k": "Best Ascension", "v": ("A%d" % best) if best >= 0 else "—", "s": "won"},
-		{"k": "Pure wins", "v": str(int(ps.get("pure_wins", 0))), "s": "no Aid"},
+		{"k": "Pure wins", "v": "—" if none else str(int(ps.get("pure_wins", 0))), "s": "no Aid"},
 		{"k": "Missions", "v": ("%d / %d" % [int(ps.get("ms_won", 0)), ms_played]) if ms_played > 0 else "—", "s": "won / played"},
 	]
-
-
-func _stat_tile(t: Dictionary) -> Control:
-	var p := UI3.plate(&"card")
-	p.name = "Stat_" + String(t["k"]).replace(" ", "")
-	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 0)
-	var k := UI3.label(String(t["k"]), "LabelMuted")
-	k.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	v.add_child(k)
-	var val := UI3.label(String(t["v"]), "LabelScreenTitle")
-	val.name = "Value"
-	v.add_child(val)
-	v.add_child(UI3.label(String(t["s"]), "LabelMuted"))
-	p.add_child(v)
-	return p
 
 
 static func run_mode_text(e: Dictionary) -> String:
@@ -303,57 +303,14 @@ static func run_mode_text(e: Dictionary) -> String:
 
 
 func _run_row(e: Dictionary, i: int) -> Control:
-	var p := UI3.plate(&"row")
-	p.name = "Run_%d" % i
-	p.custom_minimum_size = Vector2(0, 56)
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", UI3Theme.space("16"))
-	p.add_child(h)
-	var cells: Array = [[String(e.get("date", "")), 130], [run_mode_text(e), 200], ["A%d" % int(e.get("asc", 0)), 60]]
-	for c in cells:
-		var l := UI3.label(String(c[0]))
-		l.custom_minimum_size = Vector2(float(c[1]), 0)
-		h.add_child(l)
-	var won := bool(e.get("won", false))
-	var res := UI3.label("Won" if won else "Lost", "LabelTitle")
-	res.name = "Result"
-	res.custom_minimum_size = Vector2(100, 0)
-	h.add_child(res)
+	var mission := bool(e.get("mission", false))
 	var aid := int(e.get("aid", 0))
-	var at := "no Aid (mission)" if bool(e.get("mission", false)) else ("Aid %d" % aid if aid > 0 else "no Aid")
-	var al := UI3.label(at, "LabelMuted")
-	al.name = "AidMark"
-	al.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	h.add_child(al)
-	if aid == 0 and not bool(e.get("mission", false)):
-		var pill := UI3Meta.tag("Pure")
-		pill.name = "PurePill"
-		h.add_child(pill)
-	return p
+	var at := "no Aid (mission)" if mission else ("Aid %d" % aid if aid > 0 else "no Aid")
+	var won := bool(e.get("won", false))
+	return Parts.run_row(i, String(e.get("date", "")), run_mode_text(e), "A%d" % int(e.get("asc", 0)), won, at, aid == 0 and not mission)
 
 
-func _sync_chip() -> Control:
-	var txt := "Guest · not saved to cloud"
-	if _signed_in():
-		var line: Array = AccountUI.status_line(service)
-		txt = String(line[0])
-	var row := CenterContainer.new()
-	var chip := UI3.chip(("✓ " + txt) if txt == "Saved" else txt)
-	chip.name = "SyncChip"
-	row.add_child(chip)
-	var l := chip.get_child(0) as Label
-	l.name = "SyncText"
-	return row
-
-
-# ============================================================================ Cosmetics (24, round 2)
-
-const GRID_COLS := 6
-const STATE_LOCKED := "Locked"
-var _preview_gen := 0        ## bumped by every refresh: late thumbnail / 3D callbacks of an old build check it
-var _stage: DiceStage = null
-var _equip_busy := false
-
+# ============================================================================ Cosmetics
 
 ## Every manifest id of a slot, in manifest order.
 static func catalog(slot: String) -> Array[String]:
@@ -392,138 +349,192 @@ func _frame_preview(frame_id: String, avatar_px: float) -> Control:
 	return AvatarFrame.wrap(av, AvatarFrame.frame_size(avatar_px), frame_id, avatar_px, avatar_px)
 
 
+
 func _cosmetics_tab() -> void:
-	_preview_gen += 1
-	_stage = null
 	var owned := Cosmetics.owned_art(MetaState.cosmetics_owned, cat)
 	var all := catalog(cat)
-	if selected != "" and not all.has(selected):
-		selected = ""
-	var fr := _frame()
-	var left: VBoxContainer = fr[0]
-	var cats := HBoxContainer.new()
-	cats.name = "Categories"
-	cats.add_theme_constant_override("separation", UI3Theme.space("8"))
+	var left := _left()
+	var cat_labels: Array[String] = []
 	for c in CATS:
-		var n := Cosmetics.owned_art(MetaState.cosmetics_owned, c).size() + 1   # Default / No frame is always owned
-		var b := UI3Meta.tab("%s   %d of %d" % [CAT_NAMES[c], n, catalog(c).size() + 1], c == cat)
-		b.name = "Cat_" + c
-		b.pressed.connect(func() -> void:
-			cat = c
-			selected = ""
-			refresh())
-		cats.add_child(b)
-	left.add_child(cats)
+		cat_labels.append("%s · %d of %d" % [CAT_NAMES[c], Cosmetics.owned_art(MetaState.cosmetics_owned, c).size() + 1, catalog(c).size() + 1])
+	var bar := Ui5TabBar.new()
+	bar.setup(cat_labels, CATS.find(cat), true)
+	bar.name = "CategoryTabs"
+	(bar.get_child(0) as Button).name = "DiceTab"
+	(bar.get_child(1) as Button).name = "FramesTab"
+	bar.tab_selected.connect(func(i: int) -> void:
+		cat = CATS[i]
+		_sel_set = false
+		refresh())
+	left.add_child(bar)
 	var scroll := ScrollContainer.new()
 	scroll.name = "GridScroll"
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.get_v_scroll_bar().custom_minimum_size.x = UI3Theme.SCROLL_W
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	left.add_child(scroll)
 	var grid := GridContainer.new()
-	grid.name = "Grid_" + cat
+	grid.name = "Grid"
 	grid.columns = GRID_COLS
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", UI3Theme.space("16"))
-	grid.add_theme_constant_override("v_separation", UI3Theme.space("16"))
+	grid.add_theme_constant_override("h_separation", UI3Theme.space("12"))
+	grid.add_theme_constant_override("v_separation", UI3Theme.space("12"))
 	scroll.add_child(grid)
 	var eq_now := equipped_for(cat)
-	grid.add_child(_cos_tile("", owned, eq_now))
+	var sel := selected
+	grid.add_child(_cos_tile("", owned, eq_now, sel))
 	for id in all:
-		grid.add_child(_cos_tile(id, owned, eq_now))
-	_cos_detail(fr[1], owned)
+		grid.add_child(_cos_tile(id, owned, eq_now, sel))
+	_body.add_child(_preview_plate(owned, sel))
 
 
-## One grid tile: tier strip, art, name, "Tier . State", equipped check disc. id "" = Default / No frame.
-func _cos_tile(id: String, owned: Array[String], eq_now: String) -> Button:
+func _cos_tile(id: String, owned: Array[String], eq_now: String, sel: String) -> Button:
 	var is_default := id == ""
 	var have := is_default or owned.has(id)
 	var e := _entry(id)
 	var tier := int(e.get("tier", 0))
-	var tname := "Default" if is_default else RARITY_NAMES[clampi(tier, 0, 5)]
-	var state := "Equipped" if eq_now == id else ("Owned" if have else STATE_LOCKED)
-	var nm := ("Default" if cat == Cosmetics.SLOT_DIE else "No frame") if is_default else String(e.get("name", id))
-	var b := UI3.button("", &"secondary", &"M")
-	b.name = "Tile_default_" + cat if is_default else "Tile_" + id
-	b.toggle_mode = true
-	b.button_pressed = id == selected
-	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	b.custom_minimum_size = Vector2(0, 216)
-	b.clip_contents = true
+	var b := Parts.tile_button("CosmeticTile_default_" + cat if is_default else "CosmeticTile_" + id, id == sel, "cos_tile_h")
 	var v := VBoxContainer.new()
-	v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 8)
+	v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, UI3Theme.space("12"))
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	v.add_theme_constant_override("separation", 4)
+	v.add_theme_constant_override("separation", UI3Theme.space("4"))
 	b.add_child(v)
 	var strip := ColorRect.new()
 	strip.name = "TierStrip"
-	strip.custom_minimum_size = Vector2(0, 4)
-	strip.color = DiceSkin.tier_color(tier) if not is_default else UI3Theme.color("text_muted")
+	strip.custom_minimum_size.y = 4
+	strip.color = UI3Theme.color("plate_rim") if is_default else DiceSkin.tier_color(tier)
 	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(strip)
+	var box := PanelContainer.new()
+	box.name = "Art"
+	box.theme = UI3Theme.get_theme()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var cs := float(UI3Theme.size_of("cos_art"))
+	box.custom_minimum_size = Vector2(cs, cs)
+	box.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	box.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("chip"), UI3Theme.radius("m")))
 	var art: Control
 	if cat == Cosmetics.SLOT_DIE:
 		var tr := TextureRect.new()
 		tr.name = "Thumb"
-		tr.custom_minimum_size = Vector2(120, 120)
 		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		tr.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		_fill_thumb(tr, id)
 		art = tr
-	elif is_default:
-		art = _frame_preview("", 72.0)
-		art.custom_minimum_size = Vector2(108, 108)
 	else:
-		art = _frame_preview(id, 72.0)
-	art.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		art = _frame_preview(id, cs * 0.5)
+		art.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if not have:
-		art.modulate = Color(1, 1, 1, 0.4)   # locked art at 40%
-	v.add_child(art)
-	var l := UI3.label(nm, "LabelTitle")
-	l.name = "Name"
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(l)
+		art.modulate = Color(1, 1, 1, 0.45)
+	box.add_child(art)
+	v.add_child(box)
+	var nm := Ui5Text.label(("Default" if cat == Cosmetics.SLOT_DIE else "No frame") if is_default else CosmeticTile.any_name(id), "text_body", "text", true)
+	nm.name = "Name"
+	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	v.add_child(nm)
 	var line := HBoxContainer.new()
 	line.name = "Line"
 	line.alignment = BoxContainer.ALIGNMENT_CENTER
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var tw := UI3.label(tname)
-	tw.name = "TierWord"
-	tw.add_theme_color_override("font_color", DiceSkin.tier_text_color(tier) if not is_default else UI3Theme.color("text_muted"))
-	tw.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	line.add_child(tw)
-	var st := UI3.label(" · " + state)
+	if not is_default:
+		var tw := Ui5Text.label(RARITY_NAMES[clampi(tier, 0, 5)] + " · ", "text_body", "text")
+		tw.name = "TierWord"
+		tw.add_theme_color_override("font_color", DiceSkin.tier_text_color(tier))
+		line.add_child(tw)
+	var st := Ui5Text.label("Equipped" if eq_now == id else ("Owned" if have else "Locked"), "text_body", "text_muted")
 	st.name = "Badge"
-	st.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line.add_child(st)
 	v.add_child(line)
-	# check disc (28) top-right, on every tile, visible on the equipped one
-	var disc := Panel.new()
-	disc.name = "CheckDisc"
-	disc.custom_minimum_size = Vector2(28, 28)
-	disc.size = Vector2(28, 28)
-	disc.pivot_offset = Vector2(14, 14)
-	disc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	disc.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("accent"), 14))
+	var disc := Parts.equipped_disc()
 	disc.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	disc.position = Vector2(-36, 8)
-	var ck := UI3.label("✓", "LabelDisplay")
-	ck.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
-	ck.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	ck.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ck.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	disc.add_child(ck)
+	disc.position = Vector2(-disc.size.x - UI3Theme.space("8"), UI3Theme.space("12"))
 	disc.visible = eq_now == id
 	b.add_child(disc)
 	b.pressed.connect(func() -> void:
 		selected = id
 		refresh())
 	return b
+
+
+func _preview_plate(owned: Array[String], sel: String) -> Control:
+	var e := _entry(sel)
+	var is_default := sel == ""
+	var tier := int(e.get("tier", 0))
+	var have := is_default or owned.has(sel)
+	var p := Parts.plate("PreviewPlate", UI3Theme.space("16"), UI3Theme.space("16"))
+	p.custom_minimum_size.x = UI3Theme.size_of("preview_w")
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", UI3Theme.space("12"))
+	p.add_child(v)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", UI3Theme.space("12"))
+	v.add_child(head)
+	var nm := Ui5Text.label(("Default" if cat == Cosmetics.SLOT_DIE else "No frame") if is_default else CosmeticTile.any_name(sel), "text_screen_title", "text", true)
+	nm.name = "PreviewName"
+	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(nm)
+	if not is_default:
+		head.add_child(Parts.tag(RARITY_NAMES[clampi(tier, 0, 5)], "TierChip", DiceSkin.tier_text_color(tier), Color(0, 0, 0, 0.001), "", DiceSkin.tier_color(tier)))
+	var stage := PanelContainer.new()
+	stage.name = "Preview3D"
+	stage.theme = UI3Theme.get_theme()
+	stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stage.custom_minimum_size.y = 200
+	stage.clip_contents = true
+	stage.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("chip"), UI3Theme.radius("m")))
+	v.add_child(stage)
+	if cat == Cosmetics.SLOT_DIE:
+		_build_die_preview(stage, sel)
+	else:
+		var row := CenterContainer.new()
+		row.name = "FramePreview"
+		var hb := HBoxContainer.new()
+		hb.add_theme_constant_override("separation", UI3Theme.space("8"))
+		hb.add_child(_frame_preview(sel, 160.0))
+		hb.add_child(_frame_preview(sel, 64.0))
+		row.add_child(hb)
+		stage.add_child(row)
+		if not have:
+			row.modulate = Color(1, 1, 1, 0.45)
+	var body_text := ""
+	if is_default:
+		body_text = "Nothing equipped: the standard look is used."
+	elif cat == Cosmetics.SLOT_DIE:
+		body_text = "Drag to spin · your preset's faces"
+	if not is_default and tier >= 3:
+		body_text += (" " if body_text != "" else "") + "Moves while equipped; Reduce flashing keeps it still."
+	var body := Ui5Text.label(body_text, "text_body", "text_muted")
+	body.name = "PreviewBody"
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	v.add_child(body)
+	if not is_default:
+		var src := Parts.kv("Source", _source_of(sel), "SourceRow")
+		var sv := src.find_child("Value", true, false) as Label
+		sv.name = "SourceValue"
+		sv.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
+		sv.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		if not have:
+			sv.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
+		v.add_child(src)
+	var eq := UI3.button("Equip", &"primary", &"L")
+	eq.name = "EquipButton"
+	eq.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	eq.custom_minimum_size.y = UI3Theme.size_of("btn_l")
+	if equipped_for(cat) == sel:
+		Ui5DisabledReason.apply(eq, "Equip · Equipped")
+	elif not have:
+		Ui5DisabledReason.apply(eq, "Equip · Locked")
+	eq.pressed.connect(_on_equip.bind(eq))
+	v.add_child(eq)
+	return p
 
 
 ## Baked thumbnail into `tr` (async; a rebuilt tab drops late answers). Default tile = the plain die.
@@ -540,104 +551,8 @@ func _fill_thumb(tr: TextureRect, id: String) -> void:
 		tr.texture = tex
 
 
-func _cos_detail(v: VBoxContainer, owned: Array[String]) -> void:
-	var e := _entry(selected)
-	var is_default := selected == ""
-	var tier := int(e.get("tier", 0))
-	var have := is_default or owned.has(selected)
-	var art := Panel.new()
-	art.name = "PreviewArt"
-	art.custom_minimum_size = Vector2(392, 392)
-	art.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	art.clip_contents = true
-	art.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s")))
-	v.add_child(art)
-	if cat == Cosmetics.SLOT_DIE:
-		_build_die_preview(art, selected)
-	else:
-		var row := HBoxContainer.new()
-		row.name = "FramePreview"
-		row.alignment = BoxContainer.ALIGNMENT_CENTER
-		row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		row.add_theme_constant_override("separation", UI3Theme.space("8"))
-		var big := _frame_preview(selected, 160.0)
-		big.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		var small := _frame_preview(selected, 64.0)
-		small.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		row.add_child(big)
-		row.add_child(small)
-		art.add_child(row)
-		if not have:
-			row.modulate = Color(1, 1, 1, 0.4)
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", UI3Theme.space("8"))
-	v.add_child(head)
-	var nm := UI3.label(String(e.get("name", "")) if not is_default else ("Default" if cat == Cosmetics.SLOT_DIE else "No frame"), "LabelScreenTitle")
-	nm.name = "PreviewName"
-	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(nm)
-	if not is_default:
-		head.add_child(_tier_chip(tier))
-	var body_text := ""
-	if is_default:
-		body_text = "Nothing equipped: the standard look is used."
-	elif cat == Cosmetics.SLOT_DIE:
-		body_text = "Drag to spin · your preset's faces"
-	if not is_default and tier >= 3:
-		body_text += ("\n" if body_text != "" else "") + "Moves while equipped; Reduce flashing keeps it still."
-	var body := UI3.label(body_text, "LabelMuted")
-	body.name = "PreviewBody"
-	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	body.custom_minimum_size.x = 392
-	v.add_child(body)
-	if not is_default:
-		var src := UI3.plate(&"row")
-		src.custom_minimum_size = Vector2(0, 48)
-		var sh := HBoxContainer.new()
-		src.add_child(sh)
-		var k := UI3.label("Source", "LabelMuted")
-		k.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		sh.add_child(k)
-		var sv := UI3.label(_source_of(selected))
-		sv.name = "SourceValue"
-		sv.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		sv.custom_minimum_size.x = 300
-		sv.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		if not have:
-			sv.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
-		sh.add_child(sv)
-		v.add_child(src)
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	v.add_child(spacer)
-	var on := equipped_for(cat) == selected
-	var eq := UI3.button("Equip", &"primary", &"L")
-	eq.name = "Equip"
-	if on:
-		UI3.set_disabled_reason(eq, "Equipped")
-	elif not have:
-		UI3.set_disabled_reason(eq, "Locked")
-	eq.pressed.connect(_on_equip.bind(eq))
-	v.add_child(eq)
-
-
-func _tier_chip(tier: int) -> PanelContainer:
-	var c := PanelContainer.new()
-	c.name = "TierChip"
-	c.theme = UI3Theme.get_theme()
-	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	c.add_theme_stylebox_override("panel", UI3Theme.flat(Color.TRANSPARENT, UI3Theme.radius("s"), 2,
-		DiceSkin.tier_color(tier), Vector4(12, 0, 12, 0)))
-	var l := UI3.label(RARITY_NAMES[clampi(tier, 0, 5)], "LabelDisplay")
-	l.add_theme_color_override("font_color", DiceSkin.tier_text_color(tier))
-	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	c.add_child(l)
-	return c
-
-
 ## Baked thumbnail at once, the live spinning die when its faces are drawn (one SubViewport on screen).
-func _build_die_preview(art: Panel, id: String) -> void:
+func _build_die_preview(art: Control, id: String) -> void:
 	var gen := _preview_gen
 	var tr := TextureRect.new()
 	tr.name = "PreviewThumb"
@@ -657,8 +572,9 @@ func _build_die_preview(art: Panel, id: String) -> void:
 		return
 	var st := DiceStage.new()
 	st.name = "DiceStage"
-	st.setup(Vector2i(392, 392), id, faces, true)
-	st.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var side := int(UI3Theme.size_of("preview_w")) - 2 * int(UI3Theme.space("16"))
+	st.setup(Vector2i(side, side), id, faces, true)
+	st.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	art.add_child(st)
 	st.start_spin()
 	_stage = st
@@ -691,14 +607,14 @@ func _on_equip(btn: Button) -> void:
 
 
 func _equip_moment(prev: String) -> void:
-	var newest := find_child("Tile_default_" + cat if selected == "" else "Tile_" + selected, true, false)
-	var old := find_child("Tile_default_" + cat if prev == "" else "Tile_" + prev, true, false)
+	var newest := find_child("CosmeticTile_default_" + cat if selected == "" else "CosmeticTile_" + selected, true, false)
+	var old := find_child("CosmeticTile_default_" + cat if prev == "" else "CosmeticTile_" + prev, true, false)
 	if old != null:
-		var od := old.find_child("CheckDisc", true, false) as Control
+		var od := old.find_child("EquippedDisc", true, false) as Control
 		if od != null:
 			create_tween().tween_property(od, "modulate:a", 0.0, 0.12)
 	if newest != null:
-		var nd := newest.find_child("CheckDisc", true, false) as Control
+		var nd := newest.find_child("EquippedDisc", true, false) as Control
 		if nd != null:
 			nd.visible = true
 			nd.scale = Vector2.ONE * 0.6
@@ -731,117 +647,132 @@ func _toast(text: String) -> void:
 
 # ============================================================================ Titles
 
-## Title tiles, 3 per row: No title, owned titles, then the Ascension titles not earned yet (Locked,
-## with the goal). Select a tile; the detail plate has Equip (one title at a time). Names and goals come
-## from ascension_titles.json.
-func _titles_tab() -> void:
-	var fr := _frame()
-	var left: VBoxContainer = fr[0]
-	var head := UI3.plate(&"plate")
-	var hv := VBoxContainer.new()
-	head.add_child(hv)
-	hv.add_child(UI3.label("Titles", "LabelTitle"))
-	hv.add_child(UI3.label("Titles from Ascension goals. One title at a time.", "LabelMuted"))
-	left.add_child(head)
-	var grid := GridContainer.new()
-	grid.name = "Grid_titles"
-	grid.columns = 3   # few tiles: keep them tile-sized instead of stretching to the full height
-	grid.add_theme_constant_override("h_separation", UI3Theme.space("16"))
-	grid.add_theme_constant_override("v_separation", UI3Theme.space("16"))
-	left.add_child(grid)
-	var owned := TitleNames.owned(MetaState.cosmetics_owned)
-	var goals := {}
+## Goal line of a title: Ascension goal, Land milestone points, else "" (no line, no guess).
+static func title_goal(id: String) -> String:
 	for t in TitleNames.ascension_titles():
-		goals[String(t["id"])] = "Win a run at A%d" % int(t["asc"])
-	var cur := title_sel if _title_sel_set else MetaState.equipped_title
-	var entries: Array = [["", "No title", "", true]]
+		if String(t["id"]) == id:
+			return "Win a run at A%d" % int(t["asc"])
+	for m in LandDecor.milestones():
+		if String((m as Dictionary).get("item", "")) == id:
+			return "Land: %d aesthetic points" % int((m as Dictionary).get("points", 0))
+	return ""
+
+
+## [{id, name, goal, have}]: No title, owned titles, then Ascension and Land titles not earned yet.
+static func title_entries() -> Array[Dictionary]:
+	var out: Array[Dictionary] = [{"id": "", "name": "No title", "goal": "Show no title under your name.", "have": true}]
+	var owned := TitleNames.owned(MetaState.cosmetics_owned)
 	for id in owned:
-		entries.append([id, TitleNames.display(id), String(goals.get(id, "")), true])
+		out.append({"id": id, "name": TitleNames.display(id), "goal": title_goal(id), "have": true})
 	for t in TitleNames.ascension_titles():
 		if not owned.has(String(t["id"])):
-			entries.append([String(t["id"]), String(t["name"]), String(goals[t["id"]]), false])
-	var found := false
-	for e in entries:
-		found = found or String(e[0]) == cur
-	if not found:
-		cur = ""
-	for e in entries:
-		var id := String(e[0])
-		var have := bool(e[3])
-		var badge := "Locked"
-		if have:
-			badge = "Equipped" if MetaState.equipped_title == id else "Owned"
-		var tile := _tile("Title_" + (id.replace(":", "_") if id != "" else "none"), id == cur, null,
-			String(e[1]), badge, not have)
-		tile.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		tile.custom_minimum_size.y = 160
-		tile.pressed.connect(func() -> void:
-			title_sel = id
-			_title_sel_set = true
-			refresh())
-		grid.add_child(tile)
-	# detail
-	var v: VBoxContainer = fr[1]
-	var sel_label := "No title"
-	var sel_goal := "Show no title under your name."
-	var sel_have := true
-	for e in entries:
-		if String(e[0]) == cur:
-			sel_label = String(e[1])
-			sel_have = bool(e[3])
-			if String(e[2]) != "":
-				sel_goal = String(e[2])
-	var art := Panel.new()
-	art.custom_minimum_size = Vector2(0, 200)
-	art.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	art.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("bg"), UI3Theme.radius("s")))
-	var av := CenterContainer.new()
-	av.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	av.add_child(make_avatar(128.0, service))
-	art.add_child(av)
-	v.add_child(art)
-	var hd := HBoxContainer.new()
-	hd.add_theme_constant_override("separation", UI3Theme.space("8"))
-	v.add_child(hd)
-	var tn := UI3.label(sel_label, "LabelScreenTitle")
-	tn.name = "DetailTitle"
-	tn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	tn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hd.add_child(tn)
-	var bt := "Locked"
-	if sel_have:
-		bt = "Equipped" if MetaState.equipped_title == cur else "Owned"
-	hd.add_child(UI3Meta.tag(bt))
-	var gl := UI3.label(sel_goal, "LabelMuted")
-	gl.name = "Goal"
-	gl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	gl.custom_minimum_size.x = 392
-	v.add_child(gl)
-	var eq := UI3.button("Equip" if cur != "" else "Use default", &"primary", &"L")
-	eq.name = "Equip"
-	if not sel_have:
-		UI3.set_disabled_reason(eq, "Not yet earned")
-	elif MetaState.equipped_title == cur:
-		UI3.set_disabled_reason(eq, "Equipped")
-	eq.pressed.connect(func() -> void:
-		MetaState.equip_title(cur)
+			out.append({"id": String(t["id"]), "name": String(t["name"]), "goal": title_goal(String(t["id"])), "have": false})
+	for m in LandDecor.milestones():
+		var it := String((m as Dictionary).get("item", ""))
+		if String((m as Dictionary).get("kind", "")) == "title" and not owned.has(it):
+			out.append({"id": it, "name": TitleNames.display(it), "goal": title_goal(it), "have": false})
+	return out
+
+
+func _titles_tab() -> void:
+	var left := _left()
+	var head := VBoxContainer.new()
+	head.add_theme_constant_override("separation", 0)
+	head.add_child(Ui5Text.label("Titles", "text_title", "text", true))
+	head.add_child(Ui5Text.label("Titles from Ascension goals. One title at a time.", "text_body", "text_muted"))
+	left.add_child(head)
+	var grid := GridContainer.new()
+	grid.name = "TitleGrid"
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", UI3Theme.space("12"))
+	grid.add_theme_constant_override("v_separation", UI3Theme.space("12"))
+	var sc := ScrollContainer.new()
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	sc.get_v_scroll_bar().custom_minimum_size.x = UI3Theme.SCROLL_W
+	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sc.add_child(grid)
+	left.add_child(sc)
+	for e in title_entries():
+		grid.add_child(_title_tile(e))
+	_body.add_child(_profile_card())
+
+
+func _title_tile(e: Dictionary) -> Control:
+	var id := String(e["id"])
+	var have := bool(e["have"])
+	var on := MetaState.equipped_title == id
+	var t := Parts.plate("TitleTile_" + (id.replace(":", "_") if id != "" else "none"), UI3Theme.space("16"), UI3Theme.space("16"))
+	t.custom_minimum_size.y = UI3Theme.size_of("title_tile_h")
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	t.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	if on:
+		var sb := t.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+		sb.set_border_width_all(UI3Theme.stroke("selected"))
+		sb.border_color = UI3Theme.color("selected")
+		t.add_theme_stylebox_override("panel", sb)
+	if not have:
+		t.modulate = Color(1, 1, 1, 0.6)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", UI3Theme.space("8"))
+	t.add_child(v)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", UI3Theme.space("8"))
+	v.add_child(h)
+	var nm := Ui5Text.label(String(e["name"]), "text_title", "text", true)
+	nm.name = "Name"
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	h.add_child(nm)
+	if on:
+		h.add_child(Parts.equipped_disc())
+	elif not have:
+		var ic := TextureRect.new()
+		ic.name = "LockIcon"
+		ic.texture = UI3.icon("ui_lock")
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.custom_minimum_size = Vector2.ONE * UI3Theme.size_of("icon_m")
+		ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		h.add_child(ic)
+	var g := Ui5Text.label(String(e["goal"]), "text_body", "text_muted")
+	g.name = "Goal"
+	g.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	g.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	g.visible = g.text != ""
+	v.add_child(g)
+	var sp := Control.new()
+	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	v.add_child(sp)
+	var b := UI3.button("Use default" if id == "" else "Equip", &"secondary", &"S")
+	b.name = "UseDefaultButton" if id == "" else "EquipButton"
+	if on:
+		Ui5DisabledReason.apply(b, "Use default · In use" if id == "" else "Equip · Equipped")
+	elif not have:
+		Ui5DisabledReason.apply(b, "Equip · Not yet earned")
+	b.pressed.connect(func() -> void:
+		MetaState.equip_title(id)
 		refresh())
-	v.add_child(eq)
+	v.add_child(b)
+	return t
 
 
 ## Initial-letter avatar wearing the equipped frame (same look as the Land chip).
 ## `svc` = the account service (is_signed_in / display_name); null falls back to the AccountService autoload.
-static func make_avatar(total_px: float, svc: Node = null) -> Control:
+## `guest_mark` = "?" on the guest colour (ProfileCard).
+static func make_avatar(total_px: float, svc: Node = null, guest_mark := false) -> Control:
 	if svc == null:
 		svc = AccountService
 	var nm := "P"
-	if svc.is_signed_in():
+	if guest_mark:
+		nm = "?"
+	elif svc.is_signed_in():
 		nm = svc.display_name().left(1).to_upper()
 	var av := PanelContainer.new()
 	av.name = "Avatar"
-	av.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("accent"), UI3Theme.radius("m")))
+	av.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("avatar_guest" if guest_mark else "accent"), UI3Theme.radius("m")))
 	var ini := UI3.label(nm, "LabelScreenTitle")
-	ini.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
+	ini.add_theme_color_override("font_color", UI3Theme.color("text" if guest_mark else "accent_text"))
 	ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	av.add_child(ini)
