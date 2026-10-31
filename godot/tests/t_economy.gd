@@ -1121,3 +1121,6 @@ func test_ascension_titles() -> void:
 	_assert(String((t.get("5", {}) as Dictionary).get("vi", "")) == "Người Giữ Ấn", "A5 title")
 	_assert(String((t.get("10", {}) as Dictionary).get("vi", "")) == "Người Đứng Cuối", "A10 title")
 	_assert(String((t.get("10", {}) as Dictionary).get("en", "")) != "", "A10 có tên hiển thị EN")
+	for k in ["5", "10"]:
+		var d: Dictionary = t.get(k, {})
+		_assert(String(d.get("en", "")) != String(d.get("vi", "")), "A%s: tên hiển thị là tiếng Anh, không còn tên tiếng Việt (Liam 31/10)" % k)
