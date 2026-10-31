@@ -4,6 +4,8 @@ extends RefCounted
 ## The controller keeps a same-name forwarder for every method here.
 
 
+const _PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
+
 var ctrl: RunMapController
 
 
@@ -20,118 +22,165 @@ func _on_event_node(_node_id: String) -> void:
 	_build_event_screen(-1, "")
 
 
-## `picked` < 0: choices. Otherwise the outcome: the other choices at 40%, `outcome` as the body.
+## `picked` < 0: choices. Otherwise the outcome: the picked row keeps its ring, the other choices at 40%, `outcome` in
+## the OutcomeText box. UI-05 frames event--choices / event--outcome (design round-2): EventScreen = EventArt (720) +
+## EventColumn (720): head, body or outcome, Choices, one button (ChooseButton, then ContinueButton).
 func _build_event_screen(picked: int, outcome: String) -> void:
+	UI3Theme.sync_scale()   # the 1280 text floor follows the window
 	var ev: Dictionary = ContentDB.events.get(RunState.event_key, {})
 	var host := ctrl._open_ui3_screen()
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	host.add_child(center)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 48)
-	center.add_child(row)
+	var screen := HBoxContainer.new()
+	screen.name = "EventScreen"
+	screen.set_anchors_preset(Control.PRESET_FULL_RECT)
+	screen.alignment = BoxContainer.ALIGNMENT_CENTER
+	screen.add_theme_constant_override("separation", UI3Theme.space("40"))
+	screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(screen)
 
+	var art_px := UI3Theme.size_of("event_art")
 	var art := UI3.plate(&"plate")
 	art.name = "EventArt"
-	art.custom_minimum_size = Vector2(720, 720)
-	row.add_child(art)
+	art.custom_minimum_size = Vector2(art_px, art_px)
+	art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	screen.add_child(art)
 	var art_c := CenterContainer.new()
 	art.add_child(art_c)
 	var art_i := TextureRect.new()
 	art_i.texture = UI3.icon("node_event")
-	art_i.custom_minimum_size = Vector2(320, 320)
+	var glyph := UI3Theme.size_of("event_glyph")
+	art_i.custom_minimum_size = Vector2(glyph, glyph)
 	art_i.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	art_i.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	art_c.add_child(art_i)
 
 	var col := VBoxContainer.new()
-	col.custom_minimum_size.x = 720
-	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	col.add_theme_constant_override("separation", 24)
-	row.add_child(col)
+	col.name = "EventColumn"
+	col.custom_minimum_size.x = UI3Theme.size_of("event_col_w")
+	col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	col.add_theme_constant_override("separation", UI3Theme.space("16"))
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	screen.add_child(col)
 
 	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 16)
+	head.name = "EventHead"
+	head.add_theme_constant_override("separation", UI3Theme.space("16"))
 	col.add_child(head)
+	var np := UI3Theme.size_of("node_icon")
 	var hi := TextureRect.new()
 	hi.texture = UI3.icon("node_event")
-	hi.custom_minimum_size = Vector2(64, 64)
+	hi.custom_minimum_size = Vector2(np, np)
+	hi.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	hi.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	hi.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	head.add_child(hi)
 	var hc := VBoxContainer.new()
+	hc.name = "EventHeadText"
+	hc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	hc.add_theme_constant_override("separation", UI3Theme.space("4") / 2)
 	head.add_child(hc)
-	var title := UI3.label(String(ev.get("n", tr("Event"))), "LabelScreenTitle")
+	var title := _PanelParts.on_view(UI3.label(String(ev.get("n", tr("Event"))), "LabelScreenTitle"))
 	title.name = "EventTitle"
 	hc.add_child(title)
-	hc.add_child(UI3.label(tr("Event · Row %d") % maxi(ctrl._current_row(), 0), "LabelMuted"))
+	var erow := _PanelParts.on_view(UI3.label(tr("Event · Row %d") % maxi(ctrl._current_row(), 0)))
+	erow.name = "EventRow"
+	hc.add_child(erow)
 
-	var body := UI3.label(outcome if picked >= 0 else String(ev.get("desc", "")))
-	body.name = "EventBody"
-	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	col.add_child(body)
+	if picked >= 0:
+		var box := UI3Theme.flat(UI3Theme.color("success_bg"), UI3Theme.radius("l"), 2, UI3Theme.color("path_on"),
+			Vector4(UI3Theme.space("20"), UI3Theme.space("16"), UI3Theme.space("20"), UI3Theme.space("16")))
+		var oc := _PanelParts.panel(box, "OutcomeText")
+		oc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		col.add_child(oc)
+		var ol := UI3.label(outcome, "LabelTitle")
+		ol.name = "Text"
+		ol.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		oc.add_child(ol)
+	else:
+		var body := _PanelParts.on_view(UI3.label(String(ev.get("desc", ""))))
+		body.name = "EventBody"
+		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		col.add_child(body)
 
 	ctrl._overlay_vbox = VBoxContainer.new()
-	ctrl._overlay_vbox.name = "EventOptions"
-	ctrl._overlay_vbox.add_theme_constant_override("separation", 12)
+	ctrl._overlay_vbox.name = "Choices"
+	ctrl._overlay_vbox.add_theme_constant_override("separation", UI3Theme.space("12"))
 	col.add_child(ctrl._overlay_vbox)
 	ctrl._event_cards.clear()
 	for i in ctrl._event_opts.size():
 		_add_event_option(ctrl._event_opts[i], i, picked)
 
 	var acts := HBoxContainer.new()
+	acts.name = "Footer"
 	acts.alignment = BoxContainer.ALIGNMENT_END
 	col.add_child(acts)
+	# No choice is picked for the player: ChooseButton is off and says why (no Space cap) until a row is picked.
 	var go := UI3.button(tr("Continue") if picked >= 0 else tr("Pick a choice"), &"primary", &"L")
-	go.name = "EventAction"
+	go.name = "ContinueButton" if picked >= 0 else "ChooseButton"
+	acts.add_child(go)
 	if picked >= 0:
 		go.pressed.connect(func() -> void: ctrl._finish_node())
+		Ui5RunScreenParts.set_space_cap(go, true)
 		go.grab_focus.call_deferred()
 	else:
 		UI3.set_disabled_reason(go, tr("Pick a choice"))
 		go.pressed.connect(func() -> void: _on_event_choice(ctrl._event_sel))
 		if not ctrl._event_cards.is_empty():
 			ctrl._event_cards[0].grab_focus.call_deferred()
-	acts.add_child(go)
+
+
+func _action_button() -> Button:
+	if ctrl._overlay_root == null or not is_instance_valid(ctrl._overlay_root):
+		return null
+	return ctrl._overlay_root.find_child("ChooseButton", true, false) as Button
 
 
 func _select_event(index: int) -> void:
 	ctrl._event_sel = index
 	for c in ctrl._event_cards:
-		c.theme_type_variation = "PanelCardSelected" if int(c.get_meta("opt")) == index else "PanelCard"
-	var go := ctrl._overlay_root.find_child("EventAction", true, false) as Button
+		UI3.set_card_selected(c, int(c.get_meta("opt")) == index, false)
+	var go := _action_button()
 	if go != null and index >= 0 and index < ctrl._event_opts.size():
-		UI3.clear_disabled_reason(go)
+		if go.disabled:
+			UI3.clear_disabled_reason(go)
 		go.text = tr("Choose")
+		Ui5RunScreenParts.set_space_cap(go, true)
 
 
 func _add_event_option(raw: Dictionary, index: int, picked: int) -> Control:
 	var card := UI3.plate(&"card")
-	card.name = "EventOption%d" % index
-	card.custom_minimum_size.y = 88
-	ctrl._overlay_vbox.add_child(card)
+	card.custom_minimum_size.y = UI3Theme.size_of("choice_h")
+	ctrl._overlay_vbox.add_child(card, true)   # ChoiceRow, ChoiceRow2, ...
 	var line := HBoxContainer.new()
-	line.add_theme_constant_override("separation", 16)
+	line.add_theme_constant_override("separation", UI3Theme.space("16"))
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(line)
 	var ic := TextureRect.new()
 	ic.texture = UI3.icon(String(ctrl._EVENT_FX_UI3.get(String(raw.get("fx", "")), "face_blank")))
-	ic.custom_minimum_size = Vector2(56, 56)
+	var ipx := UI3Theme.size_of("choice_icon")
+	ic.custom_minimum_size = Vector2(ipx, ipx)
 	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line.add_child(ic)
 	var tc := VBoxContainer.new()
+	tc.name = "Text"
 	tc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	tc.add_theme_constant_override("separation", UI3Theme.space("4"))
+	tc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line.add_child(tc)
-	tc.add_child(UI3.label(String(raw.get("text", "")), "LabelTitle"))
+	var tl := UI3.label(String(raw.get("text", "")), "LabelTitle")
+	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tc.add_child(tl)
 	var d := UI3.label(String(raw.get("desc", "")))
 	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	d.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tc.add_child(d)
 	card.set_meta("opt", index)
 	if picked >= 0:
 		card.modulate.a = 1.0 if index == picked else 0.4
+		UI3.set_card_selected(card, index == picked, false)
 		return card
 	ctrl._event_cards.append(card)
 	card.focus_mode = Control.FOCUS_ALL
@@ -142,14 +191,13 @@ func _add_event_option(raw: Dictionary, index: int, picked: int) -> Control:
 	card.focus_entered.connect(card.queue_redraw)
 	card.focus_exited.connect(card.queue_redraw)
 	card.gui_input.connect(func(ev: InputEvent) -> void:
-		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
-			card.grab_focus()
+		var by_mouse := ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT
+		if by_mouse or (ev.is_action_pressed("ui_accept") and not ev.is_echo()):
 			_select_event(index)
-		elif ev.is_action_pressed("ui_accept") and not ev.is_echo():
-			_select_event(index)
-			var go := ctrl._overlay_root.find_child("EventAction", true, false) as Control
+			var go := _action_button()
 			if go != null:
-				go.grab_focus())
+				go.grab_focus.call_deferred()   # Space then really presses Choose (the keycap on it says so)
+			card.accept_event())
 	return card
 
 
