@@ -380,22 +380,26 @@ func _screen_tick(m: Node, ov: Control) -> void:
 	var sheet := ov.find_child("SlotSwapSheet", true, false)
 	if sheet != null:
 		_shot_once("slot-swap")
-		_anomaly("slot swap sheet opened (RunBot path has no sheet): taking the first sell cell")
-		for b in sheet.find_children("SlotCell_*", "Button", true, false):
-			(b as Button).pressed.emit()
-			break
-		var conf := sheet.find_child("SwapConfirm", true, false) as Button
-		if conf != null:
-			conf.pressed.emit()
+		_anomaly("slot swap sheet opened (RunBot path has no sheet): selling the first sellable cell")
+		var sold := false
+		for b in sheet.find_children("SellButton", "Button", true, false):
+			if not (b as Button).disabled:
+				(b as Button).pressed.emit()   # Make room: Sell is the action, there is no confirm step
+				sold = true
+				break
+		if not sold:
+			var bk := sheet.find_child("BackButton", true, false) as Button
+			if bk != null:
+				bk.pressed.emit()
 		return
-	if ov.find_child("LeaveShop", true, false) != null:
+	if ov.find_child("LeaveButton", true, false) != null and ov.find_child("ShopBody", true, false) != null:
 		_shot_once("shop")
 		var n := RunState.shop_items.size()
 		for i in n:
 			await m.call("_on_shop_buy", i)
 			await _wait(0.15)
 		_shot_once("shop-after-buy")
-		var leave := ov.find_child("LeaveShop", true, false) as Button
+		var leave := ov.find_child("LeaveButton", true, false) as Button
 		if leave != null:
 			leave.pressed.emit()
 		return
@@ -418,7 +422,8 @@ func _screen_tick(m: Node, ov: Control) -> void:
 		if go != null:
 			go.pressed.emit()
 		return
-	if ov.find_child("RewardPick", true, false) != null or ov.find_child("TreasureReward", true, false) != null:
+	if ov.find_child("RewardPick", true, false) != null or ov.find_child("TreasureReward", true, false) != null \
+			or ov.find_child("CoreOffer", true, false) != null or ov.find_child("RunRuleOffer", true, false) != null:
 		var core: bool = m.call("_core_offer_active")
 		var label := "core" if core else ("treasure" if ov.find_child("TreasureReward", true, false) != null else "reward")
 		var has_chaos := false
