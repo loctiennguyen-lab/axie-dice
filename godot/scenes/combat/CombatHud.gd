@@ -687,6 +687,7 @@ func _tool_key_of(b: Button) -> Ui5ToolKey:
 func _sync_end_cap() -> void:
 	if _end_cap == null:
 		return
+	_end_cap.visible = not end_turn_button.disabled   # law: no keycap on a disabled button
 	var v: StringName = &"disabled" if end_turn_button.disabled else &"primary"
 	if _end_cap.get_meta("variant", &"") != v:
 		Ui5Keycap.set_variant(_end_cap, v)
