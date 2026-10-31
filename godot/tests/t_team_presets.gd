@@ -79,10 +79,10 @@ func _ready() -> void:
 	# ---- screen: grid
 	var s := await _screen()
 	_ok(s.find_child("Grid", true, false) != null, "grid built")
-	_ok(s.find_child("Preset0", true, false) != null and s.find_child("Preset2", true, false) != null, "3 preset cards")
-	_ok(s.find_child("Locked4", true, false) != null and s.find_child("Locked9", true, false) != null, "slots 4..9 drawn locked")
-	_ok((s.find_child("Locked4", true, false).find_children("*", "Label", true, false).any(func(l): return (l as Label).text == "Opens at Forest Land")), "slot 4 names Forest")
-	_ok((s.find_child("Locked7", true, false).find_children("*", "Label", true, false).any(func(l): return (l as Label).text == "Opens at Arctic Land")), "slot 7 names Arctic")
+	_ok(s.find_children("TeamCard*", "PanelContainer", true, false).size() == 3, "3 preset cards")
+	_ok(s.find_children("LockedSlot*", "PanelContainer", true, false).size() == 6, "slots 4..9 drawn locked")
+	_ok((s.find_children("LockedSlot*", "PanelContainer", true, false)[0].find_children("*", "Label", true, false).any(func(l): return (l as Label).text == "Opens at Forest Land")), "slot 4 names Forest")
+	_ok((s.find_children("LockedSlot*", "PanelContainer", true, false)[3].find_children("*", "Label", true, false).any(func(l): return (l as Label).text == "Opens at Arctic Land")), "slot 7 names Arctic")
 	# use for next run
 	_ok(s.use_preset(0), "use_preset ok")
 	_ok(MainMenu.pending_team.size() == 5 and MainMenu.pending_team[0] == "plant1", "party handed to Run Setup")
@@ -90,20 +90,20 @@ func _ready() -> void:
 	s.request_delete(1)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	var keep := s.find_child("Keep", true, false) as Button
+	var keep := s.find_child("KeepItButton", true, false) as Button
 	_ok(keep != null and keep.has_focus(), "delete confirm focuses Keep it")
-	_ok(is_equal_approx(s.find_child("Confirm", true, false).find_children("*", "PanelContainer", true, false)[0].custom_minimum_size.x, float(UI3.MODAL_W)), "confirm is the UI3 modal width")
+	_ok(is_equal_approx((s.find_child("DeleteConfirm", true, false) as Control).custom_minimum_size.x, float(UI3Theme.size_of("modal_s_w"))), "confirm is the modal_s_w width")
 	keep.pressed.emit()
 	_ok(TeamPresets.count() == 3, "Keep it keeps")
 	s.request_delete(1)
-	(s.find_child("Do", true, false) as Button).pressed.emit()
+	(s.find_child("DeletePresetButton", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
 	_ok(TeamPresets.count() == 2, "Delete removes")
 	# editor
 	s.open_editor(-1)
 	await get_tree().process_frame
-	_ok(s.view == "editor" and (s.find_child("Save", true, false) as Button).disabled, "new editor: Save disabled")
-	_ok((s.find_child("Save", true, false) as Button).text.contains("Give the team a name"), "reason shown: name")
+	_ok(s.view == "editor" and (s.find_child("SaveButton", true, false) as Button).disabled, "new editor: Save disabled")
+	_ok((s.find_child("SaveButton", true, false) as Button).text.contains("Give the team a name"), "reason shown: name")
 	s.set_edit_name("Fresh")
 	_ok(s.save_block_reason() == "Fill slot 1 first", "reason: slot 1")
 	for i in 4:
@@ -124,7 +124,7 @@ func _ready() -> void:
 	# replace missing
 	MetaState.team_presets[0]["party"] = ghost
 	s.refresh()
-	_ok((s.find_child("Preset0", true, false).find_child("Use", true, false) as Button).text == "Pick a replacement", "missing -> Pick a replacement")
+	_ok((s.find_children("TeamCard*", "PanelContainer", true, false)[0].find_child("UseButton", true, false) as Button).text == "Pick a replacement", "missing -> Pick a replacement")
 	_ok(not s.use_preset(0), "cannot use a preset with a missing Axie")
 	s.open_editor(0)
 	_ok(s.edit_party[2] == "", "editor shows the gap")
@@ -132,39 +132,39 @@ func _ready() -> void:
 	# round 2: editor is a 720 modal (44), slot picker is a 1120 modal (33)
 	s.open_editor(1)
 	await get_tree().process_frame
-	_ok(s.find_child("Grid", true, false) != null and s.find_child("Editor", true, false) != null, "editor opens over the grid")
-	_ok(is_equal_approx((s.find_child("Editor", true, false) as Control).custom_minimum_size.x, 720.0), "editor modal 720")
-	_ok(s.find_child("DeleteTeam", true, false) != null and s.find_children("EditSeat*", "PanelContainer", true, false).size() == 5, "Delete + 5 slot rows")
+	_ok(s.find_child("Grid", true, false) != null and s.find_child("EditorModal", true, false) != null, "editor opens over the grid")
+	_ok(is_equal_approx((s.find_child("EditorModal", true, false) as Control).custom_minimum_size.x, float(UI3Theme.size_of("defeat_panel_w"))), "editor modal width")
+	_ok(s.find_child("DeleteButton", true, false) != null and s.find_children("SeatRow*", "PanelContainer", true, false).size() == 5, "Delete + 5 slot rows")
 	_ok(not s.is_dirty(), "fresh editor not dirty")
 	s.request_cancel()
-	_ok(s.view == "grid" and s.find_child("Editor", true, false) == null, "clean cancel closes at once")
+	_ok(s.view == "grid" and s.find_child("EditorModal", true, false) == null, "clean cancel closes at once")
 	s.open_editor(1)
 	s.set_edit_name("Changed")
 	s.request_cancel()
 	await get_tree().process_frame
-	_ok(s.view == "editor" and s.find_child("Confirm", true, false) != null, "dirty cancel asks first")
-	(s.find_child("Keep", true, false) as Button).pressed.emit()
+	_ok(s.view == "editor" and s.find_child("DiscardConfirm", true, false) != null, "dirty cancel asks first")
+	(s.find_child("KeepEditingButton", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
-	_ok(s.view == "editor" and s.find_child("Editor", true, false) != null and s.find_child("Confirm", true, false) == null, "Keep editing returns to the editor")
+	_ok(s.view == "editor" and s.find_child("EditorModal", true, false) != null and s.find_child("DiscardConfirm", true, false) == null, "Keep editing returns to the editor")
 	s._show_picker(0)
 	await get_tree().process_frame
-	_ok(is_equal_approx((s.find_child("Picker", true, false).find_children("*", "PanelContainer", true, false)[0] as Control).custom_minimum_size.x, 1120.0), "picker modal 1120")
-	_ok((s.find_child("PutInSlot", true, false) as Button).disabled == (s._pick_sel == ""), "Put in slot follows selection")
+	_ok(is_equal_approx((s.find_child("PresetPicker", true, false) as Control).custom_minimum_size.x, float(UI3Theme.size_of("picker_w"))), "picker modal width")
+	_ok((s.find_child("PutButton", true, false) as Button).disabled == (s._pick_sel == ""), "Put in slot follows selection")
 	var other_key: String = String(s.edit_party[2])
 	var first_key: String = String(s.edit_party[0])
 	s._pick_sel = other_key
 	s._put_in_slot()
 	await get_tree().process_frame
-	_ok(s.edit_party[0] == other_key and s.edit_party[2] == other_key and first_key != other_key and s.find_child("Picker", true, false) == null, "picker copies a starter into the slot")
-	_ok(s.find_child("Editor", true, false) != null, "editor still open after picking")
+	_ok(s.edit_party[0] == other_key and s.edit_party[2] == other_key and first_key != other_key and s.find_child("PresetPicker", true, false) == null, "picker copies a starter into the slot")
+	_ok(s.find_child("EditorModal", true, false) != null, "editor still open after picking")
 	s.request_delete(1)
 	await get_tree().process_frame
-	(s.find_child("Do", true, false) as Button).pressed.emit()
+	(s.find_child("DeletePresetButton", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
-	_ok(s.view == "grid" and s.find_child("Editor", true, false) == null, "Delete from the editor removes and closes")
+	_ok(s.view == "grid" and s.find_child("EditorModal", true, false) == null, "Delete from the editor removes and closes")
 	# samples tab
 	s.switch_tab("samples")
-	_ok(s.find_children("UseSample", "Button", true, false).size() == 4, "four sample teams")
+	_ok(s.find_children("SampleCard*", "PanelContainer", true, false).size() == 4, "four sample teams")
 	s.use_sample(0)
 	_ok(MainMenu.pending_team.size() == 5, "sample handed to Run Setup")
 	# reorder
@@ -193,18 +193,18 @@ func _ready() -> void:
 	# more slots at higher tier
 	TeamPresets.tier_override = 2
 	s.refresh()
-	_ok(s.find_child("Open4", true, false) != null and s.find_child("Locked7", true, false) != null, "tier 2: slots 4-6 open, 7+ locked")
+	_ok(s.find_child("OpenSlot", true, false) != null and s.find_children("LockedSlot*", "PanelContainer", true, false).size() == 3, "tier 2: slots 4-6 open, 7+ locked")
 	TeamPresets.tier_override = 0
 	s.queue_free()
 
 	# ---- empty + guest
 	MetaState.team_presets = []
 	var e := await _screen()
-	_ok(e.find_child("Empty", true, false) != null and e.find_child("BuildFirst", true, false) != null, "empty state")
-	_ok(e.find_child("Banner", true, false) == null, "no banner when signed in")
+	_ok(e.find_child("EmptyState", true, false) != null and e.find_child("BuildButton", true, false) != null, "empty state")
+	_ok(e.find_child("GuestBanner", true, false) == null, "no banner when signed in")
 	e.guest = true
 	e.refresh()
-	_ok(e.find_child("Banner", true, false) != null, "guest banner")
+	_ok(e.find_child("GuestBanner", true, false) != null, "guest banner")
 	e.queue_free()
 
 	# ---- Run Setup hooks
@@ -225,16 +225,16 @@ func _ready() -> void:
 	_ok(rs.load_preset(0) and rs.filled_count() == 5, "load fills party")
 	rs.open_save_preset()
 	await get_tree().process_frame
-	var sv := rs.find_child("ConfirmSavePreset", true, false) as Button
+	var sv := rs.find_child("SaveButton", true, false) as Button
 	_ok(sv != null and not sv.disabled, "save modal ready with full party")
 	rs.close_modal()
 	rs.clear_slot(0)
 	rs.open_save_preset()
 	await get_tree().process_frame
-	_ok((rs.find_child("ConfirmSavePreset", true, false) as Button).disabled, "save modal disabled with a gap")
+	_ok((rs.find_child("SaveButton", true, false) as Button).disabled, "save modal disabled with a gap")
 	rs.open_load_presets()
 	await get_tree().process_frame
-	_ok(rs.find_child("Preset0", true, false) != null, "load modal lists the preset")
+	_ok(rs.find_child("TeamButton", true, false) != null, "load modal lists the preset")
 	rs.queue_free()
 	# newcomer: Leaderboard stays locked
 	MetaState.runs = 0

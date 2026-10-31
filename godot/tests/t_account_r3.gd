@@ -52,7 +52,7 @@ func _press(s: Node, n: String) -> void:
 
 
 func _title(s: Node) -> String:
-	return (s.find_child("Title", true, false) as Label).text
+	return (s.find_child("Heading", true, false) as Label).text
 
 
 func _ready() -> void:
@@ -73,8 +73,8 @@ func _ready() -> void:
 	svc.desktop_phase = "waiting"
 	svc.changed.emit()
 	_ok(s.state == "waiting" and _title(s) == "Finish signing in in your browser", "waiting state")
-	_ok(_has(s, "OpenAgainButton") and _has(s, "CancelButton"), "waiting has reopen + cancel")
-	_press(s, "OpenAgainButton")
+	_ok(_has(s, "OpenBrowserButton") and _has(s, "CancelButton"), "waiting has reopen + cancel")
+	_press(s, "OpenBrowserButton")
 	_ok(svc.calls.has("reopen"), "reopen calls the service")
 	_press(s, "CancelButton")
 	await get_tree().process_frame
@@ -87,14 +87,14 @@ func _ready() -> void:
 		svc.desktop_error = code
 		svc.changed.emit()
 		await get_tree().process_frame
-		_ok(s.state == "error" and _has(s, "RetryButton") and not _has(s, "GuestButton"), "error state (no guest) " + code)
+		_ok(s.state == "error" and (_has(s, "TryAgainButton") or _has(s, "UseAnotherButton")) and not _has(s, "GuestButton"), "error state (no guest) " + code)
 		_ok(not _title(s).is_empty(), "error title " + code)
 	_ok(_has(s, "ErrorCode"), "error state shows the error code line")
 	_ok(_title(s) == "Sign-in didn't work", "unknown code gets the generic title")
 	svc.desktop_error = "admin_policy_enforced"
 	svc.changed.emit()
 	svc.calls.clear()
-	_press(s, "RetryButton")
+	_press(s, "UseAnotherButton")
 	_ok(svc.calls.has("sign_in:true"), "workspace-blocked retry switches account")
 	svc.desktop_phase = "idle"
 	svc.desktop_error = ""
