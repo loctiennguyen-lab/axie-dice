@@ -420,14 +420,46 @@ static func _diff() -> String:
 	return s
 
 
+## Plain-text lines of a tab (BBCode stripped; a table row becomes "first cell: the rest"), for the search hits.
+static func plain_lines(key: String) -> Array[String]:
+	var src := tab_text(key)
+	var out: Array[String] = []
+	var tbl := RegEx.create_from_string("(?s)\\[table=(\\d+)\\](.*?)\\[/table\\]")
+	var cell := RegEx.create_from_string("(?s)\\[cell[^\\]]*\\](.*?)\\[/cell\\]")
+	var tag := RegEx.create_from_string("\\[/?(b|i|u|color|font_size|font|bgcolor|center|table|cell)[^\\]]*\\]")
+	var pos := 0
+	var chunks: Array[String] = []
+	for m in tbl.search_all(src):
+		chunks.append(src.substr(pos, m.get_start() - pos))
+		var cols := maxi(1, int(m.get_string(1)))
+		var cells: Array[String] = []
+		for c in cell.search_all(m.get_string(2)):
+			cells.append(tag.sub(c.get_string(1), "", true).strip_edges())
+		var i := 0
+		var rows := ""
+		while i < cells.size():
+			var row := cells.slice(i, i + cols)
+			rows += (row[0] + (": " + " ".join(row.slice(1)) if row.size() > 1 else "")) + "\n"
+			i += cols
+		chunks.append(rows)
+		pos = m.get_end()
+	chunks.append(src.substr(pos))
+	for ch in chunks:
+		for ln in tag.sub(ch, "", true).split("\n"):
+			var t := ln.strip_edges()
+			if t != "":
+				out.append(t)
+	return out
+
+
 static func _table(headers: Array, rows: Array) -> String:
 	var cols: int = headers.size()
 	var s := "[table=%d]" % cols
 	for h in headers:
-		s += "[cell][b]%s[/b][/cell]" % _safe(h)
+		s += "[cell bg=#%s][b]%s[/b][/cell]" % [UI3Theme.color("chip").to_html(false), _safe(h)]
 	for row in rows:
 		for cell in row:
-			s += "[cell]%s[/cell]" % _safe(cell)
+			s += "[cell bg=#%s]%s[/cell]" % [UI3Theme.color("plate_raised").to_html(false), _safe(cell)]
 	s += "[/table]\n"
 	return s
 
