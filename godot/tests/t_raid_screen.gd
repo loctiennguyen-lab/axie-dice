@@ -62,7 +62,7 @@ func _ready() -> void:
 	var s := await _screen()
 	_ok(s.status == "ok" and s.opponents.size() == 1, "bad ghost row filtered, got %d" % s.opponents.size())
 	_ok(s.points == 8 and s._points_lbl.text.contains("Next badge at 10"), "points + next badge text")
-	_ok(s.get_node_or_null("%Ghosts") != null or s._list.get_child_count() == 1, "one row drawn")
+	_ok(s._list.get_child_count() == 1 and s._list.get_child(0).name == "GhostRow", "one GhostRow drawn")
 	_ok(s.current_party() == ["plant1", "beast1", "aqua1"], "no preset -> starter trio")
 
 	# defence
@@ -114,7 +114,7 @@ func _ready() -> void:
 	# failed list shows retry
 	_answers["/api/raid/opponents"] = [500, '{"error":"server"}']
 	var f := await _screen()
-	_ok(f.status == "failed" and f._list.get_child_count() == 2, "failed list: message + retry")
+	_ok(f.status == "failed" and f._list.get_child_count() == 1 and f.find_child("FailedState", true, false) != null and f.find_child("RetryButton", true, false) != null, "failed list: FailedState with Retry")
 	f.queue_free()
 
 	# Land entry

@@ -172,11 +172,13 @@ static func validate_layer(id: String, l: Variant) -> Array[String]:
 	if not LAYER_REDUCE.has(String(ld.get("reduce", "fade"))):
 		errs.append("%s: unknown reduce '%s'" % [nm, ld.get("reduce")])
 	var kinds := 0
-	for k in ["kf", "shake", "hitstop_ms", "particles"]:
+	for k in ["kf", "shake", "hitstop_ms", "particles", "count"]:
 		if ld.has(k):
 			kinds += 1
 	if kinds != 1:
-		errs.append("%s: needs exactly one of kf / shake / hitstop_ms / particles" % nm)
+		errs.append("%s: needs exactly one of kf / shake / hitstop_ms / particles / count" % nm)
+	if ld.has("count") and (typeof(ld["count"]) != TYPE_DICTIONARY or float(ld.get("ms", -1)) <= 0.0):
+		errs.append("%s: count needs an object and 'ms'" % nm)
 	if ld.has("kf"):
 		if float(ld.get("ms", -1)) <= 0.0:
 			errs.append("%s: 'ms' missing" % nm)
@@ -395,6 +397,8 @@ static func _burst(node: CanvasItem, pt: Dictionary) -> void:
 	var ct := String(pt.get("color_token", ""))
 	if ct != "":
 		cp.color = UI3Theme.color(ct)
+	if pt.get("color") is Color:
+		cp.color = pt["color"]
 	cp.z_index = 1
 	cp.emitting = true
 	node.add_child(cp)
@@ -586,6 +590,9 @@ static func sweep(parent: Control, delay_ms := 0.0, ms := 400.0, width := 120.0,
 ## _fade_plan: in <= 120 ms, out <= 120 ms at the time the table fades the layer); "cap" keeps the keyframes but at
 ## most 120 ms; "kept" plays as is. Delays stay (the order of the moment is kept).
 ## Returns a Timeline: skip() jumps every layer to its end state (no late particles / shake / hit-stop).
+## UI-05 b23 lane M3: rows marked "proposal": true (motion-batch3.md PROPOSAL: rays, sparks, gold ring, Mythic
+## hit-stop / shake) are not approved. They never run unless this is true. Tests only; keep it false in the game.
+static var proposals_enabled := false
 const KF_PROPS := ["alpha", "scale", "scale_x", "scale_y", "x", "y", "rot"]
 const LAYER_REDUCE := ["fade", "cap", "removed", "kept"]
 
@@ -660,6 +667,8 @@ static func timeline_sec(id: String, red := false) -> float:
 	var end := 0.0
 	for l in layers(id):
 		var ld: Dictionary = l
+		if bool(ld.get("proposal", false)) and not proposals_enabled:
+			continue
 		var r := String(ld.get("reduce", "fade"))
 		var d := float(ld.get("delay_ms", 0.0))
 		var ms := float(ld.get("ms", 0.0))
@@ -703,13 +712,14 @@ static func play_timeline(id: String, targets: Dictionary, opts: Dictionary = {}
 				break
 	var only: Array = opts.get("only", [])
 	var except: Array = opts.get("except", [])
+	targets = targets.duplicate()
 	var picked: Array = []
 	var first_delay := {}   # target -> lowest delay among its keyframe layers (only that one fills backwards)
 	var rest := {}          # target -> its state before any layer touched it
-	for l in layers(id):
+	for l in _prepare_layers(id, targets, opts):
 		var ld: Dictionary = l
 		var lname := String(ld.get("name", ""))
-		if (not only.is_empty() and not only.has(lname)) or except.has(lname):
+		if (not only.is_empty() and not only.has(String(ld.get("base", lname)))) or except.has(String(ld.get("base", lname))):
 			continue
 		if red and String(ld.get("reduce", "fade")) == "removed":
 			continue
@@ -728,13 +738,84 @@ static func play_timeline(id: String, targets: Dictionary, opts: Dictionary = {}
 	elif run._pending <= 0:
 		(func() -> void: run._finish()).call_deferred()
 	elif host != null and host.is_inside_tree():
+		# Watchdog deadline = table length + delay + WATCHDOG_SLACK_SEC. The slack covers the longest real overrun, one hit-stop
+		# (capped at HITSTOP_MAX_MS = 200 ms of real time, during which game time stands still) plus slow frames.
 		# Watchdog: a tween dies without `finished` when its node is freed (a plate rebuilt mid-moment). The moment
-		# still ends, so nothing waits on it forever (U5SkipCatcher would keep eating Space).
-		host.get_tree().create_timer(timeline_sec(id, red) + WATCHDOG_SLACK_SEC, true, false, true).timeout.connect(
+		# still ends, so nothing waits on it forever (U5SkipCatcher would keep eating Space). Not ignore_time_scale: in 4.7 that
+		# flag made the timer fire early (160 ms of a 1.96 s timer) and cut moments short.
+		host.get_tree().create_timer(timeline_sec(id, red) + float(opts.get("delay_ms", 0.0)) / 1000.0 + WATCHDOG_SLACK_SEC, true, false, false).timeout.connect(
 			func() -> void:
 				if not run.done:
 					run.skip())   # captures only `run`; its finals hold WeakRefs
 	return run
+
+
+## Per-play variants of the table rows (UI-05 b23 lane M2). opts: delay_ms (added to every row: a screen whose rows
+## start later than the table, e.g. the Core offer after a long aura), tier (0..2: "crystal_only" rows run at 2 only,
+## "amount_by_tier" / "ms_by_tier" pick their number), tier_color (Color for particles that carry "tier_color"),
+## fly_to (global Vector2: rows with "fly" get a second, position-only row along a quadratic arc with the row's
+## easing baked in), and targets that are an Array of nodes (one copy of the row per node, +stagger_ms each).
+## Rows keep "base" = the table name so only / except still work.
+static func _prepare_layers(id: String, targets: Dictionary, opts: Dictionary) -> Array:
+	var out: Array = []
+	var extra := float(opts.get("delay_ms", 0.0))
+	var tier := int(opts.get("tier", -1))
+	for l in layers(id):
+		var ld: Dictionary = (l as Dictionary).duplicate(true)
+		ld["base"] = String(ld.get("name", ""))
+		if bool(ld.get("proposal", false)) and not proposals_enabled:
+			continue
+		if bool(ld.get("crystal_only", false)) and tier != 2:
+			continue
+		if ld.has("ms_by_tier") and tier >= 0:
+			ld["ms"] = (ld["ms_by_tier"] as Array)[clampi(tier, 0, (ld["ms_by_tier"] as Array).size() - 1)]
+		if ld.has("particles"):
+			var pt: Dictionary = ld["particles"]
+			var tex_path := String(pt.get("texture", ""))
+			if tex_path != "" and ResourceLoader.exists(tex_path):
+				load(tex_path)   # cache it now: a first-use load inside the moment is a frame hitch (the watchdog is real time)
+			if pt.has("amount_by_tier") and tier >= 0:
+				pt["amount"] = (pt["amount_by_tier"] as Array)[clampi(tier, 0, (pt["amount_by_tier"] as Array).size() - 1)]
+			if bool(pt.get("tier_color", false)) and opts.get("tier_color") is Color:
+				pt["color"] = opts["tier_color"]
+		var tg := String(ld.get("target", ""))
+		var tv: Variant = targets.get(tg)
+		var copies: Array = []
+		if tv is Array:
+			var i := 0
+			for n in (tv as Array):
+				var c: Dictionary = ld.duplicate(true)
+				c["target"] = "%s#%d" % [tg, i]
+				c["name"] = "%s#%d" % [ld["name"], i]
+				targets[c["target"]] = n
+				c["delay_ms"] = float(c.get("delay_ms", 0.0)) + float(i) * float(ld.get("stagger_ms", 0.0))
+				copies.append(c)
+				i += 1
+		else:
+			copies.append(ld)
+		for c in copies:
+			var cd: Dictionary = c
+			cd["delay_ms"] = float(cd.get("delay_ms", 0.0)) + extra
+			out.append(cd)
+			var node: Variant = targets.get(String(cd.get("target", "")))
+			if cd.has("fly") and opts.get("fly_to") is Vector2 and node is Control and is_instance_valid(node):
+				var off: Vector2 = (opts["fly_to"] as Vector2) - (node as Control).get_global_rect().get_center()
+				var ctl := _vec((cd["fly"] as Dictionary).get("control", [0, 0]))
+				var mid := off * 0.5 + ctl
+				var kfs: Array = []
+				for k in 11:
+					var u := float(k) / 10.0
+					var sp := 0.5 - 0.5 * cos(PI * u)   # SINE IN_OUT baked into the samples
+					var pos := 2.0 * (1.0 - sp) * sp * mid + sp * sp * off
+					kfs.append({"t": u, "x": pos.x, "y": pos.y})
+				var pl := cd.duplicate(true)
+				pl["name"] = String(cd["name"]) + "_path"
+				pl["kf"] = kfs
+				pl["trans"] = "LINEAR"
+				pl["reduce"] = "removed"
+				pl.erase("fly")
+				out.append(pl)
+	return out
 
 
 ## Real seconds a timeline may overrun its table length (hit-stops, slow frames) before the watchdog ends it.
@@ -747,6 +828,9 @@ static func _play_layer(run: Timeline, l: Dictionary, targets: Dictionary, host:
 	if bool(l.get("flash", false)) and MetaState.reduce_flash:
 		return
 	var delay := float(l.get("delay_ms", 0.0)) / 1000.0
+	if l.has("count"):
+		_play_count(run, l, targets, opts, red, delay)
+		return
 	if l.has("kf"):
 		var node: Variant = targets.get(String(l.get("target", "")))
 		if not (node is CanvasItem) or not is_instance_valid(node):
@@ -830,6 +914,67 @@ static func _play_layer(run: Timeline, l: Dictionary, targets: Dictionary, host:
 	tw2.tween_interval(delay)
 	tw2.tween_callback(fx)
 	_track(run, tw2)
+
+
+## "count" layer: a number tween on a Label (text = prefix + thousands-comma number + suffix) or, when opts.count_cb
+## (Callable(base_name, int)) is set, on whatever the screen draws. Numbers: opts.counts[base_name] = [from, to] (the screen
+## owns the data; the row owns the timing). Skip / watchdog write the final number. Reduce motion "cap": at most 120 ms.
+static func _play_count(run: Timeline, l: Dictionary, targets: Dictionary, opts: Dictionary, red: bool, delay: float) -> void:
+	var base := String(l.get("base", l.get("name", "")))
+	var rng: Variant = (opts.get("counts", {}) as Dictionary).get(base)
+	if not (rng is Array) or (rng as Array).size() < 2:
+		return   # the screen has no number for this row: data only
+	var from_v := int(rng[0])
+	var to_v := int(rng[1])
+	var spec: Dictionary = l["count"]
+	var prefix := String(spec.get("prefix", ""))
+	var suffix := String(spec.get("suffix", ""))
+	var thousands := bool(spec.get("thousands", true))
+	var cb: Variant = opts.get("count_cb")
+	var node: Variant = targets.get(String(l.get("target", "")))
+	var nw: WeakRef = weakref(node) if node is Node else null
+	if nw == null and not (cb is Callable):
+		return
+	var write := func(v: int) -> void:
+		if cb is Callable and (cb as Callable).is_valid():
+			(cb as Callable).call(base, v)
+			return
+		var n: Node = nw.get_ref() if nw != null else null
+		if n is Label:
+			(n as Label).text = prefix + (commas(v) if thousands else str(v)) + suffix
+	var sec := float(l.get("ms", 0.0)) / 1000.0
+	if red and String(l.get("reduce", "cap")) == "cap":
+		sec = minf(sec, REDUCED_MAX_SEC)
+	write.call(from_v)
+	run._finals.append(func() -> void: write.call(to_v))
+	var host_node: Node = nw.get_ref() if nw != null else null
+	if host_node == null:
+		var h: Variant = opts.get("host")
+		host_node = h if h is Node else null
+	if host_node == null or not host_node.is_inside_tree():
+		write.call(to_v)
+		return
+	var tw := host_node.create_tween()
+	if delay > 0.0:
+		tw.tween_interval(delay)
+	var tr_: int = _TRANS.get(String(l.get("trans", "CUBIC")), Tween.TRANS_CUBIC)
+	var ez: int = _EASE.get(String(l.get("ease", "OUT")), Tween.EASE_OUT)
+	tw.tween_method(func(k: float) -> void: write.call(int(roundf(lerpf(float(from_v), float(to_v), k)))), 0.0, 1.0, maxf(sec, 0.001)).set_trans(tr_).set_ease(ez)
+	tw.tween_callback(func() -> void: write.call(to_v))
+	_track(run, tw)
+
+
+## 1234567 -> "1,234,567".
+static func commas(n: int) -> String:
+	var s := str(absi(n))
+	var out := ""
+	var i := 0
+	for ch in s.reverse():
+		if i > 0 and i % 3 == 0:
+			out = "," + out
+		out = ch + out
+		i += 1
+	return ("-" if n < 0 else "") + out
 
 
 static func _track(run: Timeline, tw: Tween) -> void:

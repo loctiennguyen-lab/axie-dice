@@ -1,0 +1,41 @@
+with_lock: cache class_name cu, tu chay --import (toi da 240s)...
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+=== t_ui5_echo: start ===
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_files_at (core/io/dir_access.cpp:578)
+   GDScript backtrace (most recent call first):
+       [0] _acct_files (res://tests/save_guard.gd:121)
+       [1] capture (res://tests/save_guard.gd:63)
+       [2] _ready (res://tests/t_ui5_echo.gd:29)
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_directories_at (core/io/dir_access.cpp:588)
+   GDScript backtrace (most recent call first):
+       [0] _acct_files (res://tests/save_guard.gd:123)
+       [1] capture (res://tests/save_guard.gd:63)
+       [2] _ready (res://tests/t_ui5_echo.gd:29)
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_files_at (core/io/dir_access.cpp:578)
+   GDScript backtrace (most recent call first):
+       [0] _acct_files (res://tests/save_guard.gd:121)
+       [1] restore (res://tests/save_guard.gd:102)
+       [2] _ready (res://tests/t_ui5_echo.gd:34)
+       [3] _pass (res://tests/t_ui5_echo.gd:306)
+       [4] _free (res://tests/t_ui5_echo.gd:83)
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_directories_at (core/io/dir_access.cpp:588)
+   GDScript backtrace (most recent call first):
+       [0] _acct_files (res://tests/save_guard.gd:123)
+       [1] restore (res://tests/save_guard.gd:102)
+       [2] _ready (res://tests/t_ui5_echo.gd:34)
+       [3] _pass (res://tests/t_ui5_echo.gd:306)
+       [4] _free (res://tests/t_ui5_echo.gd:83)
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_directories_at (core/io/dir_access.cpp:588)
+   GDScript backtrace (most recent call first):
+       [0] _prune_empty_dirs (res://tests/save_guard.gd:130)
+       [1] restore (res://tests/save_guard.gd:115)
+       [2] _ready (res://tests/t_ui5_echo.gd:34)
+       [3] _pass (res://tests/t_ui5_echo.gd:306)
+       [4] _free (res://tests/t_ui5_echo.gd:83)
+t_ui5_echo: PASS (2064 checks)

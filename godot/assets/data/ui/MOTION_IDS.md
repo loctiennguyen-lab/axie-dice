@@ -30,11 +30,18 @@ Gate: `t_reduce_motion_rest` checks every row against the tables.
 - `boss_intro_band` (boss fight start, before Your turn; `U5BossBand`)
 - `victory`, `defeat`
 
-## 03-run-map / 47-core-offer / 48-anchor-pick / 49-anchor-awaken (run)
-- `core_reveal_moss`, `core_reveal_amber`, `core_reveal_crystal`
-- `gacha_flip`, `core_take`
-- `anchor_awaken`
-- `level_up`, `reward_take`, `treasure_open`
+## 03-run-map / 47-core-offer / 48-anchor-pick / 49-anchor-awaken (run) - UI-05 b23 lane M2
+Six timeline ids (`layers` rows from `round-2/motion-batch2.md`), played with `UI3Motion.play_timeline`:
+- `core-reveal` (47: name punch, sparks, Crystal shake; GachaReveal still owns backs / aura / flips; `RunMapOffers._play_reveal_moment`)
+- `core-taken` (47 take beat; `RunMapController._apply_and_finish`)
+- `reward-taken` (31 take beat; same hook)
+- `treasure-open` (treasure chest; `RunMapTreasure._build_treasure`)
+- `level-up` (level-up banner)
+- `anchor-awaken` (49; `AnchorFx`)
+Rows with `"flash": true` are dropped with Reduce flashing (sparks, shakes, rays, screen flash).
+Legacy (single-row ids, nobody calls them any more; kept only because tests read the table):
+`core_reveal_moss`, `core_reveal_amber`, `core_reveal_crystal`, `gacha_flip`, `core_take`, `anchor_awaken`,
+`level_up`, `reward_take`, `treasure_open`.
 
 ## 20-echo-box
 - `echo_idle`, `echo_open`, `echo_dupe`, `echo_rare`, `echo_open10`
@@ -45,6 +52,20 @@ Gate: `t_reduce_motion_rest` checks every row against the tables.
 - `land_tier_up` (01-land-hub)
 - `currency_gain` (any HUD chip)
 - `run_end_win`, `run_end_lose` (10-result)
+
+## Meta moments (UI-05 b23 lane M3, `round-3/motion-batch3.md`)
+Eleven timeline ids, played with `UI3Motion.play_timeline` (screen in brackets):
+- `land-tier-up` (Land banner: `LandHud.show_tier_banner`; the Upgrade-screen layers press / confirm_out / stone_count / stone_pulse
+  are data because the scene changes at once), `currency-gain` (data + helper; no HUD chip hook yet)
+- `run-end-win`, `run-end-lose` (`ResultView`)
+- `echo-open-normal`, `echo-open-dup`, `echo-open-rare`, `echo-open-mythic`, `open-10` (`EchoBoxCeremony`; the chest tint and
+  title swap times are read from the row)
+- `pass-level-up` (`PassView`), `daily-claim` (`DailyScreen`)
+New layer kind `count`: number tween on a Label (`prefix` + thousands comma + `suffix`). The screen passes the numbers:
+`opts.counts = {layer_name: [from, to]}` (or `opts.count_cb` Callable(layer_name, int)); the row owns ms / delay / easing.
+Rows with `"proposal": true` are PROPOSAL (rays, sparks, gold ring, Mythic hit-stop + shake, Rare+ rays/sparks): they never run
+unless `UI3Motion.proposals_enabled` is set (tests only). Reduce flashing drops rows with `"flash": true`.
+Layers with `"owner": "data"` have no node in Godot yet (XP bar, Fragment meter, Back button unlock).
 
 ## 18-system
 - `toast`, `net_notice`, `update_bar`

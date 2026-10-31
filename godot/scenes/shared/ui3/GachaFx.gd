@@ -115,6 +115,8 @@ func _pop(amount: float, sec: float) -> void:
 
 
 func _stop() -> void:
+	if _label == null:
+		return
 	_label.text = _final
 	_pop(1.3, 0.35)
 	events.append("stop")
@@ -132,7 +134,11 @@ func skip() -> void:
 	events.append("skip")
 	if _tween != null:
 		_tween.kill()
-	_label.text = _final
+	if name == "ComboBanner":   # a banner has no spin label: skipping it is the same as a click (emit + free)
+		_banner_end()
+		return
+	if _label != null:
+		_label.text = _final
 	_done()
 
 

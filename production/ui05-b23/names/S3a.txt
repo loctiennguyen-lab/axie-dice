@@ -1,0 +1,2493 @@
+# S3a: Run setup: layout chinh
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-land-screens.html
+# So frame: 35 (18 id, tinh ca ban 1920 va 1280)
+# Tien to: 06-run-setup--a5 06-run-setup--blocked 06-run-setup--closing 06-run-setup--daily 06-run-setup--full-locked 06-run-setup--guest 06-run-setup--loading 06-run-setup--newcomer 06-run-setup--offline-live 06-run-setup--offline-local 06-run-setup--open-run 06-run-setup--party-short 06-run-setup--ranked 06-run-setup--stage1 06-run-setup--stage3 06-run-setup--start-error 06-run-setup--starting components-land--setup
+# Ghi chu: Chia 06-run-setup (nua dau): layout chinh va moi state cua no (kieu run, party, start-error, starting, closing...) + components-land--setup.
+# Id frame:
+#   components-land--setup
+#   06-run-setup--stage1
+#   06-run-setup--stage1--1280
+#   06-run-setup--stage3
+#   06-run-setup--stage3--1280
+#   06-run-setup--a5
+#   06-run-setup--a5--1280
+#   06-run-setup--full-locked
+#   06-run-setup--full-locked--1280
+#   06-run-setup--newcomer
+#   06-run-setup--newcomer--1280
+#   06-run-setup--guest
+#   06-run-setup--guest--1280
+#   06-run-setup--offline-live
+#   06-run-setup--offline-live--1280
+#   06-run-setup--offline-local
+#   06-run-setup--offline-local--1280
+#   06-run-setup--party-short
+#   06-run-setup--party-short--1280
+#   06-run-setup--daily
+#   06-run-setup--daily--1280
+#   06-run-setup--ranked
+#   06-run-setup--ranked--1280
+#   06-run-setup--blocked
+#   06-run-setup--blocked--1280
+#   06-run-setup--open-run
+#   06-run-setup--open-run--1280
+#   06-run-setup--starting
+#   06-run-setup--starting--1280
+#   06-run-setup--closing
+#   06-run-setup--closing--1280
+#   06-run-setup--start-error
+#   06-run-setup--start-error--1280
+#   06-run-setup--loading
+#   06-run-setup--loading--1280
+
+=== components-land--setup (1920)
+  ComponentsSetup
+    Seat "Olek"
+    SeatMissing "Missing"
+    PlaceButton "Place"
+    AllPlacedButton "All placed"
+    ClaimButton "Claim"
+    ClaimedButton "Claimed"
+    Need20Button "Need 20"
+
+=== 06-run-setup--stage1 (1920)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 3 of 3 left"
+      RankedToggle "Ranked · Opens after 5 runs · 0 of 5"
+      ShortToggle "Short"
+      FullToggle "Full · locked"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      FullLockLine "Full is locked. Win a Short run to unlock Full."
+      AnchorLine "Anchor: locked. You pick one at the start of the run once y…"
+      DifficultyLabel "Difficulty"
+      NewcomerLine "Difficulty opens after 5 runs. You play A0 · Normal."
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [300px] "Start run"
+
+=== 06-run-setup--stage1--1280 (1280)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 3 of 3 left"
+      RankedToggle "Ranked · Opens after 5 runs · 0 of 5"
+      ShortToggle "Short"
+      FullToggle "Full · locked"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      FullLockLine "Full is locked. Win a Short run to unlock Full."
+      AnchorLine "Anchor: locked. You pick one at the start of the run once y…"
+      DifficultyLabel "Difficulty"
+      NewcomerLine "Difficulty opens after 5 runs. You play A0 · Normal."
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [200px] "Start run"
+
+=== 06-run-setup--stage3 (1920)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [300px] "Start run"
+
+=== 06-run-setup--stage3--1280 (1280)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [200px] "Start run"
+
+=== 06-run-setup--a5 (1920)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full · locked"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      FullLockLine "Full is locked. Win a Short run to unlock Full."
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A5 · Eternal Gift"
+        AscRules "5 rules active · Enemy HP ×1.10 · Damage ×1.10 · Boss HP ×1…"
+        AscRule "Elite Cores are Eternal (max 2) · weaken announced"
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A5"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [300px] "Start run"
+  Tooltip [150px,760px] "Win a run at A6 to unlock A7"
+
+=== 06-run-setup--a5--1280 (1280)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full · locked"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      FullLockLine "Full is locked. Win a Short run to unlock Full."
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A5 · Eternal Gift"
+        AscRules "5 rules active · Enemy HP ×1.10 · Damage ×1.10 · Boss HP ×1…"
+        AscRule "Elite Cores are Eternal (max 2) · weaken announced"
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A5"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [200px] "Start run"
+  Tooltip [100px,507px] "Win a run at A6 to unlock A7"
+
+=== 06-run-setup--full-locked (1920)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full · locked"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      FullLockLine "Full is locked. Win a Short run to unlock Full."
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A4 unlocks after you win A3."
+      AscDetail
+        AscTitle "A2 · Elite Escort"
+        AscRules "2 rules active · Enemy HP ×1.10 · Damage ×1.00 · Boss HP ×1…"
+        AscRule "Every elite fight brings 1 extra monster"
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A2"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [300px] "Start run"
+  Tooltip [250px,470px] "Win a Short run to unlock Full"
+
+=== 06-run-setup--full-locked--1280 (1280)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full · locked"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      FullLockLine "Full is locked. Win a Short run to unlock Full."
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A4 unlocks after you win A3."
+      AscDetail
+        AscTitle "A2 · Elite Escort"
+        AscRules "2 rules active · Enemy HP ×1.10 · Damage ×1.00 · Boss HP ×1…"
+        AscRule "Every elite fight brings 1 extra monster"
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A2"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [200px] "Start run"
+  Tooltip [167px,313px] "Win a Short run to unlock Full"
+
+=== 06-run-setup--newcomer (1920)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · Opens after 5 runs · 2 of 5"
+      ShortToggle "Short"
+      FullToggle "Full · locked"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      FullLockLine "Full is locked. Win a Short run to unlock Full."
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      NewcomerLine "Difficulty opens after 5 runs. You play A0 · Normal."
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [300px] "Start run"
+
+=== 06-run-setup--newcomer--1280 (1280)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · Opens after 5 runs · 2 of 5"
+      ShortToggle "Short"
+      FullToggle "Full · locked"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      FullLockLine "Full is locked. Win a Short run to unlock Full."
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      NewcomerLine "Difficulty opens after 5 runs. You play A0 · Normal."
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [200px] "Start run"
+
+=== 06-run-setup--guest (1920)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · Sign in to play Daily"
+      RankedToggle "Ranked · Sign in to play Ranked"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      Banner
+        ToneDisc "i"
+        Title "Sign in to play"
+        Body "Runs are played on the server, so they need an account."
+        SignInButton "Sign in"
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0"
+    BlockReason "Sign in to play"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [300px] "Sign in to play"
+
+=== 06-run-setup--guest--1280 (1280)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · Sign in to play Daily"
+      RankedToggle "Ranked · Sign in to play Ranked"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      Banner
+        ToneDisc "i"
+        Title "Sign in to play"
+        Body "Runs are played on the server, so they need an account."
+        SignInButton "Sign in"
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0"
+    BlockReason "Sign in to play"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [200px] "Sign in to play"
+
+=== 06-run-setup--offline-live (1920)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · Needs a connection"
+      RankedToggle "Ranked · Needs a connection"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      Banner
+        ToneDisc "!"
+        Title "Can't reach the server"
+        Body "Last updated 14:05. Runs are played on the server in this b…"
+        TryAgainButton "Try again"
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0"
+    BlockReason "Needs a connection to the server"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [300px] "Start run"
+
+=== 06-run-setup--offline-live--1280 (1280)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · Needs a connection"
+      RankedToggle "Ranked · Needs a connection"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      Banner
+        ToneDisc "!"
+        Title "Can't reach the server"
+        Body "Last updated 14:05. Runs are played on the server in this b…"
+        TryAgainButton "Try again"
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0"
+    BlockReason "Needs a connection to the server"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [200px] "Start run"
+
+=== 06-run-setup--offline-local (1920)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · Needs a connection"
+      RankedToggle "Ranked · Needs a connection"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      Banner
+        ToneDisc "!"
+        Title "You're offline"
+        Body "Runs play on this device for now; progress syncs when you r…"
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [300px] "Start run"
+
+=== 06-run-setup--offline-local--1280 (1280)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · Needs a connection"
+      RankedToggle "Ranked · Needs a connection"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      Banner
+        ToneDisc "!"
+        Title "You're offline"
+        Body "Runs play on this device for now; progress syncs when you r…"
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [200px] "Start run"
+
+=== 06-run-setup--party-short (1920)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      PartyHeader "Party · 3 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlotEmpty "+ Add Axie"
+        PartySlotEmpty "+ Add Axie"
+  Actions
+    FooterLine "Party 3 of 5 · Short · A0"
+    BlockReason "Pick 2 more Axies to begin"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [300px] "Start run · 3 of 5"
+
+=== 06-run-setup--party-short--1280 (1280)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      PartyHeader "Party · 3 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlotEmpty "+ Add Axie"
+        PartySlotEmpty "+ Add Axie"
+  Actions
+    FooterLine "Party 3 of 5 · Short · A0"
+    BlockReason "Pick 2 more Axies to begin"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [200px] "Start run · 3 of 5"
+
+=== 06-run-setup--daily (1920)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: only in Normal runs."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0 · Daily"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [300px] "Start run"
+
+=== 06-run-setup--daily--1280 (1280)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: only in Normal runs."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0 · Daily"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [200px] "Start run"
+
+=== 06-run-setup--ranked (1920)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: only in Normal runs."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [300px] "Start run"
+
+=== 06-run-setup--ranked--1280 (1280)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: only in Normal runs."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [200px] "Start run"
+
+=== 06-run-setup--blocked (1920)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · No tries left today"
+      RankedToggle "Ranked · Imported Axies can't play Ranked"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Vault"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [300px] "Start run"
+
+=== 06-run-setup--blocked--1280 (1280)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · No tries left today"
+      RankedToggle "Ranked · Imported Axies can't play Ranked"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Vault"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [200px] "Start run"
+
+=== 06-run-setup--open-run (1920)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    OpenRunArea
+      OpenRunCard
+        Title "You have an unfinished run"
+        SubLine "Saved run on disk"
+        ContinueButton
+          KeyCap "Space"
+        NewRunButton "New run"
+        Note "A new run ends the current run. Aid you used is not refunde…"
+
+=== 06-run-setup--open-run--1280 (1280)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    OpenRunArea
+      OpenRunCard
+        Title "You have an unfinished run"
+        SubLine "Saved run on disk"
+        ContinueButton
+          KeyCap "Space"
+        NewRunButton "New run"
+        Note "A new run ends the current run. Aid you used is not refunde…"
+
+=== 06-run-setup--starting (1920)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [300px] "Starting…"
+
+=== 06-run-setup--starting--1280 (1280)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [200px] "Starting…"
+
+=== 06-run-setup--closing (1920)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0"
+    BlockReason "This can take a few seconds. Please wait."
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [300px] "Closing your old run…"
+
+=== 06-run-setup--closing--1280 (1280)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0"
+    BlockReason "This can take a few seconds. Please wait."
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [200px] "Closing your old run…"
+
+=== 06-run-setup--start-error (1920)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · No tries left today"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: only in Normal runs."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      Banner
+        ToneDisc "!"
+        Title "No Daily tries left today"
+        Body "Daily resets at 00:00 UTC. Nothing was spent."
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0 · Daily"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [300px] "Start run"
+
+=== 06-run-setup--start-error--1280 (1280)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · No tries left today"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: only in Normal runs."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      Banner
+        ToneDisc "!"
+        Title "No Daily tries left today"
+        Body "Daily resets at 00:00 UTC. Nothing was spent."
+      PartyHeader "Party · 5 of 5"
+      PartyRow
+        PartySlot
+          Portrait
+          Name "Olek"
+          ClassLine "Plant · Starter"
+          HpLine "Max HP 17"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Buba"
+          ClassLine "Beast · Starter"
+          HpLine "Max HP 12"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Puffy"
+          ClassLine "Aqua · Starter"
+          HpLine "Max HP 13"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Machito"
+          ClassLine "Reptile · Starter"
+          HpLine "Max HP 16"
+          SwapButton "Swap"
+          ClearButton "Clear"
+        PartySlot
+          Portrait
+          Name "Pomodoro"
+          ClassLine "Bug · Starter"
+          HpLine "Max HP 14"
+          SwapButton "Swap"
+          ClearButton "Clear"
+  Actions
+    FooterLine "Party 5 of 5 · Short · A0 · Daily"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [200px] "Start run"
+
+=== 06-run-setup--loading (1920)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+  Actions
+    FooterLine "Loading…"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [300px] "Loading…"
+
+=== 06-run-setup--loading--1280 (1280)
+  # godot: RunSetup. Left: SetupColumn (Mode, Length, Anchor line, Difficulty). Right: Party. Bottom-right: Actions. Keys B / S / Esc still work, not printed.
+  Body [var(--space-screen)]
+    SetupColumn
+      BackButton "← Back"
+      Title "Run setup"
+      ModeLabel "Mode"
+      NormalToggle "Normal · free choice"
+      DailyToggle "Daily · 2 of 3 left"
+      RankedToggle "Ranked · leaderboard"
+      ShortToggle "Short"
+      FullToggle "Full"
+      LengthDetail "Short · 18 rows · 3 bosses"
+      AnchorLine "Anchor: unlocked. You pick one at the start of the run."
+      DifficultyLabel "Difficulty"
+      AscGrid
+        AscChipA0 "A0"
+        AscChipA1 "A1"
+        AscChipA2 "A2"
+        AscChipA3 "A3"
+        AscChipA4 "A4"
+        AscChipA5 "A5"
+        AscChipA6 "A6"
+        AscChipA7 "A7"
+        AscChipA8 "A8"
+        AscChipA9 "A9"
+        AscChipA10 "A10"
+      UnlockLine "A7 unlocks after you win A6."
+      AscDetail
+        AscTitle "A0 · Normal"
+        AscRules "No extra rules"
+        AscRule "Light boss clock from turn 14"
+    PartyArea
+      PartyHeader "Party · 5 of 5"
+  Actions
+    FooterLine "Loading…"
+    LeaderboardButton "Leaderboard"
+    SavePresetButton "Save preset"
+    TeamPresetsButton "Team presets"
+    StartButton [200px] "Loading…"

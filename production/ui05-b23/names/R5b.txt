@@ -1,0 +1,161 @@
+# R5b: Event + Treasure
+# Nguon HTML: design/handoffs/ui-05-figma/round-2/ui05-run-screens.html
+# So frame: 8 (4 id, tinh ca ban 1920 va 1280)
+# Tien to: event-- 13-treasure
+# Id frame:
+#   13-treasure--closed
+#   13-treasure--closed--1280
+#   13-treasure--opened
+#   13-treasure--opened--1280
+#   event--choices
+#   event--choices--1280
+#   event--outcome
+#   event--outcome--1280
+
+=== 13-treasure--closed (1920)
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  Treasure
+    # godot: node_treasure.png at 384 today. A 3D chest is not built (see Art requests).
+    Chest
+    Title "A sealed Gene vault"
+    ShardPill "40"
+    OpenButton
+      KeyCap "Space"
+
+=== 13-treasure--closed--1280 (1280)
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  Treasure
+    # godot: node_treasure.png at 384 today. A 3D chest is not built (see Art requests).
+    Chest
+    Title "A sealed Gene vault"
+    ShardPill "40"
+    OpenButton
+      KeyCap "Space"
+
+=== 13-treasure--opened (1920)
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  TreasureReward
+    # godot: nothing preselected (same as the offers). Take is disabled with the reason as its label ("Pick a reward", the game's treasure node string) until a card is picked, then reads "Take and continue".
+    Title "Choose one"
+    ShardPill "40"
+    CardRow
+      RewardCard
+        Category "Max HP"
+        RarityChip "Common"
+        RewardArt
+        RewardName "Gene Vitality"
+        RewardBody "Machito: +7 Max HP"
+      RewardCard
+        Category "Reroll"
+        RarityChip "Uncommon"
+        RewardArt
+        RewardName "Reroll +1"
+        RewardBody "+1 maximum Reroll Lasts the whole run"
+      RewardCard
+        Category "Tier Up"
+        RarityChip "Rare"
+        RewardArt
+        RewardName "Level Up"
+        RewardBody "Olek: Tier 1 to Tier 2 Rewrites all six faces and Max HP"
+    Footer
+      TakeButton "Pick a reward"
+
+=== 13-treasure--opened--1280 (1280)
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  TreasureReward
+    # godot: nothing preselected (same as the offers). Take is disabled with the reason as its label ("Pick a reward", the game's treasure node string) until a card is picked, then reads "Take and continue".
+    Title "Choose one"
+    ShardPill "40"
+    CardRow
+      RewardCard
+        Category "Max HP"
+        RarityChip "Common"
+        RewardArt
+        RewardName "Gene Vitality"
+        RewardBody "Machito: +7 Max HP"
+      RewardCard
+        Category "Reroll"
+        RarityChip "Uncommon"
+        RewardArt
+        RewardName "Reroll +1"
+        RewardBody "+1 maximum Reroll Lasts the whole run"
+      RewardCard
+        Category "Tier Up"
+        RarityChip "Rare"
+        RewardArt
+        RewardName "Level Up"
+        RewardBody "Olek: Tier 1 to Tier 2 Rewrites all six faces and Max HP"
+    Footer
+      TakeButton "Pick a reward"
+
+=== event--choices (1920)
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  EventScreen
+    # godot: EventArt 720×720. Today only node_event.png; an illustration per event is an art request.
+    EventArt
+    EventColumn
+      EventTitle "LUNACIA SHRINE"
+      EventRow "Event · Row 3"
+      EventBody "An ancient altar. Power always has a price."
+      Choices
+        ChoiceRow "Accept the blessing Permanently gain 1 maximum Reroll"
+        ChoiceRow "Make the wager The whole party loses 20% Max HP. Receive a …"
+        ChoiceRow "Pray Heal to full and give one Axie 8 Max HP"
+      ChooseButton
+        KeyCap "Space"
+
+=== event--choices--1280 (1280)
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  EventScreen
+    # godot: EventArt 720×720. Today only node_event.png; an illustration per event is an art request.
+    EventArt
+    EventColumn
+      EventTitle "LUNACIA SHRINE"
+      EventRow "Event · Row 3"
+      EventBody "An ancient altar. Power always has a price."
+      Choices
+        ChoiceRow "Accept the blessing Permanently gain 1 maximum Reroll"
+        ChoiceRow "Make the wager The whole party loses 20% Max HP. Receive a …"
+        ChoiceRow "Pray Heal to full and give one Axie 8 Max HP"
+      ChooseButton
+        KeyCap "Space"
+
+=== event--outcome (1920)
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  EventScreen
+    # godot: EventArt 720×720. Today only node_event.png; an illustration per event is an art request.
+    EventArt
+    EventColumn
+      EventTitle "LUNACIA SHRINE"
+      EventRow "Event · Row 3"
+      OutcomeText "Olek gains 8 Max HP."
+      Choices
+        ChoiceRow "Accept the blessing Permanently gain 1 maximum Reroll"
+        ChoiceRow "Make the wager The whole party loses 20% Max HP. Receive a …"
+        ChoiceRow "Pray Heal to full and give one Axie 8 Max HP"
+      ContinueButton
+        KeyCap "Space"
+
+=== event--outcome--1280 (1280)
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  EventScreen
+    # godot: EventArt 720×720. Today only node_event.png; an illustration per event is an art request.
+    EventArt
+    EventColumn
+      EventTitle "LUNACIA SHRINE"
+      EventRow "Event · Row 3"
+      OutcomeText "Olek gains 8 Max HP."
+      Choices
+        ChoiceRow "Accept the blessing Permanently gain 1 maximum Reroll"
+        ChoiceRow "Make the wager The whole party loses 20% Max HP. Receive a …"
+        ChoiceRow "Pray Heal to full and give one Axie 8 Max HP"
+      ContinueButton
+        KeyCap "Space"

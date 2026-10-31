@@ -8,6 +8,7 @@ extends Control
 ## with no preset it is the starter trio. Nothing is stored in MetaState: the Worker holds the defence.
 ## Points: win 3, loss 1; at most 5 raids a day count (3 per ghost). More fights are allowed, they just don't score.
 
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 const STARTER := ["plant1", "beast1", "aqua1"]
 const BADGE_AT := [10, 30, 75, 150, 300]
 
@@ -32,10 +33,13 @@ var _points_lbl: Label
 var _team_btn: Button
 var _def_btn: Button
 var _info: Label
+var _info_line: HBoxContainer
+var _info_tone := &"info"
 var _view: Node = null
 var _challenge: Dictionary = {}
 var _busy := false
 var _req := 0
+var _focus_fight := -1
 
 
 func _ready() -> void:
@@ -45,6 +49,7 @@ func _ready() -> void:
 		offline = st == AccountService.Status.OFFLINE
 	_build()
 	reload()
+	_ensure_focus()
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
@@ -81,6 +86,8 @@ func team_name() -> String:
 
 
 func cycle_team() -> void:
+	if _busy:
+		return
 	var n := (MetaState.team_presets as Array).size()
 	if n > 1:
 		team_index = (team_index + 1) % n
@@ -127,13 +134,16 @@ func save_defense() -> void:
 		return
 	var team := RaidGhost.snapshot_team(current_party())
 	if team.is_empty():
-		_set_info("That team has no usable Axie.")
+		_set_info("That team has no usable Axie.", &"error")
 		return
 	_busy = true
 	_redraw()
 	client.save_defense(team, {}, RaidGhost.power_hint(team), func(ok: bool, d: Dictionary) -> void:
 		_busy = false
-		_set_info("Defence team set: %s." % team_name() if ok else _error_text(String(d.get("code", "server"))))
+		if ok:
+			_set_info("Defence team set: %s." % team_name(), &"ok")
+		else:
+			_set_info(_error_text(String(d.get("code", "server"))), &"error")
 		_redraw())
 
 
@@ -146,11 +156,11 @@ func challenge(i: int) -> void:
 	client.start(String((opponents[i] as Dictionary).get("ghost_id", "")), func(ok: bool, d: Dictionary) -> void:
 		_busy = false
 		if not ok:
-			_set_info(_error_text(String(d.get("code", "server"))))
+			_set_info(_error_text(String(d.get("code", "server"))), &"error")
 			_redraw()
 			return
 		if not RaidGhost.is_valid_team(d.get("team")):
-			_set_info("That ghost can't be fought right now.")
+			_set_info("That ghost can't be fought right now.", &"error")
 			_redraw()
 			return
 		_challenge = d
@@ -249,106 +259,149 @@ func next_badge_text() -> String:
 	return "All Raid badges earned"
 
 
-func _set_info(t: String) -> void:
-	if _info != null:
-		_info.text = t
+func _set_info(t: String, tone := &"info") -> void:
+	_info_tone = tone
+	if _info_line != null:
+		Ui5RaidParts.set_info(_info_line, t, tone)
 
 
 func _show_result() -> void:
-	_set_info(result_text())
+	var r := last_result
+	var tone := &"info"
+	if not bool(r.get("ok", false)):
+		tone = &"error"
+	elif bool(r.get("won", false)) and bool(r.get("counted", false)):
+		tone = &"ok"
+	_set_info(result_text(), tone)
 
 
 # ------------------------------------------------------------ UI
+## Frames r01-r10 (ui05-meta1-screens.html): Header (shell) / Body { TopPlate { PointsLine, RuleLine, InfoLine,
+## TeamButton, DefenceButton }, GhostList { GhostRow { FightButton } | EmptyState | FailedState { ToneDisc, RetryButton } } }.
 
 func _build() -> void:
 	_shell = UI3Meta.build(self, "Raid", "Fight another player's defence team", _on_back)
+	(_shell["panel"] as Control).name = "PlateHost"   # t_ui_laws L0
+	(_shell["back"] as Control).name = "BackButton"
+	(_shell["sub"] as Control).name = "SubLine"
 	var col: VBoxContainer = _shell["col"]
-	var top := UI3.plate(&"plate")
-	var tv := VBoxContainer.new()
-	tv.add_theme_constant_override("separation", UI3Theme.space("8"))
-	top.add_child(tv)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", UI3Theme.space("16"))
-	tv.add_child(row)
-	_points_lbl = UI3.label("", "LabelTitle")
-	_points_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(_points_lbl)
-	_team_btn = UI3.button("", &"secondary", &"M")
+	var body := VBoxContainer.new()
+	body.name = "Body"
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", UI3Theme.space("16"))
+	col.add_child(body)
+	var tp := Ui5RaidParts.top_plate()
+	body.add_child(tp["plate"])
+	var txt: VBoxContainer = tp["txt"]
+	_points_lbl = Ui5RaidParts.wrap_label("PointsLine", "", "text_title", "text", true)
+	txt.add_child(_points_lbl)
+	txt.add_child(Ui5RaidParts.wrap_label("RuleLine", "Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You can always fight more, they just don't score. Nobody loses anything.", "text_body", "text_muted"))
+	_info_line = Ui5RaidParts.info_line()
+	_info = _info_line.get_node("InfoText")
+	txt.add_child(_info_line)
+	var row: HBoxContainer = tp["row"]
+	_team_btn = PanelParts.button("", &"secondary", &"M")
 	_team_btn.name = "TeamButton"
+	_team_btn.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	_team_btn.pressed.connect(cycle_team)
 	row.add_child(_team_btn)
-	_def_btn = UI3.button("Set as defence team", &"primary", &"M")
-	_def_btn.name = "DefenseButton"
+	_def_btn = PanelParts.button("Set as defence team", &"primary", &"L")
+	_def_btn.name = "DefenceButton"
+	_def_btn.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	_def_btn.pressed.connect(save_defense)
 	row.add_child(_def_btn)
-	var rule := UI3.label("Win 3 points, loss 1. 5 raids a day score, 3 per ghost. You can always fight more, they just don't score. Nobody loses anything.", "LabelMuted")
-	rule.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	tv.add_child(rule)
-	_info = UI3.label("", "LabelMuted")
-	_info.name = "Info"
-	_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	tv.add_child(_info)
-	col.add_child(top)
+	_def_btn.custom_minimum_size.x = _defence_min_w()
 	_list = VBoxContainer.new()
-	_list.name = "Ghosts"
+	_list.name = "GhostList"
 	_list.add_theme_constant_override("separation", UI3Theme.space("8"))
-	col.add_child(UI3Meta.scroll(_list))
+	body.add_child(UI3Meta.scroll(_list))
+
+
+## The Defence button keeps one width for its three labels, so the text column does not jump when it goes blocked.
+func _defence_min_w() -> float:
+	var f: Font = _def_btn.get_theme_font("font")
+	var fs: int = _def_btn.get_theme_font_size("font_size")
+	var w := 0.0
+	for t in ["Set as defence team", "Sign in to raid", "Raids need a connection"]:
+		w = maxf(w, f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x)
+	return w + UI3Theme.space("32") * 2 + 8.0
 
 
 func _redraw() -> void:
 	if _list == null:
 		return
+	var fo := get_viewport().gui_get_focus_owner() if is_inside_tree() else null
+	_focus_fight = int(fo.get_meta("ghost_idx", -1)) if fo != null and _list.is_ancestor_of(fo) else -1
 	UI3Meta.clear(_list)
 	_points_lbl.text = "Raid points %d · %s" % [points, next_badge_text()]
-	_team_btn.text = "Team: %s" % team_name()
+	var team_full := "Team: %s" % team_name()
+	var tf: Font = _team_btn.get_theme_font("font")
+	var tfs: int = _team_btn.get_theme_font_size("font_size")
+	_team_btn.text = Ui5Ellipsis.fit(team_full, tf, tfs, UI3Theme.size_of("tooltip_w") - UI3Theme.space("24") * 2 - 8.0)
+	_team_btn.tooltip_text = team_full if _team_btn.text != team_full else ""
 	var presets_n := (MetaState.team_presets as Array).size()
-	_team_btn.disabled = presets_n < 2 or _busy
+	_team_btn.disabled = presets_n < 2   # busy is guarded in cycle_team: a disabled button would drop the keyboard focus
 	var why := block_reason()
 	if why != "":
-		UI3.set_disabled_reason(_def_btn, why)
+		Ui5DisabledReason.apply(_def_btn, why)
 	else:
-		UI3.clear_disabled_reason(_def_btn)
-		_def_btn.disabled = _busy
+		Ui5DisabledReason.clear(_def_btn)
+		_def_btn.disabled = false   # busy is guarded in save_defense: a disabled button would drop the keyboard focus
 	match status:
 		"loading":
-			_list.add_child(UI3.skeleton_row())
-			_list.add_child(UI3.skeleton_row())
+			for _i in 2:
+				var sk := UI3.skeleton_row(UI3Theme.size_of("raid_row_h"))
+				sk.name = "Skeleton"
+				_list.add_child(sk, true)
 		"empty":
-			_list.add_child(UI3.label("No ghosts yet. Set your own defence team, others will find it.", "LabelMuted"))
+			_list.add_child(Ui5RaidParts.center_block("EmptyState", "No ghosts yet. Set your own defence team, others will find it.")["block"])
 		"failed":
 			var t := "Sign in to raid." if fail_code == "guest" else _error_text(fail_code)
-			_list.add_child(UI3.label(t, "LabelMuted"))
-			if fail_code != "guest" and fail_code != "offline":
-				var rb := UI3.button("Retry", &"secondary", &"M")
-				rb.name = "Retry"
+			var can_retry := fail_code != "guest" and fail_code != "offline"
+			var cb := Ui5RaidParts.center_block("FailedState", t, &"error" if can_retry else &"info", true)
+			if can_retry:
+				var rb := PanelParts.button("Retry", &"secondary", &"M")
+				rb.name = "RetryButton"
+				rb.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 				rb.pressed.connect(reload)
-				_list.add_child(rb)
+				(cb["col"] as Control).add_child(rb)
+			_list.add_child(cb["block"])
 		_:
 			for i in opponents.size():
-				_list.add_child(_ghost_row(i))
+				_list.add_child(_ghost_row(i), true)
+	if is_inside_tree() and _view == null:
+		var back := _list.find_children("FightButton", "Button", true, false)
+		if _focus_fight >= 0 and _focus_fight < back.size():
+			(back[_focus_fight] as Button).grab_focus()   # the list was rebuilt under the player's focus: give it back
+		else:
+			_ensure_focus.call_deferred()
 
 
 func _ghost_row(i: int) -> Control:
 	var o: Dictionary = opponents[i]
-	var p := UI3.plate(&"row")
-	p.name = "Ghost%d" % i
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", UI3Theme.space("16"))
-	p.add_child(h)
 	var names: Array = []
 	for u in (o.get("team", []) as Array):
 		var key := String((u as Dictionary).get("key", ""))
 		names.append(String((ContentDB.heroes.get(key, {}) as Dictionary).get("n", key.capitalize())))
-	var l := UI3.label("%s · power %d" % [String(o.get("name", "Player")), int(o.get("power_hint", 0))], "LabelTitle")
-	l.custom_minimum_size.x = 320
-	h.add_child(l)
-	var tl := UI3.label(", ".join(names), "LabelMuted")
-	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	h.add_child(tl)
-	var b := UI3.button("Fight", &"secondary", &"S")
-	b.name = "Fight%d" % i
-	b.disabled = _busy
+	var parts := Ui5RaidParts.ghost_row("%s · power %d" % [String(o.get("name", "Player")), int(o.get("power_hint", 0))], ", ".join(names))
+	var b: Button = parts["fight"]
+	b.set_meta("ghost_idx", i)
 	b.pressed.connect(challenge.bind(i))
-	h.add_child(b)
-	return p
+	return parts["row"]
+
+
+## Keeps a keyboard focus on the screen: the primary Defence button when it can act, else Retry, else Back.
+## Never moves focus off a control the player is on, and does nothing while the combat view is open.
+func _ensure_focus() -> void:
+	if not is_inside_tree() or _view != null:
+		return
+	var cur := get_viewport().gui_get_focus_owner()
+	if cur != null and is_ancestor_of(cur) and cur.is_visible_in_tree() and not (cur is BaseButton and (cur as BaseButton).disabled):
+		return
+	var target: Control = _def_btn
+	if _def_btn.disabled:
+		target = find_child("RetryButton", true, false) as Control
+		if target == null:
+			target = find_child("BackButton", true, false) as Control
+	if target != null:
+		target.grab_focus()

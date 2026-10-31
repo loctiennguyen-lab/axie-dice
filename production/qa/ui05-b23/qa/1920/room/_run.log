@@ -1,0 +1,42 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Metal 4.0 - Forward+ - Using Device #0: Apple - Apple M3 Pro (Apple9)
+
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_files_at (core/io/dir_access.cpp:578)
+   GDScript backtrace (most recent call first):
+       [0] _acct_files (res://tests/save_guard.gd:121)
+       [1] capture (res://tests/save_guard.gd:63)
+       [2] _ready (res://tests/qa_ui5_room_capture.gd:17)
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_directories_at (core/io/dir_access.cpp:588)
+   GDScript backtrace (most recent call first):
+       [0] _acct_files (res://tests/save_guard.gd:123)
+       [1] capture (res://tests/save_guard.gd:63)
+       [2] _ready (res://tests/qa_ui5_room_capture.gd:17)
+qa_ui5_room_capture: saved /Users/loc.tien.nguyen/my-game-wt/u5b-qa/production/qa/ui05-b23/qa/1920/room/47-core-offer--make-room.png
+qa_ui5_room_capture: saved /Users/loc.tien.nguyen/my-game-wt/u5b-qa/production/qa/ui05-b23/qa/1920/room/47-core-offer--combo-banner.png
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_files_at (core/io/dir_access.cpp:578)
+   GDScript backtrace (most recent call first):
+       [0] _acct_files (res://tests/save_guard.gd:121)
+       [1] restore (res://tests/save_guard.gd:102)
+       [2] _ready (res://tests/qa_ui5_room_capture.gd:52)
+       [3] _shot (res://tests/qa_ui5_room_capture.gd:13)
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_directories_at (core/io/dir_access.cpp:588)
+   GDScript backtrace (most recent call first):
+       [0] _acct_files (res://tests/save_guard.gd:123)
+       [1] restore (res://tests/save_guard.gd:102)
+       [2] _ready (res://tests/qa_ui5_room_capture.gd:52)
+       [3] _shot (res://tests/qa_ui5_room_capture.gd:13)
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_directories_at (core/io/dir_access.cpp:588)
+   GDScript backtrace (most recent call first):
+       [0] _prune_empty_dirs (res://tests/save_guard.gd:130)
+       [1] restore (res://tests/save_guard.gd:115)
+       [2] _ready (res://tests/qa_ui5_room_capture.gd:52)
+       [3] _shot (res://tests/qa_ui5_room_capture.gd:13)
+WARNING: 14 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 1 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

@@ -279,11 +279,11 @@
     },
     "rarity_mythic": {
       "value": "#b04dff",
-      "meaning": "Terrariums rarity-mystic · Mythic fills, borders, die band. Not for text (4.1:1)"
+      "meaning": "UI-05 B3 NEW · Mythic fill (see part c)"
     },
     "rarity_mythic_text": {
       "value": "#cf9eff",
-      "meaning": "purple-8 · Mythic tier word, 7.68:1 on plate"
+      "meaning": "UI-05 B3 NEW · Mythic words"
     },
     "annot": {
       "value": "#00b8ff",
@@ -343,35 +343,35 @@
     },
     "anchor_price": {
       "value": "#ffb444",
-      "meaning": "Anchor MVP · the PRICE line on an Anchor card (amber, warning, not danger red). Always starts with a minus sign"
+      "meaning": "UI-05 B2 · from tokens_ui3: Price line on Anchor and Run Rule cards"
     },
     "house_volley": {
       "value": "#7f9cff",
-      "meaning": "Anchor MVP · House Volley (periwinkle). Always paired with the house glyph + name; ring/chip/frame only"
+      "meaning": "UI-05 B2 · from tokens_ui3, unchanged"
     },
     "house_gambler": {
       "value": "#ff8cc8",
-      "meaning": "Anchor MVP · House Gambler (pink). Always paired with glyph + name"
+      "meaning": "UI-05 B2 · from tokens_ui3"
     },
     "house_mana_mine": {
       "value": "#9be8c8",
-      "meaning": "Anchor MVP · House Mana Mine (pale mint, light and low-saturation so it is not rarity_rare). Always paired with glyph + name"
+      "meaning": "UI-05 B2 · from tokens_ui3"
     },
     "house_kin": {
       "value": "#a9c4a0",
-      "meaning": "Anchor MVP · House Kin (sage). Always paired with glyph + name"
+      "meaning": "UI-05 B2 · from tokens_ui3"
     },
     "house_embers": {
       "value": "#ff8a6b",
-      "meaning": "Anchor MVP · House Embers (coral, not red: red = danger only). Always paired with glyph + name"
+      "meaning": "UI-05 B2 · from tokens_ui3"
     },
     "house_big_hand": {
       "value": "#c8a27a",
-      "meaning": "Anchor MVP · House Big Hand (tan). Always paired with glyph + name"
+      "meaning": "UI-05 B2 · from tokens_ui3"
     },
     "anchor_awake": {
       "value": "#ffd21f",
-      "meaning": "Anchor MVP · awakened state: double frame, chip, ui_awaken glyph, AWAKEN chip border. Lemon-gold, more saturated and yellower than rarity_legendary/accent (#ffb444) and egg/cream. Never alone: always with the double frame or the glyph ui_awaken + the word Awakened"
+      "meaning": "UI-05 B2 · from tokens_ui3: awakened double frame, chip, AWAKEN chip"
     },
     "leader": {
       "value": "#ffd21f",
@@ -398,40 +398,40 @@
       "meaning": "UI-05 style A · the brief's btn_secondary_pressed lip colour"
     },
     "tier_moss": {
-      "value": "#7ade61",
-      "meaning": "UI-04 NEW · green-7 · Core tier Moss. Always with 1 cur_fragment pip + the word"
+      "value": "#2dc661",
+      "meaning": "UI-05 B2 CHANGED · = rarity_rare (game-data-batch2 §2 wins over UI-04 #7ade61). Card frame, chip edge, tier word"
     },
     "tier_moss_bg": {
-      "value": "#093322",
-      "meaning": "UI-04 NEW · green-2 · Moss tier band on Core cards"
+      "value": "#0c3a1e",
+      "meaning": "UI-05 B2 CHANGED · Moss chip fill"
     },
     "tier_amber": {
-      "value": "#ffc85f",
-      "meaning": "UI-04 NEW · kam-7 · Core tier Amber. Always with 2 pips + the word"
+      "value": "#ffb444",
+      "meaning": "UI-05 B2 CHANGED · = rarity_legendary"
     },
     "tier_amber_bg": {
-      "value": "#482613",
-      "meaning": "UI-04 NEW · kam-2 · Amber tier band"
+      "value": "#4a2c0c",
+      "meaning": "UI-05 B2 CHANGED · Amber chip fill"
     },
     "tier_crystal": {
-      "value": "#c6eefd",
-      "meaning": "UI-04 NEW · blue-9 · Core tier Crystal. Always with 3 pips + the word"
+      "value": "#27c0ca",
+      "meaning": "UI-05 B2 CHANGED · = rarity_epic"
     },
     "tier_crystal_bg": {
-      "value": "#042055",
-      "meaning": "UI-04 NEW · blue-2 · Crystal tier band"
+      "value": "#0a3337",
+      "meaning": "UI-05 B2 CHANGED · Crystal chip fill (teal, was blue-2)"
     },
     "category_chip": {
       "value": "#8e97a8",
       "meaning": "UI-04 NEW · neutral-7 · square (radius 4) Core category chip border; text neutral-9. No arrow glyph"
     },
     "run_rule_bg": {
-      "value": "#282c34",
-      "meaning": "UI-04 NEW · neutral-3 · Run rule chip fill (square, never a Core shape)"
+      "value": "#2b1a10",
+      "meaning": "UI-05 B2 CHANGED · = chip (was neutral-3 #282c34, read cold on walnut)"
     },
     "run_rule_border": {
-      "value": "#737d8f",
-      "meaning": "UI-04 NEW · neutral-6 · Run rule chip border"
+      "value": "#8e97a8",
+      "meaning": "UI-05 B2 CHANGED · neutral-7, square edge: the rule slot never looks like a Core"
     },
     "tag_elite_bg": {
       "value": "#4b2a6e",
@@ -636,6 +636,146 @@
     "class_bird": {
       "value": "#ff78b4",
       "meaning": "UI-05 · class colour measured on the portrait (design/art/palette-measured.md). CombatView and t_ui_laws read this."
+    },
+    "tier_moss_halo": {
+      "value": "#2dc66159",
+      "meaning": "UI-05 B2 NEW · face-down halo ring 35% (the one translucent layer of a card back)"
+    },
+    "tier_amber_halo": {
+      "value": "#ffb44459",
+      "meaning": "UI-05 B2 NEW · face-down halo ring 35%"
+    },
+    "tier_crystal_halo": {
+      "value": "#27c0ca66",
+      "meaning": "UI-05 B2 NEW · face-down halo ring 40%"
+    },
+    "combo_pair": {
+      "value": "#ffb07a",
+      "meaning": "UI-05 B2 NEW · PAIR tag fill (light orange), text_ink"
+    },
+    "combo_full": {
+      "value": "#ffd21f",
+      "meaning": "UI-05 B2 NEW · FULL tag fill (gold) + 3 px ink frame"
+    },
+    "node_fog": {
+      "value": "#2b1a10",
+      "meaning": "UI-05 B2 NEW · fog token fill (= chip)"
+    },
+    "node_fog_rim": {
+      "value": "#6e3f22",
+      "meaning": "UI-05 B2 NEW · fog token edge"
+    },
+    "node_boss_border": {
+      "value": "#f54540",
+      "meaning": "UI-05 B2 NEW · = hp_enemy, 4 px on the boss token"
+    },
+    "map_edge": {
+      "value": "#fff3d6",
+      "meaning": "UI-05 B2 NEW · dashed route line (with a 2 px plate_ink drop under it)"
+    },
+    "map_edge_passed": {
+      "value": "#ffb444",
+      "meaning": "UI-05 B2 NEW · solid line on the path already walked"
+    },
+    "path_on": {
+      "value": "#7ade61",
+      "meaning": "UI-05 B2 NEW · = success_text, \"On your path\""
+    },
+    "danger_rim": {
+      "value": "#ff4a43",
+      "meaning": "UI-05 B2 NEW · bevel on the danger button (Abandon run)"
+    },
+    "danger_lip": {
+      "value": "#4a1015",
+      "meaning": "UI-05 B2 NEW · lip under the danger button"
+    },
+    "toggle_on": {
+      "value": "#7ade61",
+      "meaning": "UI-05 B2 NEW · switch track On"
+    },
+    "proposal": {
+      "value": "#00b8ff",
+      "meaning": "UI-05 B2 NEW · = annot. Dashed outline + PROPOSAL tag on anything that is not in the game yet. Design note only"
+    },
+    "land_savannah": {
+      "value": "#c9a54a",
+      "meaning": "UI-05 B3 NEW · Land tier swatch (placeholder until tier art exists). Always with the tier name"
+    },
+    "land_forest": {
+      "value": "#5e9a48",
+      "meaning": "UI-05 B3 NEW · Land tier swatch"
+    },
+    "land_arctic": {
+      "value": "#9cc7d9",
+      "meaning": "UI-05 B3 NEW · Land tier swatch"
+    },
+    "land_mystic": {
+      "value": "#7d55b3",
+      "meaning": "UI-05 B3 NEW · Land tier swatch"
+    },
+    "land_genesis": {
+      "value": "#b07a42",
+      "meaning": "UI-05 B3 NEW · Land tier swatch"
+    },
+    "land_luna": {
+      "value": "#ddd5ec",
+      "meaning": "UI-05 B3 NEW · Land tier swatch"
+    },
+    "toast_ok": {
+      "value": "#7ade61",
+      "meaning": "UI-05 B3 NEW · = success_text. Toast tick disc (with ui_check, never colour alone)"
+    },
+    "toast_error": {
+      "value": "#ff8986",
+      "meaning": "UI-05 B3 NEW · = danger_text. Toast \"!\" disc"
+    },
+    "notice_warn": {
+      "value": "#ff9345",
+      "meaning": "UI-05 B3 NEW · = attrition. Offline / warning banner edge + \"!\" disc"
+    },
+    "skeleton": {
+      "value": "#4f3121",
+      "meaning": "UI-05 B3 NEW · = plate_raised. Loading skeleton bar"
+    },
+    "skeleton_hi": {
+      "value": "#6e3f22",
+      "meaning": "UI-05 B3 NEW · = plate_rim. Skeleton shimmer band (moves 1.2 s loop)"
+    },
+    "avatar_guest": {
+      "value": "#3c424d",
+      "meaning": "UI-05 B3 NEW · = disabled. Guest avatar fill, \"?\""
+    },
+    "seat_missing_bg": {
+      "value": "#4a1015",
+      "meaning": "UI-05 B3 NEW · = danger_bg. Preset seat whose Vault Axie left (with the word \"Missing\")"
+    },
+    "seat_missing_border": {
+      "value": "#ff8986",
+      "meaning": "UI-05 B3 NEW · = danger_text"
+    },
+    "field_bg": {
+      "value": "#1a0f09",
+      "meaning": "UI-05 B3 NEW · = plate_ink. Text field fill"
+    },
+    "coach_ring": {
+      "value": "#ffe5b4",
+      "meaning": "UI-05 B3 NEW · = selected. Spotlight ring on the coached control"
+    },
+    "warn_text": {
+      "value": "#ff9345",
+      "meaning": "UI-05 B3 NEW · = attrition. Mission warning line, always after a \"!\" disc"
+    },
+    "rank_full_frame": {
+      "value": "#ffd21f",
+      "meaning": "UI-05 B3 NEW · = combo_full. Gold frame on a Full combo row (Result)"
+    },
+    "reveal_glow": {
+      "value": "#27c0ca66",
+      "meaning": "UI-05 B3 NEW · Epic+ soft glow (40 px, tier colour at 40%) as in the game"
+    },
+    "checkbox_on": {
+      "value": "#ff8986",
+      "meaning": "UI-05 B3 NEW · = danger_text. Ticked \"Yes, I want to abandon\" box (with a tick glyph)"
     }
   },
   "contrast": [
@@ -876,42 +1016,42 @@
     {
       "text": "tier_moss",
       "background": "tier_moss_bg",
-      "ratio": 8.25,
+      "ratio": 5.71,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "tier_amber",
       "background": "tier_amber_bg",
-      "ratio": 8.76,
+      "ratio": 7.16,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "tier_crystal",
       "background": "tier_crystal_bg",
-      "ratio": 12.7,
+      "ratio": 6.15,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "tier_moss",
       "background": "plate",
-      "ratio": 8.59,
+      "ratio": 6.46,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "tier_amber",
       "background": "plate",
-      "ratio": 9.43,
+      "ratio": 8.18,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "tier_crystal",
       "background": "plate",
-      "ratio": 11.76,
+      "ratio": 6.54,
       "pass": "AA body",
       "ui04": true
     },
@@ -974,7 +1114,7 @@
     {
       "text": "tier_amber",
       "background": "update_bar_bg",
-      "ratio": 8.76,
+      "ratio": 7.59,
       "pass": "AA body",
       "ui04": true
     },
@@ -1002,7 +1142,7 @@
     {
       "text": "text_on_viewport",
       "background": "run_rule_bg",
-      "ratio": 12.69,
+      "ratio": 15.14,
       "pass": "AA body",
       "ui04": true
     },
@@ -1118,8 +1258,8 @@
       "price": 96,
       "awakens": 176
     },
-    "mission_row_h": 128,
-    "mission_detail_w": 480,
+    "mission_row_h": 96,
+    "mission_detail_w": 420,
     "pass_level_card_h": 220,
     "pass_track_per_page": 8,
     "netnotice_h": 80,
@@ -1159,7 +1299,122 @@
     "banner_h": 112,
     "d_reward_icon": 112,
     "d_take_min_w": 240,
-    "d_reward_top": 80
+    "d_reward_top": 80,
+    "r3_fx_tile": 260,
+    "r3_fx_glyph": 110,
+    "r3_fx_text_w": 720,
+    "r3_fx_mark": 56,
+    "r3_fx_frame": 6,
+    "map_token": 72,
+    "map_token_boss": 90,
+    "map_glyph": 44,
+    "map_glyph_boss": 56,
+    "map_caption_w": 136,
+    "node_badge": 32,
+    "party_plate_w": 340,
+    "cores_plate_w": 420,
+    "core_slot": 44,
+    "core_slot_map": 40,
+    "anchor_tile": 56,
+    "owned_row_h": 36,
+    "node_detail_w": 420,
+    "node_icon": 64,
+    "offer_top": 72,
+    "core_card_w": 400,
+    "core_card_h": 660,
+    "core_art_h": 160,
+    "core_glyph": 96,
+    "tag_h": 32,
+    "rule_card_w": 520,
+    "rule_card_h": 600,
+    "anchor_card_w": 480,
+    "anchor_card_h": 656,
+    "house_disc": 72,
+    "glossary_w": 1504,
+    "chest": 384,
+    "event_art": 720,
+    "event_glyph": 384,
+    "event_col_w": 720,
+    "choice_h": 96,
+    "choice_icon": 48,
+    "shop_card_w": 300,
+    "shop_card_h": 452,
+    "shop_art_h": 96,
+    "sell_w": 400,
+    "menu_w": 420,
+    "menu_side_w": 560,
+    "menu_row_h": 64,
+    "room_panel_w": 760,
+    "combo_band_h": 300,
+    "avatar": 48,
+    "profile_plate_w": 340,
+    "toast_max_w": 860,
+    "toast_dot": 28,
+    "offline_banner_w": 600,
+    "offline_banner_top": 24,
+    "toast_under_banner": 140,
+    "coach_w": 640,
+    "coach_arrow_w": 32,
+    "coach_arrow_h": 20,
+    "tooltip_w": 400,
+    "edit_panel_w": 480,
+    "edit_row_h": 88,
+    "upgrade_detail_w": 440,
+    "tier_row_h": 112,
+    "land_swatch_w": 96,
+    "land_swatch_h": 64,
+    "upgrade_art_h": 300,
+    "setup_col_w": 432,
+    "portrait": 168,
+    "asc_chip": 56,
+    "picker_w": 1120,
+    "picker_tile": 168,
+    "modal_s_w": 640,
+    "seat": 104,
+    "curtain_body_w": 560,
+    "step_card_w": 640,
+    "starter_card_w": 560,
+    "skeleton_h": 56,
+    "lb_row_h": 48,
+    "field_h": 56,
+    "result_plate_w": 640,
+    "lb_detail_w": 440,
+    "lb_row_l_h": 56,
+    "raid_row_h": 56,
+    "account_w": 640,
+    "welcome_w": 760,
+    "xp_disc": 40,
+    "ticket_bar_h": 80,
+    "echo_stage_chest": 320,
+    "echo_side_w": 440,
+    "reveal_card_w": 480,
+    "reveal_card_h": 660,
+    "reveal_art": 416,
+    "grid_card_w": 300,
+    "grid_card_h": 380,
+    "grid_art": 260,
+    "pass_tile_h": 132,
+    "pass_detail_w": 440,
+    "daily_card_w": 416,
+    "store_tile_w": 240,
+    "store_tile_h": 336,
+    "store_detail_w": 440,
+    "cos_art": 160,
+    "profile_detail_w": 440,
+    "avatar_l": 128,
+    "stat_tile_h": 112,
+    "run_row_h": 48,
+    "cos_tile_h": 220,
+    "preview_w": 392,
+    "title_tile_h": 160,
+    "codex_topics_w": 440,
+    "codex_text_w": 920,
+    "codex_tile_h": 96,
+    "settings_index_w": 260,
+    "settings_col_w": 960,
+    "settings_row_h": 72,
+    "key_btn_w": 220,
+    "netnotice_w": 560
   },
   "radius": {
     "s": 8,
@@ -1293,6 +1548,21 @@
       "blur": 0,
       "color": "#1a0f09",
       "note": "UI-05 b1 lane A · README style A: the StatusChip and the WaitingPill keep a 3 px plate_ink lip (the HTML writes 0 3px 0 inline)"
+    },
+    "card_halo": {
+      "x": 0,
+      "y": 0,
+      "blur": 0,
+      "spread": 12,
+      "color": "tier_*_halo",
+      "note": "UI-05 B2 NEW · face-down card halo ring (spread 12, then the lip under it)"
+    },
+    "crystal_prism": {
+      "x": 0,
+      "y": 0,
+      "blur": 0,
+      "spread": "4 plate + 2 tier_crystal",
+      "note": "UI-05 B2 NEW · Crystal card second ring. Godot: outer PanelContainer with border 2 tier_crystal and content margin 4"
     }
   },
   "motion": {
@@ -1647,11 +1917,231 @@
     }
   },
   "_size_1280_overrides": {
-    "note": "Liam 28/10: 14 px text floor at 1280. These sizes are not 0.667 × the 1920 value at 1280 (Godot: theme override by resolution).",
+    "note": "Liam 28/10: 14 px text floor at 1280. These sizes are set in px at 1280, not 0.667 × the 1920 value (Godot: theme override by resolution). Batch 1 keys first, then UI-05 B2 keys. Then UI-05 B3 keys (_b3_keys).",
     "die-card-w": 116,
     "dice-dock-w": 612,
     "aid-w": 228,
-    "min_text": 14
+    "min_text": 14,
+    "core-card-h": 456,
+    "rule-card-w": 400,
+    "rule-card-h": 460,
+    "anchor-card-w": 400,
+    "anchor-card-h": 468,
+    "offer-top": 28,
+    "glossary-w": 1182,
+    "_b2_keys": [
+      "core-card-h",
+      "rule-card-w",
+      "rule-card-h",
+      "anchor-card-w",
+      "anchor-card-h",
+      "offer-top",
+      "glossary-w"
+    ],
+    "setup-col-w": 360,
+    "offline-banner-top": 112,
+    "toast-under-banner": 192,
+    "_b3_keys": [
+      "setup-col-w",
+      "offline-banner-top",
+      "toast-under-banner",
+      "result-plate-w",
+      "mission-detail-w",
+      "lb-detail-w",
+      "echo-side-w",
+      "pass-detail-w",
+      "store-detail-w",
+      "grid-card-h",
+      "profile-detail-w",
+      "preview-w",
+      "codex-topics-w",
+      "settings-index-w",
+      "key-btn-w"
+    ],
+    "result-plate-w": 520,
+    "mission-detail-w": 340,
+    "lb-detail-w": 340,
+    "echo-side-w": 340,
+    "pass-detail-w": 340,
+    "store-detail-w": 340,
+    "grid-card-h": 300,
+    "profile-detail-w": 320,
+    "preview-w": 300,
+    "codex-topics-w": 320,
+    "settings-index-w": 200,
+    "key-btn-w": 160
   },
-  "_text_sizes": "UI-05: 16 / 18 / 24 / 32 / 36, + 28 num_die, 20 num_die_egg, + text_hero 56 (new, banners, boss name, big damage numbers; bigger moments scale 56 by 1.3 in a tween, no 72 size). At 1280 no text is below 14 px (theme override by resolution)."
+  "_text_sizes": "UI-05: 16 / 18 / 24 / 32 / 36, + 28 num_die, 20 num_die_egg, + text_hero 56 (new, banners, boss name, big damage numbers; bigger moments scale 56 by 1.3 in a tween, no 72 size). At 1280 no text is below 14 px (theme override by resolution).",
+  "_changed_b2": [
+    "color.tier_moss",
+    "color.tier_moss_bg",
+    "color.tier_amber",
+    "color.tier_amber_bg",
+    "color.tier_crystal",
+    "color.tier_crystal_bg",
+    "color.tier_moss_halo",
+    "color.tier_amber_halo",
+    "color.tier_crystal_halo",
+    "color.house_volley",
+    "color.house_gambler",
+    "color.house_mana_mine",
+    "color.house_kin",
+    "color.house_embers",
+    "color.house_big_hand",
+    "color.anchor_awake",
+    "color.anchor_price",
+    "color.run_rule_bg",
+    "color.run_rule_border",
+    "color.combo_pair",
+    "color.combo_full",
+    "color.node_fog",
+    "color.node_fog_rim",
+    "color.node_boss_border",
+    "color.map_edge",
+    "color.map_edge_passed",
+    "color.path_on",
+    "color.danger_rim",
+    "color.danger_lip",
+    "color.toggle_on",
+    "color.proposal",
+    "size.map_token",
+    "size.map_token_boss",
+    "size.map_glyph",
+    "size.map_glyph_boss",
+    "size.map_caption_w",
+    "size.node_badge",
+    "size.party_plate_w",
+    "size.cores_plate_w",
+    "size.core_slot",
+    "size.core_slot_map",
+    "size.anchor_tile",
+    "size.owned_row_h",
+    "size.node_detail_w",
+    "size.node_icon",
+    "size.offer_top",
+    "size.core_card_w",
+    "size.core_card_h",
+    "size.core_art_h",
+    "size.core_glyph",
+    "size.tag_h",
+    "size.rule_card_w",
+    "size.rule_card_h",
+    "size.anchor_card_w",
+    "size.anchor_card_h",
+    "size.house_disc",
+    "size.glossary_w",
+    "size.chest",
+    "size.event_art",
+    "size.event_glyph",
+    "size.event_col_w",
+    "size.choice_h",
+    "size.choice_icon",
+    "size.shop_card_w",
+    "size.shop_card_h",
+    "size.shop_art_h",
+    "size.sell_w",
+    "size.menu_w",
+    "size.menu_side_w",
+    "size.menu_row_h",
+    "size.room_panel_w",
+    "size.combo_band_h",
+    "shadow.card_halo",
+    "shadow.crystal_prism"
+  ],
+  "_changed_b3": [
+    "color.land_savannah",
+    "color.land_forest",
+    "color.land_arctic",
+    "color.land_mystic",
+    "color.land_genesis",
+    "color.land_luna",
+    "color.toast_ok",
+    "color.toast_error",
+    "color.notice_warn",
+    "color.skeleton",
+    "color.skeleton_hi",
+    "color.avatar_guest",
+    "color.seat_missing_bg",
+    "color.seat_missing_border",
+    "color.field_bg",
+    "color.coach_ring",
+    "size.avatar",
+    "size.profile_plate_w",
+    "size.toast_max_w",
+    "size.toast_dot",
+    "size.offline_banner_w",
+    "size.offline_banner_top",
+    "size.toast_under_banner",
+    "size.coach_w",
+    "size.coach_arrow_w",
+    "size.coach_arrow_h",
+    "size.tooltip_w",
+    "size.edit_panel_w",
+    "size.edit_row_h",
+    "size.upgrade_detail_w",
+    "size.tier_row_h",
+    "size.land_swatch_w",
+    "size.land_swatch_h",
+    "size.upgrade_art_h",
+    "size.setup_col_w",
+    "size.portrait",
+    "size.asc_chip",
+    "size.picker_w",
+    "size.picker_tile",
+    "size.modal_s_w",
+    "size.seat",
+    "size.curtain_body_w",
+    "size.step_card_w",
+    "size.starter_card_w",
+    "size.skeleton_h",
+    "size.lb_row_h",
+    "size.field_h",
+    "color.warn_text",
+    "color.rank_full_frame",
+    "size.mission_row_h",
+    "size.mission_detail_w",
+    "size.result_plate_w",
+    "size.lb_detail_w",
+    "size.lb_row_l_h",
+    "size.raid_row_h",
+    "size.account_w",
+    "size.welcome_w",
+    "size.xp_disc",
+    "color.rarity_mythic",
+    "color.rarity_mythic_text",
+    "color.reveal_glow",
+    "size.ticket_bar_h",
+    "size.echo_stage_chest",
+    "size.echo_side_w",
+    "size.reveal_card_w",
+    "size.reveal_card_h",
+    "size.reveal_art",
+    "size.grid_card_w",
+    "size.grid_card_h",
+    "size.grid_art",
+    "size.pass_tile_h",
+    "size.pass_detail_w",
+    "size.daily_card_w",
+    "size.store_tile_w",
+    "size.store_tile_h",
+    "size.store_detail_w",
+    "size.cos_art",
+    "color.checkbox_on",
+    "size.profile_detail_w",
+    "size.avatar_l",
+    "size.stat_tile_h",
+    "size.run_row_h",
+    "size.cos_tile_h",
+    "size.preview_w",
+    "size.title_tile_h",
+    "size.codex_topics_w",
+    "size.codex_text_w",
+    "size.codex_tile_h",
+    "size.settings_index_w",
+    "size.settings_col_w",
+    "size.settings_row_h",
+    "size.key_btn_w",
+    "size.netnotice_w",
+    "size.update_bar_h"
+  ]
 }

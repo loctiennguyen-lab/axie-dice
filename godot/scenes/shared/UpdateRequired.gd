@@ -6,6 +6,8 @@ extends RefCounted
 ## One entry point for every place that calls a run: NetNotice (in-run and Continue), RunSetup (Begin),
 ## MissionsScreen (stake). `UpdateRequired.show(host)` builds a UI3 modal on its own CanvasLayer.
 
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
+
 ## Fixed download page for the desktop build. Change the address HERE only (production/beta-plan.md section 5:
 ## the link stays the same from build to build; the real place is decided with Liam).
 const DOWNLOAD_URL := "https://axiedice.fun/download"
@@ -58,13 +60,49 @@ static func show(host: Node, code := "version", on_close: Callable = Callable())
 	layer.name = NODE_NAME
 	layer.layer = 120   # above NetNotice (100) and the run HUD layers
 	var t := texts_for(code)
-	var close := UI3.button("Close", &"secondary", &"M")
+	# UI-05 18-update: Scrim + dialog (Title, Body, Footer in 2 rows: UpdateButton full width with the Space keycap, Close under it).
+	var root := UI3.ModalRoot.new()
+	root.name = "Modal"
+	root.theme = UI3Theme.get_theme()
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_STOP
+	root.add_to_group("ui3_modal")
+	root.add_child(NetParts.scrim())
+	var center := CenterContainer.new()
+	center.name = "Center"
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(center)
+	var pad := UI3Theme.space("32")
+	var dlg := PanelParts.panel(PanelParts.plate_box("xl", pad), "UpdateRequiredMissions" if code == "mission_needs_update" else NODE_NAME)
+	dlg.custom_minimum_size.x = UI3Theme.size_of("defeat_panel_w")
+	center.add_child(dlg)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", UI3Theme.space("20"))
+	dlg.add_child(col)
+	var head := VBoxContainer.new()
+	head.name = "Head"
+	head.add_theme_constant_override("separation", UI3Theme.space("12"))
+	col.add_child(head)
+	var ttl := Ui5Text.label(String(t[0]), "text_banner", "text", true)
+	ttl.name = "Title"
+	ttl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	head.add_child(ttl)
+	var body := Ui5Text.label(String(t[1]), "text_body", "text")
+	body.name = "Body"
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	head.add_child(body)
+	var close := PanelParts.button("Close", &"secondary", &"M")
 	close.name = "CloseButton"
-	var dl := UI3.button("Reload the page" if is_web() else "Download the new version", &"primary", &"M")
-	dl.name = "DownloadButton"
-	var m := UI3.modal(String(t[0]), String(t[1]), [close, dl], 1)
-	layer.add_child(m)
+	var dl := PanelParts.button("Reload the page" if is_web() else "Download the new version", &"primary", &"M")
+	dl.name = "UpdateButton"
+	col.add_child(Ui5ModalFooter.make(dl, close, true))
+	root.actions = [close, dl]
+	root.focus_index = 1   # the primary: Space presses it
+	layer.add_child(root)
 	dl.pressed.connect(open_download)
+	var m := root
 	var dismiss := func() -> void:
 		var tree := host.get_tree()
 		if is_instance_valid(layer):
@@ -75,6 +113,7 @@ static func show(host: Node, code := "version", on_close: Callable = Callable())
 	close.pressed.connect(dismiss)
 	m.cancelled.connect(dismiss)
 	host.add_child(layer)
+	NetParts.place_space_cap(dl)   # Space presses the focused primary
 	return layer
 
 
@@ -93,23 +132,26 @@ static func show_bar(tree: SceneTree) -> Node:
 	layer.name = BAR_NAME
 	layer.layer = 110
 	var top := CenterContainer.new()
+	top.name = "Top"
 	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	top.offset_top = 0   # top edge: the bottom holds the dice tray and run controls
+	top.offset_top = UI3Theme.space("screen")
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(top)
-	var panel := UI3.plate(&"notice")
-	panel.name = "Panel"
+	# 18-update--bar: pill plate with a warn rim, [ToneDisc, message, UpdateButton]; stays after Close on every screen.
+	var panel := PanelParts.panel(NetParts.hud_box("pill", UI3Theme.space("4"), UI3Theme.space("16"), UI3Theme.space("8"), true, UI3Theme.space("4") + int(PanelParts.lip(Color.BLACK).y)), "UpdateBar")
+	panel.custom_minimum_size.y = UI3Theme.size_of("update_bar_h")
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE   # only the button takes clicks
 	top.add_child(panel)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
-	panel.add_child(row)
+	row.add_theme_constant_override("separation", UI3Theme.space("12"))
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var msg := UI3.label("Update required. New runs are blocked on this version.")
-	msg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(row)
+	row.add_child(Ui5ToneDisc.make(&"warn"))
+	var msg := Ui5Text.label("Update required. New runs are blocked on this version.", "text_body", "text")
+	msg.name = "Message"
 	row.add_child(msg)
 	var b := UI3.button("Reload the page" if is_web() else "Download", &"secondary", &"S")
-	b.name = "BarButton"
+	b.name = "UpdateButton"
 	b.pressed.connect(open_download)
 	row.add_child(b)
 	tree.root.add_child(layer)

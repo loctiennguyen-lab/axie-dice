@@ -1,3 +1,4 @@
+class_name RunMapController
 extends Node2D
 ## RunMap.tscn root, plus the four node screens the map opens.
 ##
@@ -75,6 +76,13 @@ const _DOUBLE_PRESS_MS := 400
 ## Tests: stop _on_node_pressed before it asks RunState to enter the node.
 var no_travel := false
 signal travel_requested(node_id: String)
+var _offers: RunMapOffers = RunMapOffers.new(self)
+var _hud: RunMapHud = RunMapHud.new(self)
+var _combo: ComboBanner = ComboBanner.new(self)
+var _swap: RunMapSlotSwap = RunMapSlotSwap.new(self)
+var _shop: RunMapShop = RunMapShop.new(self)
+var _event: RunMapEvent = RunMapEvent.new(self)
+var _treasure: RunMapTreasure = RunMapTreasure.new(self)
 var _travel_btn: Button = null
 
 
@@ -417,10 +425,6 @@ const _RULE_PRICE := {
 	"rule_quick_beat": "Boss Strike turns hit 20% harder", "rule_crow": "An Axie falling drops that pick one tier"}
 const _RULE_TINTS := ["house_volley", "house_gambler", "house_mana_mine", "house_kin", "house_embers", "house_big_hand"]
 
-
-## A tint per rule (stable from its key) so two Run rule cards never look identical.
-static func rule_tint(key: String) -> Color:
-	return UI3Theme.color(_RULE_TINTS[absi(key.hash()) % _RULE_TINTS.size()])
 
 
 func _is_core_card(r: Dictionary) -> bool:
@@ -769,255 +773,29 @@ func _on_save_and_quit_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/main_menu/MainMenu.tscn")
 
 
+## -> RunMapHud._rebuild_left
 func _rebuild_left() -> void:
-	for c in _left_root.get_children():
-		_left_root.remove_child(c)
-		c.queue_free()
-
-	# TopLeft: header + party.
-	var top := UI3.plate(&"plate")
-	top.name = "PartyPlate"
-	top.custom_minimum_size.x = _PLATE_LEFT_W
-	top.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	top.offset_left = _SCREEN_MARGIN
-	top.offset_top = _SCREEN_MARGIN
-	_left_root.add_child(top)
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 12)
-	top.add_child(col)
-
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 12)
-	col.add_child(head)
-	var menu_btn := UI3.icon_button("ui_menu", tr("Menu"))
-	menu_btn.name = "RunMenuButton"
-	menu_btn.pressed.connect(open_run_menu)
-	head.add_child(menu_btn)
-	var titles := VBoxContainer.new()
-	titles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	titles.add_theme_constant_override("separation", 0)
-	head.add_child(titles)
-	var total_rows := _graph.rows.size() if _graph != null else 0
-	# S4-4: floor numbers match the side card (node.row, 1-based); before the first node it says Start, not "Floor 0".
-	var cur_row := _current_row()
-	titles.add_child(UI3.label(tr("Floor %d of %d") % [cur_row, total_rows] if cur_row > 0 else tr("Start · %d floors") % total_rows, "LabelTitle"))
-	titles.add_child(UI3.label(tr("Ascension %d · Shards %d") % [RunState.ascension, RunState.shards_this_run]))
-
-	for entry in RunState.roster:
-		col.add_child(_build_party_row(entry))
-
-	# BottomLeft: relics.
-	var bottom := UI3.plate(&"plate")
-	bottom.name = "RelicPlate"
-	bottom.custom_minimum_size.x = _PLATE_LEFT_W
-	bottom.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	bottom.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	bottom.offset_left = _SCREEN_MARGIN
-	bottom.offset_bottom = -_SCREEN_MARGIN
-	_left_root.add_child(bottom)
-	var rcol := VBoxContainer.new()
-	rcol.add_theme_constant_override("separation", 8)
-	bottom.add_child(rcol)
-	# S3-10: count only the Cores in the Core slots (Anchor and Run rule are shown beside them, not in the count).
-	var n_cores := RelicSlots.owned_cores(RunState.owned_relic_ids).size()
-	rcol.add_child(UI3.label(tr("Cores · %d") % n_cores, "LabelTitle"))
-	var core_panel := CorePanel.new()
-	core_panel.slot_px = 40
-	_core_panel = core_panel
-	rcol.add_child(core_panel)
-	core_panel.visible = core_panel.refresh()
-	if RunState.run_rule != "":
-		var rr = RelicRegistry.get_def(RunState.run_rule)
-		if rr != null:
-			var rl := UI3.label(tr("Run rule: %s") % String(rr.name), "LabelMuted")
-			rl.name = "RunRuleLine"
-			rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			rcol.add_child(rl)
-	var scroll := ScrollContainer.new()
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.get_v_scroll_bar().custom_minimum_size.x = UI3Theme.SCROLL_W
-	var list := VBoxContainer.new()
-	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	list.add_theme_constant_override("separation", 8)
-	scroll.add_child(list)
-	for relic_id in RunState.owned_relic_ids:
-		list.add_child(_build_relic_row(relic_id))
-	var list_h := float(RunState.owned_relic_ids.size()) * (_RELIC_ROW_H + 8.0)
-	scroll.custom_minimum_size.y = minf(list_h, 5.0 * (_RELIC_ROW_H + 8.0))
-	scroll.visible = not RunState.owned_relic_ids.is_empty()
-	rcol.add_child(scroll)
+	_hud._rebuild_left()
 
 
+## -> RunMapHud._build_party_row
 func _build_party_row(entry: Dictionary) -> Control:
-	var hero_key := String(entry.get("hero_key", ""))
-	var hero_def: Dictionary = ContentDB.heroes.get(hero_key, {})
-	var base_hp: int = int(entry.get("max_hp", 0))
-	if base_hp <= 0:
-		base_hp = int(hero_def.get("max_hp", 10))
-	var max_hp: int = base_hp + int(entry.get("bonus_hp", 0))   # full rest between nodes
-
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 4)
-	var line := HBoxContainer.new()
-	box.add_child(line)
-	var name_lbl := UI3.label(String(hero_def.get("n", hero_key)))
-	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_lbl.clip_text = true
-	line.add_child(name_lbl)
-	line.add_child(UI3.label("%d" % max_hp, "LabelTitle"))
-	box.add_child(UI3.hp_bar(max_hp, max_hp, 0, 0, &"axie"))
-	return box
+	return _hud._build_party_row(entry)
 
 
+## -> RunMapHud._build_relic_row
 func _build_relic_row(relic_id: String) -> Control:
-	var def = RelicRegistry.get_def(relic_id)
-	var rarity := int(def.rarity) if def != null else 0
-	var relic_name := String(def.name) if def != null else relic_id
-	var row := UI3.plate(&"row")
-	row.custom_minimum_size.y = _RELIC_ROW_H
-	var line := HBoxContainer.new()
-	line.add_theme_constant_override("separation", 8)
-	row.add_child(line)
-	var name_lbl := UI3.label(relic_name)
-	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_lbl.clip_text = true
-	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	line.add_child(name_lbl)
-	var is_core: bool = RelicSlots.is_core(def)
-	var rar_lbl := UI3.label(tr(CorePanel.TIER_NAME[clampi(rarity, 0, 2)]) if is_core and String(def.core_axis) != "run_rule" \
-		else (tr("Run rule") if is_core else _rarity_name(rarity)))
-	rar_lbl.add_theme_color_override("font_color", UI3Theme.color(CorePanel.TIER_TOKEN[clampi(rarity, 0, 2)]) if is_core else _rarity_color(rarity))
-	line.add_child(rar_lbl)
-	return row
+	return _hud._build_relic_row(relic_id)
 
 
+## -> RunMapHud._node_info
 func _node_info(node: RunMapNode) -> Dictionary:
-	match node.node_type:
-		"battle":
-			return {"desc": tr("A fight against a squad of enemies."), "win": [tr("Choose 1 of 3 rewards")]}
-		"elite":
-			return {"desc": tr("A tougher fight against stronger enemies."), "win": [tr("Choose 1 of 3 rewards")]}
-		"event":
-			return {"desc": tr("Something happens on the road. You choose how it ends."), "win": [tr("Depends on your choice")]}
-		"shop":
-			return {"desc": tr("A merchant sells Cores for Shards."), "win": [tr("Spend your Shards")]}
-		"treasure":
-			return {"desc": tr("A sealed vault with a better than usual reward."), "win": [tr("Pick a reward")]}
-		"boss":
-			return {"desc": tr("The guardian of this stretch of the road."),
-				"win": [tr("Clears the run") if _is_final_boss(node) else tr("Choose 1 of 3 rewards")]}
-	return {"desc": "", "win": []}
+	return _hud._node_info(node)
 
 
+## -> RunMapHud._rebuild_detail
 func _rebuild_detail() -> void:
-	for c in _detail_root.get_children():
-		_detail_root.remove_child(c)
-		c.queue_free()
-	_travel_btn = null
-	var node: RunMapNode = null
-	if _graph != null and _selected_id != "":
-		node = _graph.find_node(_selected_id)
-	if node == null:
-		return
-	var reachable := _reachable_now_ids().has(node.id)
-
-	var plate := UI3.plate(&"plate")
-	plate.name = "DetailPlate"
-	plate.custom_minimum_size.x = _PLATE_RIGHT_W
-	plate.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	plate.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	plate.offset_right = -_SCREEN_MARGIN
-	plate.offset_top = _SCREEN_MARGIN
-	_detail_root.add_child(plate)
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 16)
-	plate.add_child(col)
-
-	var info := _node_info(node)
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 16)
-	col.add_child(head)
-	var icon := TextureRect.new()
-	icon.texture = UI3.icon("node_%s" % node.node_type)
-	icon.custom_minimum_size = Vector2(64, 64)
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	head.add_child(icon)
-	var title := UI3.label(_boss_name(node) if node.node_type == "boss" else _type_name(node.node_type), "LabelScreenTitle")
-	title.name = "DetailTitle"
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.clip_text = true
-	head.add_child(title)
-
-	var desc := UI3.label(String(info["desc"]))
-	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.custom_minimum_size.x = 368
-	col.add_child(desc)
-
-	col.add_child(UI3.label(tr("If you win"), "LabelMuted"))
-	for line in info["win"]:
-		var row := UI3.plate(&"row")
-		row.add_child(UI3.label(String(line)))
-		col.add_child(row)
-
-	if node.reward_kind != "":
-		var rrow := UI3.plate(&"row")
-		rrow.name = "RewardKindRow"
-		var rh := HBoxContainer.new()
-		rh.add_theme_constant_override("separation", 8)
-		var ri := TextureRect.new()
-		ri.texture = UI3.icon(String(_NODE_REWARD_ICON.get(node.reward_kind, "cur_shard")))
-		ri.custom_minimum_size = Vector2(24, 24)
-		ri.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		ri.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		rh.add_child(ri)
-		rh.add_child(UI3.label(tr("Reward card: %s") % tr(String(_NODE_REWARD_NAME.get(node.reward_kind, "")))))
-		rrow.add_child(rh)
-		col.add_child(rrow)
-	for aid in [node.affix, node.affix2]:
-		if String(aid) == "":
-			continue
-		var arow := UI3.plate(&"row")
-		arow.name = "AffixRow"
-		var al := UI3.label("%s: %s" % [_affix_name(String(aid)), CombatView.affix_tip(String(aid))])
-		al.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		al.custom_minimum_size.x = 340
-		arow.add_child(al)
-		col.add_child(arow)
-
-	var note: Label
-	if node.visited or node.id == RunState.current_node_id:
-		note = UI3.label(tr("Already passed"), "LabelMuted")
-	elif reachable:
-		note = UI3.label(tr("On your path"), "LabelMuted")
-	else:
-		note = UI3.label(tr("Not on your path"))
-		note.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
-	note.name = "PathNote"
-	col.add_child(note)
-	if reachable and _graph != null and not _graph.boss_rows.is_empty():
-		var boss_row := int(_graph.boss_rows[_graph.boss_rows.size() - 1])
-		var path_note := UI3.label(tr("Floor %d of %d · %d floors to the boss") % [node.row, _graph.rows.size(), maxi(boss_row - node.row, 0)], "LabelMuted")
-		path_note.name = "PathRoute"
-		path_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		path_note.custom_minimum_size.x = 368
-		col.add_child(path_note)
-
-	var is_boss := node.node_type == "boss"
-	_travel_btn = UI3.button(tr("Face the Boss") if is_boss else tr("Travel"), &"primary", &"L")
-	_travel_btn.name = "TravelButton"
-	if reachable:
-		_travel_btn.pressed.connect(_on_node_pressed.bind(node.id))
-	else:
-		UI3.set_disabled_reason(_travel_btn, tr("Already passed") if (node.visited or node.id == RunState.current_node_id) else tr("Not on your path"))
-	col.add_child(_travel_btn)
-	if reachable:
-		# Focus order: reachable nodes -> Travel -> relics.
-		for id in _reachable_now_ids():
-			var entry: Dictionary = _node_visuals.get(id, {})
-			var b: Button = entry.get("root")
-			if b != null:
-				b.focus_neighbor_right = b.get_path_to(_travel_btn)
+	_hud._rebuild_detail()
 
 
 func _spacer(h: float) -> Control:
@@ -1204,56 +982,19 @@ func _tex_icon(tex: Texture2D, px: float) -> TextureRect:
 # REWARD
 # ---------------------------------------------------------------------------------------
 
-## Shown once, right after a won combat, before the player can interact with the map at all
-## (RunState.pending_rewards was populated by apply_combat_result() before CombatView even
-## changed scene to this one). If pending_rewards is somehow empty on arrival (e.g. an empty
-## roster edge case - RewardGenerator's own "hp" fallback fill can only return {} then), the
-## map still has to advance exactly once: after_node() is now ONLY ever called from
-## _on_reward_chosen(), so nothing else would ever call it for this node.
+## -> RunMapOffers._maybe_show_pending_reward
 func _maybe_show_pending_reward() -> void:
-	var afx := _play_awaken()   # awakened by something other than a Core pick: plays on this map beat
-	if afx != null:
-		if afx.running:
-			afx.finished.connect(_maybe_show_pending_reward, CONNECT_ONE_SHOT)
-			return
-	if RunState.phase == RunState.RunPhase.PACT:
-		_show_pact_overlay()
-		return
-	if RunState.pending_rewards.is_empty() and AnchorAdapter.offer_open():
-		_show_anchor_overlay()
-		return
-	if RunState.pending_rewards.is_empty():
-		if RunState.phase == RunState.RunPhase.REWARD:
-			RunState.after_node()
-			_refresh(true)
-		return
-	_show_reward_overlay("CHOOSE ONE REWARD")
+	_offers._maybe_show_pending_reward()
 
 
-## Anchor pick (design/ux/anchor-mvp.md 1): same overlay host as the Core pick, before the first Core offer.
-## After the pick the engine opens pick 1 into pending_rewards, so the normal reward overlay follows.
+## -> RunMapOffers._show_anchor_overlay
 func _show_anchor_overlay() -> void:
-	var host := _open_ui3_screen()
-	var view := AnchorPick.new()
-	view.name = "AnchorPick"
-	host.add_child(view)
-	view.setup(AnchorAdapter.offer(), UI3Gacha.first_seen(str(RunState.get("_core_base_seed")), 3))
-	view.picked.connect(func(_id: String) -> void:
-		_save_map_progress()
-		_maybe_show_pending_reward())
+	_offers._show_anchor_overlay()
 
 
-## The eyebrow above the reward title. The mockup reads "WAVE 3 CLEARED"; this build resolves a
-## reward per NODE and has no wave concept (ContentDB.gd says so in as many words), so the node
-## the player just finished is what the pill names.
+## -> RunMapOffers._cleared_eyebrow
 func _cleared_eyebrow() -> String:
-	if _graph == null or RunState.current_node_id == "":
-		return "NODE CLEARED"
-	var node := _graph.find_node(RunState.current_node_id)
-	if node == null:
-		return "NODE CLEARED"
-	var kind := "MERCHANT" if node.node_type == "shop" else node.node_type.to_upper()
-	return "%s CLEARED" % kind
+	return _offers._cleared_eyebrow()
 
 
 ## Reward `t` -> category word and card icon (assets/ui3/icons). Unlisted types fall back to "Reward".
@@ -1270,11 +1011,11 @@ const _REWARD_ICON := {
 ## mockup draws Skip. Pending Liam's call, flip this one flag. Skipping keeps the shards and ends the node.
 const _REWARD_ALLOW_SKIP := false
 ## UI-05 b1 lane D components (31-reward): fixed-size RewardCard and the chaos ConfirmBar.
-const _RewardCardUi := preload("res://scenes/run_map/ui5/RewardCard.gd")
-const _ConfirmBarUi := preload("res://scenes/run_map/ui5/ConfirmBar.gd")
-const _PanelParts := preload("res://scenes/combat/ui5/PanelParts.gd")
+const _RewardCardUi := preload("res://scenes/shared/ui5/RewardCard.gd")
+const _ConfirmBarUi := preload("res://scenes/shared/ui5/ConfirmBar.gd")
+const _PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 
-var _reward_sel := 0
+var _reward_sel := -1
 var _reward_cards: Array[PanelContainer] = []
 
 
@@ -1298,426 +1039,65 @@ func _open_ui3_screen() -> Control:
 	return host
 
 
-## Reward pick, UI-05 31-reward (design/handoffs/ui-05-figma/round-1/ui05-combat-panels.html, README "Reward pick"):
-## `.reward-screen` = one column from d_reward_top, gap 32: head (Title + ShardChip), CardRow (fixed-size cards, gap 32),
-## Footer (Reroll · n left, Take). There is no Skip: choosing stays mandatory (owner decision 21/9,
-## RunState.after_node() is only reached by a pick). Focus: cards left -> right -> Reroll -> Take.
-## The `title` argument is kept for the reroll callback; the words come from the offer kind (sentence case).
+## -> RunMapOffers._show_reward_overlay
 func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
-	UI3Theme.sync_scale()   # the 1280 text floor follows the window
-	var host := _open_ui3_screen()
-	var col := VBoxContainer.new()
-	col.name = "RewardPick"
-	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	col.offset_top = UI3Theme.size_of("d_reward_top")
-	col.add_theme_constant_override("separation", UI3Theme.space("32"))
-	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	host.add_child(col)
-
-	var head := HBoxContainer.new()
-	head.name = "Head"
-	head.alignment = BoxContainer.ALIGNMENT_CENTER
-	head.add_theme_constant_override("separation", UI3Theme.space("20"))
-	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_child(head)
-	if _core_offer_active():
-		_dm("dm_core_open")
-	var core_rule := false
-	for rr0 in RunState.pending_rewards:
-		core_rule = core_rule or bool((rr0 as Dictionary).get("rule", false))
-	var title_text := "Choose one reward"
-	if _core_offer_active():
-		title_text = "Choose a run rule" if core_rule else "Choose a Core"
-	var title_lbl := _PanelParts.on_view(_PanelParts.text(tr(title_text), "text_banner", "text", true))
-	title_lbl.name = "Title"
-	head.add_child(title_lbl)
-	if _core_offer_active() and not core_rule:
-		var tier_line := _PanelParts.on_view(_PanelParts.text(tr(CORE_TIER_HINT)))   # S3-9: say what the tier words mean
-		tier_line.name = "CoreTierHint"
-		head.add_child(tier_line)
-	# Gacha pack: the NEXT pick's tier is never shown anywhere (Liam 22/10).
-	head.add_child(_shard_chip(RunState.shards_this_run))
-
-	_overlay_vbox = HBoxContainer.new()
-	_overlay_vbox.name = "CardRow"
-	_overlay_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	_overlay_vbox.add_theme_constant_override("separation", UI3Theme.space("32"))
-	# Fixed card band (cards are reward_card_h): Take never moves between states (GU 3).
-	_overlay_vbox.custom_minimum_size.y = UI3Theme.size_of("reward_card_h")
-	_overlay_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_overlay_vbox.sort_children.connect(_lift_selected_card)
-	col.add_child(_overlay_vbox)
-
-	_reward_cards.clear()
-	_reward_sel = 0
-	for reward in RunState.pending_rewards:
-		_add_reward_card(reward)
-
-	_start_core_reveal(col)
-
-	var actions := HBoxContainer.new()
-	actions.name = "Footer"
-	actions.alignment = BoxContainer.ALIGNMENT_CENTER
-	actions.add_theme_constant_override("separation", UI3Theme.space("24"))
-	actions.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_child(actions)
-	var left := RunState.reward_reroll_charges
-	if _core_offer_active() and RunState.get("core_reroll_left") != null:
-		left = int(RunState.get("core_reroll_left"))   # lane B: Core rerolls are per run (2), not per node
-	var reroll: Button = null
-	if _core_offer_active():
-		# Core offer: each card has its own Reroll button; here only the shared counter.
-		if not core_rule:
-			var lc := _PanelParts.on_view(_PanelParts.text((tr("%d reroll left") if left == 1 else tr("%d rerolls left")) % left,
-				"text_title", "text", true))
-			lc.name = "RerollLeft"
-			actions.add_child(lc)
-	else:
-		reroll = _PanelParts.button((tr("Reroll · %d left")) % left, &"secondary", &"M")
-		reroll.name = "RerollButton"
-		reroll.icon = UI3.icon("ui_reroll")
-		reroll.add_theme_constant_override("icon_max_width", UI3Theme.size_of("icon_m"))
-		reroll.add_theme_constant_override("h_separation", UI3Theme.space("12"))
-		reroll.visible = not core_rule   # no reroll for the Run rule pick (2b.1)
-		if left > 0:
-			reroll.pressed.connect(_on_reward_reroll.bind(title))
-		else:
-			UI3.set_disabled_reason(reroll, tr("Reroll · 0 left"))
-		actions.add_child(reroll)
-	if _REWARD_ALLOW_SKIP:
-		var skip := UI3.button(tr("Skip"), &"secondary", &"M")
-		skip.name = "SkipButton"
-		skip.pressed.connect(_ask_skip_reward.bind(col))
-		actions.add_child(skip)
-	var take := UI3.button(tr("Take"), &"primary", &"L")
-	take.name = "TakeButton"
-	take.custom_minimum_size.x = UI3Theme.size_of("d_take_min_w")
-	take.pressed.connect(_take_selected_reward)
-	actions.add_child(take)
-
-	# Focus chain: cards left -> right, then Reroll, then Take (design godot comment).
-	var chain: Array[Control] = []
-	for c in _reward_cards:
-		chain.append(c)
-	if reroll != null and reroll.visible:
-		chain.append(reroll)
-	chain.append(take)
-	for k in chain.size():
-		var nxt: Control = chain[(k + 1) % chain.size()]
-		var prv: Control = chain[(k - 1 + chain.size()) % chain.size()]
-		chain[k].focus_next = chain[k].get_path_to(nxt)
-		chain[k].focus_previous = chain[k].get_path_to(prv)
-
-	_select_reward(0)
-	if not _reward_cards.is_empty():
-		_reward_cards[0].grab_focus.call_deferred()
-	else:
-		take.grab_focus.call_deferred()
+	_offers._show_reward_overlay(title, _backdrop)
 
 
-## `.plate.chip` (ShardChip): btn_m high pill on the plate, shard icon + Rowdies 24 count.
+## -> RunMapOffers._shard_chip
 func _shard_chip(n: int) -> PanelContainer:
-	var pad := UI3Theme.space("16")
-	var box := _PanelParts.plate_box("pill")
-	box.content_margin_left = pad
-	box.content_margin_right = pad
-	var chip := _PanelParts.panel(box, "ShardChip")
-	chip.custom_minimum_size = Vector2(0, UI3Theme.size_of("btn_m"))
-	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", UI3Theme.space("8"))
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chip.add_child(row)
-	var px := UI3Theme.size_of("icon_m")
-	row.add_child(_PanelParts.icon_rect(UI3.currency_icon("cur_shard", px), px))
-	var v := _PanelParts.text(UI3.fmt(n), "text_title", "text", true)
-	v.name = "Value"
-	v.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(v)
-	return chip
+	return _offers._shard_chip(n)
 
 
-## Inline confirm row under the actions: "Skip this reward? You keep the N Shards." Back / Skip.
+## -> RunMapOffers._ask_skip_reward
 func _ask_skip_reward(col: VBoxContainer) -> void:
-	var old := col.find_child("SkipConfirm", true, false)
-	if old != null:
-		return
-	var row := HBoxContainer.new()
-	row.name = "SkipConfirm"
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 16)
-	row.add_child(UI3.label(tr("Skip this reward? You keep the %d Shards.") % RunState.shards_this_run))
-	var back := UI3.button(tr("Back"), &"secondary", &"S")
-	back.pressed.connect(row.queue_free)
-	row.add_child(back)
-	var go := UI3.button(tr("Skip"), &"secondary", &"S")
-	go.pressed.connect(func() -> void:
-		RunState.pending_rewards.clear()
-		_finish_node())
-	row.add_child(go)
-	col.add_child(row)
-	back.grab_focus()
+	_offers._ask_skip_reward(col)
 
 
+## -> RunMapOffers._select_reward
 func _select_reward(i: int) -> void:
-	_reward_sel = clampi(i, 0, maxi(_reward_cards.size() - 1, 0))
-	for k in _reward_cards.size():
-		if is_instance_valid(_reward_cards[k]) and _reward_cards[k].has_method("set_selected"):   # rebuilt on reroll / chained offers
-			_reward_cards[k].call("set_selected", k == _reward_sel)
-	if _overlay_vbox != null and is_instance_valid(_overlay_vbox):
-		_overlay_vbox.queue_sort()
+	_offers._select_reward(i)
 
 
-## The selected card sits 12 px above the row (design `.reward-card.is-selected{margin-top:-12px}`). Runs after
-## every sort of the CardRow, so the lift survives layout passes.
+## -> RunMapOffers._lift_selected_card
 func _lift_selected_card() -> void:
-	for c in _reward_cards:
-		if is_instance_valid(c) and c.has_method("lift_px") and c.get_parent() == _overlay_vbox:
-			c.position.y -= float(c.call("lift_px"))
+	_offers._lift_selected_card()
 
 
 var _taking := false   ## true from Take until the node finishes (spin + banner play in between): no double take
 
 
+## -> RunMapOffers._take_selected_reward
 func _take_selected_reward() -> void:
-	if _taking:
-		return
-	if _reveal != null and is_instance_valid(_reveal):
-		_reveal.skip()
-	if _reward_sel >= 0 and _reward_sel < RunState.pending_rewards.size():
-		var r: Dictionary = RunState.pending_rewards[_reward_sel]
-		if String(r.get("t", "")) in ["chaos", "curse"]:
-			_ask_lasting_reward(r)
-			return
-		if _is_core_card(r):
-			_dm("dm_core_pick")
-		_on_reward_chosen(r)
+	_offers._take_selected_reward()
 
 
-## Chaos / Curse last the whole run (31-reward--chaos-confirm): the ConfirmBar replaces the Footer, Back has focus and
-## "Take it" is the one primary. Back (or Esc) puts the Footer back and focus on the picked card.
+## -> RunMapOffers._ask_lasting_reward
 func _ask_lasting_reward(r: Dictionary) -> void:
-	var col := _overlay_vbox.get_parent() as Control if _overlay_vbox != null else null
-	if col == null or col.find_child("ConfirmBar", true, false) != null:
-		return
-	var foot := col.get_node_or_null("Footer") as Control
-	var bar := _ConfirmBarUi.new()
-	bar.setup(tr("This lasts the whole run. Take it?"), tr("Back"), tr("Take it"))
-	bar.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	if foot != null:
-		foot.visible = false
-	col.add_child(bar)
-	var close := func() -> void:
-		if is_instance_valid(bar) and bar.get_parent() == col:
-			col.remove_child(bar)
-			bar.queue_free()
-		if foot != null and is_instance_valid(foot):
-			foot.visible = true
-	bar.back_pressed.connect(func() -> void:
-		close.call()
-		if _reward_sel < _reward_cards.size() and is_instance_valid(_reward_cards[_reward_sel]):
-			_reward_cards[_reward_sel].grab_focus())
-	# Take it: the bar goes (the pick is answered); a full Core slot can still open the swap sheet, and "Leave it" there
-	# must find a working Footer, not a dead bar. `_taking` guards a second take while the take beat plays.
-	bar.confirmed.connect(func() -> void:
-		close.call()
-		_on_reward_chosen(r))
+	_offers._ask_lasting_reward(r)
 
 
-## Chaos / Curse card body split into Gain and Gamble/Curse text, from the generator's real strings.
+## -> RunMapOffers._trade_parts
 func _trade_parts(r: Dictionary) -> Dictionary:
-	var sub := String(r.get("sub", ""))
-	var desc := String(r.get("desc", ""))
-	if String(r.get("t", "")) == "chaos":
-		var lines := sub.split("\n")
-		var cost := String(lines[0]).trim_prefix("GAMBLE: ")
-		cost = cost.substr(0, 1).to_upper() + cost.substr(1)
-		cost = cost.substr(0, 1).to_upper() + cost.substr(1)
-		var gain := UI3.describe(String(lines[1]) if lines.size() > 1 else "")
-		return {"gain": ("MP %d · " % int(gain["mp"]) if int(gain["mp"]) >= 0 else "") + String(gain["text"]),
-			"cost": cost, "cost_kind": &"gamble"}
-	return {"gain": sub.trim_prefix("IN EXCHANGE: you gain ").trim_suffix("."), "cost": desc, "cost_kind": &"curse"}
+	return _offers._trade_parts(r)
 
 
 ## A1: Core offer cards arrive face-down with a tier halo, then flip left to right. Click / Space skips.
 var _reveal: GachaReveal = null
 
+## -> RunMapOffers._prism_hover
 func _prism_hover(card: Control, on: bool) -> void:
-	if _reveal != null and is_instance_valid(_reveal) and _reveal.running:
-		return
-	card.pivot_offset = card.size / 2.0
-	create_tween().tween_property(card, "scale", Vector2.ONE * (1.04 if on else 1.0), UI3Theme.motion_sec("fast"))
+	_offers._prism_hover(card, on)
 
 
+## -> RunMapOffers._start_core_reveal
 func _start_core_reveal(shake_host: Control) -> void:
-	if _reveal != null and is_instance_valid(_reveal):
-		_reveal.queue_free()
-	_reveal = null
-	if not _core_offer_active() or _reward_cards.is_empty():
-		return
-	var first_r: Dictionary = RunState.pending_rewards[0]
-	if bool(first_r.get("rule", false)):
-		_reroll_slot = -1
-		return
-	if _reroll_slot >= 0 and _reroll_slot < _reward_cards.size():
-		var slot := _reroll_slot
-		_reroll_slot = -1
-		var rw: Dictionary = RunState.pending_rewards[slot]
-		var rt := clampi(int(rw.get("tier", 0)), 0, 2)
-		_reward_cards[slot].set_meta("gacha_tier", rt)
-		gacha_log.append("reroll_in:%d" % slot)
-		_reveal = GachaReveal.new()
-		_reveal.name = "GachaReveal"
-		_overlay_root.add_child(_reveal)
-		var jp := rt >= 2 and not UI3Gacha.combo_completes(UI3Gacha.owned_ids(), String(rw.get("key", ""))).is_empty()
-		_reward_cards[slot].set_meta("jackpot_card", jp)
-		_reveal.start([_reward_cards[slot]], rt, UI3Gacha.first_seen(str(RunState.get("_core_base_seed")), rt), jp, shake_host,
-			float(UI3Gacha.timing().get("reroll_in_sec", 0.5)))
-		_reroll_note(_reward_cards[slot])
-		return
-	var tier := 0
-	for k in _reward_cards.size():
-		var ct := clampi(int((RunState.pending_rewards[k] as Dictionary).get("tier", 0)), 0, 2)
-		_reward_cards[k].set_meta("gacha_tier", ct)
-		tier = maxi(tier, ct)
-	var from_t := UI3Gacha.capped_from(tier)
-	if from_t > tier:
-		gacha_log.append("near_miss:%d>%d" % [from_t, tier])
-	var first := UI3Gacha.first_seen(str(RunState.get("_core_base_seed")), from_t if from_t > tier else tier)
-	_reveal = GachaReveal.new()
-	_reveal.name = "GachaReveal"
-	_overlay_root.add_child(_reveal)
-	var jackpot := false
-	if tier >= 2:
-		for k in RunState.pending_rewards.size():
-			var rw: Dictionary = RunState.pending_rewards[k]
-			var hit := int(rw.get("tier", 0)) >= 2 and not UI3Gacha.combo_completes(UI3Gacha.owned_ids(), String(rw.get("key", ""))).is_empty()
-			_reward_cards[k].set_meta("jackpot_card", hit)
-			jackpot = jackpot or hit
-	_reveal.start(_reward_cards, tier, first, jackpot, shake_host, -1.0, from_t)
+	_offers._start_core_reveal(shake_host)
 
 
-## One UI-05 RewardCard (31-reward): Category + RarityChip, RewardArt (rarity edge), RewardName, then the body:
-## RewardBody text, or GainBox + GambleBox / CurseBox (always in that order) for Chaos / Curse. A Core shows its tier
-## (Moss / Amber / Crystal) in the RarityChip, the axis / partner / house chips, and its own Reroll at the bottom.
-## Real strings come from the offer (RewardGenerator / CoreOffer), never from the mockup samples.
+## -> RunMapOffers._add_reward_card
 func _add_reward_card(r: Dictionary, _wide := false) -> PanelContainer:
-	var t := String(r.get("t", ""))
-	var rar := _reward_rarity(r)
-	var is_core := _is_core_card(r)
-	var is_rule := is_core and bool(r.get("rule", false))
-	var accent := _rarity_color(rar)
-	var rar_word := _rarity_name(rar)
-	var tier := clampi(int(r.get("tier", 0)), 0, 2)
-	if is_core and not is_rule:
-		accent = UI3Theme.color(_CORE_TIER_TOKEN[tier])
-		rar_word = tr(_CORE_TIER_NAME[tier])
-	var idx := _reward_cards.size()
-	var kind_text := String(_REWARD_KIND.get(t, "Reward"))
-	if is_core:
-		kind_text = "Run rule" if is_rule else "Core"
-	var icon_tex := UI3.icon(String(_REWARD_ICON.get(t, "ui_mooncard")))
-	if is_core:
-		icon_tex = UI3.icon(String(CorePanel.AXIS_ICON.get(String(r.get("axis", "")), "face_buff")))
-
-	# A relic offer arrives as title "RELIC", desc = relic name, sub = effect text.
-	var name_text := String(r.get("title", ""))
-	var body_text := String(r.get("desc", ""))
-	if t == "relic" and String(r.get("sub", "")) != "":
-		name_text = String(r.get("desc", ""))
-		body_text = String(r.get("sub", ""))
-	elif String(r.get("sub", "")) != "":
-		body_text += "\n" + String(r.get("sub", ""))
-	if t == "chaos":
-		name_text = String(r.get("desc", ""))
-	name_text = UI3.title_case(UI3.player_text(name_text))
-	if String(r.get("key", "")) == "rule_none":
-		body_text = tr("Play this run with the base rules.")
-	var dsc := UI3.describe(body_text)
-	body_text = ("MP %d · " % int(dsc["mp"]) if int(dsc["mp"]) >= 0 else "") + String(dsc["text"])
-
-	var card := _RewardCardUi.new()
-	card.name = "RewardCard%d" % idx
-	card.setup(tr(kind_text), rar_word, accent, icon_tex, name_text)
-	var col: VBoxContainer = card.column
-	if is_rule:
-		card.rarity_chip.visible = false   # a Run rule has no rarity or tier
-	if is_core and not is_rule:
-		card.rarity_chip.mouse_filter = Control.MOUSE_FILTER_STOP
-		UI3Tooltip.bind(card.rarity_chip, tr(CORE_TIER_HINT))
-	card.focus_entered.connect(_select_reward.bind(idx))
-	card.gui_input.connect(func(ev: InputEvent) -> void:
-		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
-			_select_reward(idx)
-			card.grab_focus()
-		elif ev.is_action_pressed("ui_accept") and not ev.is_echo():
-			_select_reward(idx)
-			var tb := _overlay_root.find_child("TakeButton", true, false) as Control
-			if tb != null and tb.is_visible_in_tree():
-				tb.grab_focus())
-	_overlay_vbox.add_child(card)
-	_reward_cards.append(card)
-	if is_core:
-		card.mouse_entered.connect(_dm_core_hover)
-		card.focus_entered.connect(_dm_core_hover)
-	var crystal := is_core and not is_rule and tier >= 2
-	if crystal:
-		# A3: Crystal cards keep their own bevelled silhouette and extra rings, and rise on hover.
-		card.set_meta("prism_accent", accent)
-		card.use_prism(func(sel: bool) -> StyleBoxFlat: return UI3Gacha.prism_style(accent, sel))
-		card.add_child(UI3Gacha.prism_frame(accent))
-		card.mouse_entered.connect(_prism_hover.bind(card, true))
-		card.mouse_exited.connect(_prism_hover.bind(card, false))
-	if is_rule and String(r.get("key", "")) != "rule_none":
-		card.art_icon.modulate = rule_tint(String(r.get("key", "")))
-
-	if is_core and not is_rule:
-		# Axis chip (glyph + word), partner / combo labels and the house chip. The tier word is the RarityChip.
-		var chips := HFlowContainer.new()
-		chips.name = "CoreChips"
-		chips.add_theme_constant_override("h_separation", UI3Theme.space("8"))
-		chips.add_theme_constant_override("v_separation", UI3Theme.space("8"))
-		chips.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var axis := String(r.get("axis", ""))
-		chips.add_child(CorePanel.word_chip(tr(String(CorePanel.AXIS_NAME.get(axis, "Core"))),
-			String(CorePanel.AXIS_ICON.get(axis, "face_buff")), UI3Theme.color("text_muted"), "AxisChip"))
-		_add_combo_labels(col, String(r.get("key", "")), chips)
-		_add_house_chip(card, chips, String(r.get("key", "")))
-		col.add_child(chips)
-	if t in ["chaos", "curse"]:
-		var tp := _trade_parts(r)
-		col.add_child(_RewardCardUi.trade_box(&"gain", String(tp["gain"])))
-		col.add_child(_RewardCardUi.trade_box(tp["cost_kind"], String(tp["cost"])))
-		return card
-	var body_w := UI3Theme.size_of("reward_card_w") - 2 * UI3Theme.space("20")
-	var desc := _PanelParts.text(body_text)
-	desc.name = "RewardBody"
-	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.custom_minimum_size.x = body_w
-	desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	col.add_child(desc)
-	if is_rule and _RULE_PRICE.has(String(r.get("key", ""))):
-		var pb := VBoxContainer.new()
-		pb.name = "RulePrice"
-		pb.add_child(_PanelParts.text(tr("Price"), "text_body", "text_muted"))
-		var pl := _PanelParts.text("− " + tr(String(_RULE_PRICE[String(r.get("key", ""))])), "text_body", "anchor_price", true)
-		pl.name = "PriceText"
-		pl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		pl.custom_minimum_size.x = body_w
-		pb.add_child(pl)
-		col.add_child(pb)
-	if is_core and not is_rule:
-		var rr := _PanelParts.button(tr("Reroll"), &"secondary", &"M")
-		rr.name = "CardReroll%d" % idx
-		rr.size_flags_vertical = Control.SIZE_SHRINK_END
-		if RunState.core_can_reroll(idx):
-			rr.pressed.connect(_on_core_card_reroll.bind(idx))
-		else:
-			UI3.set_disabled_reason(rr, tr("Rerolled") if RunState.core_rerolled_slots.has(idx) else tr("No rerolls left"))
-		col.add_child(rr)
-	return card
+	return _offers._add_reward_card(r, _wide)
 
 
 
@@ -1746,32 +1126,9 @@ static func _add_house_chip(card: Control, chips: HFlowContainer, key: String) -
 		chips.add_child(UI3.icon_chip(TranslationServer.translate("House"), icon, AnchorAdapter.house_color(house), "HouseChip"))
 
 
+## -> RunMapOffers._add_combo_labels
 func _add_combo_labels(col: VBoxContainer, key: String, chips: HFlowContainer) -> void:
-	var owned := UI3Gacha.owned_ids()
-	var done := UI3Gacha.combo_completes(owned, key)
-	if not done.is_empty():
-		var full := String(done["tier"]) == "full"
-		var row := HBoxContainer.new()
-		row.name = "ComboTag"
-		row.add_theme_constant_override("separation", 8)
-		var plate := UI3.combo_tier_tag(full)
-		row.add_child(plate)
-		var nm := UI3.label(UI3Gacha.combo_name(String(done["id"])), "LabelMuted")
-		nm.name = "ComboName"
-		nm.clip_text = true
-		nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		nm.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		row.add_child(nm)
-		col.add_child(row)
-	var names: Array[String] = []
-	for id in UI3Gacha.combo_matches(owned, key):
-		var d = RelicRegistry.get_def(String(id))
-		if d != null:
-			names.append(UI3.title_case(UI3.player_text(String(d.name))))
-	if not names.is_empty():
-		var chip := UI3.icon_chip(tr("With: %s") % ", ".join(names), UI3.icon("ui_mooncard"), UI3Theme.color("accent"), "WorksWith")
-		chips.add_child(chip)
+	_offers._add_combo_labels(col, key, chips)
 
 
 ## A chromeless, full-rect Button used as a hit target over a styled PanelContainer. Every
@@ -1836,7 +1193,6 @@ func _apply_and_finish(reward: Dictionary) -> void:
 	var before_owned: Array = RunState.owned_relic_ids.duplicate()
 	var was_awake := AnchorAdapter.awakened()
 	var is_core := _is_core_card(reward) and not bool(reward.get("rule", false))
-	var take_tw: Tween = null
 	var pool_names: Array = []
 	if is_core and String(reward.get("key", "")) == "c_dim_stone":
 		for d in CoreOffer.valid_pool(RunState._core_ctx(RunState._core_offer_pick)):
@@ -1845,15 +1201,27 @@ func _apply_and_finish(reward: Dictionary) -> void:
 	var pick_rect := Rect2()
 	if _reward_sel >= 0 and _reward_sel < _reward_cards.size() and is_instance_valid(_reward_cards[_reward_sel]):
 		pick_rect = (_reward_cards[_reward_sel] as Control).get_global_rect()
-	# UI-04 motion rows (copied from int/ui4, UI-05 b1 lane 0): core_take / level_up / reward_take on the picked card.
+	# UI-05 b23 lane M2: core-taken / level-up / reward-taken (motion_ui3.json layers) on the picked card. Layers whose
+	# node this screen does not have (the Cores plate slot, the party row) are data only; the card shrinks in place.
+	var take_tl: UI3Motion.Timeline = null
 	if not UI3Gacha.is_instant() and not bool(reward.get("rule", false)) and _reward_sel >= 0 and _reward_sel < _reward_cards.size() \
 			and is_instance_valid(_reward_cards[_reward_sel]):
 		var pc := _reward_cards[_reward_sel] as Control
-		var mid := "core_take" if _is_core_card(reward) else ("level_up" if String(reward.get("t", "")) == "level" else "reward_take")
+		var is_level := String(reward.get("t", "")) == "level"
+		var mid := "core-taken" if _is_core_card(reward) else ("level-up" if is_level else "reward-taken")
 		pc.pivot_offset = pc.size / 2.0
-		var mtw := UI3Motion.play(mid, pc)
-		if mtw != null and mtw.is_valid() and mid != "level_up":
-			take_tw = mtw
+		var others: Array = []
+		for oc in _reward_cards:
+			if oc != pc and is_instance_valid(oc):
+				others.append(oc)
+		var tg := {"card": pc, "axie": pc, "others": others}
+		for pair in [["title", "Title"], ["button", "TakeButton"]]:
+			var tn: Node = _overlay_root.find_child(String(pair[1]), true, false) if _overlay_root != null else null
+			if tn is CanvasItem:
+				tg[String(pair[0])] = tn
+		var tl := UI3Motion.play_timeline(mid, tg, {"host": self})
+		if not is_level:
+			take_tl = tl
 	RunState.apply_chosen_reward(reward)
 	var granted := ""
 	if not pool_names.is_empty():
@@ -1880,113 +1248,50 @@ func _apply_and_finish(reward: Dictionary) -> void:
 		var ban := _combo_banner(formed)
 		if ban != null and ban.running:
 			await ban.finished
-	await _wait_tween_bounded(take_tw, TAKE_TWEEN_CAP_MS)
+	await _wait_timeline_bounded(take_tl, TAKE_TWEEN_CAP_MS)
 	_taking = false
 	_finish_node()
 
 
-const TAKE_TWEEN_CAP_MS := 1000   ## longest core_take / reward_take beat is ~400 ms; this is the hard stop
+const TAKE_TWEEN_CAP_MS := 1000   ## hard stop for the take moment (`core-taken` / `reward-taken`, longest row ~0.5 s + a hit-stop); never waited on forever
 
-## Waits for `tw` but never forever: if the card the tween is bound to is freed mid-take the tween dies without
-## emitting `finished`, so a plain `await tw.finished` would leave `_taking` true and the node unfinished.
-func _wait_tween_bounded(tw: Tween, cap_ms: int) -> void:
-	if tw == null:
+## Same for a UI3Motion.Timeline (a freed host ends it through its watchdog; the cap is a second line of defence).
+func _wait_timeline_bounded(tl: UI3Motion.Timeline, cap_ms: int) -> void:
+	if tl == null:
 		return
 	var deadline := Time.get_ticks_msec() + cap_ms
-	while tw.is_valid() and tw.is_running() and Time.get_ticks_msec() < deadline and is_inside_tree():
+	while tl.running() and Time.get_ticks_msec() < deadline and is_inside_tree():
 		await get_tree().process_frame
 
 
-## Plays the awaken moment when one is pending and this run has not seen it yet. null = nothing to play.
+## -> RunMapOffers._play_awaken
 func _play_awaken(extra_line := "") -> AnchorFx:
-	if _overlay_layer == null or not AnchorFx.take_pending():
-		return null
-	var rect := Rect2()
-	if is_instance_valid(_core_panel) and _core_panel.is_inside_tree() and _core_panel.anchor_slot != null \
-			and _core_panel.anchor_slot.is_visible_in_tree():
-		rect = _core_panel.anchor_slot.get_global_rect()
-	return AnchorFx.play(_overlay_layer, AnchorAdapter.current_id(), extra_line, rect)
+	return _offers._play_awaken(extra_line)
 
 
-## "PAIR: <combo> . MUTATION: <name>" for the strongest newly formed combo, "" when none.
+## -> RunMapOffers._awaken_extra_line
 func _awaken_extra_line(formed: Array) -> String:
-	if formed.is_empty():
-		return ""
-	var best: Dictionary = formed[0]
-	for f in formed:
-		if String(f["tier"]) == "full":
-			best = f
-			break
-	var house := AnchorAdapter.house_of_combo(String(best["id"]))
-	var line := "%s: %s" % [TranslationServer.translate("PAIR") if String(best["tier"]) != "full" else TranslationServer.translate("FULL"), UI3Gacha.combo_name(String(best["id"]))]
-	var mn := String(AnchorAdapter.mutation_of(house)["name"]) if house != "" else ""
-	return line + (" . %s: %s" % [TranslationServer.translate("MUTATION"), mn] if mn != "" else "")
+	return _offers._awaken_extra_line(formed)
 
 
+## -> RunMapOffers._on_anchor_awakened
 func _on_anchor_awakened(id: String) -> void:
-	AnchorFx.arm(id)
+	_offers._on_anchor_awakened(id)
 
 
-## Shows the strongest newly formed combo (Full beats Pair) as a big centre panel above the overlay layer.
+## -> ComboBanner._combo_banner
 func _combo_banner(formed: Array) -> GachaFx:
-	if formed.is_empty() or _overlay_layer == null:
-		return null
-	var best: Dictionary = formed[0]
-	for f in formed:
-		if String(f["tier"]) == "full":
-			best = f
-			break
-	gacha_log.append("banner:%s" % String(best["tier"]))
-	var house := AnchorAdapter.house_of_combo(String(best["id"]))
-	var mut := {"house": house} if house != "" and not AnchorAdapter.mutation_of(house)["name"].is_empty() else {}
-	return GachaFx.banner(_overlay_layer, String(best["tier"]), UI3Gacha.combo_name(String(best["id"])),
-		UI3Gacha.combo_members(String(best["id"]), String(best["tier"])), mut) as GachaFx
+	return _combo._combo_banner(formed)
 
 
-## Spec 32: the slot kind of the new relic is full. The sale goes through RunState.acquire_relic (logged as
-## swap_on_full), then the normal pick applies. Leave it returns to the cards with nothing taken.
+## -> RunMapSlotSwap.open_slot_swap
 func open_slot_swap(reward: Dictionary, chk: Dictionary) -> void:
-	var key := String(reward.get("key", ""))
-	var nd = RelicRegistry.get_def(key)
-	if nd == null or _overlay_root.find_child("SlotSwapSheet", true, false) != null:
-		return   # one sheet at a time: a second Take while it is open must not stack another
-	var active: bool = RelicSlots._is_active(nd)
-	var cap := RelicSlots.capacity(RunState.ascension, RunState.owned_relic_ids)
-	var cells: Array = []
-	var sell_from: Array = chk["sell_from"]
-	for oid in RunState.owned_relic_ids:
-		var id := String(oid)
-		var od = RelicRegistry.get_def(id)
-		if od == null or id.begins_with("__"):
-			continue
-		var eternal := String(RunState.relic_stickers.get(id, "")) == RelicSlots.STICKER_ETERNAL
-		if not sell_from.has(id) and not (eternal and RelicSlots._is_active(od) == active):
-			continue
-		cells.append({"id": id, "name": UI3.title_case(UI3.player_text(String(od.name))),
-			"kind": tr("Active") if RelicSlots._is_active(od) else tr("Passive"),
-			"sell": RelicSlots.sell_price(id, RunState.ascension), "eternal": eternal})
-	var rule := (tr("Active slots are full (%d of %d). Sell one to take the new Core.") if active
-		else tr("Passive slots are full (%d of %d). Sell one to take the new Core.")) % [
-		cells.size(), int(cap["active"] if active else cap["passive"])]
-	var dsc := UI3.describe(RewardGenerator.relic_desc(nd))
-	var sheet := UI3.slot_swap_sheet(tr("Make room"), UI3.title_case(UI3.player_text(String(nd.name))),
-		("MP %d · " % int(dsc["mp"]) if int(dsc["mp"]) >= 0 else "") + String(dsc["text"]), rule, cells,
-		false, func(sell_id: String) -> void:
-			var ok := RunState.acquire_relic(key, "reward", sell_id)
-			sheet_closed(ok, reward),
-		func() -> void: sheet_closed(false, {}, true), 3 if active else 4)
-	sheet.name = "SlotSwapSheet"
-	_overlay_root.add_child(sheet)
+	_swap.open_slot_swap(reward, chk)
 
 
-## Closes the swap sheet. ok: the swap was made, so finish the pick. Otherwise the cards stay as they were.
+## -> RunMapSlotSwap.sheet_closed
 func sheet_closed(ok: bool, reward: Dictionary, _left := false) -> void:
-	var sh := _overlay_root.find_child("SlotSwapSheet", true, false)
-	if sh != null:
-		sh.get_parent().remove_child(sh)
-		sh.queue_free()
-	if ok:
-		_apply_and_finish(reward)
+	_swap.sheet_closed(ok, reward, _left)
 
 
 ## Core offer: reroll ONE card (RunState action reroll_rewards [slot]). A7: the old card flies out (0.3 s) with the
@@ -2007,73 +1312,35 @@ func _dm(event: String) -> void:
 	_dm_audio.play(event)
 
 
-## Hover/focus tick on a Core card, at most one per 120 ms.
+## -> RunMapOffers._dm_core_hover
 func _dm_core_hover() -> void:
-	var now := Time.get_ticks_msec() / 1000.0
-	if _dm_hover_at >= 0.0 and now - _dm_hover_at < 0.12:
-		return
-	_dm_hover_at = now
-	_dm("dm_core_hover")
+	_offers._dm_core_hover()
 
 var gacha_log: Array[String] = []   ## test hook: reroll_out / reroll_in:<slot>
 
 
+## -> RunMapOffers._on_core_card_reroll
 func _on_core_card_reroll(idx: int) -> void:
-	var old_card: Control = _reward_cards[idx] if idx >= 0 and idx < _reward_cards.size() else null
-	var res: Dictionary = await RunState.request_reroll_pending_rewards(idx)
-	if not bool(res["ok"]):
-		if String(res["code"]) not in ["illegal", "busy"]:
-			NetNotice.show(self, String(res["code"]), _on_core_card_reroll.bind(idx), "Could not reroll the Cores")
-		return
-	if not UI3Gacha.is_instant() and old_card != null and is_instance_valid(old_card):
-		gacha_log.append("reroll_out")
-		old_card.pivot_offset = old_card.size / 2.0
-		var out := float(UI3Gacha.timing().get("reroll_out_sec", 0.3))
-		var tw := old_card.create_tween().set_parallel(true)
-		tw.tween_property(old_card, "position:y", old_card.position.y - 120.0, out)
-		tw.tween_property(old_card, "modulate:a", 0.0, out)
-		await tw.finished
-	_reroll_slot = idx
-	_show_reward_overlay("x")
+	await _offers._on_core_card_reroll(idx)
 
 
-## The "Won't come back" line above the new card, fades after a moment.
+## -> RunMapOffers._reroll_note
 func _reroll_note(card: Control) -> void:
-	await get_tree().process_frame
-	if not is_instance_valid(card) or _overlay_root == null:
-		return
-	var l := UI3.label(tr("Won't come back this run"), "LabelMuted")
-	l.name = "RerollNote"
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	l.size = Vector2(card.size.x, 32)
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_overlay_root.add_child(l)
-	l.global_position = card.global_position + Vector2(0, -36)
-	if UI3Gacha.is_instant():
-		return
-	var tw := l.create_tween()
-	tw.tween_interval(1.4)
-	tw.tween_property(l, "modulate:a", 0.0, 0.3)
-	tw.tween_callback(l.queue_free)
+	await _offers._reroll_note(card)
 
 
+## -> RunMapOffers._on_reward_reroll
 func _on_reward_reroll(title: String) -> void:
-	var res: Dictionary = await RunState.request_reroll_pending_rewards()
-	if not bool(res["ok"]):
-		if String(res["code"]) not in ["illegal", "busy"]:
-			NetNotice.show(self, String(res["code"]), _on_reward_reroll.bind(title))
-		return
-	_show_reward_overlay(title)
+	await _offers._on_reward_reroll(title)
 
 
 # ---------------------------------------------------------------------------------------
 # SHOP
 # ---------------------------------------------------------------------------------------
 
-## Shop node: src/data.js genShop()/shopBuy() ported subset. The offer was built by
-## RunState.enter_node(); this screen does not generate goods.
+## -> RunMapShop._on_shop_node
 func _on_shop_node(_node_id: String) -> void:
-	_render_shop()
+	_shop._on_shop_node(_node_id)
 
 
 ## UI-03 08 Shop: left 384 (header + shards, Sell plate), middle (Relics / other goods in a
@@ -2086,314 +1353,44 @@ const _SHOP_ROW_H := 176.0
 const _SHOP_ART := 128.0
 
 
+## -> RunMapShop._shop_rarity
 func _shop_rarity(it: Dictionary) -> int:
-	if String(it.get("kind", "")) == "relic":
-		var def = RelicRegistry.get_def(String(it.get("key", "")))
-		if def != null:
-			return int(def.rarity)
-	return int(it.get("rar", 0))
+	return _shop._shop_rarity(it)
 
 
-## Why item `i` cannot be bought right now, or "".
+## -> RunMapShop._shop_block_reason
 func _shop_block_reason(it: Dictionary) -> String:
-	if bool(it.get("bought", false)):
-		return tr("Sold out")
-	var cost := int(it.get("cost", 0))
-	if RunState.shards_this_run < cost:
-		return tr("Need %d Shards") % cost
-	return ""
+	return _shop._shop_block_reason(it)
 
 
+## -> RunMapShop._render_shop
 func _render_shop() -> void:
-	# Re-rendered after every purchase/sale, so this doubles as the shop's save point.
-	_save_map_progress()
-	var host := _open_ui3_screen()
-	_shop_cards.clear()
-	var margin := MarginContainer.new()
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 24)
-	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	host.add_child(margin)
-	var root := HBoxContainer.new()
-	root.add_theme_constant_override("separation", 24)
-	margin.add_child(root)
-
-	# ---- Left: shop plate + Sell plate
-	var left := VBoxContainer.new()
-	left.custom_minimum_size.x = 384
-	left.add_theme_constant_override("separation", 16)
-	root.add_child(left)
-	var hp := UI3.plate(&"plate")
-	hp.name = "ShopHeader"
-	left.add_child(hp)
-	var hv := VBoxContainer.new()
-	hv.add_theme_constant_override("separation", 16)
-	hp.add_child(hv)
-	var hrow := HBoxContainer.new()
-	hrow.add_theme_constant_override("separation", 16)
-	hv.add_child(hrow)
-	var ic := TextureRect.new()
-	ic.texture = UI3.icon("node_shop")
-	ic.custom_minimum_size = Vector2(48, 48)
-	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	hrow.add_child(ic)
-	var tcol := VBoxContainer.new()
-	hrow.add_child(tcol)
-	tcol.add_child(UI3.label(tr("Shop"), "LabelScreenTitle"))
-	tcol.add_child(UI3.label(tr("Row %d") % maxi(_current_row(), 0), "LabelMuted"))
-	var pill := UI3.currency_pill([{"icon": "cur_shard", "value": str(RunState.shards_this_run)}])
-	pill.name = "ShardsPill"
-	hv.add_child(pill)
-
-	var sp := UI3.plate(&"plate")
-	sp.name = "SellPlate"
-	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	left.add_child(sp)
-	var sv := VBoxContainer.new()
-	sv.add_theme_constant_override("separation", 8)
-	sp.add_child(sv)
-	sv.add_child(UI3.label(tr("Sell"), "LabelTitle"))
-	var sscroll := ScrollContainer.new()
-	sscroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	sscroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	sv.add_child(sscroll)
-	var slist := VBoxContainer.new()
-	slist.name = "SellList"
-	slist.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slist.add_theme_constant_override("separation", 8)
-	sscroll.add_child(slist)
-	var sellable := 0
-	for rid in RunState.owned_relic_ids:
-		if RunState.relic_stickers.get(rid, "") == RelicSlots.STICKER_ETERNAL:
-			continue
-		var def = RelicRegistry.get_def(String(rid))
-		var price := RelicSlots.sell_price(String(rid), RunState.ascension)
-		var sb := UI3.button("%s · +%d" % [String(def.name) if def != null else String(rid), price], &"secondary", &"S")
-		sb.name = "Sell_%s" % rid
-		sb.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		sb.clip_text = true
-		sb.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		sb.pressed.connect(_on_shop_sell.bind(String(rid)))
-		slist.add_child(sb)
-		sellable += 1
-	if sellable == 0:
-		slist.add_child(UI3.label(tr("No Core to sell"), "LabelMuted"))
-
-	# ---- Middle: goods
-	var mid := VBoxContainer.new()
-	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mid.add_theme_constant_override("separation", 16)
-	root.add_child(mid)
-	var any_afford := false
-	for it in RunState.shop_items:
-		if not bool(it.get("bought", false)) and RunState.shards_this_run >= int(it.get("cost", 0)):
-			any_afford = true
-	if not any_afford and not RunState.shop_items.is_empty():
-		var notice := UI3.plate(&"plate")
-		notice.name = "NothingAffordable"
-		notice.add_child(UI3.label(tr("You can't afford anything here. Sell a Core or leave."), "LabelTitle"))
-		(notice.get_child(0) as Label).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		mid.add_child(notice)
-	var groups := [["relic", tr("Cores")], ["", tr("Supplies")]]
-	var idx_in_group := {}
-	for g in groups:
-		var idxs: Array[int] = []
-		for i in RunState.shop_items.size():
-			var is_relic: bool = String(RunState.shop_items[i].get("kind", "")) == "relic"
-			if (g[0] == "relic") == is_relic:
-				idxs.append(i)
-		if idxs.is_empty():
-			continue
-		mid.add_child(UI3.label(g[1], "LabelScreenTitle"))
-		var grid := GridContainer.new()
-		grid.name = "ShopGrid_%s" % ("relic" if g[0] == "relic" else "supplies")
-		grid.columns = 2
-		grid.add_theme_constant_override("h_separation", 16)
-		grid.add_theme_constant_override("v_separation", 16)
-		mid.add_child(grid)
-		for i in idxs:
-			grid.add_child(_add_shop_row(RunState.shop_items[i], i))
-
-	# ---- Right: detail + Leave
-	var right := VBoxContainer.new()
-	right.custom_minimum_size.x = 416
-	right.add_theme_constant_override("separation", 16)
-	root.add_child(right)
-	var dp := UI3.plate(&"plate")
-	dp.name = "ShopDetail"
-	dp.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	right.add_child(dp)
-	var dv := VBoxContainer.new()
-	dv.name = "DetailCol"
-	dv.add_theme_constant_override("separation", 16)
-	dp.add_child(dv)
-	var leave := UI3.button(tr("Leave shop"), &"secondary", &"M")
-	leave.name = "LeaveShop"
-	leave.pressed.connect(func() -> void: _finish_node())
-	right.add_child(leave)
-
-	if _shop_sel >= RunState.shop_items.size():
-		_shop_sel = 0
-	_select_shop(_shop_sel)
-	if not any_afford or _shop_cards.is_empty():
-		leave.grab_focus.call_deferred()
-	elif _shop_sel < _shop_cards.size():
-		_shop_cards[_shop_sel].grab_focus.call_deferred()
+	_shop._render_shop()
 
 
+## -> RunMapShop._add_shop_row
 func _add_shop_row(raw: Dictionary, index: int) -> PanelContainer:
-	var it: Dictionary = raw
-	var rar := _shop_rarity(it)
-	var accent := _rarity_color(rar)
-	var bought := bool(it.get("bought", false))
-	var cost := int(it.get("cost", 0))
-	var afford := RunState.shards_this_run >= cost
-
-	var card := UI3.plate(&"card")
-	card.name = "ShopRow%d" % index
-	card.custom_minimum_size = Vector2(0, _SHOP_ROW_H)
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.focus_mode = Control.FOCUS_ALL
-	card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	card.draw.connect(func() -> void:
-		if card.has_focus():
-			card.draw_style_box(UI3Theme.focus_style(UI3Theme.radius("l")), Rect2(Vector2.ZERO, card.size)))
-	card.focus_entered.connect(card.queue_redraw)
-	card.focus_exited.connect(card.queue_redraw)
-	card.focus_entered.connect(_select_shop.bind(index))
-	card.gui_input.connect(func(ev: InputEvent) -> void:
-		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
-			card.grab_focus()
-			_select_shop(index)
-		elif ev.is_action_pressed("ui_accept") and not ev.is_echo():
-			_select_shop(index)
-			var bb := _overlay_root.find_child("BuyButton", true, false) as Button
-			if bb != null:
-				bb.grab_focus())
-	_shop_cards.append(card)
-	card.set_meta("shop_index", index)
-	if bought:
-		card.modulate.a = 0.4
-
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
-	card.add_child(row)
-	row.add_child(_shop_art(it, _SHOP_ART, accent))
-	var col := VBoxContainer.new()
-	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	col.add_theme_constant_override("separation", 8)
-	row.add_child(col)
-	var nm := UI3.label(String(it.get("title", "")), "LabelTitle")
-	nm.name = "ItemName"
-	nm.clip_text = true
-	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	col.add_child(nm)
-	var rl := UI3.label(_rarity_name(rar))
-	rl.name = "RarityLabel"
-	rl.add_theme_color_override("font_color", accent)
-	col.add_child(rl)
-	var price := HBoxContainer.new()
-	price.add_theme_constant_override("separation", 8)
-	col.add_child(price)
-	if bought:
-		price.add_child(UI3.label(tr("Bought")))
-	else:
-		var si := TextureRect.new()
-		si.texture = UI3.icon("cur_shard")
-		si.custom_minimum_size = Vector2(28, 28)
-		si.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		si.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		price.add_child(si)
-		var pl := UI3.label(str(cost), "LabelTitle")
-		pl.name = "Price"
-		if not afford:
-			pl.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
-		price.add_child(pl)
-	return card
+	return _shop._add_shop_row(raw, index)
 
 
+## -> RunMapShop._shop_art
 func _shop_art(it: Dictionary, px: float, accent: Color) -> Control:
-	var art := Panel.new()
-	art.name = "Art"
-	art.custom_minimum_size = Vector2(px, px)
-	art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = UI3Theme.color("panel_raised")
-	sb.border_color = accent
-	sb.set_border_width_all(UI3Theme.stroke("selected"))
-	sb.set_corner_radius_all(UI3Theme.radius("m"))
-	art.add_theme_stylebox_override("panel", sb)
-	var c := CenterContainer.new()
-	c.set_anchors_preset(Control.PRESET_FULL_RECT)
-	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	art.add_child(c)
-	var t := TextureRect.new()
-	t.texture = CardArt.texture_for_shop(String(it.get("kind", "")), _shop_rarity(it))
-	t.custom_minimum_size = Vector2(px * 0.7, px * 0.7)
-	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	c.add_child(t)
-	return art
+	return _shop._shop_art(it, px, accent)
 
 
+## -> RunMapShop._select_shop
 func _select_shop(index: int) -> void:
-	if _overlay_root == null or RunState.shop_items.is_empty():
-		return
-	_shop_sel = index
-	for c in _shop_cards:
-		c.theme_type_variation = "PanelCardSelected" if int(c.get_meta("shop_index")) == index else "PanelCard"   # no lift: it overlaps the grid heading
-	var dv := _overlay_root.find_child("DetailCol", true, false) as VBoxContainer
-	if dv == null or index >= RunState.shop_items.size():
-		return
-	for ch in dv.get_children():
-		dv.remove_child(ch)
-		ch.queue_free()
-	var it: Dictionary = RunState.shop_items[index]
-	var rar := _shop_rarity(it)
-	var accent := _rarity_color(rar)
-	var art := _shop_art(it, 200.0, accent)
-	art.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	dv.add_child(art)
-	var nm := UI3.label(String(it.get("title", "")), "LabelScreenTitle")
-	nm.name = "DetailName"
-	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	dv.add_child(nm)
-	var rl := UI3.label(_rarity_name(rar))
-	rl.add_theme_color_override("font_color", accent)
-	dv.add_child(rl)
-	var dsc := UI3.describe(String(it.get("desc", "")))
-	var desc := UI3.label(("MP %d · " % int(dsc["mp"]) if int(dsc["mp"]) >= 0 else "") + String(dsc["text"]))
-	desc.name = "DetailDesc"
-	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	dv.add_child(desc)
-	var why := _shop_block_reason(it)
-	var buy := UI3.button(tr("Buy · %d Shards") % int(it.get("cost", 0)), &"primary", &"L")
-	buy.name = "BuyButton"
-	if why == "":
-		buy.pressed.connect(func() -> void: _on_shop_buy(index))
-	else:
-		UI3.set_disabled_reason(buy, why)
-	dv.add_child(buy)
+	_shop._select_shop(index)
 
 
+## -> RunMapShop._on_shop_sell
 func _on_shop_sell(relic_id: String) -> void:
-	if RunState.sell_relic(relic_id):
-		_render_shop()
+	_shop._on_shop_sell(relic_id)
 
 
+## -> RunMapShop._on_shop_buy
 func _on_shop_buy(index: int) -> void:
-	# `bought` is marked inside try_buy_shop_item() now. Marking it here meant a replay, which
-	# has no screen, left every item buyable forever.
-	var res: Dictionary = await RunState.request_buy_shop_item(index)
-	if not bool(res["ok"]) and String(res["code"]) not in ["illegal", "busy"]:
-		NetNotice.show(self, String(res["code"]), _on_shop_buy.bind(index))
-	_render_shop()   # rebuild so shard total / afford/bought states stay in sync
+	await _shop._on_shop_buy(index)
 
 
 # ---------------------------------------------------------------------------------------
@@ -2413,162 +1410,32 @@ const _EVENT_FX_UI3 := {
 }
 
 
+## -> RunMapEvent._on_event_node
 func _on_event_node(_node_id: String) -> void:
-	if RunState.event_key.is_empty():
-		push_error("RunMapController: no playable events in ContentDB - cannot resolve event node")
-		_finish_node()
-		return
-	_event_opts = RunState.event_options()
-	_event_sel = -1
-	_build_event_screen(-1, "")
+	_event._on_event_node(_node_id)
 
 
-## `picked` < 0: choices. Otherwise the outcome: the other choices at 40%, `outcome` as the body.
+## -> RunMapEvent._build_event_screen
 func _build_event_screen(picked: int, outcome: String) -> void:
-	var ev: Dictionary = ContentDB.events.get(RunState.event_key, {})
-	var host := _open_ui3_screen()
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	host.add_child(center)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 48)
-	center.add_child(row)
-
-	var art := UI3.plate(&"plate")
-	art.name = "EventArt"
-	art.custom_minimum_size = Vector2(720, 720)
-	row.add_child(art)
-	var art_c := CenterContainer.new()
-	art.add_child(art_c)
-	var art_i := TextureRect.new()
-	art_i.texture = UI3.icon("node_event")
-	art_i.custom_minimum_size = Vector2(320, 320)
-	art_i.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	art_i.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	art_c.add_child(art_i)
-
-	var col := VBoxContainer.new()
-	col.custom_minimum_size.x = 720
-	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	col.add_theme_constant_override("separation", 24)
-	row.add_child(col)
-
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 16)
-	col.add_child(head)
-	var hi := TextureRect.new()
-	hi.texture = UI3.icon("node_event")
-	hi.custom_minimum_size = Vector2(64, 64)
-	hi.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	hi.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	head.add_child(hi)
-	var hc := VBoxContainer.new()
-	head.add_child(hc)
-	var title := UI3.label(String(ev.get("n", tr("Event"))), "LabelScreenTitle")
-	title.name = "EventTitle"
-	hc.add_child(title)
-	hc.add_child(UI3.label(tr("Event · Row %d") % maxi(_current_row(), 0), "LabelMuted"))
-
-	var body := UI3.label(outcome if picked >= 0 else String(ev.get("desc", "")))
-	body.name = "EventBody"
-	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	col.add_child(body)
-
-	_overlay_vbox = VBoxContainer.new()
-	_overlay_vbox.name = "EventOptions"
-	_overlay_vbox.add_theme_constant_override("separation", 12)
-	col.add_child(_overlay_vbox)
-	_event_cards.clear()
-	for i in _event_opts.size():
-		_add_event_option(_event_opts[i], i, picked)
-
-	var acts := HBoxContainer.new()
-	acts.alignment = BoxContainer.ALIGNMENT_END
-	col.add_child(acts)
-	var go := UI3.button(tr("Continue") if picked >= 0 else tr("Pick a choice"), &"primary", &"L")
-	go.name = "EventAction"
-	if picked >= 0:
-		go.pressed.connect(func() -> void: _finish_node())
-		go.grab_focus.call_deferred()
-	else:
-		UI3.set_disabled_reason(go, tr("Pick a choice"))
-		go.pressed.connect(func() -> void: _on_event_choice(_event_sel))
-		if not _event_cards.is_empty():
-			_event_cards[0].grab_focus.call_deferred()
-	acts.add_child(go)
+	_event._build_event_screen(picked, outcome)
 
 
 var _event_cards: Array[PanelContainer] = []
 
 
+## -> RunMapEvent._select_event
 func _select_event(index: int) -> void:
-	_event_sel = index
-	for c in _event_cards:
-		c.theme_type_variation = "PanelCardSelected" if int(c.get_meta("opt")) == index else "PanelCard"
-	var go := _overlay_root.find_child("EventAction", true, false) as Button
-	if go != null and index >= 0 and index < _event_opts.size():
-		UI3.clear_disabled_reason(go)
-		go.text = tr("Choose")
+	_event._select_event(index)
 
 
+## -> RunMapEvent._add_event_option
 func _add_event_option(raw: Dictionary, index: int, picked: int) -> Control:
-	var card := UI3.plate(&"card")
-	card.name = "EventOption%d" % index
-	card.custom_minimum_size.y = 88
-	_overlay_vbox.add_child(card)
-	var line := HBoxContainer.new()
-	line.add_theme_constant_override("separation", 16)
-	card.add_child(line)
-	var ic := TextureRect.new()
-	ic.texture = UI3.icon(String(_EVENT_FX_UI3.get(String(raw.get("fx", "")), "face_blank")))
-	ic.custom_minimum_size = Vector2(56, 56)
-	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	line.add_child(ic)
-	var tc := VBoxContainer.new()
-	tc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	line.add_child(tc)
-	tc.add_child(UI3.label(String(raw.get("text", "")), "LabelTitle"))
-	var d := UI3.label(String(raw.get("desc", "")))
-	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	tc.add_child(d)
-	card.set_meta("opt", index)
-	if picked >= 0:
-		card.modulate.a = 1.0 if index == picked else 0.4
-		return card
-	_event_cards.append(card)
-	card.focus_mode = Control.FOCUS_ALL
-	card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	card.draw.connect(func() -> void:
-		if card.has_focus():
-			card.draw_style_box(UI3Theme.focus_style(UI3Theme.radius("l")), Rect2(Vector2.ZERO, card.size)))
-	card.focus_entered.connect(card.queue_redraw)
-	card.focus_exited.connect(card.queue_redraw)
-	card.gui_input.connect(func(ev: InputEvent) -> void:
-		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
-			card.grab_focus()
-			_select_event(index)
-		elif ev.is_action_pressed("ui_accept") and not ev.is_echo():
-			_select_event(index)
-			var go := _overlay_root.find_child("EventAction", true, false) as Control
-			if go != null:
-				go.grab_focus())
-	return card
+	return _event._add_event_option(raw, index, picked)
 
 
+## -> RunMapEvent._on_event_choice
 func _on_event_choice(index: int) -> void:
-	if index < 0:
-		return
-	var res: Dictionary = await RunState.request_choose_event_option(index)
-	if not bool(res["ok"]):
-		if String(res["code"]) not in ["illegal", "busy"]:
-			NetNotice.show(self, String(res["code"]), _on_event_choice.bind(index))
-		return
-	_save_map_progress()   # the effect is already applied; quitting on the outcome must not hand it back
-	_build_event_screen(index, String(res["msg"]))
+	await _event._on_event_choice(index)
 
 
 # ---------------------------------------------------------------------------------------
@@ -2583,67 +1450,6 @@ func _on_treasure_node(node_id: String) -> void:
 	_build_treasure(false)
 
 
+## -> RunMapTreasure._build_treasure
 func _build_treasure(opened: bool) -> void:
-	var host := _open_ui3_screen()
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	host.add_child(center)
-	var col := VBoxContainer.new()
-	col.name = "TreasureColumn"
-	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	col.add_theme_constant_override("separation", 24)
-	center.add_child(col)
-	var chest := TextureRect.new()
-	chest.name = "Chest"
-	chest.texture = UI3.icon("node_treasure")
-	# Opened: 192 so the fixed UI-05 reward cards (reward_card_h) + Take still fit inside the 24 px screen margin.
-	chest.custom_minimum_size = Vector2(0, 192 if opened else 384)
-	chest.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	chest.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	col.add_child(chest)
-	var hrow := HBoxContainer.new()
-	hrow.alignment = BoxContainer.ALIGNMENT_CENTER
-	hrow.add_theme_constant_override("separation", 24)
-	col.add_child(hrow)
-	hrow.add_child(UI3.label(tr("A sealed Gene vault") if not opened else tr("Choose one"), "LabelScreenTitle"))
-	hrow.add_child(UI3.currency_pill([{"icon": "cur_shard", "value": str(RunState.shards_this_run)}]))
-
-	if not opened:
-		var open := UI3.button(tr("Open chest"), &"primary", &"L")
-		open.name = "OpenChest"
-		open.pressed.connect(func() -> void: _build_treasure(true))
-		var oc := HBoxContainer.new()
-		oc.alignment = BoxContainer.ALIGNMENT_CENTER
-		oc.add_child(open)
-		col.add_child(oc)
-		open.grab_focus.call_deferred()
-		return
-
-	if RunState.pending_rewards.is_empty():
-		col.add_child(UI3.label(tr("The vault was empty.")))
-		var cont := UI3.button(tr("Continue"), &"primary", &"L")
-		cont.name = "TakeButton"
-		cont.pressed.connect(func() -> void: _finish_node())
-		col.add_child(cont)
-		cont.grab_focus.call_deferred()
-		return
-	_overlay_vbox = HBoxContainer.new()
-	_overlay_vbox.name = "TreasureCards"
-	_overlay_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	_overlay_vbox.add_theme_constant_override("separation", 32)
-	_overlay_vbox.sort_children.connect(_lift_selected_card)   # same UI-05 RewardCard as the reward pick
-	col.add_child(_overlay_vbox)
-	_reward_cards.clear()
-	_reward_sel = 0
-	for reward in RunState.pending_rewards:
-		_add_reward_card(reward)
-	var take := UI3.button(tr("Take and continue"), &"primary", &"L")
-	take.name = "TakeButton"
-	take.pressed.connect(_take_selected_reward)
-	var tc := HBoxContainer.new()
-	tc.alignment = BoxContainer.ALIGNMENT_CENTER
-	tc.add_child(take)
-	col.add_child(tc)
-	_select_reward(0)
-	_reward_cards[0].grab_focus.call_deferred()
+	_treasure._build_treasure(opened)

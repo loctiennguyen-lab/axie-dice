@@ -138,7 +138,7 @@ func _ready() -> void:
 	mis["stake"] = 800
 	dp.show_defeat(mis)
 	await get_tree().process_frame
-	_check(_f(dp, "StakeLost") != null and _texts(dp, []).has("Mission lost: your 800 Shard stake is gone"), "mission: stake line with the real stake")
+	_check(_f(dp, "StakeLost") != null and _texts(dp, []).has("Mission lost: your 800 Shards stake is gone"), "mission: stake line with the real stake")
 	er = _f(dp, "EndRunButton")
 	_check(er.theme_type_variation == "ButtonPrimaryL" and er.has_focus(), "mission: End run primary L, focused")
 	var mt := _texts(dp, [])

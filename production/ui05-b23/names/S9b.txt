@@ -1,0 +1,701 @@
+# S9b: Echo Box ceremony: opening, reveal-*, open10 grid, summary
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-meta2-screens.html
+# So frame: 16 (8 id, tinh ca ban 1920 va 1280)
+# Tien to: 20-echo--opening 20-echo--reveal- =20-echo--open10 20-echo--summary
+# Id frame:
+#   20-echo--opening
+#   20-echo--opening--1280
+#   20-echo--reveal-new
+#   20-echo--reveal-new--1280
+#   20-echo--reveal-duplicate
+#   20-echo--reveal-duplicate--1280
+#   20-echo--reveal-stone
+#   20-echo--reveal-stone--1280
+#   20-echo--reveal-rare-plus
+#   20-echo--reveal-rare-plus--1280
+#   20-echo--reveal-mythic
+#   20-echo--reveal-mythic--1280
+#   20-echo--open10
+#   20-echo--open10--1280
+#   20-echo--summary
+#   20-echo--summary--1280
+
+=== 20-echo--opening (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Echo Box ceremony modal. Skip (Space). Reduce motion: tint 0.2 s, cards all at once.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+  Scrim
+  Ceremony
+    Title "Opening…"
+    ChestWord "Gold chest Rare · tint 1.2 s (Mythic 1.5 s)"
+    Footer
+      SkipButton
+        KeyCap "Space"
+
+=== 20-echo--opening--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Echo Box ceremony modal. Skip (Space). Reduce motion: tint 0.2 s, cards all at once.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+  Scrim
+  Ceremony
+    Title "Opening…"
+    ChestWord "Gold chest Rare · tint 1.2 s (Mythic 1.5 s)"
+    Footer
+      SkipButton
+        KeyCap "Space"
+
+=== 20-echo--reveal-new (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Echo Box ceremony modal. Skip (Space). Reduce motion: tint 0.2 s, cards all at once.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+  Scrim
+  Ceremony
+    Title "Reveal"
+    RevealCard
+      TierStrip
+      Art
+        DiceSkinArt "6"
+        NewChip "New"
+      Name "Jade Sprout"
+      Line "Rare dice skin"
+    Footer
+      EquipButton "Equip now"
+      OpenAgainButton
+        CostChip [var(--size-keycap-h)] "1"
+      DoneButton
+        KeyCap "Space"
+
+=== 20-echo--reveal-new--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Echo Box ceremony modal. Skip (Space). Reduce motion: tint 0.2 s, cards all at once.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+  Scrim
+  Ceremony
+    Title "Reveal"
+    RevealCard
+      TierStrip
+      Art
+        DiceSkinArt "6"
+        NewChip "New"
+      Name "Jade Sprout"
+      Line "Rare dice skin"
+    Footer
+      EquipButton "Equip now"
+      OpenAgainButton
+        CostChip [var(--size-keycap-h)] "1"
+      DoneButton
+        KeyCap "Space"
+
+=== 20-echo--reveal-duplicate (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Echo Box ceremony modal. Skip (Space). Reduce motion: tint 0.2 s, cards all at once.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 9/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+  Scrim
+  Ceremony
+    Title "Reveal"
+    RevealCard
+      TierStrip
+      Art
+        FrameArt "L"
+        FragmentBadge "+10"
+      Name "Frost Crown"
+      Line "Duplicate · 10 Fragments"
+    Footer
+      OpenAgainButton
+        CostChip [var(--size-keycap-h)] "1"
+      DoneButton
+        KeyCap "Space"
+
+=== 20-echo--reveal-duplicate--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Echo Box ceremony modal. Skip (Space). Reduce motion: tint 0.2 s, cards all at once.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 9/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+  Scrim
+  Ceremony
+    Title "Reveal"
+    RevealCard
+      TierStrip
+      Art
+        FrameArt "L"
+        FragmentBadge "+10"
+      Name "Frost Crown"
+      Line "Duplicate · 10 Fragments"
+    Footer
+      OpenAgainButton
+        CostChip [var(--size-keycap-h)] "1"
+      DoneButton
+        KeyCap "Space"
+
+=== 20-echo--reveal-stone (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Echo Box ceremony modal. Skip (Space). Reduce motion: tint 0.2 s, cards all at once.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+  Scrim
+  Ceremony
+    Title "Reveal"
+    RevealCard
+      TierStrip
+      Art
+      Name "500 Stone"
+      Line "Currency"
+    Footer
+      OpenAgainButton
+        CostChip [var(--size-keycap-h)] "1"
+      DoneButton
+        KeyCap "Space"
+
+=== 20-echo--reveal-stone--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Echo Box ceremony modal. Skip (Space). Reduce motion: tint 0.2 s, cards all at once.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+  Scrim
+  Ceremony
+    Title "Reveal"
+    RevealCard
+      TierStrip
+      Art
+      Name "500 Stone"
+      Line "Currency"
+    Footer
+      OpenAgainButton
+        CostChip [var(--size-keycap-h)] "1"
+      DoneButton
+        KeyCap "Space"
+
+=== 20-echo--reveal-rare-plus (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Echo Box ceremony modal. Skip (Space). Reduce motion: tint 0.2 s, cards all at once.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+  Scrim
+  Ceremony
+    Title "Reveal"
+    RevealProposal
+      RevealCard
+        TierStrip
+        Art
+          RaysProposal
+          DiceSkinArt "6"
+          NewChip "New"
+        Name "Genesis Sun"
+        Line "Legendary dice skin"
+    Footer
+      EquipButton "Equip now"
+      OpenAgainButton
+        CostChip [var(--size-keycap-h)] "1"
+      DoneButton
+        KeyCap "Space"
+
+=== 20-echo--reveal-rare-plus--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Echo Box ceremony modal. Skip (Space). Reduce motion: tint 0.2 s, cards all at once.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+  Scrim
+  Ceremony
+    Title "Reveal"
+    RevealProposal
+      RevealCard
+        TierStrip
+        Art
+          RaysProposal
+          DiceSkinArt "6"
+          NewChip "New"
+        Name "Genesis Sun"
+        Line "Legendary dice skin"
+    Footer
+      EquipButton "Equip now"
+      OpenAgainButton
+        CostChip [var(--size-keycap-h)] "1"
+      DoneButton
+        KeyCap "Space"
+
+=== 20-echo--reveal-mythic (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Echo Box ceremony modal. Skip (Space). Reduce motion: tint 0.2 s, cards all at once.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+  Scrim
+  Ceremony
+    Title "Reveal"
+    RevealProposal
+      RevealCard
+        TierStrip
+        Art
+          RaysProposal
+          DiceSkinArt "6"
+          NewChip "New"
+        Name "Heart of Luna"
+        Line "Mythic dice skin"
+    Footer
+      EquipButton "Equip now"
+      OpenAgainButton
+        CostChip [var(--size-keycap-h)] "1"
+      DoneButton
+        KeyCap "Space"
+
+=== 20-echo--reveal-mythic--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Echo Box ceremony modal. Skip (Space). Reduce motion: tint 0.2 s, cards all at once.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+  Scrim
+  Ceremony
+    Title "Reveal"
+    RevealProposal
+      RevealCard
+        TierStrip
+        Art
+          RaysProposal
+          DiceSkinArt "6"
+          NewChip "New"
+        Name "Heart of Luna"
+        Line "Mythic dice skin"
+    Footer
+      EquipButton "Equip now"
+      OpenAgainButton
+        CostChip [var(--size-keycap-h)] "1"
+      DoneButton
+        KeyCap "Space"
+
+=== 20-echo--open10 (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Echo Box ceremony modal. Skip (Space). Reduce motion: tint 0.2 s, cards all at once.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 14 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+  Scrim
+  Ceremony
+    Title "Open 10"
+    RevealGrid
+      RevealCard
+        TierStrip
+        Art
+        Name "250 Stone"
+        Line "Currency"
+      RevealCard
+        TierStrip
+        Art
+          DiceSkinArt "6"
+          NewChip "New"
+        Name "Reed Basket"
+        Line "Common dice skin"
+      RevealCard
+        TierStrip
+        Art
+        Name "100 Stone"
+        Line "Currency"
+      RevealCard
+        TierStrip
+        Art
+          FrameArt "L"
+          FragmentBadge "+3"
+        Name "Fuzzy Ears"
+        Line "Duplicate · 3 Fragments"
+      RevealCard
+        TierStrip
+        Art
+        Name "500 Stone"
+        Line "Currency"
+      RevealCard
+        TierStrip
+        Art
+        Name "250 Stone"
+        Line "Currency"
+      RevealCard
+        TierStrip
+        Art
+          DiceSkinArt "6"
+          NewChip "New"
+        Name "Tree Rings"
+        Line "Uncommon dice skin"
+      RevealCard
+        TierStrip
+        Art
+        Name "1,000 Stone"
+        Line "Currency"
+      RevealCard
+        TierStrip
+        Art
+          FrameArt "L"
+          FragmentBadge "+5"
+        Name "Plant Leaf Ring"
+        Line "Duplicate · 5 Fragments"
+      RevealCard
+        TierStrip
+        Art
+          DiceSkinArt "6"
+          NewChip "New"
+        Name "Coral Bloom"
+        Line "Epic dice skin"
+    Footer
+      OpenAgainButton
+        CostChip [var(--size-keycap-h)] "10"
+      DoneButton
+        KeyCap "Space"
+
+=== 20-echo--open10--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Echo Box ceremony modal. Skip (Space). Reduce motion: tint 0.2 s, cards all at once.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 14 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+  Scrim
+  Ceremony
+    Title "Open 10"
+    RevealGrid
+      RevealCard
+        TierStrip
+        Art
+        Name "250 Stone"
+        Line "Currency"
+      RevealCard
+        TierStrip
+        Art
+          DiceSkinArt "6"
+          NewChip "New"
+        Name "Reed Basket"
+        Line "Common dice skin"
+      RevealCard
+        TierStrip
+        Art
+        Name "100 Stone"
+        Line "Currency"
+      RevealCard
+        TierStrip
+        Art
+          FrameArt "L"
+          FragmentBadge "+3"
+        Name "Fuzzy Ears"
+        Line "Duplicate · 3 Fragments"
+      RevealCard
+        TierStrip
+        Art
+        Name "500 Stone"
+        Line "Currency"
+      RevealCard
+        TierStrip
+        Art
+        Name "250 Stone"
+        Line "Currency"
+      RevealCard
+        TierStrip
+        Art
+          DiceSkinArt "6"
+          NewChip "New"
+        Name "Tree Rings"
+        Line "Uncommon dice skin"
+      RevealCard
+        TierStrip
+        Art
+        Name "1,000 Stone"
+        Line "Currency"
+      RevealCard
+        TierStrip
+        Art
+          FrameArt "L"
+          FragmentBadge "+5"
+        Name "Plant Leaf Ring"
+        Line "Duplicate · 5 Fragments"
+      RevealCard
+        TierStrip
+        Art
+          DiceSkinArt "6"
+          NewChip "New"
+        Name "Coral Bloom"
+        Line "Epic dice skin"
+    Footer
+      OpenAgainButton
+        CostChip [var(--size-keycap-h)] "10"
+      DoneButton
+        KeyCap "Space"
+
+=== 20-echo--summary (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 14 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+      Summary "Result · 2,100 Stone · 3 new · 2 duplicates 250 Stone Stone…"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+
+=== 20-echo--summary--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 14 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+      Summary "Result · 2,100 Stone · 3 new · 2 duplicates 250 Stone Stone…"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"

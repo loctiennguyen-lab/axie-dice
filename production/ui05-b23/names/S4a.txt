@@ -1,0 +1,1091 @@
+# S4a: Team presets
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-land-screens.html
+# So frame: 18 (9 id, tinh ca ban 1920 va 1280)
+# Tien to: t0
+# Id frame:
+#   t01-presets--empty
+#   t01-presets--empty--1280
+#   t02-presets--grid
+#   t02-presets--grid--1280
+#   t03-presets--samples
+#   t03-presets--samples--1280
+#   t04-presets--editor-edit
+#   t04-presets--editor-edit--1280
+#   t05-presets--picker
+#   t05-presets--picker--1280
+#   t06-presets--discard
+#   t06-presets--discard--1280
+#   t07-presets--delete
+#   t07-presets--delete--1280
+#   t08-presets--editor-new
+#   t08-presets--editor-new--1280
+#   t09-presets--guest
+#   t09-presets--guest--1280
+
+=== t01-presets--empty (1920)
+  Header
+    BackButton "←"
+    Title "Team presets"
+    SubLine "0 of 3 slots used · more at higher Land tiers"
+    MyTeamsTab "My teams"
+    SampleTeamsTab "Sample teams"
+  EmptyState [760px]
+    BuildButton "Build your first team"
+
+=== t01-presets--empty--1280 (1280)
+  Header
+    BackButton "←"
+    Title "Team presets"
+    SubLine "0 of 3 slots used · more at higher Land tiers"
+    MyTeamsTab "My teams"
+    SampleTeamsTab "Sample teams"
+  EmptyState [507px]
+    BuildButton "Build your first team"
+
+=== t02-presets--grid (1920)
+  Header
+    BackButton "←"
+    Title "Team presets"
+    SubLine "3 of 3 slots used · more at higher Land tiers"
+    MyTeamsTab "My teams"
+    SampleTeamsTab "Sample teams"
+  Grid
+    TeamCard
+      Seat "Olek"
+      Seat "Machito"
+      Seat "Puffy"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Name "Thorn Wall"
+      NamesLine "Olek · Machito · Puffy · Buba · Pomodoro"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      Seat "Momo"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Seat "Momo"
+      Seat "Puffy"
+      Name "Sky Rush"
+      NamesLine "Momo · Buba · Pomodoro · Momo · Puffy"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      SeatMissing "Missing"
+      Seat "Buba"
+      Seat "Puffy"
+      SeatMissing "Missing"
+      Seat "Momo"
+      Name "Old NFT team"
+      NftTag "NFT"
+      NamesLine "2 of 5 seats empty: the Axie left your Vault"
+      UseButton "Pick a replacement"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    LockedSlot "Preset slot 4 Opens at Forest Land"
+    LockedSlot "Preset slot 5 Opens at Forest Land"
+    LockedSlot "Preset slot 6 Opens at Forest Land"
+    LockedSlot "Preset slot 7 Opens at Arctic Land"
+    LockedSlot "Preset slot 8 Opens at Arctic Land"
+    LockedSlot "Preset slot 9 Opens at Arctic Land"
+
+=== t02-presets--grid--1280 (1280)
+  Header
+    BackButton "←"
+    Title "Team presets"
+    SubLine "3 of 3 slots used · more at higher Land tiers"
+    MyTeamsTab "My teams"
+    SampleTeamsTab "Sample teams"
+  Grid
+    TeamCard
+      Seat "Olek"
+      Seat "Machito"
+      Seat "Puffy"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Name "Thorn Wall"
+      NamesLine "Olek · Machito · Puffy · Buba · Pomodoro"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      Seat "Momo"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Seat "Momo"
+      Seat "Puffy"
+      Name "Sky Rush"
+      NamesLine "Momo · Buba · Pomodoro · Momo · Puffy"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      SeatMissing "Missing"
+      Seat "Buba"
+      Seat "Puffy"
+      SeatMissing "Missing"
+      Seat "Momo"
+      Name "Old NFT team"
+      NftTag "NFT"
+      NamesLine "2 of 5 seats empty: the Axie left your Vault"
+      UseButton "Pick a replacement"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    LockedSlot "Preset slot 4 Opens at Forest Land"
+    LockedSlot "Preset slot 5 Opens at Forest Land"
+    LockedSlot "Preset slot 6 Opens at Forest Land"
+    LockedSlot "Preset slot 7 Opens at Arctic Land"
+    LockedSlot "Preset slot 8 Opens at Arctic Land"
+    LockedSlot "Preset slot 9 Opens at Arctic Land"
+
+=== t03-presets--samples (1920)
+  Header
+    BackButton "←"
+    Title "Team presets"
+    SubLine "From Guides"
+    MyTeamsTab "My teams"
+    SampleTeamsTab "Sample teams"
+  Samples
+    SampleCard
+      Seat "Olek"
+      Seat "Olek"
+      Seat "Machito"
+      Seat "Pomodoro"
+      Seat "Puffy"
+      UseButton "Use this team"
+    SampleCard
+      Seat "Pomodoro"
+      Seat "Pomodoro"
+      Seat "Machito"
+      Seat "Olek"
+      Seat "Puffy"
+      UseButton "Use this team"
+    SampleCard
+      Seat "Buba"
+      Seat "Buba"
+      Seat "Momo"
+      Seat "Olek"
+      Seat "Puffy"
+      UseButton "Use this team"
+    SampleCard
+      Seat "Puffy"
+      Seat "Puffy"
+      Seat "Olek"
+      Seat "Momo"
+      Seat "Pomodoro"
+      UseButton "Use this team"
+
+=== t03-presets--samples--1280 (1280)
+  Header
+    BackButton "←"
+    Title "Team presets"
+    SubLine "From Guides"
+    MyTeamsTab "My teams"
+    SampleTeamsTab "Sample teams"
+  Samples
+    SampleCard
+      Seat "Olek"
+      Seat "Olek"
+      Seat "Machito"
+      Seat "Pomodoro"
+      Seat "Puffy"
+      UseButton "Use this team"
+    SampleCard
+      Seat "Pomodoro"
+      Seat "Pomodoro"
+      Seat "Machito"
+      Seat "Olek"
+      Seat "Puffy"
+      UseButton "Use this team"
+    SampleCard
+      Seat "Buba"
+      Seat "Buba"
+      Seat "Momo"
+      Seat "Olek"
+      Seat "Puffy"
+      UseButton "Use this team"
+    SampleCard
+      Seat "Puffy"
+      Seat "Puffy"
+      Seat "Olek"
+      Seat "Momo"
+      Seat "Pomodoro"
+      UseButton "Use this team"
+
+=== t04-presets--editor-edit (1920)
+  # godot: Preset editor. Edit: name field has focus.
+  Header
+    BackButton "←"
+    Title "Team presets"
+    SubLine "3 of 3 slots used · more at higher Land tiers"
+    MyTeamsTab "My teams"
+    SampleTeamsTab "Sample teams"
+  Grid
+    TeamCard
+      Seat "Olek"
+      Seat "Machito"
+      Seat "Puffy"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Name "Thorn Wall"
+      NamesLine "Olek · Machito · Puffy · Buba · Pomodoro"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      Seat "Momo"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Seat "Momo"
+      Seat "Puffy"
+      Name "Sky Rush"
+      NamesLine "Momo · Buba · Pomodoro · Momo · Puffy"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      SeatMissing "Missing"
+      Seat "Buba"
+      Seat "Puffy"
+      SeatMissing "Missing"
+      Seat "Momo"
+      Name "Old NFT team"
+      NftTag "NFT"
+      NamesLine "2 of 5 seats empty: the Axie left your Vault"
+      UseButton "Pick a replacement"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    LockedSlot "Preset slot 4 Opens at Forest Land"
+    LockedSlot "Preset slot 5 Opens at Forest Land"
+    LockedSlot "Preset slot 6 Opens at Forest Land"
+    LockedSlot "Preset slot 7 Opens at Arctic Land"
+    LockedSlot "Preset slot 8 Opens at Arctic Land"
+    LockedSlot "Preset slot 9 Opens at Arctic Land"
+  Scrim
+  EditorModal
+    Title "Edit team"
+    NameField "Thorn Wall"
+    Seats
+      SeatRow
+        Portrait
+        SwapButton "Swap"
+        ClearButton "Clear"
+      SeatRow
+        Portrait
+        SwapButton "Swap"
+        ClearButton "Clear"
+      SeatRow
+        Portrait
+        SwapButton "Swap"
+        ClearButton "Clear"
+      SeatRow
+        Portrait
+        SwapButton "Swap"
+        ClearButton "Clear"
+      SeatRow
+        Portrait
+        SwapButton "Swap"
+        ClearButton "Clear"
+    DeleteButton "Delete"
+    CancelButton "Cancel"
+    SaveButton "Save team"
+
+=== t04-presets--editor-edit--1280 (1280)
+  # godot: Preset editor. Edit: name field has focus.
+  Header
+    BackButton "←"
+    Title "Team presets"
+    SubLine "3 of 3 slots used · more at higher Land tiers"
+    MyTeamsTab "My teams"
+    SampleTeamsTab "Sample teams"
+  Grid
+    TeamCard
+      Seat "Olek"
+      Seat "Machito"
+      Seat "Puffy"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Name "Thorn Wall"
+      NamesLine "Olek · Machito · Puffy · Buba · Pomodoro"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      Seat "Momo"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Seat "Momo"
+      Seat "Puffy"
+      Name "Sky Rush"
+      NamesLine "Momo · Buba · Pomodoro · Momo · Puffy"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      SeatMissing "Missing"
+      Seat "Buba"
+      Seat "Puffy"
+      SeatMissing "Missing"
+      Seat "Momo"
+      Name "Old NFT team"
+      NftTag "NFT"
+      NamesLine "2 of 5 seats empty: the Axie left your Vault"
+      UseButton "Pick a replacement"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    LockedSlot "Preset slot 4 Opens at Forest Land"
+    LockedSlot "Preset slot 5 Opens at Forest Land"
+    LockedSlot "Preset slot 6 Opens at Forest Land"
+    LockedSlot "Preset slot 7 Opens at Arctic Land"
+    LockedSlot "Preset slot 8 Opens at Arctic Land"
+    LockedSlot "Preset slot 9 Opens at Arctic Land"
+  Scrim
+  EditorModal
+    Title "Edit team"
+    NameField "Thorn Wall"
+    Seats
+      SeatRow
+        Portrait
+        SwapButton "Swap"
+        ClearButton "Clear"
+      SeatRow
+        Portrait
+        SwapButton "Swap"
+        ClearButton "Clear"
+      SeatRow
+        Portrait
+        SwapButton "Swap"
+        ClearButton "Clear"
+      SeatRow
+        Portrait
+        SwapButton "Swap"
+        ClearButton "Clear"
+      SeatRow
+        Portrait
+        SwapButton "Swap"
+        ClearButton "Clear"
+    DeleteButton "Delete"
+    CancelButton "Cancel"
+    SaveButton "Save team"
+
+=== t05-presets--picker (1920)
+  # godot: Preset picker. Nothing picked; Cancel has focus.
+  Header
+    BackButton "←"
+    Title "Team presets"
+    SubLine "3 of 3 slots used · more at higher Land tiers"
+    MyTeamsTab "My teams"
+    SampleTeamsTab "Sample teams"
+  Grid
+    TeamCard
+      Seat "Olek"
+      Seat "Machito"
+      Seat "Puffy"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Name "Thorn Wall"
+      NamesLine "Olek · Machito · Puffy · Buba · Pomodoro"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      Seat "Momo"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Seat "Momo"
+      Seat "Puffy"
+      Name "Sky Rush"
+      NamesLine "Momo · Buba · Pomodoro · Momo · Puffy"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      SeatMissing "Missing"
+      Seat "Buba"
+      Seat "Puffy"
+      SeatMissing "Missing"
+      Seat "Momo"
+      Name "Old NFT team"
+      NftTag "NFT"
+      NamesLine "2 of 5 seats empty: the Axie left your Vault"
+      UseButton "Pick a replacement"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    LockedSlot "Preset slot 4 Opens at Forest Land"
+    LockedSlot "Preset slot 5 Opens at Forest Land"
+    LockedSlot "Preset slot 6 Opens at Forest Land"
+    LockedSlot "Preset slot 7 Opens at Arctic Land"
+    LockedSlot "Preset slot 8 Opens at Arctic Land"
+    LockedSlot "Preset slot 9 Opens at Arctic Land"
+  Scrim
+  PresetPicker [var(--size-picker-w)]
+    Title "Choose an Axie for slot 3"
+    AllTab "All"
+    PlantTab "Plant"
+    BeastTab "Beast"
+    AquaTab "Aqua"
+    ReptileTab "Reptile"
+    BugTab "Bug"
+    BirdTab "Bird"
+    AxieTile
+      Portrait
+    AxieTile
+      Portrait
+    AxieTile
+      Portrait
+    AxieTile
+      Portrait
+    AxieTile
+      Portrait
+    AxieTile
+      Portrait
+    CancelButton
+      KeyCap "Space"
+    PutButton "Pick an Axie first"
+
+=== t05-presets--picker--1280 (1280)
+  # godot: Preset picker. Nothing picked; Cancel has focus.
+  Header
+    BackButton "←"
+    Title "Team presets"
+    SubLine "3 of 3 slots used · more at higher Land tiers"
+    MyTeamsTab "My teams"
+    SampleTeamsTab "Sample teams"
+  Grid
+    TeamCard
+      Seat "Olek"
+      Seat "Machito"
+      Seat "Puffy"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Name "Thorn Wall"
+      NamesLine "Olek · Machito · Puffy · Buba · Pomodoro"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      Seat "Momo"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Seat "Momo"
+      Seat "Puffy"
+      Name "Sky Rush"
+      NamesLine "Momo · Buba · Pomodoro · Momo · Puffy"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      SeatMissing "Missing"
+      Seat "Buba"
+      Seat "Puffy"
+      SeatMissing "Missing"
+      Seat "Momo"
+      Name "Old NFT team"
+      NftTag "NFT"
+      NamesLine "2 of 5 seats empty: the Axie left your Vault"
+      UseButton "Pick a replacement"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    LockedSlot "Preset slot 4 Opens at Forest Land"
+    LockedSlot "Preset slot 5 Opens at Forest Land"
+    LockedSlot "Preset slot 6 Opens at Forest Land"
+    LockedSlot "Preset slot 7 Opens at Arctic Land"
+    LockedSlot "Preset slot 8 Opens at Arctic Land"
+    LockedSlot "Preset slot 9 Opens at Arctic Land"
+  Scrim
+  PresetPicker [var(--size-picker-w)]
+    Title "Choose an Axie for slot 3"
+    AllTab "All"
+    PlantTab "Plant"
+    BeastTab "Beast"
+    AquaTab "Aqua"
+    ReptileTab "Reptile"
+    BugTab "Bug"
+    BirdTab "Bird"
+    AxieTile
+      Portrait
+    AxieTile
+      Portrait
+    AxieTile
+      Portrait
+    AxieTile
+      Portrait
+    AxieTile
+      Portrait
+    AxieTile
+      Portrait
+    CancelButton
+      KeyCap "Space"
+    PutButton "Pick an Axie first"
+
+=== t06-presets--discard (1920)
+  # godot: Preset editor. Edit: name field has focus.
+  # godot: Confirm over the editor. Focus on Keep editing (safe).
+  Header
+    BackButton "←"
+    Title "Team presets"
+    SubLine "3 of 3 slots used · more at higher Land tiers"
+    MyTeamsTab "My teams"
+    SampleTeamsTab "Sample teams"
+  Grid
+    TeamCard
+      Seat "Olek"
+      Seat "Machito"
+      Seat "Puffy"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Name "Thorn Wall"
+      NamesLine "Olek · Machito · Puffy · Buba · Pomodoro"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      Seat "Momo"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Seat "Momo"
+      Seat "Puffy"
+      Name "Sky Rush"
+      NamesLine "Momo · Buba · Pomodoro · Momo · Puffy"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      SeatMissing "Missing"
+      Seat "Buba"
+      Seat "Puffy"
+      SeatMissing "Missing"
+      Seat "Momo"
+      Name "Old NFT team"
+      NftTag "NFT"
+      NamesLine "2 of 5 seats empty: the Axie left your Vault"
+      UseButton "Pick a replacement"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    LockedSlot "Preset slot 4 Opens at Forest Land"
+    LockedSlot "Preset slot 5 Opens at Forest Land"
+    LockedSlot "Preset slot 6 Opens at Forest Land"
+    LockedSlot "Preset slot 7 Opens at Arctic Land"
+    LockedSlot "Preset slot 8 Opens at Arctic Land"
+    LockedSlot "Preset slot 9 Opens at Arctic Land"
+  Scrim
+  EditorModal
+    Title "Edit team"
+    NameField "Thorn Wall"
+    Seats
+      SeatRow
+        Portrait
+        SwapButton "Swap"
+        ClearButton "Clear"
+      SeatRow
+        Portrait
+        SwapButton "Swap"
+        ClearButton "Clear"
+      SeatRow
+        Portrait
+        SwapButton "Swap"
+        ClearButton "Clear"
+      SeatRow
+        Portrait
+        SwapButton "Swap"
+        ClearButton "Clear"
+      SeatRow
+        Portrait
+        SwapButton "Swap"
+        ClearButton "Clear"
+    DeleteButton "Delete"
+    CancelButton "Cancel"
+    SaveButton "Save team"
+  Scrim
+  DiscardConfirm
+    Title "Discard changes?"
+    Body "This team has changes you have not saved."
+    Footer
+      KeepEditingButton
+        KeyCap "Space"
+      DiscardButton "Discard"
+
+=== t06-presets--discard--1280 (1280)
+  # godot: Preset editor. Edit: name field has focus.
+  # godot: Confirm over the editor. Focus on Keep editing (safe).
+  Header
+    BackButton "←"
+    Title "Team presets"
+    SubLine "3 of 3 slots used · more at higher Land tiers"
+    MyTeamsTab "My teams"
+    SampleTeamsTab "Sample teams"
+  Grid
+    TeamCard
+      Seat "Olek"
+      Seat "Machito"
+      Seat "Puffy"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Name "Thorn Wall"
+      NamesLine "Olek · Machito · Puffy · Buba · Pomodoro"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      Seat "Momo"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Seat "Momo"
+      Seat "Puffy"
+      Name "Sky Rush"
+      NamesLine "Momo · Buba · Pomodoro · Momo · Puffy"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      SeatMissing "Missing"
+      Seat "Buba"
+      Seat "Puffy"
+      SeatMissing "Missing"
+      Seat "Momo"
+      Name "Old NFT team"
+      NftTag "NFT"
+      NamesLine "2 of 5 seats empty: the Axie left your Vault"
+      UseButton "Pick a replacement"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    LockedSlot "Preset slot 4 Opens at Forest Land"
+    LockedSlot "Preset slot 5 Opens at Forest Land"
+    LockedSlot "Preset slot 6 Opens at Forest Land"
+    LockedSlot "Preset slot 7 Opens at Arctic Land"
+    LockedSlot "Preset slot 8 Opens at Arctic Land"
+    LockedSlot "Preset slot 9 Opens at Arctic Land"
+  Scrim
+  EditorModal
+    Title "Edit team"
+    NameField "Thorn Wall"
+    Seats
+      SeatRow
+        Portrait
+        SwapButton "Swap"
+        ClearButton "Clear"
+      SeatRow
+        Portrait
+        SwapButton "Swap"
+        ClearButton "Clear"
+      SeatRow
+        Portrait
+        SwapButton "Swap"
+        ClearButton "Clear"
+      SeatRow
+        Portrait
+        SwapButton "Swap"
+        ClearButton "Clear"
+      SeatRow
+        Portrait
+        SwapButton "Swap"
+        ClearButton "Clear"
+    DeleteButton "Delete"
+    CancelButton "Cancel"
+    SaveButton "Save team"
+  Scrim
+  DiscardConfirm
+    Title "Discard changes?"
+    Body "This team has changes you have not saved."
+    Footer
+      KeepEditingButton
+        KeyCap "Space"
+      DiscardButton "Discard"
+
+=== t07-presets--delete (1920)
+  # godot: Confirm. Focus on Keep it (safe): Space presses Keep it.
+  Header
+    BackButton "←"
+    Title "Team presets"
+    SubLine "3 of 3 slots used · more at higher Land tiers"
+    MyTeamsTab "My teams"
+    SampleTeamsTab "Sample teams"
+  Grid
+    TeamCard
+      Seat "Olek"
+      Seat "Machito"
+      Seat "Puffy"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Name "Thorn Wall"
+      NamesLine "Olek · Machito · Puffy · Buba · Pomodoro"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      Seat "Momo"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Seat "Momo"
+      Seat "Puffy"
+      Name "Sky Rush"
+      NamesLine "Momo · Buba · Pomodoro · Momo · Puffy"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      SeatMissing "Missing"
+      Seat "Buba"
+      Seat "Puffy"
+      SeatMissing "Missing"
+      Seat "Momo"
+      Name "Old NFT team"
+      NftTag "NFT"
+      NamesLine "2 of 5 seats empty: the Axie left your Vault"
+      UseButton "Pick a replacement"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    LockedSlot "Preset slot 4 Opens at Forest Land"
+    LockedSlot "Preset slot 5 Opens at Forest Land"
+    LockedSlot "Preset slot 6 Opens at Forest Land"
+    LockedSlot "Preset slot 7 Opens at Arctic Land"
+    LockedSlot "Preset slot 8 Opens at Arctic Land"
+    LockedSlot "Preset slot 9 Opens at Arctic Land"
+  Scrim
+  DeleteConfirm
+    Title "Delete "Sky Rush"?"
+    Body "The preset is removed. Your Axies stay in the Vault and the…"
+    Footer
+      KeepItButton
+        KeyCap "Space"
+      DeletePresetButton "Delete preset"
+
+=== t07-presets--delete--1280 (1280)
+  # godot: Confirm. Focus on Keep it (safe): Space presses Keep it.
+  Header
+    BackButton "←"
+    Title "Team presets"
+    SubLine "3 of 3 slots used · more at higher Land tiers"
+    MyTeamsTab "My teams"
+    SampleTeamsTab "Sample teams"
+  Grid
+    TeamCard
+      Seat "Olek"
+      Seat "Machito"
+      Seat "Puffy"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Name "Thorn Wall"
+      NamesLine "Olek · Machito · Puffy · Buba · Pomodoro"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      Seat "Momo"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Seat "Momo"
+      Seat "Puffy"
+      Name "Sky Rush"
+      NamesLine "Momo · Buba · Pomodoro · Momo · Puffy"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      SeatMissing "Missing"
+      Seat "Buba"
+      Seat "Puffy"
+      SeatMissing "Missing"
+      Seat "Momo"
+      Name "Old NFT team"
+      NftTag "NFT"
+      NamesLine "2 of 5 seats empty: the Axie left your Vault"
+      UseButton "Pick a replacement"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    LockedSlot "Preset slot 4 Opens at Forest Land"
+    LockedSlot "Preset slot 5 Opens at Forest Land"
+    LockedSlot "Preset slot 6 Opens at Forest Land"
+    LockedSlot "Preset slot 7 Opens at Arctic Land"
+    LockedSlot "Preset slot 8 Opens at Arctic Land"
+    LockedSlot "Preset slot 9 Opens at Arctic Land"
+  Scrim
+  DeleteConfirm
+    Title "Delete "Sky Rush"?"
+    Body "The preset is removed. Your Axies stay in the Vault and the…"
+    Footer
+      KeepItButton
+        KeyCap "Space"
+      DeletePresetButton "Delete preset"
+
+=== t08-presets--editor-new (1920)
+  # godot: Preset editor. New: Save disabled until a name and all seats exist.
+  Header
+    BackButton "←"
+    Title "Team presets"
+    SubLine "3 of 3 slots used · more at higher Land tiers"
+    MyTeamsTab "My teams"
+    SampleTeamsTab "Sample teams"
+  Grid
+    TeamCard
+      Seat "Olek"
+      Seat "Machito"
+      Seat "Puffy"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Name "Thorn Wall"
+      NamesLine "Olek · Machito · Puffy · Buba · Pomodoro"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      Seat "Momo"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Seat "Momo"
+      Seat "Puffy"
+      Name "Sky Rush"
+      NamesLine "Momo · Buba · Pomodoro · Momo · Puffy"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      SeatMissing "Missing"
+      Seat "Buba"
+      Seat "Puffy"
+      SeatMissing "Missing"
+      Seat "Momo"
+      Name "Old NFT team"
+      NftTag "NFT"
+      NamesLine "2 of 5 seats empty: the Axie left your Vault"
+      UseButton "Pick a replacement"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    LockedSlot "Preset slot 4 Opens at Forest Land"
+    LockedSlot "Preset slot 5 Opens at Forest Land"
+    LockedSlot "Preset slot 6 Opens at Forest Land"
+    LockedSlot "Preset slot 7 Opens at Arctic Land"
+    LockedSlot "Preset slot 8 Opens at Arctic Land"
+    LockedSlot "Preset slot 9 Opens at Arctic Land"
+  Scrim
+  EditorModal
+    Title "New team"
+    NameField
+    Seats
+      SeatRow
+        PickButton "Pick"
+      SeatRow
+        PickButton "Pick"
+      SeatRow
+        PickButton "Pick"
+      SeatRow
+        PickButton "Pick"
+      SeatRow
+        PickButton "Pick"
+    CancelButton "Cancel"
+    SaveButton "Save team · Give the team a name"
+
+=== t08-presets--editor-new--1280 (1280)
+  # godot: Preset editor. New: Save disabled until a name and all seats exist.
+  Header
+    BackButton "←"
+    Title "Team presets"
+    SubLine "3 of 3 slots used · more at higher Land tiers"
+    MyTeamsTab "My teams"
+    SampleTeamsTab "Sample teams"
+  Grid
+    TeamCard
+      Seat "Olek"
+      Seat "Machito"
+      Seat "Puffy"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Name "Thorn Wall"
+      NamesLine "Olek · Machito · Puffy · Buba · Pomodoro"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      Seat "Momo"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Seat "Momo"
+      Seat "Puffy"
+      Name "Sky Rush"
+      NamesLine "Momo · Buba · Pomodoro · Momo · Puffy"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      SeatMissing "Missing"
+      Seat "Buba"
+      Seat "Puffy"
+      SeatMissing "Missing"
+      Seat "Momo"
+      Name "Old NFT team"
+      NftTag "NFT"
+      NamesLine "2 of 5 seats empty: the Axie left your Vault"
+      UseButton "Pick a replacement"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    LockedSlot "Preset slot 4 Opens at Forest Land"
+    LockedSlot "Preset slot 5 Opens at Forest Land"
+    LockedSlot "Preset slot 6 Opens at Forest Land"
+    LockedSlot "Preset slot 7 Opens at Arctic Land"
+    LockedSlot "Preset slot 8 Opens at Arctic Land"
+    LockedSlot "Preset slot 9 Opens at Arctic Land"
+  Scrim
+  EditorModal
+    Title "New team"
+    NameField
+    Seats
+      SeatRow
+        PickButton "Pick"
+      SeatRow
+        PickButton "Pick"
+      SeatRow
+        PickButton "Pick"
+      SeatRow
+        PickButton "Pick"
+      SeatRow
+        PickButton "Pick"
+    CancelButton "Cancel"
+    SaveButton "Save team · Give the team a name"
+
+=== t09-presets--guest (1920)
+  Header
+    BackButton "←"
+    Title "Team presets"
+    SubLine "3 of 3 slots used · more at higher Land tiers"
+    MyTeamsTab "My teams"
+    SampleTeamsTab "Sample teams"
+  GuestBanner [var(--space-screen),136px]
+    ToneDisc "i"
+    SignInButton "Sign in"
+  Grid [240px]
+    TeamCard
+      Seat "Olek"
+      Seat "Machito"
+      Seat "Puffy"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Name "Thorn Wall"
+      NamesLine "Olek · Machito · Puffy · Buba · Pomodoro"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      Seat "Momo"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Seat "Momo"
+      Seat "Puffy"
+      Name "Sky Rush"
+      NamesLine "Momo · Buba · Pomodoro · Momo · Puffy"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      SeatMissing "Missing"
+      Seat "Buba"
+      Seat "Puffy"
+      SeatMissing "Missing"
+      Seat "Momo"
+      Name "Old NFT team"
+      NftTag "NFT"
+      NamesLine "2 of 5 seats empty: the Axie left your Vault"
+      UseButton "Pick a replacement"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    LockedSlot "Preset slot 4 Opens at Forest Land"
+    LockedSlot "Preset slot 5 Opens at Forest Land"
+    LockedSlot "Preset slot 6 Opens at Forest Land"
+    LockedSlot "Preset slot 7 Opens at Arctic Land"
+    LockedSlot "Preset slot 8 Opens at Arctic Land"
+    LockedSlot "Preset slot 9 Opens at Arctic Land"
+
+=== t09-presets--guest--1280 (1280)
+  Header
+    BackButton "←"
+    Title "Team presets"
+    SubLine "3 of 3 slots used · more at higher Land tiers"
+    MyTeamsTab "My teams"
+    SampleTeamsTab "Sample teams"
+  GuestBanner [var(--space-screen),91px]
+    ToneDisc "i"
+    SignInButton "Sign in"
+  Grid [160px]
+    TeamCard
+      Seat "Olek"
+      Seat "Machito"
+      Seat "Puffy"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Name "Thorn Wall"
+      NamesLine "Olek · Machito · Puffy · Buba · Pomodoro"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      Seat "Momo"
+      Seat "Buba"
+      Seat "Pomodoro"
+      Seat "Momo"
+      Seat "Puffy"
+      Name "Sky Rush"
+      NamesLine "Momo · Buba · Pomodoro · Momo · Puffy"
+      UseButton "Use for next run"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    TeamCard
+      SeatMissing "Missing"
+      Seat "Buba"
+      Seat "Puffy"
+      SeatMissing "Missing"
+      Seat "Momo"
+      Name "Old NFT team"
+      NftTag "NFT"
+      NamesLine "2 of 5 seats empty: the Axie left your Vault"
+      UseButton "Pick a replacement"
+      EditButton "Edit"
+      CopyButton "Copy"
+      DeleteButton "Delete"
+    LockedSlot "Preset slot 4 Opens at Forest Land"
+    LockedSlot "Preset slot 5 Opens at Forest Land"
+    LockedSlot "Preset slot 6 Opens at Forest Land"
+    LockedSlot "Preset slot 7 Opens at Arctic Land"
+    LockedSlot "Preset slot 8 Opens at Arctic Land"
+    LockedSlot "Preset slot 9 Opens at Arctic Land"

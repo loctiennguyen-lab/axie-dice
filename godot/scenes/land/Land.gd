@@ -92,7 +92,7 @@ const META: Dictionary = {
 	"house": {"name": "House", "key": "2", "sub": "Team presets"},
 	"missions": {"name": "Missions", "key": "3", "sub": "Missions N1–N3"},
 	"echobox": {"name": "Echo Box", "key": "4", "sub": "Rolled on the server"},
-	"pass": {"name": "Season Pass", "key": "5", "sub": "Season 1 · ends 29 Dec 2026"},
+	"pass": {"name": "Season Pass", "key": "5", "sub": "Season 1 · ends 28 Dec 2026"},
 	"vault": {"name": "Vault", "key": "6", "sub": ""},
 	"store": {"name": "Store", "key": "7", "sub": ""},
 	"board": {"name": "Leaderboard", "key": "B", "sub": "Season ranking"},
@@ -131,6 +131,7 @@ var _ui: Control
 var _hits := {}                      # id -> Button (clickable box)
 var _plot_marks := {}                # id -> Control
 var _house_defs := {}                # house_id -> dictionary from houses.json
+var _hud := LandHud.new(self)          # HUD pieces (plate, coach, banner, toast, confirm); state stays here
 var _run_plate: Button
 var _toast: PanelContainer
 var _toasts: Array = []
@@ -239,8 +240,7 @@ func _show_reset_notice() -> void:
 		MetaState.dismiss_reset_notice()
 		_close_modal()
 		_gift_and_tier_notices())
-	var m := UI3.modal("Beta reset", "Beta reset: everyone starts fresh. Shards, Stone, tickets, unlocks and run history were cleared. Your account and sign-in are kept.", [ok], 0)
-	m.name = "ResetNotice"
+	var m := _hud.reset_notice("Beta reset: everyone starts fresh. Shards, Stone, tickets, unlocks and run history were cleared. Your account and sign-in are kept.", ok)
 	m.cancelled.connect(ok.pressed.emit)
 	_modal = m
 	_ui.add_child(_modal)
@@ -249,7 +249,7 @@ func _show_reset_notice() -> void:
 func _gift_and_tier_notices() -> void:
 	if _gift_given:
 		_gift_given = false
-		_show_toast("Welcome gift: 3 decor in your storage — press E (Edit Land) to place them", 6.0)
+		_show_toast("Welcome gift: 3 decor in your storage. Open Edit Land to place them.", 6.0)
 	if MetaState.land_tier_banner_seen < _tier and not has_modal():
 		MetaState.land_tier_banner_seen = _tier
 		MetaState.save_to_disk()
@@ -257,21 +257,7 @@ func _gift_and_tier_notices() -> void:
 
 
 func _show_tier_banner() -> void:
-	var ok := UI3.button("Look around", &"primary")
-	ok.name = "TierBannerOk"
-	ok.pressed.connect(_close_modal)
-	var body := "%s is open." % TIER_NAMES[_tier - 1]
-	var used: int = maxi(preload("res://scripts/meta/economy_db.gd").land_tier_cost(_tier - 1), 0)
-	if used > 0:
-		body += " Used %s Stone." % _fmt(used)
-	var where := String(LandUpgradeScreen.ADDS_WHERE.get(_tier, ""))
-	if where != "":
-		body += "\nNew: " + where.replace(" · ", "\n")
-	var m := UI3.modal("Your Land is now %s" % TIER_NAMES[_tier - 1], body, [ok], 0)
-	m.name = "TierBanner"
-	m.cancelled.connect(_close_modal)
-	_modal = m
-	_ui.add_child(_modal)
+	_hud.show_tier_banner()
 
 
 func _exit_tree() -> void:
@@ -1094,7 +1080,7 @@ func _wire_focus() -> void:
 	for id in NUM_KEYS + ["board"]:
 		if _hits.has(id):
 			order.append(_hits[id])
-	order.append(find_child("Settings", true, false) as Control)
+	order.append(find_child("SettingsButton", true, false) as Control)
 	for i in order.size():
 		var nxt := order[(i + 1) % order.size()]
 		var prv := order[(i - 1 + order.size()) % order.size()]
@@ -1142,7 +1128,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	var tap: bool = event is InputEventMouseButton and event.pressed and event.device == InputEvent.DEVICE_ID_EMULATION
 	if tap:
 		if _hits.has(_touch_id):
-			UI3Tooltip.hide_for(_hits[_touch_id] as Control)
+			_hud.tip_hide(_hits[_touch_id] as Control)
 		_touch_id = ""
 		_refresh_signs()
 
@@ -1151,7 +1137,7 @@ func _on_hit_pressed(id: String) -> void:
 	if _is_touch() and id != "portal" and _touch_id != id:
 		_touch_id = id
 		_refresh_signs()
-		UI3Tooltip.show_now(_hits[id] as Control)   # first tap shows the name, second tap opens
+		_hud.tip_show_now(_hits[id] as Control)   # first tap shows the name, second tap opens
 		return
 	_on_house_pressed(id)
 
@@ -1183,11 +1169,7 @@ func _focus(id: String, on: bool) -> void:
 ## Names live in a UI3 tooltip only: hover, keyboard focus, or the first touch tap. The text is rebuilt on every
 ## hover / focus / state change so status and lock reasons are current.
 func _refresh_signs() -> void:
-	for id in _hits:
-		UI3Tooltip.bind(_hits[id] as Control, _tip_text(id))
-	for id in _plot_marks:
-		UI3Tooltip.bind(_plot_marks[id] as Control, _tip_text(id))
-	_layout()
+	_hud.bind_tips()   # S1a: BuildingTooltip plate (LandHud) instead of the generic UI3 tooltip
 
 
 ## "Name  [key]" title, then the lock reason if locked, else the useful status and the sub-line.
@@ -1251,119 +1233,8 @@ func _add_plot(id: String) -> void:
 
 # ---------------------------------------------------------------- HUD (UI-03: 4 corner groups)
 
-## Flat clickable layer over a plate cell: hover tint, amber focus ring, content passes mouse through.
-func _cell(btn_name: String, content: Control, on_press: Callable) -> MarginContainer:
-	var mc := MarginContainer.new()
-	mc.theme = UI3Theme.get_theme()
-	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	mc.add_child(content)
-	var b := Button.new()
-	b.name = btn_name
-	b.flat = true
-	b.focus_mode = Control.FOCUS_ALL
-	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	var empty := StyleBoxEmpty.new()
-	for st in ["normal", "pressed", "focus", "disabled"]:
-		b.add_theme_stylebox_override(st, empty)
-	b.add_theme_stylebox_override("hover", UI3Theme.flat(Color(1, 1, 1, 0.08), UI3Theme.radius("s")))
-	b.pressed.connect(on_press)
-	mc.add_child(b)
-	UI3.attach_focus_ring(b)
-	return mc
-
-
 func _build_hud() -> void:
-	# Top-left: profile plate (+ quiet Land upgrade link under it).
-	_hud_tl = VBoxContainer.new()
-	_hud_tl.name = "HudTopLeft"
-	_hud_tl.theme = UI3Theme.get_theme()
-	_hud_tl.add_theme_constant_override("separation", UI3Theme.space("8"))
-	_ui.add_child(_hud_tl)
-	var prof := UI3.plate(&"plate")
-	prof.name = "ProfilePlate"
-	prof.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	prof.add_child(_profile_cell())
-	_hud_tl.add_child(prof)
-	var lp := UI3.plate(&"plate")
-	lp.name = "LandPlate"
-	lp.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	lp.add_child(_land_link())
-	_hud_tl.add_child(lp)
-
-	# Top-right: one plate, currencies then settings (spec 01).
-	_wallet = UI3.plate(&"plate")
-	_wallet.name = "Wallet"
-	var wrow := HBoxContainer.new()
-	wrow.add_theme_constant_override("separation", UI3Theme.space("24"))
-	_wallet.add_child(wrow)
-	var cur := UI3.currency_pill(UI3.currency_entries(_loading))   # one order everywhere
-	_currencies = cur.get_child(0) as Control   # the pill's own row of icon + value cells
-	cur.remove_child(_currencies)
-	cur.free()
-	_currencies.name = "Currencies"
-	_currencies.visible = not _guest   # signed out: currencies hidden
-	wrow.add_child(_currencies)
-	var st := UI3.icon_button("ui_settings", "Settings")
-	st.name = "Settings"
-	st.pressed.connect(_open_screen.bind(&"settings"))
-	wrow.add_child(st)
-	_ui.add_child(_wallet)
-
-	# Bottom-left: Show names (N) and Codex (C).
-	_hud_bl = UI3.plate(&"plate")
-	_hud_bl.name = "HudBottomLeft"
-	var blr := HBoxContainer.new()
-	blr.add_theme_constant_override("separation", UI3Theme.space("24"))
-	_hud_bl.add_child(blr)
-	var crow := HBoxContainer.new()
-	crow.add_theme_constant_override("separation", UI3Theme.space("12"))
-	crow.add_child(UI3.label("Codex"))
-	blr.add_child(_cell("Codex", crow, _on_rail_pressed.bind(&"codex")))
-	var erow := HBoxContainer.new()
-	erow.add_theme_constant_override("separation", UI3Theme.space("12"))
-	erow.add_child(UI3.label("Edit Land"))
-	erow.add_child(UI3.key_hint("E"))
-	blr.add_child(_cell("EditLand", erow, _on_edit_pressed))
-	# Raid R1 (lane RV): fight another player's defence team (online only; the screen explains why when it can't).
-	var rrow := HBoxContainer.new()
-	rrow.add_theme_constant_override("separation", UI3Theme.space("12"))
-	rrow.add_child(UI3.label("Raid"))
-	var raid_cell := _cell("Raid", rrow, _on_rail_pressed.bind(&"raid"))
-	raid_cell.name = "Rail_Raid"
-	blr.add_child(raid_cell)
-	# Moon Card: L1 shows it disabled, no price (answered in round 2). Hidden when signed out.
-	_moon_btn = UI3.button("Moon Card · Coming soon", &"secondary", &"S")
-	_moon_btn.name = "MoonCardButton"
-	_moon_btn.disabled = true
-	_moon_btn.visible = not _guest
-	blr.add_child(_moon_btn)
-	_ui.add_child(_hud_bl)
-
-	# Bottom-right: one primary, up to two secondary.
-	_hud_br = HBoxContainer.new()
-	_hud_br.name = "HudBottomRight"
-	_hud_br.theme = UI3Theme.get_theme()
-	_hud_br.add_theme_constant_override("separation", UI3Theme.space("16"))
-	_hud_br.alignment = BoxContainer.ALIGNMENT_END
-	_ui.add_child(_hud_br)
-	_new_run_btn = UI3.button("New run · " + KeyBindings.text(&"land_new_run"), &"secondary", &"M")
-	_new_run_btn.name = "NewRunButton"
-	_new_run_btn.pressed.connect(_on_new_run_pressed)
-	_new_run_btn.visible = _has_run
-	_hud_br.add_child(_new_run_btn)
-	_daily_btn = UI3.button("Daily run", &"secondary", &"M")
-	_daily_btn.name = "Rail_Daily"
-	_daily_btn.pressed.connect(_on_rail_pressed.bind(&"daily"))
-	var dwhy := _block_reason_screen(&"daily")
-	if dwhy != "":
-		UI3.set_disabled_reason(_daily_btn, "Daily run · needs connection")
-	elif _tag("daily") == "CLAIM":
-		_daily_btn.text = "Daily run · claim"
-	_daily_btn.visible = not (_first and not _has_run) and not _guest   # first visit / signed out: Daily hidden
-	_hud_br.add_child(_daily_btn)
-	_load_daily_tries()
-	_run_plate = _build_run_button()
-	_hud_br.add_child(_run_plate)
+	_hud.build_hud()   # S1a: plates live in LandHud + land/ui5/LandPlates.gd
 
 
 ## Daily tries left today ("Daily run · 2 of 3"), the same numbers Run Setup shows. Quiet when offline,
@@ -1397,44 +1268,6 @@ func _apply_daily_tries(t: Dictionary) -> void:
 		_layout()
 
 
-func _profile_cell() -> Control:
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", UI3Theme.space("16"))
-	var name := "Guest"
-	if not _guest:
-		name = AccountService.display_name() if AccountService.is_signed_in() else "Player"
-	var av := PanelContainer.new()
-	av.add_theme_stylebox_override("panel", UI3Theme.flat(
-		UI3Theme.color("disabled") if _guest else UI3Theme.color("accent"), 24))
-	av.custom_minimum_size = Vector2(48, 48)
-	av.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	av.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var ini := UI3.label("?" if _guest else name.left(1).to_upper(), "LabelDisplay")
-	ini.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
-	ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	av.add_child(ini)
-	h.add_child(AvatarFrame.wrap_holder(av, 48.0, MetaState.equipped_frame))
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 0)
-	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	var nl := UI3.label(name.left(16), "LabelTitle")
-	nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	col.custom_minimum_size.x = 220   # name budget 220 px, best line 260 px (ellipsis)
-	col.add_child(nl)
-	var sub := "Sign in to save online"
-	if not _guest:
-		sub = _best_line()
-		if MetaState.equipped_title != "":
-			sub = TitleNames.display(MetaState.equipped_title)
-	var bl := UI3.label(sub.left(24), "LabelMuted")
-	bl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	bl.custom_minimum_size.x = 220
-	col.add_child(bl)
-	h.add_child(col)
-	return _cell("ProfileChip", h, _open_profile)
-
-
 ## "Best: A3" from the real won-ascension record, "No wins yet" otherwise (never a made-up number).
 func _best_line() -> String:
 	var best := -1
@@ -1442,27 +1275,6 @@ func _best_line() -> String:
 		if int(MetaState.asc_wins[k]) > 0:
 			best = maxi(best, int(k))
 	return "Best: A%d" % best if best >= 0 else "No wins yet"
-
-
-## Land tier link under the profile plate (key L). Tier 6 has nothing left to upgrade.
-func _land_link() -> Control:
-	var tn: String = TIER_NAMES[_tier - 1]
-	if _tier >= 6:
-		var l := UI3.label("%s Land · max tier" % tn, "LabelMuted")
-		l.name = "LandChip"
-		return l
-	var need := _upgrade_cost()
-	var have := _meta_int("stone")
-	var can_up := preload("res://scripts/meta/economy_db.gd").land_upgrade_enabled() and have >= need
-	var txt := "Upgrade Land · %s %d/6 · Stone %s/%s" % [tn, _tier, _fmt(mini(have, need)), _fmt(need)]
-	txt += " · ready" if can_up else " · %s to %s" % [_fmt(maxi(need - have, 0)), TIER_NAMES[_tier]]
-	# S3-13: it opens the upgrade screen, so it is drawn as a (secondary) button, not a label.
-	var btn := UI3.button(txt, &"secondary", &"S")
-	btn.name = "UpgradeLand"
-	btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	btn.tooltip_text = "%s / %s Land Stone" % [_fmt(have), _fmt(need)]
-	btn.pressed.connect(_on_land_pressed)
-	return btn
 
 
 ## True when a guest cannot start a run: the live build rolls dice on the server (axie/epoch_source
@@ -1473,134 +1285,35 @@ func _guest_blocked() -> bool:
 
 ## Primary "Start run" (guest on the server build: "Sign in to play"). Name stays RunPlate.
 func _build_run_button() -> Button:
-	var title := "Start run"
-	var tip := "Your first run" if _first else "Run Setup"
-	if _has_run:
-		if _mission_run:
-			title = "Continue mission"
-			tip = _mission_line()
-		else:
-			title = "Continue run"
-			tip = _continue_line()
-	elif _guest_blocked():
-		title = "Sign in to play"
-		tip = "Dice are rolled on the server, so runs need an account"
-	var plate := UI3.button(title, &"primary", &"L")
-	plate.name = "RunPlate"
-	plate.tooltip_text = tip
-	plate.pressed.connect(_on_run_pressed)
-	if _offline and not _has_run and not _guest_blocked():   # round 2: a new run needs a connection
-		UI3.set_disabled_reason(plate, "Start run · needs connection")
-	if _first and not _has_run:
-		plate.grab_focus.call_deferred()
-	# "Start here" coach card (640 wide, 32x20 arrow toward the Start run spotlight).
-	_start_hint = VBoxContainer.new()
-	_start_hint.name = "StartHint"
-	_start_hint.theme = UI3Theme.get_theme()
-	_start_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_start_hint.add_theme_constant_override("separation", 0)
-	var card := UI3.plate(&"dialog")
-	card.custom_minimum_size.x = 640
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var hv := VBoxContainer.new()
-	hv.add_child(UI3.label("Start here", "LabelTitle"))
-	var hb := UI3.label("Pick a mode and play your first run", "LabelMuted")
-	hb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hb.custom_minimum_size.x = 592   # card 640 minus 24 padding each side
-	hv.add_child(hb)
-	card.add_child(hv)
-	_start_hint.add_child(card)
-	var arrow := Control.new()
-	arrow.name = "HintArrow"
-	arrow.custom_minimum_size = Vector2(640, 20)
-	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	arrow.draw.connect(func() -> void:
-		var cx := 640.0 - plate.size.x * 0.5
-		arrow.draw_colored_polygon(PackedVector2Array([Vector2(cx - 16, 0), Vector2(cx + 16, 0), Vector2(cx, 20)]),
-			UI3Theme.color("panel")))
-	_start_hint.add_child(arrow)
-	_start_hint.visible = _first and not _has_run and not _guest
-	_ui.add_child(_start_hint)
-	return plate
+	return _hud.build_run_button()
 
 
 func _continue_line() -> String:
-	if not _has_run:
-		return ""
-	return "%s · Ascension %d" % [String(RunState.mode).capitalize(), int(RunState.ascension)]
+	return _hud.continue_line()
 
 
 func _mission_line() -> String:
-	var e: Dictionary = MetaState.mission_escrow
-	return "Mission %s · stake %s" % [String(e.get("mission_id", "N?")).to_upper(), _fmt(int(e.get("stake", 0)))]
+	return _hud.mission_line()
 
 
 func _build_banners() -> void:
-	_offline_banner = UI3.net_notice("Offline · Runs, Store, Pass, Echo Box, Daily and Leaderboard need a connection.",
-		"Retry", _on_retry)
-	_offline_banner.name = "OfflineBanner"
-	_offline_banner.custom_minimum_size = Vector2(600, 0)
-	var msg := _offline_banner.find_children("*", "Label", true, false)
-	if not msg.is_empty():
-		(msg[0] as Label).custom_minimum_size.x = 440
-	var rb := _offline_banner.find_child("Retry", true, false)
-	if rb != null:
-		rb.name = "RetryButton"
-	_offline_banner.visible = _offline
-	_ui.add_child(_offline_banner)
+	_hud.build_banners()
 
 
 func _on_retry() -> void:
-	if _detect_offline():
-		_show_toast("Still offline", 1.6, &"error")
-		return
-	qa.erase("offline")
-	get_tree().reload_current_scene()
+	_hud.on_retry()
 
 
 func _build_toast() -> void:
-	# UI-03 18-system: the toast is rebuilt per message by _show_toast (UI3.toast, top-centre 24 px down).
-	_toast = null
+	_hud.build_toast()
 
 
 func _show_toast(text: String, hold: float = 1.6, tone: StringName = &"ok") -> void:
-	# Stack of at most 3, top-centre, 24 px from the top, 8 px gap (UI-03 18-system).
-	_toasts = _toasts.filter(func(t: Variant) -> bool: return is_instance_valid(t))
-	# S4-14: one toast at a time (they stacked over the Upgrade Land chip); the rest wait their turn.
-	if not _toasts.is_empty() and not _draining:
-		_toast_queue.append([text, hold, tone])
-		return
-	var tw_node := UI3.toast(text, tone)
-	tw_node.name = "Toast"
-	tw_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_ui.add_child(tw_node)
-	_toasts.append(tw_node)
-	_toast = tw_node
-	_layout_toasts()
-	var tw := create_tween()
-	tw.tween_interval(hold)
-	tw.tween_property(tw_node, "modulate:a", 0.0, UI3Motion.REDUCED_MAX_SEC if UI3Motion.reduced() else 0.4)
-	tw.tween_callback(func() -> void:
-		if is_instance_valid(tw_node):
-			tw_node.queue_free()
-		_toasts.erase(tw_node)
-		_layout_toasts()
-		if not _toast_queue.is_empty() and _toasts.is_empty() and is_inside_tree():
-			var nx: Array = _toast_queue.pop_front()
-			_draining = true
-			_show_toast(String(nx[0]), float(nx[1]), nx[2])
-			_draining = false)
+	_hud.show_toast(text, hold, tone)
 
 
 func _layout_toasts() -> void:
-	var y := 24.0
-	for t in _toasts:
-		if not is_instance_valid(t) or t.is_queued_for_deletion():
-			continue
-		var c := t as Control
-		c.reset_size()
-		c.position = Vector2((_ui.size.x - c.size.x) * 0.5, y)
-		y += c.size.y + 8.0
+	_hud.layout_toasts()
 
 
 func _fmt(v: int) -> String:
@@ -1660,14 +1373,22 @@ func _place_hud(f: float) -> void:
 	var bsz := _hud_br.get_combined_minimum_size()
 	_hud_br.scale = sc
 	_hud_br.position = Vector2(w - 24.0 - bsz.x * f, h - 24.0 - bsz.y * f)
+	var lk := Rect2(_hud_bl.position, _hud_bl.get_combined_minimum_size() * f)
+	if _hud_br.position.x < lk.end.x + 16.0:   # too narrow for both on one line (1280 + long reasons): RunRow rides above LinksPlate
+		_hud_br.position.y = lk.position.y - 12.0 * f - bsz.y * f
 	_start_hint.reset_size()
 	var hs := _start_hint.get_combined_minimum_size()
 	_start_hint.scale = sc
-	_start_hint.position = Vector2(w - 24.0 - hs.x * f, h - 24.0 - bsz.y * f - 4.0 * f - hs.y * f)
+	_start_hint.position = Vector2(w - 24.0 - hs.x * f, _hud_br.position.y - 4.0 * f - hs.y * f)
 	_offline_banner.reset_size()
 	var os := _offline_banner.get_combined_minimum_size()
 	_offline_banner.scale = sc
-	_offline_banner.position = Vector2((w - os.x * f) * 0.5, h - 24.0 - os.y * f)   # bottom centre: clear of every place chip
+	var bx := (w - os.x * f) * 0.5
+	var by := float(UI3Theme.size_of("offline_banner_top"))   # frame token, already logical
+	var tl := Rect2(_hud_tl.position, _hud_tl.get_combined_minimum_size() * f)
+	if bx < tl.end.x + 8.0 and bx + os.x * f > tl.position.x:   # would sit on the Upgrade Land chip: go under it
+		by = maxf(by, tl.end.y + 8.0)
+	_offline_banner.position = Vector2(bx, by)   # frame: top centre
 
 
 # ================================================================ actions
@@ -1729,7 +1450,7 @@ func _on_run_pressed() -> void:
 
 func _on_continue_pressed() -> void:
 	if RunContinue.busy:
-		_show_toast("Still reconnecting to the server…")   # never a silent press
+		_show_toast("Still reconnecting to the server…", 1.6, &"info")   # never a silent press
 		return
 	if not RunState.load_run():
 		push_warning("LandHub: saved run could not be loaded")
@@ -1794,7 +1515,7 @@ func _on_new_run_pressed() -> void:
 		_open_confirm("Abandon this mission?",
 			"Starting a new run abandons Mission %s. The stake is not returned." % mid,
 			"Abandon · −%s" % _fmt(stake), _end_run_and_setup, true, "Keep playing",
-			["You lose %s Gene Shard" % _fmt(stake), "Mission %s stake · this run's progress is lost too" % mid],
+			["You lose %s Shards" % _fmt(stake), "Mission %s stake · this run's progress is lost too" % mid],
 			Color("A3261A"))
 	else:
 		_open_confirm("Start a new run?", "Your current run ends now and cannot be continued.",
@@ -1809,35 +1530,9 @@ func _end_run_and_setup() -> void:
 	LandNav.open(&"run_setup")
 
 
-func _open_confirm(title: String, body: String, ok_text: String, on_ok: Callable, _warning: bool = false,
-		cancel_text: String = "Cancel", loss: Array = [], _head: Color = Color(0, 0, 0, 0)) -> void:
-	if _modal != null:
-		return
-	# UI-03 18-system: UI3.modal (560 w dialog). Destructive (`loss` given) = red button + focus on Cancel;
-	# otherwise amber primary + focus on the primary action.
-	var destructive := loss.size() >= 2
-	var cancel := UI3.button(cancel_text, &"secondary")
-	cancel.name = "ConfirmCancel"
-	cancel.pressed.connect(_close_modal)
-	var ok := UI3.button(ok_text, &"danger" if destructive else &"primary")
-	ok.name = "ConfirmOk"
-	ok.pressed.connect(on_ok)
-	var m := UI3.modal(title, body, [cancel, ok], 0 if destructive else 1)
-	m.name = "Confirm"
-	m.cancelled.connect(_close_modal)
-	if destructive:
-		var row := ok.get_parent()
-		var lb := UI3.plate(&"row")
-		lb.name = "LossRow"
-		lb.custom_minimum_size = Vector2(0, 48)
-		var lv := VBoxContainer.new()
-		lv.add_child(UI3.label(String(loss[0])))
-		lv.add_child(UI3.label(String(loss[1]), "LabelMuted"))
-		lb.add_child(lv)
-		row.get_parent().add_child(lb)
-		row.get_parent().move_child(lb, row.get_index())
-	_modal = m
-	_ui.add_child(_modal)
+func _open_confirm(title: String, body: String, ok_text: String, on_ok: Callable, warning: bool = false,
+		cancel_text: String = "Cancel", loss: Array = [], head: Color = Color(0, 0, 0, 0)) -> void:
+	_hud.open_confirm(title, body, ok_text, on_ok, warning, cancel_text, loss, head)
 
 
 ## True while anything the hub shows over the land is open: the confirm dialog, the net notice (RunContinue
@@ -1856,9 +1551,7 @@ func has_modal() -> bool:
 
 
 func _close_modal() -> void:
-	if _modal != null:
-		_modal.queue_free()
-		_modal = null
+	_hud.close_modal()
 
 
 ## Hub shortcuts are InputMap actions (scripts/ui/key_bindings.gd, rebindable in Settings > Controls).
@@ -1905,6 +1598,8 @@ func _handle_key_event(ev: InputEventKey) -> bool:
 	elif ev.is_action_pressed(KeyBindings.LAND_RUN):
 		if get_viewport().gui_get_focus_owner() != null:
 			return false
+		if _run_plate != null and _run_plate.disabled:
+			return true   # Loading… / needs connection: the RunPlate is off and shows no Space cap, so Space does nothing
 		_on_run_pressed()
 	else:
 		return false

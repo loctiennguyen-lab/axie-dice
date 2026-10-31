@@ -7,6 +7,7 @@ func _ready() -> void:
 	var out := "user://land.png"
 	var secs := 4.0
 	var with_run := false
+	var tip_id := ""
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--out="):
 			out = a.get_slice("=", 1)
@@ -19,6 +20,13 @@ func _ready() -> void:
 				LandHub.qa[kv.get_slice(":", 0)] = kv.get_slice(":", 1) != "0"
 		elif a.begins_with("--frame="):
 			MetaState.equipped_frame = a.get_slice("=", 1)   # in memory only
+		elif a.begins_with("--tip="):
+			tip_id = a.get_slice("=", 1)   # S1a: force the BuildingTooltip on that hit (echobox, missions...)
+		elif a == "--mission":
+			MetaState.mission_escrow = {"mission_id": "n3", "stake": 800}   # in memory only
+			LandHub.qa["mission"] = true
+		elif a == "--banner":
+			MetaState.land_tier_banner_seen = 1   # with --tier=2: the tier-up banner shows
 		elif a == "--reset-notice":
 			pass
 		elif a == "--run":
@@ -40,6 +48,10 @@ func _ready() -> void:
 		t += get_process_delta_time()
 		if t > warm:
 			frames += 1
+	if tip_id != "" and hub.get("_hits").has(tip_id):
+		hub._hud.tip_show_now(hub.get("_hits")[tip_id])
+		for _i in 4:
+			await get_tree().process_frame
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(out)
 	print("LAND_CAPTURE size=%s fps=%.1f shot=%s" % [str(get_viewport().get_visible_rect().size), frames / secs, out])

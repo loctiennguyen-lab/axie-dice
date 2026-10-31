@@ -5,6 +5,8 @@ extends RefCounted
 ## from RunState.epoch_failed / a failed request_* result. Never a silent no-op, never leaves input locked:
 ## the notice is a plain overlay, the buttons under it were never disabled for longer than the request.
 
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
+
 const NODE_NAME := "NetNotice"
 
 
@@ -58,57 +60,71 @@ static func show(host: Node, code: String, retry: Callable = Callable(), action:
 	var layer := CanvasLayer.new()
 	layer.name = NODE_NAME
 	layer.layer = 100
-	# UI-03 18-system: wood-2 notice plate, top-centre 24 px down; buttons are UI3 secondary S.
+	# UI-05 18-netnotice: the screen under it is dimmed (the scrim never takes the mouse: input is never locked),
+	# 560 plate top-centre 24 px: [ToneDisc + Message] over a right-aligned button row. Nothing takes focus: no keycap.
+	layer.add_child(NetParts.scrim())
 	var top := CenterContainer.new()
+	top.name = "Top"
 	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	top.offset_top = 24
+	top.offset_top = UI3Theme.space("screen")
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(top)
-	var panel := UI3.plate(&"notice")
-	panel.name = "Panel"
-	panel.custom_minimum_size = Vector2(560, 0)
+	var panel := PanelParts.panel(NetParts.hud_box("l", UI3Theme.space("16"), UI3Theme.space("20"), UI3Theme.space("20")), NODE_NAME)
+	panel.custom_minimum_size = Vector2(UI3Theme.size_of("netnotice_w"), 0)
 	top.add_child(panel)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
-	panel.add_child(row)
-	var l := UI3.label(text_for(code, action, about_run))
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", UI3Theme.space("12"))
+	panel.add_child(col)
+	var msg := HBoxContainer.new()
+	msg.name = "Msg"
+	msg.add_theme_constant_override("separation", UI3Theme.space("12"))
+	col.add_child(msg)
+	var disc := Ui5ToneDisc.make(&"warn")
+	disc.size_flags_vertical = Control.SIZE_SHRINK_CENTER   # centred on the text block (Liam 29/10), also when it wraps
+	msg.add_child(disc)
+	var l := Ui5Text.label(text_for(code, action, about_run), "text_body", "text")
 	l.name = "Message"
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	row.add_child(l)
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	msg.add_child(l)
+	var foot := HFlowContainer.new()
+	foot.name = "Foot"
+	foot.alignment = FlowContainer.ALIGNMENT_END
+	foot.add_theme_constant_override("h_separation", UI3Theme.space("12"))
+	foot.add_theme_constant_override("v_separation", UI3Theme.space("12"))
+	col.add_child(foot)
 	if code == "run_gone":
 		# Mid-run the server lost the run: drop the save and go to Land, never a stuck screen.
-		var gone := UI3.button("BACK TO MENU", &"secondary", &"S")
-		gone.name = "BackButton"
+		var gone := PanelParts.button("Back to menu", &"primary", &"M")
+		gone.name = "BackToMenuButton"
 		gone.pressed.connect(func():
 			RunState.discard_gone_run()
 			host.get_tree().change_scene_to_file(LandNav.LAND_SCENE))
-		row.add_child(gone)
+		foot.add_child(gone)
 		host.add_child(layer)
 		return layer
 	if is_fatal(code):
-		var si := UI3.button("SIGN IN", &"secondary", &"S")
+		# Sign in is the one live primary; Back to menu and OK stay secondary.
+		var si := PanelParts.button("Sign in", &"primary", &"M")
 		si.name = "SignInButton"
 		si.pressed.connect(func(): AccountService.sign_in())
-		if code != "version":   # an old build can't be fixed by signing in again: Back to menu only
-			row.add_child(si)
-		else:
-			si.free()
-		var back := UI3.button("BACK TO MENU", &"secondary", &"S")
-		back.name = "BackButton"
+		foot.add_child(si)
+		var back := PanelParts.button("Back to menu", &"secondary", &"M")
+		back.name = "BackToMenuButton"
 		back.pressed.connect(func():
 			host.get_tree().change_scene_to_file(LandNav.LAND_SCENE))
-		row.add_child(back)
+		foot.add_child(back)
 	elif retry.is_valid():
-		var b := UI3.button("RETRY", &"primary", &"M")   # the one primary: OK stays secondary
+		var b := PanelParts.button("Retry", &"primary", &"M")   # the one primary: OK stays secondary
 		b.name = "RetryButton"
 		b.pressed.connect(func():
 			layer.queue_free()
 			retry.call())
-		row.add_child(b)
-	var close := UI3.button("OK", &"secondary", &"S")
+		foot.add_child(b)
+	var close := PanelParts.button("OK", &"secondary", &"M")
 	close.name = "OkButton"
 	close.pressed.connect(func(): layer.queue_free())
-	row.add_child(close)
+	foot.add_child(close)
 	host.add_child(layer)
 	return layer

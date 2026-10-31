@@ -1,0 +1,157 @@
+# 0d: Meta kit: sheet/setup cua land, meta1, meta2
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-land-screens.html
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-meta1-screens.html
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-meta2-screens.html
+# So frame: 4 (4 id, tinh ca ban 1920 va 1280)
+# Tien to: components-land--sheet components-land--setup; components-meta1--sheet; components-meta2--sheet
+# Ghi chu: Chu y: components-land--sheet con nam o S1a, components-land--setup o S3a (trung co chu y).
+# Id frame:
+#   components-land--sheet
+#   components-land--setup
+#   components-meta1--sheet
+#   components-meta2--sheet
+
+=== components-land--sheet (1920)
+  ComponentsLand
+    CurrencyShard "2,450"
+    CurrencyStone "3,200"
+    CurrencyGem "120"
+    CurrencyShard "···"
+    CurrencyStone "···"
+    CurrencyGem "···"
+    DailyRunButton "Daily run"
+    DailyRunClaimButton "Daily run · claim"
+    DailyRun2Of3Button "Daily run · 2 of 3"
+    DailyRunNeedsConnectionButton "Daily run · needs connection"
+    ToneDisc
+    ToneDisc "!"
+    ToneDisc "i"
+    Title "Season Pass"
+    Status "Reward ready to claim · Season 1 · ends 29 Dec 2026"
+    Title "Echo Box"
+    LockReason "Sign in to use"
+    StartRunButton
+      KeyCap "Space"
+    ContinueRunButton
+      KeyCap "Space"
+    ContinueMissionButton
+      KeyCap "Space"
+    SignInToPlayButton
+      KeyCap "Space"
+    StartRunNeedsConnectionButton "Start run · needs connection"
+    ReconnectingButton "Reconnecting…"
+    StartRunButton "Start run"
+
+=== components-land--setup (1920)
+  ComponentsSetup
+    Seat "Olek"
+    SeatMissing "Missing"
+    PlaceButton "Place"
+    AllPlacedButton "All placed"
+    ClaimButton "Claim"
+    ClaimedButton "Claimed"
+    Need20Button "Need 20"
+
+=== components-meta1--sheet (1920)
+  ComponentsMeta1
+    ToneDisc "!"
+    TryAgainButton "Try again"
+    ContinueWithoutSigningInButton "Continue without signing in"
+    ToneDisc "!"
+    RetryButton "Retry"
+    ContinueWithoutSigningInButton "Continue without signing in"
+    ToneDisc "!"
+    UseAnotherAccountButton "Use another account"
+    ToneDisc "!"
+    SignInButton "Sign in"
+    ToneDisc "!"
+    SyncNowButton "Sync now"
+    ToneDisc "!"
+    ToneDisc "!"
+    ToneDisc "!"
+    ToneDisc "!"
+    TryAgainButton "Try again"
+    Warning
+      ToneDisc "!"
+    Warning
+      ToneDisc "!"
+    Warning
+      ToneDisc "!"
+    SubmitNotice [100%]
+      ToneDisc "!"
+      RetryButton "Retry"
+    SubmitNotice [100%]
+      ToneDisc "!"
+      RetryButton "Retry"
+
+=== components-meta2--sheet (1920)
+  ComponentsMeta2
+    RevealCard
+      TierStrip
+      Art
+        DiceSkinArt "6"
+      Name "Common skin"
+      Line "Common dice skin"
+    RevealCard
+      TierStrip
+      Art
+        DiceSkinArt "6"
+      Name "Uncommon skin"
+      Line "Uncommon dice skin"
+    RevealCard
+      TierStrip
+      Art
+        DiceSkinArt "6"
+      Name "Rare skin"
+      Line "Rare dice skin"
+    RevealCard
+      TierStrip
+      Art
+        DiceSkinArt "6"
+      Name "Epic skin"
+      Line "Epic dice skin"
+    RevealCard
+      TierStrip
+      Art
+        DiceSkinArt "6"
+      Name "Legendary skin"
+      Line "Legendary dice skin"
+    RevealCard
+      TierStrip
+      Art
+        DiceSkinArt "6"
+      Name "Mythic skin"
+      Line "Mythic dice skin"
+    RevealCard
+      TierStrip
+      Art
+        DiceSkinArt "6"
+        NewChip "New"
+      Name "Tree Rings"
+      Line "Uncommon dice skin"
+    RevealCard
+      TierStrip
+      Art
+        FrameArt "L"
+        FragmentBadge "+3"
+      Name "Fuzzy Ears"
+      Line "Duplicate · 3 Fragments"
+    RevealCard
+      TierStrip
+      Art
+      Name "1,000 Stone"
+      Line "Currency"
+    PassTile
+      TileButton "Claimed"
+    PassTile
+      TileButton [var(--size-btn-s)] "Claim"
+    PassTile
+      TileButton [var(--size-btn-s)] "Claim"
+    PassTile
+      TileButton "Reach Level 11"
+    PassTile
+      TileButton "Reach Level 14"
+    GemCost "90"
+    BuyFor90GemButton "Buy for 90 Gem"
+    BuyNeed320MoreGemButton "Buy · need 320 more Gem"
+    GiftButton [var(--size-btn-s)] "Claim 300 Gem"

@@ -1,0 +1,311 @@
+# S11a: Daily
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-meta2-screens.html
+# So frame: 14 (7 id, tinh ca ban 1920 va 1280)
+# Tien to: 41-daily
+# Id frame:
+#   41-daily--unclaimed
+#   41-daily--unclaimed--1280
+#   41-daily--claimed
+#   41-daily--claimed--1280
+#   41-daily--weekly-gem-cap
+#   41-daily--weekly-gem-cap--1280
+#   41-daily--gem-gift
+#   41-daily--gem-gift--1280
+#   41-daily--claiming
+#   41-daily--claiming--1280
+#   41-daily--offline
+#   41-daily--offline--1280
+#   41-daily--guest
+#   41-daily--guest--1280
+
+=== 41-daily--unclaimed (1920)
+  # godot: DailyScreen. Only the first claimable card is primary. Close (Esc) is in the header back button.
+  Header
+    BackButton "←"
+    Title "Daily"
+    SubLine "Claim once a day, resets 00:00 UTC"
+  Body
+    DailyCard
+      DailyClaim "Claim"
+    WeeklyCard
+      DayChip "Day 1 · claimed"
+      DayChip "Day 2 · claimed"
+      DayChip "Day 3 · not yet"
+      DayChip "Day 4 · not yet"
+      WeeklyStatus "2 of 4 days · pays on day 4"
+    GemGiftCard
+      GemClaim "Claim 300 Gem"
+    ComboCard
+      StatusChip "Not yet"
+
+=== 41-daily--unclaimed--1280 (1280)
+  # godot: DailyScreen. Only the first claimable card is primary. Close (Esc) is in the header back button.
+  Header
+    BackButton "←"
+    Title "Daily"
+    SubLine "Claim once a day, resets 00:00 UTC"
+  Body
+    DailyCard
+      DailyClaim "Claim"
+    WeeklyCard
+      DayChip "Day 1 · claimed"
+      DayChip "Day 2 · claimed"
+      DayChip "Day 3 · not yet"
+      DayChip "Day 4 · not yet"
+      WeeklyStatus "2 of 4 days · pays on day 4"
+    GemGiftCard
+      GemClaim "Claim 300 Gem"
+    ComboCard
+      StatusChip "Not yet"
+
+=== 41-daily--claimed (1920)
+  # godot: DailyScreen. Only the first claimable card is primary. Close (Esc) is in the header back button.
+  Header
+    BackButton "←"
+    Title "Daily"
+    SubLine "Claim once a day, resets 00:00 UTC"
+  Body
+    DailyCard
+      ToneDisc
+      DailyClaim "Claim · Claimed today"
+    WeeklyCard
+      DayChip "Day 1 · claimed"
+      DayChip "Day 2 · claimed"
+      DayChip "Day 3 · claimed"
+      DayChip "Day 4 · not yet"
+      WeeklyStatus "3 of 4 days · pays on day 4"
+    GemGiftCard
+      GemClaim "Claim 300 Gem · Claimed today"
+    ComboCard
+      StatusChip "Done"
+
+=== 41-daily--claimed--1280 (1280)
+  # godot: DailyScreen. Only the first claimable card is primary. Close (Esc) is in the header back button.
+  Header
+    BackButton "←"
+    Title "Daily"
+    SubLine "Claim once a day, resets 00:00 UTC"
+  Body
+    DailyCard
+      ToneDisc
+      DailyClaim "Claim · Claimed today"
+    WeeklyCard
+      DayChip "Day 1 · claimed"
+      DayChip "Day 2 · claimed"
+      DayChip "Day 3 · claimed"
+      DayChip "Day 4 · not yet"
+      WeeklyStatus "3 of 4 days · pays on day 4"
+    GemGiftCard
+      GemClaim "Claim 300 Gem · Claimed today"
+    ComboCard
+      StatusChip "Done"
+
+=== 41-daily--weekly-gem-cap (1920)
+  # godot: DailyScreen. Only the first claimable card is primary. Close (Esc) is in the header back button.
+  Header
+    BackButton "←"
+    Title "Daily"
+    SubLine "Claim once a day, resets 00:00 UTC"
+  Body
+    DailyCard
+      DailyClaim "Claim"
+    WeeklyCard
+      DayChip "Day 1 · claimed"
+      DayChip "Day 2 · claimed"
+      DayChip "Day 3 · claimed"
+      DayChip "Day 4 · claimed"
+      WeeklyStatus "Paid this week"
+    GemGiftCard
+      GemClaim "Claim 300 Gem · At the cap"
+    ComboCard
+      StatusChip "Not yet"
+
+=== 41-daily--weekly-gem-cap--1280 (1280)
+  # godot: DailyScreen. Only the first claimable card is primary. Close (Esc) is in the header back button.
+  Header
+    BackButton "←"
+    Title "Daily"
+    SubLine "Claim once a day, resets 00:00 UTC"
+  Body
+    DailyCard
+      DailyClaim "Claim"
+    WeeklyCard
+      DayChip "Day 1 · claimed"
+      DayChip "Day 2 · claimed"
+      DayChip "Day 3 · claimed"
+      DayChip "Day 4 · claimed"
+      WeeklyStatus "Paid this week"
+    GemGiftCard
+      GemClaim "Claim 300 Gem · At the cap"
+    ComboCard
+      StatusChip "Not yet"
+
+=== 41-daily--gem-gift (1920)
+  # godot: DailyScreen. Only the first claimable card is primary. Close (Esc) is in the header back button.
+  Header
+    BackButton "←"
+    Title "Daily"
+    SubLine "Claim once a day, resets 00:00 UTC"
+  Body
+    DailyCard
+      DailyClaim "Claim · Claimed today"
+    WeeklyCard
+      DayChip "Day 1 · claimed"
+      DayChip "Day 2 · claimed"
+      DayChip "Day 3 · claimed"
+      DayChip "Day 4 · not yet"
+      WeeklyStatus "3 of 4 days · pays on day 4"
+    GemGiftCard
+      GemClaim "Claim 300 Gem"
+    ComboCard
+      StatusChip "Not yet"
+
+=== 41-daily--gem-gift--1280 (1280)
+  # godot: DailyScreen. Only the first claimable card is primary. Close (Esc) is in the header back button.
+  Header
+    BackButton "←"
+    Title "Daily"
+    SubLine "Claim once a day, resets 00:00 UTC"
+  Body
+    DailyCard
+      DailyClaim "Claim · Claimed today"
+    WeeklyCard
+      DayChip "Day 1 · claimed"
+      DayChip "Day 2 · claimed"
+      DayChip "Day 3 · claimed"
+      DayChip "Day 4 · not yet"
+      WeeklyStatus "3 of 4 days · pays on day 4"
+    GemGiftCard
+      GemClaim "Claim 300 Gem"
+    ComboCard
+      StatusChip "Not yet"
+
+=== 41-daily--claiming (1920)
+  # godot: DailyScreen. Only the first claimable card is primary. Close (Esc) is in the header back button.
+  Header
+    BackButton "←"
+    Title "Daily"
+    SubLine "Claim once a day, resets 00:00 UTC"
+  Body
+    DailyCard
+      DailyClaim "Claim · Claimed today"
+    WeeklyCard
+      DayChip "Day 1 · claimed"
+      DayChip "Day 2 · claimed"
+      DayChip "Day 3 · claimed"
+      DayChip "Day 4 · not yet"
+      WeeklyStatus "3 of 4 days · pays on day 4"
+    GemGiftCard
+      GemClaim "Claiming…"
+    ComboCard
+      StatusChip "Not yet"
+
+=== 41-daily--claiming--1280 (1280)
+  # godot: DailyScreen. Only the first claimable card is primary. Close (Esc) is in the header back button.
+  Header
+    BackButton "←"
+    Title "Daily"
+    SubLine "Claim once a day, resets 00:00 UTC"
+  Body
+    DailyCard
+      DailyClaim "Claim · Claimed today"
+    WeeklyCard
+      DayChip "Day 1 · claimed"
+      DayChip "Day 2 · claimed"
+      DayChip "Day 3 · claimed"
+      DayChip "Day 4 · not yet"
+      WeeklyStatus "3 of 4 days · pays on day 4"
+    GemGiftCard
+      GemClaim "Claiming…"
+    ComboCard
+      StatusChip "Not yet"
+
+=== 41-daily--offline (1920)
+  # godot: DailyScreen. Only the first claimable card is primary. Close (Esc) is in the header back button.
+  Header
+    BackButton "←"
+    Title "Daily"
+    SubLine "Claim once a day, resets 00:00 UTC"
+  Body
+    Banner
+      ToneDisc "!"
+    DailyCard
+      DailyClaim "Claim · Needs a connection"
+    WeeklyCard
+      DayChip "Day 1 · claimed"
+      DayChip "Day 2 · claimed"
+      DayChip "Day 3 · not yet"
+      DayChip "Day 4 · not yet"
+      WeeklyStatus "2 of 4 days · pays on day 4"
+    GemGiftCard
+      GemClaim "Claim 300 Gem · Needs a connection"
+    ComboCard
+      StatusChip "Not yet"
+
+=== 41-daily--offline--1280 (1280)
+  # godot: DailyScreen. Only the first claimable card is primary. Close (Esc) is in the header back button.
+  Header
+    BackButton "←"
+    Title "Daily"
+    SubLine "Claim once a day, resets 00:00 UTC"
+  Body
+    Banner
+      ToneDisc "!"
+    DailyCard
+      DailyClaim "Claim · Needs a connection"
+    WeeklyCard
+      DayChip "Day 1 · claimed"
+      DayChip "Day 2 · claimed"
+      DayChip "Day 3 · not yet"
+      DayChip "Day 4 · not yet"
+      WeeklyStatus "2 of 4 days · pays on day 4"
+    GemGiftCard
+      GemClaim "Claim 300 Gem · Needs a connection"
+    ComboCard
+      StatusChip "Not yet"
+
+=== 41-daily--guest (1920)
+  # godot: DailyScreen. Only the first claimable card is primary. Close (Esc) is in the header back button.
+  Header
+    BackButton "←"
+    Title "Daily"
+    SubLine "Claim once a day, resets 00:00 UTC"
+  Body
+    Banner
+      ToneDisc "i"
+      SignInButton "Sign in"
+    DailyCard
+      DailyClaim "Claim · Sign in to claim"
+    WeeklyCard
+      DayChip "Day 1 · not yet"
+      DayChip "Day 2 · not yet"
+      DayChip "Day 3 · not yet"
+      DayChip "Day 4 · not yet"
+      WeeklyStatus "0 of 4 days · pays on day 4"
+    GemGiftCard
+      GemClaim "Claim 300 Gem · Sign in to claim"
+    ComboCard
+      StatusChip "Not yet"
+
+=== 41-daily--guest--1280 (1280)
+  # godot: DailyScreen. Only the first claimable card is primary. Close (Esc) is in the header back button.
+  Header
+    BackButton "←"
+    Title "Daily"
+    SubLine "Claim once a day, resets 00:00 UTC"
+  Body
+    Banner
+      ToneDisc "i"
+      SignInButton "Sign in"
+    DailyCard
+      DailyClaim "Claim · Sign in to claim"
+    WeeklyCard
+      DayChip "Day 1 · not yet"
+      DayChip "Day 2 · not yet"
+      DayChip "Day 3 · not yet"
+      DayChip "Day 4 · not yet"
+      WeeklyStatus "0 of 4 days · pays on day 4"
+    GemGiftCard
+      GemClaim "Claim 300 Gem · Sign in to claim"
+    ComboCard
+      StatusChip "Not yet"

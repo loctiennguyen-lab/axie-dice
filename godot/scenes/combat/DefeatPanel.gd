@@ -26,8 +26,8 @@ signal end_run_pressed
 signal continue_pressed
 signal get_gem_pressed
 
-const PanelParts := preload("res://scenes/combat/ui5/PanelParts.gd")
-const CostButton := preload("res://scenes/combat/ui5/CostButton.gd")
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
+const CostButton := preload("res://scenes/shared/ui5/CostButton.gd")
 ## Design `<!-- godot: Primary becomes clickable after 1000 ms -->`: the click that ended the fight must not
 ## answer the panel. Tests set `primary_delay_ms` to 0.
 const PRIMARY_DELAY_MS := 1000
@@ -309,7 +309,7 @@ func _mission_block(col: VBoxContainer, d: Dictionary) -> void:
 		st.add_child(row)
 		var icon_px := UI3Theme.size_of("icon_l")
 		row.add_child(PanelParts.icon_rect(UI3.currency_icon("cur_shard", icon_px), icon_px))
-		var line := PanelParts.text(TranslationServer.translate("Mission lost: your %s Shard stake is gone") % UI3.fmt(stake),
+		var line := PanelParts.text(TranslationServer.translate("Mission lost: your %s Shards stake is gone") % UI3.fmt(stake),
 			"text_title", "text", true)
 		line.name = "StakeLine"
 		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

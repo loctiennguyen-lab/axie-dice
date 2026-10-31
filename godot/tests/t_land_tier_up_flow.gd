@@ -40,16 +40,16 @@ func _ready() -> void:
 	_check(s.confirm_upgrade(2) and MetaState.land_tier == 2, "upgrade to tier 2")
 	_check(MetaState.stone == 0 and MetaState.ledger.size() == 1, "Stone spent exactly once")
 	_check(not s.confirm_upgrade(2) and MetaState.land_tier == 2 and MetaState.stone == 0, "second confirm refused, nothing spent")
-	_check(s.find_child("Toast", true, false) != null and (s.find_child("Toast", true, false) as Label).text.begins_with("Your Land is now"), "no error toast after double press")
+	_check(s.find_child("Toast", true, false) != null and (s.find_child("Toast", true, false).find_child("Text", true, false) as Label).text.begins_with("Your Land is now"), "no error toast after double press")
 	# The back_to_land() branch is skipped under no_scene_change (the screen is a child node here);
 	# LandNav.back_to_land itself is covered by t_land_nav (dry_run).
 	s.queue_free()
 	var h := await _land()
 	_check(int(h.get("_tier")) == 2, "Land opens on tier 2 with no reload")
-	var chip := h.find_child("UpgradeLand", true, false)
+	var chip := h.find_child("LandPlate", true, false)
 	_check(chip != null, "chip opens the upgrade screen")
-	_check(h.find_child("TierBanner", true, false) != null, "banner after the upgrade")
-	var okb := h.find_child("TierBannerOk", true, false) as Button
+	_check(h.find_child("TierUpBanner", true, false) != null, "banner after the upgrade")
+	var okb := h.find_child("LookAroundButton", true, false) as Button
 	await get_tree().process_frame
 	_check(okb != null and okb.has_focus(), "banner button has keyboard focus")
 	h.call("_close_modal")

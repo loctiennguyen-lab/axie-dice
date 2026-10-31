@@ -260,8 +260,7 @@ func test_the_row_band_keeps_its_height_and_slides_at_both_ends() -> void:
 	runmap.set("_graph", RunMapGraph.from_data({
 		"rows": long_rows, "boss_rows": [20], "elite_rows": [], "start_node_id": "L1_c0"}))
 
-	# RunMapController.gd has no `class_name`, so its constants are read off the script
-	# resource rather than hardcoded here — the point of this check is that the band matches
+	# Constants are read off RunMapController's script resource rather than hardcoded here — the point of this check is that the band matches
 	# ITS OWN declared height, not a 7 typed into a test.
 	var consts: Dictionary = (load("res://scenes/run_map/RunMapController.gd") as GDScript) \
 		.get_script_constant_map()
@@ -343,28 +342,25 @@ func test_shop_bought_and_unaffordable_buttons_use_different_styleboxes() -> voi
 	])
 	runmap.call("_render_shop")
 
-	# UI-03 shop: rows are selectable cards; the Buy button lives in the detail plate and says why it is off.
+	# UI-05 shop: every card has its own Buy button that says why it is off.
 	var cards: Array = runmap.get("_shop_cards")
 	_assert(cards.size() == 2, "expected 2 shop item cards, found %d" % cards.size())
-	_assert(absf((cards[0] as Control).modulate.a - 0.4) < 0.01 and absf((cards[1] as Control).modulate.a - 1.0) < 0.01,
-		"a bought row must be drawn at 40%, an unbought one at full")
-	runmap.call("_select_shop", 0)
-	var buy0: Button = runmap.find_child("BuyButton", true, false)
-	_assert(buy0 != null and buy0.disabled and buy0.text == "Sold out", "bought item: Buy must be disabled and say 'Sold out'")
-	runmap.call("_select_shop", 1)
-	var buy1: Button = runmap.find_child("BuyButton", true, false)
+	var buy0: Button = (cards[0] as Node).find_child("BuyButton", true, false)
+	_assert(buy0 != null and buy0.disabled and buy0.text == "Bought", "bought Core: Buy must be disabled and say 'Bought'")
+	var buy1: Button = (cards[1] as Node).find_child("BuyButton", true, false)
 	_assert(buy1 != null and buy1.disabled and buy1.text == "Need 999 Shards",
 		"unaffordable item: Buy must be disabled and say 'Need 999 Shards', got '%s'" % (buy1.text if buy1 else ""))
+	_assert((buy0.get_theme_stylebox("disabled") as StyleBoxFlat).bg_color != (buy1.get_theme_stylebox("disabled") as StyleBoxFlat).bg_color,
+		"bought (success) and unaffordable (grey) disabled buttons look different")
 	_assert(runmap.find_child("BlockReason", true, false) == null, "the reason is on the button only, not repeated above it")
-	_assert(runmap.find_child("NothingAffordable", true, false) != null, "nothing affordable: notice missing")
-	runmap.call("_select_shop", 0)
+	_assert(runmap.find_child("Notice", true, false) != null, "nothing affordable: notice missing")
 	RunState.shards_this_run = 100
 	RunState.shop_items[0]["bought"] = false
 	RunState.shop_items[0]["cost"] = 5
 	runmap.call("_render_shop")
-	var buy2: Button = runmap.find_child("BuyButton", true, false)
+	var buy2: Button = (runmap.get("_shop_cards")[0] as Node).find_child("BuyButton", true, false)
 	_assert(buy2 != null and not buy2.disabled, "affordable, unbought item must have an enabled Buy")
-	_assert(runmap.find_child("NothingAffordable", true, false) == null, "notice shown though an item is affordable")
+	_assert(runmap.find_child("Notice", true, false) == null, "notice shown though an item is affordable")
 
 	runmap.queue_free()
 	_done("test_shop_bought_and_unaffordable_buttons_use_different_styleboxes")
@@ -458,25 +454,23 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 	RunState.pending_rewards = [{"t": "relic", "key": "r_seedling", "rar": 0, "title": "RELIC", "desc": "Seedling", "sub": ""}]
 	runmap.call("_show_reward_overlay", "CHOOSE A REWARD")
 	await get_tree().process_frame
+	runmap.call("_select_reward", 0)
 	runmap.call("_take_selected_reward")
 	await get_tree().process_frame
 	var sheet := runmap.find_child("SlotSwapSheet", true, false)
 	_assert(sheet != null, "full passive slots open the swap sheet")
 	if sheet != null:
-		var conf: Button = sheet.find_child("SwapConfirm", true, false)
-		_assert(conf.disabled, "swap confirm disabled until a cell is picked")
-		_assert((sheet.find_child("SlotCell_r_heart", true, false) as Button).disabled, "Eternal cell can't be picked")
+		_assert(sheet.find_child("ConfirmButton", true, false) == null, "no confirm step: Sell is the action")
+		_assert(_sell(sheet, "r_heart").disabled, "Eternal cell can't be picked")
 		var shards0 := RunState.shards_this_run
-		(sheet.find_child("SwapLeave", true, false) as Button).pressed.emit()
+		(sheet.find_child("BackButton", true, false) as Button).pressed.emit()
 		await get_tree().process_frame
 		await get_tree().process_frame
 		_assert(runmap.find_child("SlotSwapSheet", true, false) == null and not RunState.owned_relic_ids.has("r_seedling"), "Leave it takes nothing")
 		runmap.call("_take_selected_reward")
 		await get_tree().process_frame
 		sheet = runmap.find_child("SlotSwapSheet", true, false)
-		(sheet.find_child("SlotCell_r_claw", true, false) as Button).pressed.emit()
-		_assert(not (sheet.find_child("SwapConfirm", true, false) as Button).disabled, "pick enables confirm")
-		(sheet.find_child("SwapConfirm", true, false) as Button).pressed.emit()
+		_sell(sheet, "r_claw").pressed.emit()
 		await get_tree().process_frame
 		_assert(RunState.owned_relic_ids.has("r_seedling") and not RunState.owned_relic_ids.has("r_claw"), "swap sold r_claw, took r_seedling")
 		_assert(RunState.shards_this_run == shards0 + RelicSlots.sell_price("r_claw", RunState.ascension), "sale paid shards")
@@ -499,10 +493,8 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 	var shop_cards: Array = runmap.get("_shop_cards")
 	_assert(shop_cards.size() >= 1, "shop rendered no cards")
 	if shop_cards.size() >= 1:
-		var rl: Label = (shop_cards[0] as Node).find_child("RarityLabel", true, false)
-		_assert(rl != null and rl.get_theme_color("font_color").is_equal_approx(runmap.call("_rarity_color", 2)),
-			"shop card's rarity label is not coloured with its own rarity")
-		_assert(rl.text == runmap.call("_rarity_name", 2), "shop card rarity name mismatch")
+		var tc := (shop_cards[0] as Node).find_child("TierChip", true, false)
+		_assert(tc != null and (tc.find_child("Word", true, false) as Label).text == "Crystal", "shop card tier chip names its rarity (rar 2 = Crystal)")
 
 	runmap.queue_free()
 	_done("test_reward_and_shop_cards_show_a_rarity_chip_matching_rar")
@@ -606,22 +598,22 @@ func test_event_and_treasure_ui3() -> void:
 	RunState.event_key = String(ContentDB.events.keys()[0])
 	runmap.call("_on_event_node", "x")
 	await get_tree().process_frame
-	var go: Button = runmap.find_child("EventAction", true, false)
+	var go: Button = runmap.find_child("ChooseButton", true, false)
 	_assert(go != null and go.disabled and go.text == "Pick a choice", "event: action must start disabled as 'Pick a choice'")
 	var opts: Array = runmap.get("_event_opts")
-	_assert(opts.size() >= 1 and runmap.find_child("EventOption0", true, false) != null, "event: no choice rows")
+	_assert(opts.size() >= 1 and runmap.find_child("ChoiceRow", true, false) != null, "event: no choice rows")
 	runmap.call("_select_event", 0)
 	_assert(not go.disabled and go.text == "Choose", "event: action must read 'Choose' once a choice is picked")
 	runmap.call("_build_event_screen", 0, "Result text")
 	await get_tree().process_frame
-	go = runmap.find_child("EventAction", true, false)
-	_assert(go.text == "Continue" and not go.disabled, "event outcome: button must be Continue")
+	go = runmap.find_child("ContinueButton", true, false)
+	_assert(go != null and go.text == "Continue" and not go.disabled, "event outcome: button must be Continue")
 	if opts.size() > 1:
-		_assert(absf((runmap.find_child("EventOption1", true, false) as Control).modulate.a - 0.4) < 0.01, "event outcome: other choices at 40%")
-	_assert((runmap.find_child("EventBody", true, false) as Label).text == "Result text", "event outcome: body must be the result")
+		_assert(absf((runmap.find_child("ChoiceRow2", true, false) as Control).modulate.a - 0.4) < 0.01, "event outcome: other choices at 40%")
+	_assert((runmap.find_child("OutcomeText", true, false).find_child("Text", true, false) as Label).text == "Result text", "event outcome: OutcomeText must be the result")
 	runmap.call("_on_treasure_node", "tn")
 	await get_tree().process_frame
-	_assert(runmap.find_child("OpenChest", true, false) != null, "treasure: closed state needs 'Open chest'")
+	_assert(runmap.find_child("OpenButton", true, false) != null, "treasure: closed state needs 'Open chest'")
 	runmap.call("_build_treasure", true)
 	await get_tree().process_frame
 	_assert(runmap.find_child("TakeButton", true, false) != null, "treasure: opened state needs 'Take and continue'")
@@ -641,3 +633,10 @@ func test_player_text_strips_internal_tags() -> void:
 		var t2 := UI3.player_text(String(def.description))
 		_assert(not t2.contains("RULE:") and not t2.contains("["), "relic %s leaks a tag: %s" % [rid, t2])
 	_done("test_player_text_strips_internal_tags")
+
+
+func _sell(sheet: Node, id: String) -> Button:
+	for b in sheet.find_children("SellButton", "Button", true, false):
+		if String(b.get_meta("relic_id")) == id:
+			return b
+	return null

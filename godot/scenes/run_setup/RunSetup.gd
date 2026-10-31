@@ -12,6 +12,7 @@ extends Control
 ## when dice are server-rolled. Not wired: Kit/Boon purchase,
 ## preset save/load, seed well, Leaderboard button. Those render disabled with the reason shown.
 
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 const EconomyDBScript := preload("res://scripts/meta/economy_db.gd")
 const SCREEN_ID := "portal"
 const RUN_MAP := "res://scenes/run_map/RunMap.tscn"
@@ -28,9 +29,9 @@ const FAIRNESS := "Aid makes you stronger for one run. Players who buy more can 
 const RULES := [
 	[1, "Lean Pack", "Shop prices +15% · selling refunds 40%, not 50%"],
 	[2, "Elite Escort", "Every elite fight brings 1 extra monster"],
-	[3, "Short Dice", "Base rerolls 2 → 1 · relic rerolls still add"],
+	[3, "Short Dice", "Base rerolls 2 → 1 · Core rerolls still add"],
 	[4, "Boss Clock", "Enrage from turn 10: +20%/turn, max +100%"],
-	[5, "Eternal Gift", "Elite relics are Eternal (max 2) · weaken announced"],
+	[5, "Eternal Gift", "Elite Cores are Eternal (max 2) · weaken announced"],
 	[6, "First Pact", "First boss: you must take 1 of 3 pacts"],
 	[7, "Narrow Offer", "Reward screens offer 2 cards, not 3"],
 	[8, "Cramped Pack", "Passive relic slots 8 → 7"],
@@ -71,6 +72,7 @@ var _kind_btns: Dictionary = {}
 var _panel: PanelContainer
 var _body: VBoxContainer
 var _footer_msg: Label
+var _block_reason: Label
 ## True from the Start click until the server answers (can take ~15 s when an old run has to be closed first).
 var _busy := false
 var _busy_text := ""
@@ -93,6 +95,7 @@ var _full_btn: Button
 var _mode_detail: Label
 var _anchor_lbl: Label
 var _asc_lock: Label
+var _full_lock: Label
 const ANCHOR_STAGE := 2   ## mirrors RunState.anchor_gate_reason (depth_stage >= 2)
 var _banner_host: VBoxContainer
 var _modal_layer: Control
@@ -104,6 +107,7 @@ var _presets_tab := "load"
 ## Test/QA hook: leaderboard popup source (null = LeaderboardSource.make_default()).
 var lb_source: LeaderboardSource = null
 var _picker_grid: GridContainer
+var _picker_obj: RunSetupPicker   ## popups (leaderboard, Axie picker, team presets); state stays on this screen
 
 
 func _ready() -> void:
@@ -363,6 +367,65 @@ func select_kind(k: String) -> bool:
 	return true
 
 
+## Disabled look as in the frame (grey plate, lock icon + text as an HBox, no Button.icon). Not-locked: plain text.
+func _set_lock_look(b: Button, locked: bool, txt: String, icon_px := 18, gap := 8, wrap := true) -> void:
+	var old := b.get_node_or_null("LockRow")
+	if old != null:
+		b.remove_child(old)
+		old.queue_free()
+	for k in ["normal", "hover", "pressed", "focus"]:
+		if locked:
+			b.add_theme_stylebox_override(k, b.get_theme_stylebox("disabled"))
+		else:
+			b.remove_theme_stylebox_override(k)
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		if locked:
+			b.add_theme_color_override(c, b.get_theme_color("font_disabled_color"))
+		else:
+			b.remove_theme_color_override(c)
+	b.icon = null
+	if not locked:
+		b.text = txt
+		return
+	b.text = ""
+	var row := HBoxContainer.new()
+	row.name = "LockRow"
+	row.set_anchors_preset(Control.PRESET_FULL_RECT)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", gap)
+	var ic := TextureRect.new()
+	ic.name = "LockIcon"
+	ic.texture = UI3.icon("ui_lock")
+	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	var px := maxf(float(icon_px), ceilf(14.0 / UI3Theme.layout_scale()))   # >= 14 real px at 1280
+	ic.custom_minimum_size = Vector2(px, px)
+	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(ic)
+	var lb := Label.new()
+	lb.name = "LockText"
+	lb.text = txt
+	lb.add_theme_color_override("font_color", b.get_theme_color("font_disabled_color"))
+	lb.add_theme_font_override("font", b.get_theme_font("font"))
+	lb.add_theme_font_size_override("font_size", b.get_theme_font_size("font_size"))
+	lb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Long reasons ("Imported Axies can't play Ranked") wrap and grow the toggle instead of being cut with "…".
+	lb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if wrap else TextServer.AUTOWRAP_OFF
+	lb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.offset_left = UI3Theme.space("8") if wrap else 2
+	row.offset_right = -row.offset_left
+	row.add_child(lb)
+	b.add_child(row, true)
+	var base_h := b.custom_minimum_size.y if b.has_meta("lock_base_h") == false else float(b.get_meta("lock_base_h"))
+	b.set_meta("lock_base_h", base_h)
+	lb.minimum_size_changed.connect(func() -> void:
+		if is_instance_valid(b):
+			b.custom_minimum_size.y = maxf(base_h, lb.get_minimum_size().y + UI3Theme.space("16")))
+
+
 func _kind_sub(k: String) -> String:
 	var why := kind_block_reason(k)
 	if k == "daily" and not daily_tries.is_empty() and why == "":
@@ -380,9 +443,9 @@ func _refresh_kind() -> void:
 		var why := kind_block_reason(k)
 		b.disabled = why != ""
 		b.tooltip_text = why
-		b.text = "%s · %s" % [String(k).capitalize(), _kind_sub(k)]
 		b.set_pressed_no_signal(kind == k)
-		_mark_selected(b, kind == k)
+		_set_lock_look(b, why != "", "%s · %s" % [String(k).capitalize(), _kind_sub(k)])
+		_mark_selected(b, kind == k)   # after the lock look: it resets the style overrides
 	if _anchor_lbl != null:
 		_anchor_lbl.text = anchor_line()
 
@@ -412,23 +475,18 @@ func set_state(s: String) -> void:
 	if _panel == null:
 		return
 	_clear_banners()
-	_body.visible = s != "loading" and s != "open_run"
-	_stage.visible = s != "loading" and s != "open_run"
-	_panel.visible = s != "open_run"
-	var sk := _panel.get_node_or_null("Col/Skeleton")
-	if sk:
-		sk.get_parent().remove_child(sk)
-		sk.queue_free()
-	var oc := get_node_or_null("OpenRun")
+	_body.visible = true
+	_stage.visible = s != "open_run"
+	_panel.visible = true
+	var oc := get_node_or_null("OpenRunArea")
 	if oc:
 		remove_child(oc)
 		oc.queue_free()
-	if s == "loading":
-		_build_skeleton()
-	elif s == "open_run":
+	_refresh_party()   # loading draws skeleton columns instead of the seats
+	if s == "open_run":
 		_build_open_run()
 	elif s == "guest":
-		_add_banner("Sign in to play", "Runs are played on the server, so they need an account.", false, true)
+		_add_banner("Sign in to play", "Runs are played on the server, so they need an account.", false, true, &"info")
 	elif s == "offline":
 		if remote_on:
 			_add_banner("Can't reach the server", "Last updated %s. Runs are played on the server in this build."
@@ -436,6 +494,25 @@ func set_state(s: String) -> void:
 		else:
 			_add_banner("You're offline", "Runs play on this device for now; progress syncs when you reconnect.", false)
 	_refresh_footer()
+	_focus_for_state(s)
+
+
+## First focus stop per state (never Start): the screen's own primary way forward.
+func _focus_for_state(s: String) -> void:
+	var target: Control = null
+	match s:
+		"normal":
+			target = _kind_btns.get("normal")
+		"guest":
+			target = _banner_host.find_child("SignInButton", true, false) as Control
+		"offline":
+			target = _banner_host.find_child("TryAgainButton", true, false) as Control
+			if target == null:
+				target = _kind_btns.get("normal")
+		"open_run":
+			target = find_child("ContinueButton", true, false) as Control
+	if target != null:
+		_focus_later(target)
 
 
 ## Begin. Uses start_hook if set (tests), otherwise RunState.begin_run().
@@ -455,7 +532,7 @@ func begin() -> Dictionary:
 		get_tree().create_timer(start_timeout_s).timeout.connect(func() -> void:
 			if _busy and gen == _busy_gen:
 				_set_busy(false)
-				_add_banner("Couldn't start — try again", "Nothing was spent.", false))
+				_add_banner("Couldn't start — try again", "Nothing was spent.", false, false, &"error"))
 	var sess: RunSession = null
 	if not start_hook.is_valid() and RemoteEpochSource.flag_on():
 		sess = RunState.run_session()
@@ -484,7 +561,7 @@ func begin() -> Dictionary:
 			UpdateRequired.show(self, code)   # Begin refused by an old build: update modal, banner stays as the fallback
 		var msg := begin_error_text(code)
 		begin_error = msg[0]
-		_add_banner(msg[0], msg[1], false)
+		_add_banner(msg[0], msg[1], false, false, &"error")
 		return r
 	begin_error = ""
 	if not no_scene_change and is_inside_tree():
@@ -492,7 +569,7 @@ func begin() -> Dictionary:
 		if err != OK:
 			_set_busy(false)
 			begin_error = "Couldn't open the run map"
-			_add_banner("Couldn't open the run map", "Try Start run again.", false)
+			_add_banner("Couldn't open the run map", "Try Start run again.", false, false, &"error")
 	return r
 
 
@@ -534,12 +611,15 @@ static func begin_error_text(code: String) -> Array:
 	return ["Could not start the run, try again.", "Nothing was spent. Code: %s" % code]
 
 
+## Lazy: tests build the screen with no tree, so this cannot wait for _ready.
+func _picker() -> RunSetupPicker:
+	if _picker_obj == null:
+		_picker_obj = RunSetupPicker.new(self)
+	return _picker_obj
+
+
 func open_picker(slot: int) -> void:
-	_picker_slot = slot
-	_picker_tab = "all"
-	_picker_cls = "all"
-	_picker_sel = ""
-	_show_picker()
+	_picker().open_picker(slot)
 
 
 func open_leaderboard() -> void:
@@ -558,102 +638,16 @@ func open_full_leaderboard() -> void:
 
 ## UI-03 35: top 5 for the picked Ascension, own row pinned under them. States: loading, error, normal.
 func _show_leaderboard_popup() -> void:
-	var v := _modal_box(640, "LeaderboardPopup")
-	var asc_n := ascension
-	v.add_child(_lbl(tr("Leaderboard"), "LabelScreenTitle"))
-	var sub := _lbl(tr("Ascension %d · this season") % asc_n, "LabelMuted")
-	sub.name = "LbSub"
-	v.add_child(sub)
-	var rows_box := VBoxContainer.new()
-	rows_box.name = "LbRows"
-	rows_box.add_theme_constant_override("separation", 8)
-	v.add_child(rows_box)
-	var loading := _lbl(tr("Loading..."), "LabelMuted")
-	rows_box.add_child(loading)
-	var acts := HBoxContainer.new()
-	acts.add_theme_constant_override("separation", 16)
-	acts.alignment = BoxContainer.ALIGNMENT_END
-	v.add_child(acts)
-	var close := UI3.button(tr("Close"), &"secondary", &"M")
-	close.name = "CloseLeaderboard"
-	close.pressed.connect(close_modal)
-	acts.add_child(close)
-	var full := UI3.button(tr("Full Leaderboard"), &"primary", &"M")
-	full.name = "FullLeaderboard"
-	full.pressed.connect(open_full_leaderboard)
-	acts.add_child(full)
-	_focus_later(close)
-	_lb_load(rows_box, acts, full, loading)
+	_picker()._show_leaderboard_popup()
 
 
-## Fetches the board into rows_box. On error "Try again" becomes the primary and "Full Leaderboard" drops to secondary.
+## Fetches the board into rows_box. On error a secondary "Try again" is added next to "Full Leaderboard" (frame lb-error).
 func _lb_load(rows_box: VBoxContainer, acts: HBoxContainer, full: Button, loading: Control) -> void:
-	var src: LeaderboardSource = lb_source if lb_source != null else LeaderboardSource.make_default()
-	var asc_n := ascension
-	src.fetch({"asc": asc_n, "period": "season", "mode": mode}, func(res: Dictionary) -> void:
-		if not is_instance_valid(rows_box):
-			return
-		for c in rows_box.get_children():
-			c.queue_free()
-		if not bool(res.get("ok", false)):
-			var e := _lbl(tr("Can't load the board right now. Try again later."), "LabelMuted")
-			e.name = "LbError"
-			e.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			rows_box.add_child(e)
-			if is_instance_valid(full):
-				acts.remove_child(full)
-				full.queue_free()
-			var full2 := UI3.button(tr("Full Leaderboard"), &"secondary", &"M")
-			full2.name = "FullLeaderboard"
-			full2.pressed.connect(open_full_leaderboard)
-			acts.add_child(full2)
-			var retry := UI3.button(tr("Try again"), &"primary", &"M")
-			retry.name = "LbRetry"
-			retry.pressed.connect(func() -> void:
-				for c in rows_box.get_children():
-					c.queue_free()
-				rows_box.add_child(_lbl(tr("Loading..."), "LabelMuted"))
-				acts.remove_child(retry)
-				retry.queue_free()
-				_lb_load(rows_box, acts, full2, null))
-			acts.add_child(retry)
-			_focus_later(retry)
-			return
-		var rows: Array = res.get("rows", [])
-		if rows.is_empty():
-			rows_box.add_child(_lbl(tr("No scores yet this season."), "LabelMuted"))
-		for i in mini(5, rows.size()):
-			rows_box.add_child(_lb_row(rows[i], false))
-		var me: Dictionary = res.get("me", {})
-		if not me.is_empty():
-			var mr := _lb_row(me, true)
-			mr.name = "LbMe"
-			rows_box.add_child(mr)
-		if String(res.get("updated", "")) != "":
-			rows_box.add_child(_lbl(tr("Last updated %s") % String(res["updated"]), "LabelMuted")))
+	_picker()._lb_load(rows_box, acts, full, loading)
 
 
 func _lb_row(r: Dictionary, own: bool) -> PanelContainer:
-	var p := UI3.plate(&"plate")
-	p.custom_minimum_size.y = 56
-	if own:
-		p.theme_type_variation = "PanelCardSelected"
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 16)
-	p.add_child(h)
-	var rk := _lbl("#%d" % int(r.get("rank", 0)), "LabelTitle")
-	rk.custom_minimum_size.x = 64
-	h.add_child(rk)
-	var nm := _lbl(String(r.get("name", tr("You"))).substr(0, 20), "LabelTitle")
-	nm.clip_text = true
-	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	h.add_child(nm)
-	h.add_child(_lbl(UI3.fmt(int(r.get("score", 0))), "LabelTitle"))
-	return p
-
-
-# ---------------------------------------------------------------- team presets (R3 M2)
+	return _picker()._lb_row(r, own)
 
 ## Loads a saved team into the party. Seats whose Axie is gone stay empty. False if no such preset.
 func load_preset(i: int) -> bool:
@@ -688,6 +682,8 @@ func _lbl(text: String, variation := "") -> Label:
 
 ## Selected = 4 px cream outline on the button's own styles (never the focus ring).
 func _mark_selected(b: Button, on: bool) -> void:
+	if b.get_node_or_null("LockRow") != null:
+		return   # locked: keeps the disabled look
 	for k in ["normal", "hover", "pressed"]:
 		var base: StyleBox = b.get_meta("base_" + k) if b.has_meta("base_" + k) else null
 		if on:
@@ -767,93 +763,15 @@ func open_save_preset() -> void:
 
 ## UI-03 34: one modal, two tabs (Load / Save current). Load rows are 72 high; a row with a missing Axie says so.
 func _show_presets(tab: String) -> void:
-	_presets_tab = tab
-	var v := _modal_box(640, "LoadPresets" if tab == "load" else "SavePresetModal")
-	v.add_child(_lbl(tr("Team presets"), "LabelScreenTitle"))
-	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 8)
-	v.add_child(tabs)
-	var tl := UI3.tab(tr("Load"), tab == "load")
-	tl.name = "TabLoad"
-	tl.pressed.connect(func() -> void: _show_presets("load"))
-	tabs.add_child(tl)
-	var ts := UI3.tab(tr("Save current"), tab == "save")
-	ts.name = "TabSave"
-	ts.pressed.connect(func() -> void: _show_presets("save"))
-	tabs.add_child(ts)
-	var acts := HBoxContainer.new()
-	acts.add_theme_constant_override("separation", 16)
-	acts.alignment = BoxContainer.ALIGNMENT_END
-	var cancel := UI3.button(tr("Cancel"), &"secondary", &"M")
-	cancel.name = "ClosePresets"
-	cancel.pressed.connect(close_modal)
-	if tab == "load":
-		_presets_load_body(v, acts)
-	else:
-		_presets_save_body(v, acts)
-	v.add_child(acts)
-	acts.add_child(cancel)
-	acts.move_child(cancel, 0)
-	if tab == "load":
-		_focus_later(cancel)
+	_picker()._show_presets(tab)
 
 
 func _presets_load_body(v: VBoxContainer, acts: HBoxContainer) -> void:
-	if TeamPresets.count() == 0:
-		var none := _lbl(tr("No saved teams yet. Build one in Team presets (House)."), "LabelMuted")
-		none.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		v.add_child(none)
-	var go := UI3.button(tr("Load team"), &"primary", &"M")
-	go.name = "ConfirmLoadPreset"
-	UI3.set_disabled_reason(go, tr("Load team") + " · " + tr("Pick a team"))
-	var rows: Array[Button] = []
-	for i in TeamPresets.count():
-		var e: Dictionary = MetaState.team_presets[i]
-		var miss := TeamPresets.missing_count(e)
-		var b := UI3.button("%s%s" % [String(e["name"]).substr(0, 20), " · %d seats empty" % miss if miss > 0 else ""], &"secondary", &"M")
-		b.name = "Preset%d" % i
-		b.custom_minimum_size.y = 72
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		b.pressed.connect(func() -> void:
-			for o in rows:
-				_outline(o, o == b)
-			go.set_meta("preset", i)
-			UI3.clear_disabled_reason(go))
-		rows.append(b)
-		v.add_child(b)
-	go.pressed.connect(func() -> void:
-		if go.has_meta("preset"):
-			load_preset(int(go.get_meta("preset"))))
-	acts.add_child(go)
+	_picker()._presets_load_body(v, acts)
 
 
 func _presets_save_body(v: VBoxContainer, acts: HBoxContainer) -> void:
-	var edit := LineEdit.new()
-	edit.name = "PresetName"
-	edit.max_length = TeamPresets.NAME_MAX
-	edit.text = "Team %d" % (TeamPresets.count() + 1)
-	edit.custom_minimum_size = Vector2(0, 48)
-	v.add_child(edit)
-	var slotline := _lbl(tr("Saves to slot %d") % (TeamPresets.count() + 1), "LabelMuted")
-	v.add_child(slotline)
-	var save := UI3.button(tr("Save team"), &"primary", &"M")
-	save.name = "ConfirmSavePreset"
-	var refresh_save := func(_t := "") -> void:
-		var why := TeamPresets.save_block_reason(party)
-		if why == "" and TeamPresets.clean_name(edit.text) == "":
-			why = tr("Give the team a name")
-		if why == "" and not TeamPresets.has_room():
-			why = tr("All preset slots are used")
-		if why == "":
-			UI3.clear_disabled_reason(save)
-		else:
-			UI3.set_disabled_reason(save, tr("Save team") + " · " + why)
-	edit.text_changed.connect(refresh_save)
-	refresh_save.call()
-	save.pressed.connect(func() -> void: save_preset(edit.text))
-	acts.add_child(save)
-	_focus_later(edit)
+	_picker()._presets_save_body(v, acts)
 
 
 func _focus_later(c: Control) -> void:
@@ -894,8 +812,8 @@ func _build() -> void:
 
 	# Left plate 432 w: header, banners, mode, length, difficulty.
 	_panel = UI3.plate(&"plate")
-	_panel.name = "Panel"
-	_panel.custom_minimum_size.x = 432
+	_panel.name = "SetupColumn"
+	_panel.custom_minimum_size.x = UI3Theme.size_of("setup_col_w")
 	_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	_panel.offset_left = 24
 	_panel.offset_top = 24
@@ -905,9 +823,6 @@ func _build() -> void:
 	col.add_theme_constant_override("separation", 16)
 	_panel.add_child(col)
 	col.add_child(_build_header())
-	_banner_host = VBoxContainer.new()
-	_banner_host.add_theme_constant_override("separation", 8)
-	col.add_child(_banner_host)
 	_body = VBoxContainer.new()
 	_body.name = "Body"
 	_body.add_theme_constant_override("separation", 16)
@@ -924,16 +839,21 @@ func _build() -> void:
 	var area := VBoxContainer.new()
 	area.name = "PartyArea"
 	area.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	area.offset_left = 480
-	area.offset_top = 40
+	area.offset_left = 24 + UI3Theme.size_of("setup_col_w") + 24
+	area.offset_top = 24
 	area.offset_right = 1896
 	area.add_theme_constant_override("separation", 16)
 	_stage.add_child(area)
+	_banner_host = VBoxContainer.new()   # frame: the Banner sits at the top of PartyArea
+	_banner_host.name = "BannerHost"
+	_banner_host.add_theme_constant_override("separation", UI3Theme.space("8"))
+	area.add_child(_banner_host)
 	_party_label = _lbl("", "LabelTitle")
+	_party_label.name = "PartyHeader"
 	area.add_child(_party_label)
 	_party_row = HBoxContainer.new()
 	_party_row.name = "PartyRow"
-	_party_row.add_theme_constant_override("separation", 88)
+	_party_row.add_theme_constant_override("separation", UI3Theme.space("16"))
 	area.add_child(_party_row)
 
 	if not is_newcomer() and setup_aid_enabled():
@@ -954,37 +874,37 @@ func _build() -> void:
 	br.add_theme_constant_override("separation", 12)
 	_stage.add_child(br)
 	_footer_msg = _lbl("")
+	_footer_msg.name = "FooterLine"
 	_footer_msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_footer_msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_footer_msg.custom_minimum_size.x = 560
+	_footer_msg.custom_minimum_size.x = 0
 	br.add_child(_footer_msg)
+	_block_reason = _lbl("", "LabelMuted")
+	_block_reason.name = "BlockReason"
+	_block_reason.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	br.add_child(_block_reason)
 	var acts := HBoxContainer.new()
 	acts.alignment = BoxContainer.ALIGNMENT_END
 	acts.add_theme_constant_override("separation", 16)
 	br.add_child(acts)
 	var lb := UI3.button(tr("Leaderboard"), &"quiet")
-	lb.name = "LeaderboardBtn"
+	lb.name = "LeaderboardButton"
 	lb.disabled = is_newcomer()
 	lb.tooltip_text = tr("Opens after %d runs") % NEWCOMER_RUNS if is_newcomer() else ""
 	lb.pressed.connect(open_leaderboard)
 	acts.add_child(lb)
-	var khB := UI3.key_hint("B")
-	khB.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	acts.add_child(khB)
 	var save_b := UI3.button(tr("Save preset"), &"quiet")
-	save_b.name = "SavePreset"
+	save_b.name = "SavePresetButton"
 	save_b.pressed.connect(open_save_preset)
 	acts.add_child(save_b)
-	var khS := UI3.key_hint("S")
-	khS.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	acts.add_child(khS)
 	var load_b := UI3.button(tr("Team presets"), &"secondary", &"M")
-	load_b.name = "LoadPreset"
+	load_b.name = "TeamPresetsButton"
 	load_b.pressed.connect(open_load_presets)
 	acts.add_child(load_b)
 	_begin_btn = UI3.button(tr("Start run"), &"primary", &"L")
-	_begin_btn.name = "Begin"
+	_begin_btn.name = "StartButton"
 	_begin_btn.pressed.connect(func() -> void: begin())
+	_begin_btn.custom_minimum_size.x = 300
 	acts.add_child(_begin_btn)
 
 	_modal_layer = Control.new()
@@ -1001,8 +921,8 @@ func _build() -> void:
 func _build_header() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
-	var back := UI3.button(tr("← Back  Esc"), &"quiet")
-	back.name = "Back"
+	var back := UI3.button(tr("← Back"), &"quiet")
+	back.name = "BackButton"
 	back.pressed.connect(_on_back)
 	row.add_child(back)
 	var title := _lbl(tr("Run setup"), "LabelScreenTitle")
@@ -1019,26 +939,35 @@ func _refresh_party() -> void:
 		c.queue_free()
 	_party_label.text = tr("Party · %d of %d") % [filled_count(), PARTY_SIZE]
 	for i in PARTY_SIZE:
-		_party_row.add_child(_build_slot(i))
+		_party_row.add_child(_build_skeleton_col() if state == "loading" else _build_slot(i), true)
 	_refresh_kind()
 
 
-## One party seat: 168 square preview (class colour stand-in until the 3D view lands) + a 200 w plate.
+## One party seat (frame PartySlot): a plate that fills its column, square portrait on top, then name / class / HP / Swap + Clear.
+## Columns are equal (EXPAND_FILL, min width 0); the name is cut with an ellipsis, so text length never moves a column.
 func _build_slot(i: int) -> Control:
 	var key := party[i] if i < party.size() else ""
-	var card := VBoxContainer.new()
-	card.name = "Slot%d" % i
-	card.custom_minimum_size.x = 200
-	card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	card.add_theme_constant_override("separation", 8)
+	var card := UI3.plate(&"plate")
+	card.name = "PartySlot" if key != "" else "PartySlotEmpty"
+	card.custom_minimum_size.x = 0
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", UI3Theme.space("8"))
+	card.add_child(v)
+	var ar := Control.new()
+	ar.name = "PortraitBox"
+	ar.resized.connect(func() -> void:   # square: height follows the column width
+		if absf(ar.custom_minimum_size.y - ar.size.x) > 0.5:
+			ar.custom_minimum_size.y = ar.size.x)
+	v.add_child(ar)
 	var preview := Panel.new()
 	preview.name = "Preview"
-	preview.custom_minimum_size = Vector2(168, 168)
-	preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var psb := StyleBoxFlat.new()
 	psb.set_corner_radius_all(UI3Theme.radius("m"))
 	preview.add_theme_stylebox_override("panel", psb)
-	card.add_child(preview)
+	preview.set_anchors_preset(Control.PRESET_FULL_RECT)
+	ar.add_child(preview)
 	if key == "":
 		psb.draw_center = false
 		psb.border_color = UI3Theme.color("disabled_border")
@@ -1067,44 +996,58 @@ func _build_slot(i: int) -> Control:
 		preview.add_child(pic)
 	else:
 		var initial := _lbl(String(def.get("n", key)).substr(0, 1), "LabelScreenTitle")
+		initial.name = "Portrait"
 		initial.set_anchors_preset(Control.PRESET_FULL_RECT)
 		initial.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		initial.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		preview.add_child(initial)
-	var plate := UI3.plate(&"plate")
-	card.add_child(plate)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 4)
-	plate.add_child(v)
-	var nm := _lbl(String(def.get("n", key)), "LabelTitle")
+	var nm := _lbl("", "LabelTitle")
+	nm.name = "Name"
+	nm.custom_minimum_size.x = 0
 	nm.clip_text = true
-	nm.custom_minimum_size.x = 150
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER   # Liam 29/10: text under a picture is centred on it
 	v.add_child(nm)
+	Ui5Ellipsis.set_text(nm, String(def.get("n", key)))
 	var vault := MetaState.is_vault_key(key)
 	var meta := _lbl("%s · %s" % [cls.capitalize(), tr("Vault") if vault else tr("Starter")], "LabelMuted")
+	meta.name = "ClassLine"
 	meta.clip_text = true
+	meta.custom_minimum_size.x = 0
+	meta.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER   # Liam 29/10: text under a picture is centred on it
 	v.add_child(meta)
-	v.add_child(_lbl(tr("Max HP %d") % int(def.get("max_hp", 0)), "LabelMuted"))
+	var hp := _lbl(tr("Max HP %d") % int(def.get("max_hp", 0)))
+	hp.name = "HpLine"
+	hp.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER   # Liam 29/10: text under a picture is centred on it
+	v.add_child(hp)
 	var acts := HBoxContainer.new()
-	acts.add_theme_constant_override("separation", 8)
+	acts.add_theme_constant_override("separation", UI3Theme.space("8"))
 	v.add_child(acts)
 	var swap := UI3.button(tr("Swap"), &"secondary", &"S")
-	swap.name = "Swap"
+	swap.name = "SwapButton"
+	swap.custom_minimum_size.x = 0
+	swap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	swap.pressed.connect(open_picker.bind(i))
 	acts.add_child(swap)
 	var clr := UI3.button(tr("Clear"), &"secondary", &"S")
-	clr.name = "Clear"
+	clr.name = "ClearButton"
+	clr.custom_minimum_size.x = 0
+	clr.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	clr.pressed.connect(clear_slot.bind(i))
 	acts.add_child(clr)
 	return card
 
 
 func _build_mode_col() -> void:
-	_body.add_child(_lbl(tr("Mode"), "LabelMuted"))
+	var ml := _lbl(tr("Mode"), "LabelMuted")
+	ml.name = "ModeLabel"
+	_body.add_child(ml)
 	for k in ["normal", "daily", "ranked"]:
 		var b := UI3.button(String(k).capitalize(), &"secondary", &"M")
-		b.name = "Mode" + String(k).capitalize()
+		b.name = String(k).capitalize() + "Toggle"
 		b.toggle_mode = true
+		b.clip_text = true
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.pressed.connect(select_kind.bind(k))
 		_kind_btns[k] = b
 		_body.add_child(b)
@@ -1114,15 +1057,17 @@ func _build_mode_col() -> void:
 	lrow.add_theme_constant_override("separation", 8)
 	_body.add_child(lrow)
 	_short_btn = UI3.button(tr("Short"), &"secondary", &"M")
-	_short_btn.name = "LenShort"
+	_short_btn.name = "ShortToggle"
 	_short_btn.toggle_mode = true
+	_short_btn.clip_text = true
 	_short_btn.button_group = grp
 	_short_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_short_btn.pressed.connect(select_length.bind("short"))
 	lrow.add_child(_short_btn)
 	_full_btn = UI3.button(tr("Full"), &"secondary", &"M")
-	_full_btn.name = "LenFull"
+	_full_btn.name = "FullToggle"
 	_full_btn.toggle_mode = true
+	_full_btn.clip_text = true
 	_full_btn.button_group = grp
 	_full_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_full_btn.pressed.connect(func() -> void:
@@ -1132,13 +1077,18 @@ func _build_mode_col() -> void:
 		_full_btn.tooltip_text = tr("Win a Short run to unlock Full")
 	lrow.add_child(_full_btn)
 	_mode_detail = _lbl("", "LabelMuted")
+	_mode_detail.name = "LengthDetail"
 	_mode_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_mode_detail.custom_minimum_size.x = 384
+	_mode_detail.custom_minimum_size.x = 0
 	_body.add_child(_mode_detail)
+	_full_lock = _lbl("", "LabelMuted")
+	_full_lock.name = "FullLockLine"
+	_full_lock.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_body.add_child(_full_lock)
 	_anchor_lbl = _lbl("", "LabelMuted")
 	_anchor_lbl.name = "AnchorLine"
 	_anchor_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_anchor_lbl.custom_minimum_size.x = 384
+	_anchor_lbl.custom_minimum_size.x = 0
 	_body.add_child(_anchor_lbl)
 	_anchor_lbl.text = anchor_line()
 
@@ -1149,24 +1099,28 @@ func _refresh_mode() -> void:
 	var full_ok := is_full_unlocked()
 	_short_btn.set_pressed_no_signal(mode == "short")
 	_full_btn.set_pressed_no_signal(mode == "full")
-	_mark_selected(_short_btn, mode == "short")
-	_mark_selected(_full_btn, mode == "full" and full_ok)
-	_full_btn.text = tr("Full") if full_ok else tr("Full · locked")
 	var cfg: Dictionary = RunMapGenerator.MODE_CONFIG.get(mode, {})
 	var txt := "%s · %d rows · %d bosses" % [mode.capitalize(), int(cfg.get("total_rows", 0)),
 		(cfg.get("boss_rows", []) as Array).size()]
-	if not full_ok:
-		txt += "\n" + tr("Full is locked. Win a Short run to unlock Full.")
 	_mode_detail.text = txt
+	_full_lock.text = "" if full_ok else tr("Full is locked. Win a Short run to unlock Full.")
+	_full_lock.visible = not full_ok
+	_full_btn.disabled = false   # stays clickable so the reason shows; drawn as disabled
+	_set_lock_look(_full_btn, not full_ok, tr("Full") if full_ok else tr("Full · locked"))
+	_mark_selected(_short_btn, mode == "short")
+	_mark_selected(_full_btn, mode == "full" and full_ok)
 
 
 func _build_asc_col() -> void:
-	_body.add_child(_lbl(tr("Difficulty"), "LabelMuted"))
+	var dl := _lbl(tr("Difficulty"), "LabelMuted")
+	dl.name = "DifficultyLabel"
+	_body.add_child(dl)
 	_asc_chips.clear()
 	if is_newcomer():
 		var one := _lbl(tr("Difficulty opens after %d runs. You play A0 · Normal.") % NEWCOMER_RUNS)
+		one.name = "NewcomerLine"
 		one.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		one.custom_minimum_size.x = 384
+		one.custom_minimum_size.x = 0
 		_body.add_child(one)
 	else:
 		var grid := GridContainer.new()
@@ -1177,7 +1131,7 @@ func _build_asc_col() -> void:
 		_body.add_child(grid)
 		for n in ASC_MAX + 1:
 			var b := UI3.button("A%d" % n, &"secondary", &"S")
-			b.name = "Asc%d" % n
+			b.name = "AscChipA%d" % n
 			b.toggle_mode = false
 			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			b.add_theme_constant_override("icon_max_width", 14)
@@ -1188,26 +1142,33 @@ func _build_asc_col() -> void:
 			_tight(b)
 			_asc_chips.append(b)
 	_asc_lock = _lbl("", "LabelMuted")
-	_asc_lock.name = "AscLockLine"
+	_asc_lock.name = "UnlockLine"
 	_asc_lock.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_asc_lock.custom_minimum_size.x = 384
+	_asc_lock.custom_minimum_size.x = 0
 	_asc_lock.visible = false
 	if not is_newcomer():
 		_body.add_child(_asc_lock)
+	var det := VBoxContainer.new()
+	det.name = "AscDetail"
+	det.add_theme_constant_override("separation", 4)
+	_body.add_child(det)
 	_asc_title = _lbl("", "LabelTitle")
-	_body.add_child(_asc_title)
+	_asc_title.name = "AscTitle"
+	det.add_child(_asc_title)
 	_asc_mult = _lbl("", "LabelMuted")
+	_asc_mult.name = "AscRules"
 	_asc_mult.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_asc_mult.custom_minimum_size.x = 384
-	_body.add_child(_asc_mult)
+	_asc_mult.custom_minimum_size.x = 0
+	det.add_child(_asc_mult)
 	_asc_rule = _lbl("")
 	_asc_rule.name = "AscRule"
+	_asc_rule.add_theme_color_override("font_color", UI3Theme.color("accent"))
 	_asc_rule.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_asc_rule.custom_minimum_size.x = 384
-	_body.add_child(_asc_rule)
+	_asc_rule.custom_minimum_size.x = 0
+	det.add_child(_asc_rule)
 	_asc_tip = _lbl("")
 	_asc_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_asc_tip.custom_minimum_size.x = 384
+	_asc_tip.custom_minimum_size.x = 0
 	_asc_tip.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
 	_body.add_child(_asc_tip)
 
@@ -1228,9 +1189,9 @@ func _refresh_asc() -> void:
 	for n in _asc_chips.size():
 		var b := _asc_chips[n]
 		var locked := n > ceil
+		_set_lock_look(b, locked, "A%d" % n, 14, 4, false)
 		_mark_selected(b, n == ascension)
-		b.icon = UI3.icon("ui_lock") if locked else null
-		b.modulate.a = 0.6 if locked else 1.0
+		b.modulate.a = 1.0
 		b.tooltip_text = tr("Win a run at A%d to unlock A%d") % [n - 1, n] if locked else ""
 	var m: Dictionary = ContentDB.ascension_mods(ascension)
 	if ascension == 0:
@@ -1289,6 +1250,10 @@ func _build_kit_col() -> Control:
 
 
 func _refresh_footer() -> void:
+	_refresh_footer_inner()
+
+
+func _refresh_footer_inner() -> void:
 	if _footer_msg == null:
 		return
 	var why := begin_block_reason()
@@ -1296,14 +1261,28 @@ func _refresh_footer() -> void:
 	if kind != "normal":
 		summary += " · " + kind.capitalize()
 	if _busy:
-		_footer_msg.text = "%s\n%s" % [summary, tr("This can take a few seconds. Please wait.")]
+		_footer_msg.text = summary
+		# frames: "Starting…" shows no extra line, the slower "Closing your old run…" asks for patience
+		_block_reason.text = tr("This can take a few seconds. Please wait.")
+		_block_reason.visible = _busy_text != tr("Starting…")
 		UI3.set_disabled_reason(_begin_btn, why)
 		return
-	_footer_msg.text = summary if why == "" else "%s\n%s" % [summary, why]
+	if state == "loading":
+		_footer_msg.text = tr("Loading…")
+		_block_reason.visible = false
+		UI3.set_disabled_reason(_begin_btn, why)
+		return
+	_footer_msg.text = summary
+	_block_reason.text = why
+	_block_reason.visible = why != ""
 	if why == "":
 		UI3.clear_disabled_reason(_begin_btn)
 	elif filled_count() < PARTY_SIZE and state in ["normal", "offline", "guest"] and (kind == "normal" or kind_block_reason(kind) == ""):
+		UI3.clear_disabled_reason(_begin_btn)
 		_begin_btn.text = tr("Start run") + " · %d of %d" % [filled_count(), PARTY_SIZE]
+		_begin_btn.disabled = true
+	elif state == "offline":
+		UI3.clear_disabled_reason(_begin_btn)   # frame: the label stays "Start run", the reason is the line above
 		_begin_btn.disabled = true
 	else:
 		UI3.set_disabled_reason(_begin_btn, why)
@@ -1318,30 +1297,39 @@ func _clear_banners() -> void:
 		c.queue_free()
 
 
-func _add_banner(msg: String, detail: String, with_retry: bool, with_sign_in: bool = false) -> void:
+func _add_banner(msg: String, detail: String, with_retry: bool, with_sign_in: bool = false, tone: StringName = &"warn") -> void:
 	_clear_banners()
-	var p := UI3.plate(&"notice")
+	var p := PanelContainer.new()
 	p.name = "Banner"
+	p.theme = UI3Theme.get_theme()
+	p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("plate"), UI3Theme.radius("l"), UI3Theme.stroke("rim"),
+		UI3Theme.color("notice_warn"), Vector4(UI3Theme.space("16"), UI3Theme.space("12"), UI3Theme.space("16"), UI3Theme.space("12")),
+		PanelParts.lip(UI3Theme.color("plate_ink"))))
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", UI3Theme.space("12"))
+	p.add_child(h)
+	h.add_child(Ui5ToneDisc.make(tone))
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
-	p.add_child(v)
-	var t := _lbl(msg, "LabelTitle")
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(v)
+	var t := Ui5Text.label(tr(msg), "text_body", "text", true)
+	t.name = "Title"
 	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	t.custom_minimum_size.x = 368
 	v.add_child(t)
-	var d := _lbl(detail)
+	var d := Ui5Text.label(tr(detail), "text_body", "text")
+	d.name = "Body"
 	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	d.custom_minimum_size.x = 368
 	v.add_child(d)
 	if with_retry:
 		var r := UI3.button(tr("Try again"), &"secondary", &"S")
+		r.name = "TryAgainButton"
 		r.pressed.connect(func() -> void: set_state("normal"))
-		v.add_child(r)
+		h.add_child(r)
 	if with_sign_in:
-		var si := UI3.button(tr("Sign in"), &"primary", &"M")
+		var si := UI3.button(tr("Sign in"), &"secondary", &"S")
 		si.name = "SignInButton"
 		si.pressed.connect(_on_sign_in)
-		v.add_child(si)
+		h.add_child(si)
 	_banner_host.add_child(p)
 
 
@@ -1353,44 +1341,77 @@ func _on_sign_in() -> void:
 		(account_service if account_service != null else AccountService).sign_in()
 
 
-func _build_skeleton() -> void:
-	var sk := VBoxContainer.new()
-	sk.name = "Skeleton"
-	sk.add_theme_constant_override("separation", 12)
-	for i in 4:
-		sk.add_child(UI3.skeleton_row())
-	var col := _panel.get_node("Col")
-	col.add_child(sk)
-	col.move_child(sk, 2)
+## One loading seat (frame: a square block, a button-high bar, a 60 % bar).
+func _build_skeleton_col() -> Control:
+	var c := VBoxContainer.new()
+	c.name = "SkeletonCol"
+	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	c.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	c.add_theme_constant_override("separation", UI3Theme.space("8"))
+	var sq := UI3.skeleton_row(0)
+	sq.name = "Skeleton"
+	c.add_child(sq)
+	var bar1 := UI3.skeleton_row(UI3Theme.size_of("btn_s"))
+	c.add_child(bar1)
+	var bar2 := UI3.skeleton_row(UI3Theme.size_of("btn_s"))
+	bar2.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	c.add_child(bar2)
+	c.resized.connect(func() -> void:   # square block, 60 % bar
+		sq.custom_minimum_size.y = c.size.x
+		bar2.custom_minimum_size.x = c.size.x * 0.6)
+	return c
 
 
+## Frame OpenRunArea: the setup column stays, the right side is one dialog card (Continue focused, Space keycap).
 func _build_open_run() -> void:
+	var area := Control.new()
+	area.name = "OpenRunArea"
+	area.set_anchors_preset(Control.PRESET_FULL_RECT)
+	area.offset_left = 24 + UI3Theme.size_of("setup_col_w") + 24
+	area.offset_top = 24
+	area.offset_right = -24
+	area.offset_bottom = -24
+	area.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var holder := CenterContainer.new()
-	holder.name = "OpenRun"
 	holder.set_anchors_preset(Control.PRESET_FULL_RECT)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	area.add_child(holder)
 	var card := UI3.plate(&"dialog")
-	card.custom_minimum_size.x = 560
+	card.name = "OpenRunCard"
+	card.custom_minimum_size.x = UI3Theme.size_of("modal_s_w")   # frame .dialog.s
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 16)
+	v.add_theme_constant_override("separation", UI3Theme.space("20"))
 	card.add_child(v)
-	v.add_child(_lbl(tr("You have an unfinished run"), "LabelScreenTitle"))
-	v.add_child(_lbl(tr("Saved run on disk"), "LabelMuted"))
+	var ttl := _lbl(tr("You have an unfinished run"), "LabelScreenTitle")
+	ttl.name = "Title"
+	v.add_child(ttl)
+	var sub := _lbl(tr("Saved run"), "LabelMuted")
+	sub.name = "SubLine"
+	v.add_child(sub)
 	var cont := UI3.button(tr("Continue run"), &"primary", &"L")
-	cont.name = "Continue"
+	cont.name = "ContinueButton"
 	cont.pressed.connect(_on_continue)
 	v.add_child(cont)
+	var cap := Ui5Keycap.make("Space", &"primary")
+	cont.add_child(cap, true)
+	var pad := UI3Theme.space("16")
+	var place := func() -> void:
+		if is_instance_valid(cont) and cont.is_inside_tree():
+			Ui5HudStyle.place_trailing(cont, cap, pad)
+	cont.resized.connect(place)
+	place.call_deferred()
 	var nw := UI3.button(tr("New run"), &"secondary", &"M")
-	nw.name = "NewRun"
+	nw.name = "NewRunButton"
 	nw.pressed.connect(_on_new_run)
 	v.add_child(nw)
 	var note := _lbl(tr("A new run ends the current run. Aid you used is not refunded."), "LabelMuted")
+	note.name = "Note"
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	note.custom_minimum_size.x = 496
+	note.custom_minimum_size.x = 0
 	v.add_child(note)
 	holder.add_child(card)
-	add_child(holder)
-	move_child(holder, get_child_count() - 2)   # under the modal layer
-	_focus_later(cont)
+	add_child(area)
+	move_child(area, get_child_count() - 2)   # under the modal layer
 
 
 ## "New run" on the unfinished-run card: the old run ends here (stake lost, save gone), as the card says.
@@ -1409,7 +1430,7 @@ func _on_continue() -> void:
 		set_state("normal")
 		return
 	var st: String = await RunContinue.reconnect(self, _on_continue,
-			find_child("Continue", true, false) as BaseButton)
+			find_child("ContinueButton", true, false) as BaseButton)
 	if st == "gone":
 		set_state("normal")
 		_on_back()   # Land shows RunState's discard notice
@@ -1428,154 +1449,19 @@ func _on_back() -> void:
 # ---------------------------------------------------------------- picker
 
 func _pick_keys() -> Array[String]:
-	var keys: Array[String] = []
-	if _picker_tab != "vault":
-		keys.append_array(MainMenu.T1_HERO_KEYS)
-	if _picker_tab != "starter":
-		for entry in MetaState.vault:
-			if MetaState.vault_stale(entry):
-				continue
-			var k := MetaState.vault_key(entry)
-			if ContentDB.heroes.has(k) and not keys.has(k):
-				keys.append(k)
-	return keys
+	return _picker()._pick_keys()
 
 
 func _pick_classes() -> Array[String]:
-	var cl: Array[String] = []
-	for k in _pick_keys():
-		var c := String(ContentDB.heroes[k].get("cls", ""))
-		if c != "" and not cl.has(c):
-			cl.append(c)
-	return cl
+	return _picker()._pick_classes()
 
 
 ## UI-03 33: modal 1120, class filter chips, 5-column grid of square previews, Cancel / "Put in slot n".
 ## A tile only selects; the primary button commits through set_slot().
 func _show_picker() -> void:
-	var v := _modal_box(1120, "Picker")
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 12)
-	v.add_child(head)
-	var t := _lbl(tr("Pick an Axie · slot %d") % (_picker_slot + 1), "LabelScreenTitle")
-	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(t)
-	var chips := HBoxContainer.new()
-	chips.name = "PickerFilters"
-	chips.add_theme_constant_override("separation", 8)
-	v.add_child(chips)
-	var opts: Array = [["all", tr("All")], ["starter", tr("Starter")], ["vault", tr("Vault")]]
-	for o in opts:
-		var tb := UI3.tab(String(o[1]), _picker_tab == o[0])
-		tb.name = "Tab_" + String(o[0])
-		tb.custom_minimum_size.y = 44
-		tb.pressed.connect(func() -> void:
-			_picker_tab = o[0]
-			_show_picker())
-		chips.add_child(tb)
-	for c in _pick_classes():
-		var cb := UI3.tab(c.capitalize(), _picker_cls == c)
-		cb.name = "Class_" + c
-		cb.custom_minimum_size.y = 44
-		cb.pressed.connect(func() -> void:
-			_picker_cls = "all" if _picker_cls == c else c
-			_show_picker())
-		chips.add_child(cb)
-	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size.y = 570
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	v.add_child(scroll)
-	_picker_grid = GridContainer.new()
-	_picker_grid.columns = 5
-	_picker_grid.add_theme_constant_override("h_separation", 12)
-	_picker_grid.add_theme_constant_override("v_separation", 12)
-	scroll.add_child(_picker_grid)
-	var put := UI3.button(tr("Put in slot %d") % (_picker_slot + 1), &"primary", &"M")
-	put.name = "PutInSlot"
-	var tiles: Array[Button] = []
-	var shown := 0
-	for k in _pick_keys():
-		var def: Dictionary = ContentDB.heroes[k]
-		var cls := String(def.get("cls", ""))
-		if _picker_cls != "all" and cls != _picker_cls:
-			continue
-		shown += 1
-		var taken := TeamPresets.seat_taken(party, _picker_slot, k)
-		var b := _picker_tile(k, def, taken)
-		b.pressed.connect(func() -> void:
-			_picker_sel = k
-			for o in tiles:
-				_outline(o, o == b)
-			UI3.clear_disabled_reason(put))
-		tiles.append(b)
-		_picker_grid.add_child(b)
-		if k == _picker_sel:
-			_outline.call_deferred(b, true)
-	if shown == 0:
-		var msg := tr("Your Vault is empty. Import an Axie in the Vault.") if _picker_tab == "vault" and _picker_cls == "all" else tr("No Axie matches this filter.")
-		var em := _lbl(msg, "LabelMuted")
-		em.name = "PickerEmpty"
-		v.add_child(em)
-	if _picker_sel == "" or not _pick_keys().has(_picker_sel):
-		UI3.set_disabled_reason(put, tr("Put in slot %d") % (_picker_slot + 1) + " · " + tr("Pick an Axie"))
-	put.pressed.connect(func() -> void:
-		if _picker_sel != "" and swap_into_slot(_picker_slot, _picker_sel):
-			close_modal())
-	var acts := HBoxContainer.new()
-	acts.add_theme_constant_override("separation", 16)
-	acts.alignment = BoxContainer.ALIGNMENT_END
-	v.add_child(acts)
-	var cancel := UI3.button(tr("Cancel"), &"secondary", &"M")
-	cancel.name = "CancelPicker"
-	cancel.pressed.connect(close_modal)
-	acts.add_child(cancel)
-	acts.add_child(put)
+	_picker()._show_picker()
 
 
 ## Square preview (portrait >= 160), name (ellipsis), class and Max HP. 50% and disabled when the Axie sits in another slot.
 func _picker_tile(k: String, def: Dictionary, taken: bool) -> Button:
-	var b := UI3.button("", &"secondary", &"M")
-	b.name = "Tile_" + k
-	b.custom_minimum_size = Vector2(188, 276)
-	b.tooltip_text = tr("In slot %d · picking it swaps") % (party.find(k) + 1) if taken else ""
-	b.set_meta("base_normal", b.get_theme_stylebox("normal"))
-	var col := VBoxContainer.new()
-	col.set_anchors_preset(Control.PRESET_FULL_RECT)
-	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_theme_constant_override("separation", 4)
-	col.offset_left = 8
-	col.offset_top = 8
-	col.offset_right = -8
-	col.offset_bottom = -8
-	b.add_child(col)
-	var cls := String(def.get("cls", ""))
-	var pv := Panel.new()
-	pv.custom_minimum_size = Vector2(168, 168)
-	pv.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	pv.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var psb := StyleBoxFlat.new()
-	psb.bg_color = UI3Theme.color("viewport")
-	psb.set_corner_radius_all(UI3Theme.radius("m"))
-	pv.add_theme_stylebox_override("panel", psb)
-	col.add_child(pv)
-	var port_path := "res://assets/portraits/%s.png" % cls
-	if ResourceLoader.exists(port_path):
-		var pic := TextureRect.new()
-		pic.texture = load(port_path)
-		pic.set_anchors_preset(Control.PRESET_FULL_RECT)
-		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		pv.add_child(pic)
-	var nm := _lbl(String(def.get("n", k)).substr(0, 20), "LabelTitle")
-	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	nm.clip_text = true
-	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_child(nm)
-	var sub := _lbl("%s · %s %d" % [cls.capitalize(), tr("HP"), int(def.get("max_hp", 0))], "LabelMuted")
-	sub.clip_text = true
-	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_child(sub)
-	if taken:
-		b.modulate.a = 0.5
-	return b
+	return _picker()._picker_tile(k, def, taken)

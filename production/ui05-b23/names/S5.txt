@@ -1,0 +1,813 @@
+# S5: Missions
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-meta1-screens.html
+# So frame: 32 (16 id, tinh ca ban 1920 va 1280)
+# Tien to: 40-missions
+# Id frame:
+#   40-missions--open
+#   40-missions--open--1280
+#   40-missions--picked
+#   40-missions--picked--1280
+#   40-missions--challenge
+#   40-missions--challenge--1280
+#   40-missions--title-tier
+#   40-missions--title-tier--1280
+#   40-missions--locked
+#   40-missions--locked--1280
+#   40-missions--need-shards
+#   40-missions--need-shards--1280
+#   40-missions--guest
+#   40-missions--guest--1280
+#   40-missions--offline
+#   40-missions--offline--1280
+#   40-missions--newcomer
+#   40-missions--newcomer--1280
+#   40-missions--closed
+#   40-missions--closed--1280
+#   40-missions--loading
+#   40-missions--loading--1280
+#   40-missions--checking
+#   40-missions--checking--1280
+#   40-missions--confirm
+#   40-missions--confirm--1280
+#   40-missions--open-run
+#   40-missions--open-run--1280
+#   40-missions--refund
+#   40-missions--refund--1280
+#   40-missions--error
+#   40-missions--error--1280
+
+=== 40-missions--open (1920)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Locked: Win N3 to un…"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Win N3 then…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N3 then N4 t…"
+    DetailPlate
+      Title "Pick a tier"
+      Body "Select a tier to see its stake, payout and rules."
+      StakeButton "Pick a tier"
+
+=== 40-missions--open--1280 (1280)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Locked: Win N3 to un…"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Win N3 then…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N3 then N4 t…"
+    DetailPlate
+      Title "Pick a tier"
+      Body "Select a tier to see its stake, payout and rules."
+      StakeButton "Pick a tier"
+
+=== 40-missions--picked (1920)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Locked: Win N3 to un…"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Win N3 then…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N3 then N4 t…"
+    DetailPlate
+      DetailScroll
+        Title "N3 · Short, A3"
+        RuleLine "Standard: enemy damage ×1.1, elite HP ×1.1"
+        StakeRow "Stake 800 Shards"
+        LoseBox "Lose or abandon You lose 800 Shards. No refund, no Stone."
+        Warning
+          ToneDisc "!"
+        ChanceLine "Estimated win chance (simulated): about 7.2%. On average yo…"
+      StakeButton "Stake 800 and play"
+
+=== 40-missions--picked--1280 (1280)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Locked: Win N3 to un…"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Win N3 then…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N3 then N4 t…"
+    DetailPlate
+      DetailScroll
+        Title "N3 · Short, A3"
+        RuleLine "Standard: enemy damage ×1.1, elite HP ×1.1"
+        StakeRow "Stake 800 Shards"
+        LoseBox "Lose or abandon You lose 800 Shards. No refund, no Stone."
+        Warning
+          ToneDisc "!"
+        ChanceLine "Estimated win chance (simulated): about 7.2%. On average yo…"
+      StakeButton "Stake 800 and play"
+
+=== 40-missions--challenge (1920)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Heavy hits"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Standard only"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N5 to unlock"
+    DetailPlate
+      DetailScroll
+        Title "N5 · Short, A4"
+        RuleLine "Standard: enemy damage ×1.1, elite HP ×1.1"
+        StakeRow "Stake 1,250 Shards"
+        LoseBox "Lose or abandon You lose 1,250 Shards. No refund, no Stone."
+        Warning
+          ToneDisc "!"
+        ChanceLine "Estimated win chance (simulated): about 4.1%. On average yo…"
+      StakeButton "Stake 1,250 and play"
+
+=== 40-missions--challenge--1280 (1280)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Heavy hits"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Standard only"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N5 to unlock"
+    DetailPlate
+      DetailScroll
+        Title "N5 · Short, A4"
+        RuleLine "Standard: enemy damage ×1.1, elite HP ×1.1"
+        StakeRow "Stake 1,250 Shards"
+        LoseBox "Lose or abandon You lose 1,250 Shards. No refund, no Stone."
+        Warning
+          ToneDisc "!"
+        ChanceLine "Estimated win chance (simulated): about 4.1%. On average yo…"
+      StakeButton "Stake 1,250 and play"
+
+=== 40-missions--title-tier (1920)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 5,000 · Starter 0"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Heavy hits"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Standard only"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Standard only"
+    DetailPlate
+      DetailScroll
+        Title "N6 · Full, A6"
+        RuleLine "Standard: enemy damage ×1.1, elite HP ×1.1"
+        StakeRow "Stake 2,500 Shards"
+        LoseBox "Lose or abandon You lose 2,500 Shards. No refund, no Stone."
+        Warning
+          ToneDisc "!"
+        ChanceLine "Estimated win chance (simulated): about 0.1%. On average yo…"
+      StakeButton "Stake 2,500 and play"
+
+=== 40-missions--title-tier--1280 (1280)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 5,000 · Starter 0"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Heavy hits"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Standard only"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Standard only"
+    DetailPlate
+      DetailScroll
+        Title "N6 · Full, A6"
+        RuleLine "Standard: enemy damage ×1.1, elite HP ×1.1"
+        StakeRow "Stake 2,500 Shards"
+        LoseBox "Lose or abandon You lose 2,500 Shards. No refund, no Stone."
+        Warning
+          ToneDisc "!"
+        ChanceLine "Estimated win chance (simulated): about 0.1%. On average yo…"
+      StakeButton "Stake 2,500 and play"
+
+=== 40-missions--locked (1920)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Locked: Win N3 to un…"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Win N3 then…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N3 then N4 t…"
+    DetailPlate
+      DetailScroll
+        Title "N4 · Short, A3"
+        LockedTag "Locked"
+        RuleLine "Standard: enemy damage ×1.1, elite HP ×1.1"
+        RuleLine "Heavy hits: enemy damage ×1.15"
+      StakeButton "Win N3 to unlock"
+
+=== 40-missions--locked--1280 (1280)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Locked: Win N3 to un…"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Win N3 then…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N3 then N4 t…"
+    DetailPlate
+      DetailScroll
+        Title "N4 · Short, A3"
+        LockedTag "Locked"
+        RuleLine "Standard: enemy damage ×1.1, elite HP ×1.1"
+        RuleLine "Heavy hits: enemy damage ×1.15"
+      StakeButton "Win N3 to unlock"
+
+=== 40-missions--need-shards (1920)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 1,000 · Starter 500"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Heavy hits"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Win N4 to u…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N4 then N5 t…"
+    DetailPlate
+      DetailScroll
+        Title "N4 · Short, A3"
+        RuleLine "Standard: enemy damage ×1.1, elite HP ×1.1"
+        RuleLine "Heavy hits: enemy damage ×1.15"
+        StakeRow "Stake 1,200 Shards"
+        LoseBox "Lose or abandon You lose 1,200 Shards. No refund, no Stone."
+        Warning
+          ToneDisc "!"
+        ChanceLine "Estimated win chance (simulated): about 5.7%. On average yo…"
+      StakeButton "Need 200 more Shards"
+
+=== 40-missions--need-shards--1280 (1280)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 1,000 · Starter 500"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Heavy hits"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Win N4 to u…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N4 then N5 t…"
+    DetailPlate
+      DetailScroll
+        Title "N4 · Short, A3"
+        RuleLine "Standard: enemy damage ×1.1, elite HP ×1.1"
+        RuleLine "Heavy hits: enemy damage ×1.15"
+        StakeRow "Stake 1,200 Shards"
+        LoseBox "Lose or abandon You lose 1,200 Shards. No refund, no Stone."
+        Warning
+          ToneDisc "!"
+        ChanceLine "Estimated win chance (simulated): about 5.7%. On average yo…"
+      StakeButton "Need 200 more Shards"
+
+=== 40-missions--guest (1920)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Sign in to see your Shards"
+    Banner
+      ToneDisc "i"
+      Title "Sign in to stake Shards"
+      Body "Guests can read every card. Staking needs an account."
+      SignInButton "Sign in"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Heavy hits"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Standard only"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Standard only"
+    DetailPlate
+      Title "Pick a tier"
+      Body "Select a tier to see its stake, payout and rules."
+      StakeButton "Pick a tier"
+
+=== 40-missions--guest--1280 (1280)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Sign in to see your Shards"
+    Banner
+      ToneDisc "i"
+      Title "Sign in to stake Shards"
+      Body "Guests can read every card. Staking needs an account."
+      SignInButton "Sign in"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Heavy hits"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Standard only"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Standard only"
+    DetailPlate
+      Title "Pick a tier"
+      Body "Select a tier to see its stake, payout and rules."
+      StakeButton "Pick a tier"
+
+=== 40-missions--offline (1920)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Banner
+      ToneDisc "!"
+      Title "Can't reach the server"
+      Body "Cards are readable. Stakes need a connection; nothing is sp…"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Locked: Win N3 to un…"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Win N3 then…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N3 then N4 t…"
+    DetailPlate
+      Title "Pick a tier"
+      Body "Select a tier to see its stake, payout and rules."
+      StakeButton "Pick a tier"
+
+=== 40-missions--offline--1280 (1280)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Banner
+      ToneDisc "!"
+      Title "Can't reach the server"
+      Body "Cards are readable. Stakes need a connection; nothing is sp…"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Locked: Win N3 to un…"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Win N3 then…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N3 then N4 t…"
+    DetailPlate
+      Title "Pick a tier"
+      Body "Select a tier to see its stake, payout and rules."
+      StakeButton "Pick a tier"
+
+=== 40-missions--newcomer (1920)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Locked: Play 5 runs first…"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Locked: Play 5 runs first…"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Locked: Play 5 runs fir…"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Locked: Play 5 runs …"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Play 5 runs…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Play 5 runs firs…"
+    DetailPlate
+      DetailScroll
+        Title "N1 · Short, A0"
+        LockedTag "Locked"
+        RuleLine "Standard: enemy damage ×1.1, elite HP ×1.1"
+        RuleLine "Sturdy foes: Normal enemy HP ×1.2"
+      StakeButton "Play 5 runs first (you have 2)"
+
+=== 40-missions--newcomer--1280 (1280)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Locked: Play 5 runs first…"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Locked: Play 5 runs first…"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Locked: Play 5 runs fir…"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Locked: Play 5 runs …"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Play 5 runs…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Play 5 runs firs…"
+    DetailPlate
+      DetailScroll
+        Title "N1 · Short, A0"
+        LockedTag "Locked"
+        RuleLine "Standard: enemy damage ×1.1, elite HP ×1.1"
+        RuleLine "Sturdy foes: Normal enemy HP ×1.2"
+      StakeButton "Play 5 runs first (you have 2)"
+
+=== 40-missions--closed (1920)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Locked: Closed for now"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Locked: Win N3 to un…"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Win N3 then…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N3 then N4 t…"
+    DetailPlate
+      DetailScroll
+        Title "N2 · Short, A2"
+        LockedTag "Locked"
+        RuleLine "Standard: enemy damage ×1.1, elite HP ×1.1"
+      StakeButton "Closed for now"
+
+=== 40-missions--closed--1280 (1280)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Locked: Closed for now"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Locked: Win N3 to un…"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Win N3 then…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N3 then N4 t…"
+    DetailPlate
+      DetailScroll
+        Title "N2 · Short, A2"
+        LockedTag "Locked"
+        RuleLine "Standard: enemy damage ×1.1, elite HP ×1.1"
+      StakeButton "Closed for now"
+
+=== 40-missions--loading (1920)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Table "TIER MODE STAKE WIN BACK STONE RULES"
+    DetailPlate
+      StakeButton "Loading…"
+
+=== 40-missions--loading--1280 (1280)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Table "TIER MODE STAKE WIN BACK STONE RULES"
+    DetailPlate
+      StakeButton "Loading…"
+
+=== 40-missions--checking (1920)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Table "TIER MODE STAKE WIN BACK STONE RULES"
+    DetailPlate
+      StakeButton "Checking your last mission…"
+
+=== 40-missions--checking--1280 (1280)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Table "TIER MODE STAKE WIN BACK STONE RULES"
+    DetailPlate
+      StakeButton "Checking your last mission…"
+
+=== 40-missions--confirm (1920)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  # godot: UI3.modal, focus on Not now (safe): Space presses Not now.
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Locked: Win N3 to un…"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Win N3 then…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N3 then N4 t…"
+    DetailPlate
+      DetailScroll
+        Title "N3 · Short, A3"
+        RuleLine "Standard: enemy damage ×1.1, elite HP ×1.1"
+        StakeRow "Stake 800 Shards"
+        LoseBox "Lose or abandon You lose 800 Shards. No refund, no Stone."
+        Warning
+          ToneDisc "!"
+        ChanceLine "Estimated win chance (simulated): about 7.2%. On average yo…"
+      StakeButton "Stake 800 and play"
+  Scrim
+  StakeConfirm
+    Title "Stake 800 Shards?"
+    Footer
+      NotNowButton
+        KeyCap "Space"
+      StakeButton "Stake 800 and play"
+
+=== 40-missions--confirm--1280 (1280)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  # godot: UI3.modal, focus on Not now (safe): Space presses Not now.
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Locked: Win N3 to un…"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Win N3 then…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N3 then N4 t…"
+    DetailPlate
+      DetailScroll
+        Title "N3 · Short, A3"
+        RuleLine "Standard: enemy damage ×1.1, elite HP ×1.1"
+        StakeRow "Stake 800 Shards"
+        LoseBox "Lose or abandon You lose 800 Shards. No refund, no Stone."
+        Warning
+          ToneDisc "!"
+        ChanceLine "Estimated win chance (simulated): about 7.2%. On average yo…"
+      StakeButton "Stake 800 and play"
+  Scrim
+  StakeConfirm
+    Title "Stake 800 Shards?"
+    Footer
+      NotNowButton
+        KeyCap "Space"
+      StakeButton "Stake 800 and play"
+
+=== 40-missions--open-run (1920)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Banner
+      ToneDisc "!"
+      Title "You have a run open"
+      Body "Only one run can be open. Finish or abandon it to take a mi…"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Locked: Win N3 to un…"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Win N3 then…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N3 then N4 t…"
+    DetailPlate
+      Title "Pick a tier"
+      Body "Select a tier to see its stake, payout and rules."
+      StakeButton "Pick a tier"
+
+=== 40-missions--open-run--1280 (1280)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Banner
+      ToneDisc "!"
+      Title "You have a run open"
+      Body "Only one run can be open. Finish or abandon it to take a mi…"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Locked: Win N3 to un…"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Win N3 then…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N3 then N4 t…"
+    DetailPlate
+      Title "Pick a tier"
+      Body "Select a tier to see its stake, payout and rules."
+      StakeButton "Pick a tier"
+
+=== 40-missions--refund (1920)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Banner
+      ToneDisc
+      Title "Old run, stake refunded"
+      Body "That mission started before an update, so your 800 Shards s…"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Locked: Win N3 to un…"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Win N3 then…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N3 then N4 t…"
+    DetailPlate
+      Title "Pick a tier"
+      Body "Select a tier to see its stake, payout and rules."
+      StakeButton "Pick a tier"
+
+=== 40-missions--refund--1280 (1280)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Banner
+      ToneDisc
+      Title "Old run, stake refunded"
+      Body "That mission started before an update, so your 800 Shards s…"
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Locked: Win N3 to un…"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Win N3 then…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N3 then N4 t…"
+    DetailPlate
+      Title "Pick a tier"
+      Body "Select a tier to see its stake, payout and rules."
+      StakeButton "Pick a tier"
+
+=== 40-missions--error (1920)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Banner
+      ToneDisc "!"
+      Title "Could not take the stake"
+      Body "Nothing was spent."
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Locked: Win N3 to un…"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Win N3 then…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N3 then N4 t…"
+    DetailPlate
+      Title "Pick a tier"
+      Body "Select a tier to see its stake, payout and rules."
+      StakeButton "Pick a tier"
+
+=== 40-missions--error--1280 (1280)
+  # godot: MissionsScreen. Nothing picked at first (UI-05 B3): rows are focusable, the detail plate shows "Pick a tier".
+  Header
+    BackButton "←"
+    Title "Missions"
+    SubLine "Stake Shards on a hard run"
+  Body
+    Explainer
+      Balance "Stakeable 4,200 · Starter 0"
+    Banner
+      ToneDisc "!"
+      Title "Could not take the stake"
+      Body "Nothing was spent."
+    Table
+      TierRowN1 "N1 Short · A0 300 1,590 (×5.3) +4 Sturdy foes"
+      TierRowN2 "N2 Short · A2 500 3,700 (×7.4) +8 Standard only"
+      TierRowN3 "N3 Short · A3 800 7,240 (×9.05) +14 Standard only"
+      TierRowN4 "N4 Short · A3 1,200 13,680 (×11.4) +22 Locked: Win N3 to un…"
+      TierRowN5 "N5 Short · A4 1,250 19,815 (×15.85) +34 Locked: Win N3 then…"
+      TierRowN6 "N6 Full · A6 2,500 20,000 (×8) +60 Locked: Win N3 then N4 t…"
+    DetailPlate
+      Title "Pick a tier"
+      Body "Select a tier to see its stake, payout and rules."
+      StakeButton "Pick a tier"

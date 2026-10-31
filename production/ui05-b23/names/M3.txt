@@ -1,0 +1,36 @@
+# M3: Moment B3
+# Nguon: design/handoffs/ui-05-figma/round-3/moments (khong co frame, liet ke file)
+# So file moment: 11
+
+=== moments/moment-currency-gain.html  [UI-05 moment · Currency gain]
+  (HTML dong, khong co data-name; xem motion-batch*.md va file nay)
+
+=== moments/moment-daily-claim.html  [UI-05 moment · Daily claim]
+  (HTML dong, khong co data-name; xem motion-batch*.md va file nay)
+
+=== moments/moment-echo-open-dup.html  [UI-05 moment · Echo Box open · duplicate → Fragments]
+  (HTML dong, khong co data-name; xem motion-batch*.md va file nay)
+
+=== moments/moment-echo-open-mythic.html  [UI-05 moment · Echo Box open · Mythic (effect: PROPOSAL)]
+  (HTML dong, khong co data-name; xem motion-batch*.md va file nay)
+
+=== moments/moment-echo-open-normal.html  [UI-05 moment · Echo Box open · normal (new)]
+  (HTML dong, khong co data-name; xem motion-batch*.md va file nay)
+
+=== moments/moment-echo-open-rare.html  [UI-05 moment · Echo Box open · Rare+ (rays: PROPOSAL)]
+  (HTML dong, khong co data-name; xem motion-batch*.md va file nay)
+
+=== moments/moment-land-tier-up.html  [UI-05 moment · Land tier up]
+  (HTML dong, khong co data-name; xem motion-batch*.md va file nay)
+
+=== moments/moment-open-10.html  [UI-05 moment · Open 10]
+  (HTML dong, khong co data-name; xem motion-batch*.md va file nay)
+
+=== moments/moment-pass-level-up.html  [UI-05 moment · Pass level up]
+  (HTML dong, khong co data-name; xem motion-batch*.md va file nay)
+
+=== moments/moment-run-end-lose.html  [UI-05 moment · Run end · lose]
+  (HTML dong, khong co data-name; xem motion-batch*.md va file nay)
+
+=== moments/moment-run-end-win.html  [UI-05 moment · Run end · win]
+  (HTML dong, khong co data-name; xem motion-batch*.md va file nay)

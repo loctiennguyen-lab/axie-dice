@@ -55,7 +55,7 @@ func _ready() -> void:
 	s.no_scene_change = true
 	add_child(s)
 	await get_tree().process_frame
-	_ok(s.block_reason("N1") == "Checking your last mission...", "stake blocked while the server check is in flight: " + s.block_reason("N1"))
+	_ok(s.block_reason("N1") == "Checking your last mission…", "stake blocked while the server check is in flight: " + s.block_reason("N1"))
 	_ok(not MetaState.mission_escrow.is_empty(), "mirror still open before the answer")
 	var p0 := MetaState.shard_pool
 	var rel: Callable = held[1]

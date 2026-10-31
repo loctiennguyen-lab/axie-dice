@@ -19,7 +19,7 @@ var no_scene_change := false
 func _ready() -> void:
 	_shell = UI3Meta.build(self, "Guides", "Four teams that work", _on_back)
 	(_shell["panel"] as Control).name = "PlateHost"   # t_ui_laws L0
-	UI3Meta.doc_tabs(_shell, "guides")
+	Ui5CodexParts.header(_shell, "guides")
 	var body := HBoxContainer.new()
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body.add_theme_constant_override("separation", UI3Meta.GAP)

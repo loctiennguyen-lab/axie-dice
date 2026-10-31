@@ -32,7 +32,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_ok(v.cards.size() == 3, "3 cards")
 	_ok(v.find_child("RerollButton", true, false) == null and v.find_child("SkipButton", true, false) == null, "no Reroll / Skip")
-	_ok(v.find_child("AnchorSummary", true, false) != null and v.find_child("AnchorGlossary", true, false) != null, "S3-7: summary line per card + glossary")
+	_ok(v.find_child("Summary", true, false) != null and v.find_child("Glossary", true, false) != null, "S3-7: summary line per card + glossary")
 	_ok(v.take_button.disabled and v.take_button.text == "Pick an Anchor", "Take disabled with a reason before a pick")
 	for c in v.cards:
 		var id := String(c.get_meta("anchor_id"))
@@ -43,8 +43,9 @@ func _ready() -> void:
 		var hc := c.find_child("HouseCores", true, false)
 		_ok(hc != null and hc.get_child_count() == 5, "%s has 5 House Core icons" % id)
 		for ic in hc.get_children():
-			_ok((ic as Control).custom_minimum_size.x >= 44.0, "icon hit area >= 44")
-	_ok(v.cards[1].find_child("DisabledReason", true, false) != null, "G6: disabled card says why")
+			# chips are < 44 on purpose: tooltip only (mouse_filter PASS), the card is the click area
+			_ok((ic as Control).custom_minimum_size.y >= 32.0 and (ic as Control).mouse_filter == Control.MOUSE_FILTER_PASS, "core chip height >= tag_h, clicks pass to the card")
+	_ok(v.cards[1].find_child("LockedReason", true, false) != null, "G6: disabled card says why")
 	v.select(1)
 	_ok(v.selected == -1, "a disabled card cannot be selected")
 	v.select(0)
@@ -85,7 +86,7 @@ func _ready() -> void:
 		seen_col[AnchorAdapter.house_color(h).to_html()] = true
 		_ok((c.find_child("RuleText", true, false) as Label).text == AnchorAdapter.rule_text(id3) and AnchorAdapter.rule_text(id3) != "", "%s rule text" % id3)
 		_ok((c.find_child("PriceText", true, false) != null) == (AnchorAdapter.price_text(id3) != ""), "%s price" % id3)
-		_ok((c.find_child("HouseName", true, false) as Label).get_theme_color("font_color") == AnchorAdapter.house_color(h), "%s House line in the house colour" % id3)
+		_ok((c.find_child("HouseLine", true, false) as Label).get_theme_color("font_color") == AnchorAdapter.house_color(h), "%s House line in the house colour" % id3)
 		var pt := c.find_child("PriceText", true, false) as Label
 		_ok(pt == null or pt.get_theme_color("font_color") == UI3Theme.color("anchor_price"), "%s price in the amber price token" % id3)
 		_ok((c.find_child("AwakenName", true, false) as Label).text == AnchorAdapter.awaken_name(id3), "%s awaken name" % id3)

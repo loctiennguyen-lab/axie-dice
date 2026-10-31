@@ -108,7 +108,7 @@ func _ready() -> void:
 	srv["pass"]["post30"]["pending"] = 2
 	var sh := MetaState.shard_pool
 	view.call("claim_loop")
-	_check(MetaState.shard_pool == sh + 100 and String(view.get("last_result")) == "+50 Shard", "post30 pays what the server says")
+	_check(MetaState.shard_pool == sh + 100 and String(view.get("last_result")) == "+50 Shards", "post30 pays what the server says")
 	# out_of_season text
 	_check(view.call("remote_msg", "out_of_season") == "The season is not running", "out_of_season text")
 	view.queue_free()

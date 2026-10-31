@@ -1,0 +1,259 @@
+# R4: Make room + Combo banner
+# Nguon HTML: design/handoffs/ui-05-figma/round-2/ui05-run-screens.html
+# So frame: 4 (2 id, tinh ca ban 1920 va 1280)
+# Tien to: 47-core-offer--make-room 47-core-offer--combo-banner
+# Id frame:
+#   47-core-offer--combo-banner
+#   47-core-offer--combo-banner--1280
+#   47-core-offer--make-room
+#   47-core-offer--make-room--1280
+
+=== 47-core-offer--combo-banner (1920)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  # godot: ComboBanner after Take. Plays moments/moment-core-taken first, then this band. Click to continue (no timer).
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Gatekeeper"
+        ComboTag "FULL Golden Turtle Fortress"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Position"
+          ComboChip "With: Living Wall, Thorn Shield"
+        RuleText "Enemies that hit a front-row Axie with a single-target atta…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Backline Glow"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Position"
+        RuleText "Back-row Axies: buff, heal and mana faces get +50% (rounded…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Mana Ward"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Mana"
+        RuleText "End of turn, spend up to 6 unused Mana: every 2 Mana gives …"
+        RerollButton "Reroll"
+    Footer
+      RerollCounter "2 rerolls left"
+      TakeButton
+        KeyCap "Space"
+  Scrim
+  ComboBanner
+    ComboTag "FULL"
+    ComboName "Golden Turtle Fortress"
+    MutationBox "MUTATION · LEVEL 2 Spiked Shield Thorns keep the full numbe…"
+  ContinueHint "Click to continue"
+
+=== 47-core-offer--combo-banner--1280 (1280)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  # godot: ComboBanner after Take. Plays moments/moment-core-taken first, then this band. Click to continue (no timer).
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Gatekeeper"
+        ComboTag "FULL Golden Turtle Fortress"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Position"
+          ComboChip "With: Living Wall, Thorn Shield"
+        RuleText "Enemies that hit a front-row Axie with a single-target atta…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Backline Glow"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Position"
+        RuleText "Back-row Axies: buff, heal and mana faces get +50% (rounded…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Mana Ward"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Mana"
+        RuleText "End of turn, spend up to 6 unused Mana: every 2 Mana gives …"
+        RerollButton "Reroll"
+    Footer
+      RerollCounter "2 rerolls left"
+      TakeButton
+        KeyCap "Space"
+  Scrim
+  ComboBanner
+    ComboTag "FULL"
+    ComboName "Golden Turtle Fortress"
+    MutationBox "MUTATION · LEVEL 2 Spiked Shield Thorns keep the full numbe…"
+  ContinueHint "Click to continue"
+
+=== 47-core-offer--make-room (1920)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  # godot: Esc / Back closes the sheet and returns to the offer. Sold Core gives Shards; the new Core then fills the slot. Line reuses the game string with "6 of 6" (dev fix flagged).
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Gatekeeper"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Position"
+        RuleText "Enemies that hit a front-row Axie with a single-target atta…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Backline Glow"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Position"
+        RuleText "Back-row Axies: buff, heal and mana faces get +50% (rounded…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Mana Ward"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Mana"
+        RuleText "End of turn, spend up to 6 unused Mana: every 2 Mana gives …"
+        RerollButton "Reroll"
+    Footer
+      RerollCounter "2 rerolls left"
+      TakeButton
+        KeyCap "Space"
+  Scrim
+  MakeRoomSheet
+    Title "Make room"
+    Line "Passive slots are full (6 of 6). Sell one to take the new C…"
+    OwnedList
+      SellRow
+        CoreSlot "L"
+        TierChip "Crystal"
+        SellButton "Sell · +60"
+      SellRow
+        CoreSlot "T"
+        TierChip "Amber"
+        SellButton "Sell · +37"
+      SellRow
+        CoreSlot "S"
+        TierChip "Amber"
+        SellButton "Sell · +37"
+      SellRow
+        CoreSlot "E"
+        TierChip "Moss"
+        SellButton "Sell · +22"
+      SellRow
+        CoreSlot "M"
+        TierChip "Moss"
+        SellButton "Sell · +22"
+      SellRow
+        CoreSlot "K"
+        TierChip "Amber"
+        SellButton "Sell · +37"
+    Footer
+      BackButton "Back"
+
+=== 47-core-offer--make-room--1280 (1280)
+  # godot: Focus: cards left→right → Reroll on the focused card → Take. No Skip.
+  # godot: Esc / Back closes the sheet and returns to the offer. Sold Core gives Shards; the new Core then fills the slot. Line reuses the game string with "6 of 6" (dev fix flagged).
+  SceneBackdrop "3D scene, dimmed (no blur)"
+  Scrim
+  CoreOffer
+    Header
+      Title "Choose a Core"
+      TierLadder
+        TierChip "Moss"
+        TierChip "Amber"
+        TierChip "Crystal"
+      ShardPill "40"
+    CardRow
+      CoreCard
+        ArtBox
+        CoreName "Gatekeeper"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Position"
+        RuleText "Enemies that hit a front-row Axie with a single-target atta…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Backline Glow"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Position"
+        RuleText "Back-row Axies: buff, heal and mana faces get +50% (rounded…"
+        RerollButton "Reroll"
+      CoreCard
+        ArtBox
+        CoreName "Mana Ward"
+        ChipRow
+          TierChip "Amber"
+          CategoryChip "Mana"
+        RuleText "End of turn, spend up to 6 unused Mana: every 2 Mana gives …"
+        RerollButton "Reroll"
+    Footer
+      RerollCounter "2 rerolls left"
+      TakeButton
+        KeyCap "Space"
+  Scrim
+  MakeRoomSheet
+    Title "Make room"
+    Line "Passive slots are full (6 of 6). Sell one to take the new C…"
+    OwnedList
+      SellRow
+        CoreSlot "L"
+        TierChip "Crystal"
+        SellButton "Sell · +60"
+      SellRow
+        CoreSlot "T"
+        TierChip "Amber"
+        SellButton "Sell · +37"
+      SellRow
+        CoreSlot "S"
+        TierChip "Amber"
+        SellButton "Sell · +37"
+      SellRow
+        CoreSlot "E"
+        TierChip "Moss"
+        SellButton "Sell · +22"
+      SellRow
+        CoreSlot "M"
+        TierChip "Moss"
+        SellButton "Sell · +22"
+      SellRow
+        CoreSlot "K"
+        TierChip "Amber"
+        SellButton "Sell · +37"
+    Footer
+      BackButton "Back"

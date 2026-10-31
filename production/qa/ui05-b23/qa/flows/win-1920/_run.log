@@ -1,0 +1,164 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Metal 4.0 - Forward+ - Using Device #0: Apple - Apple M3 Pro (Apple9)
+
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_files_at (core/io/dir_access.cpp:578)
+   GDScript backtrace (most recent call first):
+       [0] _acct_files (res://tests/save_guard.gd:121)
+       [1] capture (res://tests/save_guard.gd:63)
+       [2] _ready (res://tests/qa_ui5_flow_capture.gd:44)
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_directories_at (core/io/dir_access.cpp:588)
+   GDScript backtrace (most recent call first):
+       [0] _acct_files (res://tests/save_guard.gd:123)
+       [1] capture (res://tests/save_guard.gd:63)
+       [2] _ready (res://tests/qa_ui5_flow_capture.gd:44)
+QA: flow=win seed=59 ranked=true stage=3
+QA_SHOT /Users/loc.tien.nguyen/my-game-wt/u5b-qa/production/qa/ui05-b23/qa/flows/win-1920/flow-win--unknown-overlay-0-1920x1080.png
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY unknown overlay at pw 0: [&"Scrim", &"ScreenContent"]
+QA_ANOMALY no progress for 90 s on RunMap.tscn
+QA_SHOT /Users/loc.tien.nguyen/my-game-wt/u5b-qa/production/qa/ui05-b23/qa/flows/win-1920/flow-win--STUCK-1920x1080.png
+QA_FLOW_RESULT {"anomalies":["unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","unknown overlay at pw 0: [&\"Scrim\", &\"ScreenContent\"]","no progress for 90 s on RunMap.tscn"],"clips":0,"continues":[],"defeats":0,"fights":0,"flow":"win","kinds":{},"log_actions":0,"log_complete":true,"patched_matches_ui":true,"secs":90.365,"seed":59,"shots":["unknown-overlay-0","STUCK"],"ui_power_level":0,"ui_score":20,"ui_won":false,"verify_patched":{"action_index":-1,"error":"","message":"","ok":true,"reward_epochs":0,"reward_epochs_rechained":0,"score":20,"won":false},"verify_raw":{"action_index":-1,"error":"","message":"","ok":true,"score":20,"won":false},"window":"(1920, 1080)"}
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_files_at (core/io/dir_access.cpp:578)
+   GDScript backtrace (most recent call first):
+       [0] _acct_files (res://tests/save_guard.gd:121)
+       [1] restore (res://tests/save_guard.gd:102)
+       [2] _finish (res://tests/qa_ui5_flow_capture.gd:505)
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_directories_at (core/io/dir_access.cpp:588)
+   GDScript backtrace (most recent call first):
+       [0] _acct_files (res://tests/save_guard.gd:123)
+       [1] restore (res://tests/save_guard.gd:102)
+       [2] _finish (res://tests/qa_ui5_flow_capture.gd:505)
+ERROR: Couldn't open directory at path "user://acct".
+   at: get_directories_at (core/io/dir_access.cpp:588)
+   GDScript backtrace (most recent call first):
+       [0] _prune_empty_dirs (res://tests/save_guard.gd:130)
+       [1] restore (res://tests/save_guard.gd:115)
+       [2] _finish (res://tests/qa_ui5_flow_capture.gd:505)
+WARNING: 1 ObjectDB instance was leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)

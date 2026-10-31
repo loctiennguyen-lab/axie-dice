@@ -56,12 +56,12 @@ func _land_guest() -> void:
 	ProjectSettings.set_setting("axie/epoch_source", was)
 	# Upgrade chip is a real button, tier banner names the Stone used and where the new things are.
 	h = await _land({"guest": false, "newcomer": false, "first_launch": false})
-	_check(h.find_child("UpgradeLand", true, false) is Button, "Upgrade Land chip is a Button")
+	_check(h.find_child("LandPlate", true, false) is Button, "Upgrade Land chip is a Button")
 	MetaState.land_tier_banner_seen = 1
 	h.set("_tier", 2)
 	h.call("_show_tier_banner")
 	var texts := ""
-	for l in h.find_child("TierBanner", true, false).find_children("*", "Label", true, false):
+	for l in h.find_child("TierUpBanner", true, false).find_children("*", "Label", true, false):
 		texts += (l as Label).text + "\n"
 	_check("Used " in texts and "Stone" in texts, "banner says how much Stone was used: " + texts)
 	_check("preset slots: House" in texts and "Edit Land" in texts, "banner says where the new things are")
@@ -80,12 +80,12 @@ func _echo() -> void:
 	s.instant = true
 	add_child(s)
 	await get_tree().process_frame
-	_check((s.find_child("Open1", true, false) as Button).text == "Open 1 · 1 ticket", "Open 1 shows its cost")
-	_check((s.find_child("OpenN", true, false) as Button).text == "Open 10 · 10 tickets", "Open 10 shows its cost")
+	_check((s.find_child("Open1Button", true, false) as Button).text == "Open 1 · 1 ticket", "Open 1 shows its cost")
+	_check((s.find_child("Open10Button", true, false) as Button).text == "Open 10 · 10 tickets", "Open 10 shows its cost")
 	_check(s.find_child("PityHelp", true, false) != null, "pity help line")
-	(s.find_child("OpenN", true, false) as Button).emit_signal("pressed")
+	(s.find_child("Open10Button", true, false) as Button).emit_signal("pressed")
 	await get_tree().process_frame
-	_check(s.find_child("ConfirmOpenN", true, false) != null, "Open 10 asks first")
+	_check(s.find_child("Open10Confirm", true, false) != null, "Open 10 asks first")
 	_check(s.tickets() == 12, "nothing spent before the confirm")
 	s.close_modal()
 	await get_tree().process_frame

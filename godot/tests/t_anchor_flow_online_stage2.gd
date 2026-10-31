@@ -66,13 +66,13 @@ func _ready() -> void:
 			elif other < 0 and (id == "a_volley" or id == "a_gambler"):
 				other = i
 		_ok(mana >= 0 and other >= 0, "offer has Mana Mine and Volley/Gambler")
-		var why := pick.cards[mana].find_child("DisabledReason", true, false) as Label
+		var why := pick.cards[mana].find_child("Reason", true, false) as Label
 		_ok(why != null and why.text == "Unlocks at stage 3 (needs Overcast).", "Mana Mine reason line: " + (why.text if why != null else "<none>"))
 		_ok(RunState.anchor_disabled_reason("a_mana_mine") == "stage_locked", "engine reason stage_locked")
 		pick.select(mana)
 		await _frames(2)
 		_ok(pick.take_button.disabled, "locked card cannot be selected: Take stays disabled")
-		_ok(pick.cards[other].find_child("DisabledReason", true, false) == null, "pickable card has no reason line")
+		_ok(pick.cards[other].find_child("LockedReason", true, false) == null, "pickable card has no reason line")
 		pick.select(other)
 		var id2 := String(pick.cards[other].get_meta("anchor_id"))
 		var idx := RunState.anchor_offer.find(id2)

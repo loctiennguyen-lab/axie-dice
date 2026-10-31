@@ -15,7 +15,7 @@ func _ready() -> void:
 	n.queue_free()
 	var e := await _open("res://scenes/echobox/EchoBoxScreen.tscn")
 	await _frames(5)
-	(e.find_child("OpenN", true, false) as Button).emit_signal("pressed")
+	(e.find_child("Open10Button", true, false) as Button).emit_signal("pressed")
 	await _frames(10)
 	await _shot("uxhunt_echobox_confirm")
 	e.queue_free()

@@ -4,9 +4,8 @@ extends Control
 ## Three cards: Daily reward (MetaState.claim_daily_mission, idempotent per UTC day), Weekly bonus
 ## (display only), L1 Gem gift (MetaState.claim_gem_gift_now). Numbers from daily.json / gem.json.
 ## No live countdown: the next claim is a date plus "00:00 UTC".
-## GAPS (lane E/S): claim_daily_mission grants Shard + Pass XP but not the 500 Stone in daily.json,
-## so Stone is not promised on the card; there is no "finished a run today" flag (M8b "Not yet") and
-## no weekly day counter (dots), so the weekly card shows the rule only.
+## claim_daily_mission grants Shard + Stone + Pass XP; the weekly card shows the day chips (MetaState.weekly_daily_days)
+## and pays itself on the last day. "Not yet" on the combo card = not formed today.
 ## Guest/offline only block claims when the remote wallet flag is on, otherwise an info banner.
 
 const _Econ := preload("res://scripts/meta/economy_db.gd")
@@ -21,11 +20,13 @@ var last_result := ""          ## Gem gift claim text (shown in the Gem gift car
 var daily_result := ""         ## Daily reward claim text (shown in the Daily reward card only)
 var day_override := ""
 
-const CARD_W := 416
 
 var _shell: Dictionary
 var _banner_host: VBoxContainer
-var _body: HBoxContainer
+var _body: VBoxContainer
+var test_mode := false
+var sign_in_calls := 0
+var daily_result_ok := true
 var _combo_host: VBoxContainer
 
 
@@ -71,14 +72,43 @@ func claim_daily() -> bool:
 	if MetaState.econ_remote() != null:
 		# SR1: the server pays (needs a closed run today); the cache updates from its answer.
 		MetaState.econ_remote().claim("daily", {}, func(r: Dictionary) -> void:
-			daily_result = "Claimed" if bool(r["ok"]) else RemoteEcon.message_for(String(r["code"]))
-			_refresh())
+			daily_result_ok = bool(r["ok"])
+			daily_result = "Claimed" if daily_result_ok else RemoteEcon.message_for(String(r["code"]))
+			_refresh()
+			if daily_result_ok:
+				_play_claim_moment())
 		return false
 	var ok := MetaState.claim_daily_mission()
 	var d: Dictionary = _Econ.get_table("daily").get("daily_reward", {})
-	daily_result = "+%d Shard, +%d Stone, +%d Pass XP" % [int(d.get("shards", 0)), int(d.get("stone", 0)), int(d.get("xp", 0))] if ok else "Already claimed today"
+	daily_result_ok = ok
+	daily_result = "+%s Shards, +%s Stone, +%s Pass XP" % [UI3.fmt(int(d.get("shards", 0))), UI3.fmt(int(d.get("stone", 0))), UI3.fmt(int(d.get("xp", 0)))] if ok else "Already claimed today"
 	_refresh()
+	if ok:
+		_play_claim_moment()
 	return ok
+
+
+## UI-05 b23 lane M3: `daily-claim` (button press + reward rows pop). Only plays what exists here; the chip fly / count rows
+## need the shell chips and stay data. Not in instant / headless runs.
+func _play_claim_moment() -> void:
+	if not is_inside_tree() or _cards_host == null or UI3Gacha.is_instant() or DisplayServer.get_name() == "headless":
+		return
+	# The cards were just rebuilt: the VBox has not placed the button yet, and the timeline captures `position` as its base.
+	# Played at once it would settle the button at (0,0) on top of the reward rows. Wait until the containers have sorted.
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not is_inside_tree() or _cards_host == null:
+		return
+	var rows: Array = []
+	var card := _cards_host.find_child("DailyCard", true, false)
+	for n in ["RewardShards", "RewardStone", "RewardXp"]:
+		var row := card.find_child(n, true, false) if card != null else null
+		if row != null:
+			rows.append(row)
+	for r in rows:
+		(r as Control).pivot_offset = (r as Control).size / 2.0
+	UI3Motion.play_timeline("daily-claim", {"claim_btn": _cards_host.find_child("DailyClaim", true, false), "rows": rows},
+		{"host": self, "only": ["claim_press", "rows_pop"]})
 
 
 var _gift_pending := false
@@ -121,18 +151,26 @@ func gift_state() -> String:
 	return "claim"
 
 
+
 func set_state(s: String) -> void:
 	state = s
 	if _shell.is_empty():
 		return
 	UI3Meta.clear(_banner_host)
 	if s == "offline":
-		_banner("You are offline" if not remote_on else "Can't reach the server",
-			"Claims run on this device for now." if not remote_on else "Claims need a connection.")
+		_banner_host.add_child(Ui5DailyParts.banner(&"warn", "You are offline" if not remote_on else "Can't reach the server",
+			"Claims run on this device for now." if not remote_on else "Claims need a connection."))
 	elif s == "guest":
-		_banner("You're signed out" if not remote_on else "Sign in to claim",
-			"Rewards are kept on this device." if not remote_on else "Guests have no wallet and no rewards.")
+		_banner_host.add_child(Ui5DailyParts.banner(&"info", "You're signed out" if not remote_on else "Sign in to claim",
+			"Rewards are kept on this device." if not remote_on else "Guests have no wallet and no rewards.", _sign_in))
 	_refresh()
+
+
+func _sign_in() -> void:
+	if test_mode:
+		sign_in_calls += 1
+		return
+	AccountService.sign_in()
 
 
 func _on_back() -> void:
@@ -143,76 +181,29 @@ func _on_back() -> void:
 func _build() -> void:
 	_shell = UI3Meta.build(self, "Daily", "Claim once a day, resets 00:00 UTC", _on_back)
 	(_shell["panel"] as Control).name = "PlateHost"   # t_ui_laws L0
-	_banner_host = _shell["banner_host"]
+	(_shell["back"] as Control).name = "BackButton"
+	(_shell["sub"] as Control).name = "SubLine"
 	var col: VBoxContainer = _shell["col"]
 	var center := CenterContainer.new()
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	col.add_child(center)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", UI3Theme.space("24"))
-	center.add_child(v)
-	_body = HBoxContainer.new()
+	_body = VBoxContainer.new()
 	_body.name = "Body"
-	_body.add_theme_constant_override("separation", UI3Theme.space("24"))
-	v.add_child(_body)
+	_body.add_theme_constant_override("separation", UI3Theme.space("20"))
+	center.add_child(_body)
+	_banner_host = VBoxContainer.new()
+	_banner_host.name = "BannerHost"
+	_body.add_child(_banner_host)
+	_cards_host = HBoxContainer.new()
+	_cards_host.name = "CardRow"
+	_cards_host.add_theme_constant_override("separation", UI3Theme.space("24"))
+	_body.add_child(_cards_host)
 	_combo_host = VBoxContainer.new()
 	_combo_host.name = "ComboHost"
-	v.add_child(_combo_host)
-	var close := UI3.button("Close", &"secondary", &"M")
-	close.name = "Close"
-	close.tooltip_text = "Esc"
-	close.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	close.pressed.connect(_on_back)
-	v.add_child(close)
+	_body.add_child(_combo_host)
 
 
-func _banner(msg: String, detail: String) -> void:
-	UI3Meta.banner(_banner_host, msg, detail)
-
-
-## One 416 card: title, sub-line, item rows [[label, value]], optional extra control, optional button.
-func _card(name_: String, title: String, sub: String, items: Array, btn: Button, extra: Control = null) -> Control:
-	var p := UI3.plate(&"card")
-	p.name = name_
-	p.custom_minimum_size = Vector2(CARD_W, 0)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", UI3Theme.space("16"))
-	p.add_child(v)
-	v.add_child(UI3.label(title, "LabelScreenTitle"))
-	var t := UI3.label(sub, "LabelMuted")
-	t.name = "Sub"
-	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v.add_child(t)
-	for it in items:
-		var r := UI3.plate(&"row")
-		r.custom_minimum_size = Vector2(0, 48)
-		var h := HBoxContainer.new()
-		r.add_child(h)
-		var l := UI3.label(String(it[0]))
-		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		h.add_child(l)
-		h.add_child(UI3.label(String(it[1]), "LabelTitle"))
-		v.add_child(r)
-	if extra != null:
-		v.add_child(extra)
-	var sp := Control.new()
-	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	v.add_child(sp)
-	if btn != null:
-		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		v.add_child(btn)
-	return p
-
-
-## Same 72 px row on every card. Only the first claimable card gets the primary look.
-func _claim_button(nm: String, text: String, claimable: bool, reason: String, cb: Callable, primary: bool) -> Button:
-	var b := UI3.button(text, &"primary" if primary else &"secondary", &"L" if primary else &"M")
-	b.name = nm
-	b.custom_minimum_size.y = 72
-	if not claimable:
-		UI3.set_disabled_reason(b, reason)
-	b.pressed.connect(cb)
-	return b
+var _cards_host: HBoxContainer
 
 
 ## Weekly strip text: the word says claimed / not yet, so the amber fill is never the only signal.
@@ -220,74 +211,160 @@ static func day_chip_text(day: int, claimed: bool) -> String:
 	return "Day %d · %s" % [day, "claimed" if claimed else "not yet"]
 
 
-## Day chip: claimed = amber chip, still to come = outlined plate with normal text (never dimmed).
-func _day_chip(text: String, done: bool) -> Control:
-	if done:
-		return UI3.chip(text)
-	var p := PanelContainer.new()
-	p.theme = UI3Theme.get_theme()
-	p.custom_minimum_size = Vector2(0, UI3.CHIP_H)
-	p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("s"), 2,
-		UI3Theme.color("text_muted"), Vector4(12, 0, 12, 0)))
-	var l := UI3.label(text, "LabelDisplay")
-	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	p.add_child(l)
-	return p
+## Button at the bottom of a card. `label` is the live text, `reason` non-empty = disabled and says why ("label · reason").
+func _claim_button(nm: String, label: String, reason: String, cb: Callable, primary: bool, gem_icon := false) -> Button:
+	var b: Button
+	if primary:
+		b = Ui5ClaimButton.make(label, &"L")
+	else:
+		b = PanelParts.button(label, &"secondary", &"M")
+	if gem_icon and reason == "" and not primary:   # frame 41-daily--unclaimed: secondary has the Gem icon; the amber primary has none
+		_gem_cluster(b)
+	b.name = nm
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if reason != "":
+		Ui5DisabledReason.apply(b, reason)
+	b.pressed.connect(cb)
+	return b
+
+
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
+
+
+## [Gem icon][text] drawn as one centred HBox over the button (Button.icon would overlap the centred text). The button keeps
+## its own text (tests, screen readers) but draws it transparent.
+func _gem_cluster(b: Button) -> void:
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color", "font_disabled_color"]:
+		b.add_theme_color_override(c, Color.TRANSPARENT)
+	var h := HBoxContainer.new()
+	h.name = "GemCluster"
+	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	h.alignment = BoxContainer.ALIGNMENT_CENTER
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_theme_constant_override("separation", UI3Theme.space("12"))
+	var ic := PanelParts.icon_rect(UI3.currency_icon("cur_gem", UI3Theme.size_of("icon_s")), UI3Theme.size_of("icon_s"))
+	ic.name = "GemIcon"
+	h.add_child(ic)
+	var l := Ui5Text.label(b.text, "text_title", "text", true)
+	l.name = "GemText"
+	h.add_child(l)
+	b.add_child(h)
+
+
+func _icon(n: String) -> Texture2D:
+	return UI3.currency_icon(n, UI3Theme.size_of("icon_m"))
 
 
 func _refresh() -> void:
 	if _body == null:
 		return
 	_refresh_combo()
-	UI3Meta.clear(_body)
+	UI3Meta.clear(_cards_host)
 	var cfg := _Econ.get_table("daily")
 	var d: Dictionary = cfg.get("daily_reward", {})
 	var reset := String(cfg.get("reset", "00:00 UTC"))
 	var claimed := daily_claimed()
 	var blocked := _blocks()
-	var reason := "Claimed today" if claimed else ("Sign in to claim" if state == "guest" else "Needs a connection")
+	var no_wallet := remote_on and state == "guest"
+	var why := "Claimed today" if claimed else ("Sign in to claim" if state == "guest" else "Needs a connection")
 	var g: Dictionary = _Econ.get_table("gem").get("gift", {})
 	var gs := gift_state()
 	var daily_ok := not claimed and not blocked
-	var gift_ok := gs == "claim" and not blocked
-	var primary_daily := daily_ok
+	var gift_ok := gs == "claim" and not blocked and not _gift_pending
 	var primary_gift := gift_ok and not daily_ok
-	var sub := "Claimed. Next one at %s." % reset if claimed else "Finish a run (win or lose) today to claim. Resets at %s." % reset
+	var held := 0 if no_wallet else MetaState.gem_wallet().balance()
+	# --- DailyCard
+	var c := Ui5DailyParts.card("DailyCard")
+	var v: VBoxContainer = c["col"]
+	v.add_child(Ui5DailyParts.title("Daily reward"))
+	var r1 := Ui5DailyParts.kv(_icon("cur_shard"), "Shards", "+" + UI3.fmt(int(d.get("shards", 0))))
+	r1.name = "RewardShards"
+	v.add_child(r1)
+	var r2 := Ui5DailyParts.kv(_icon("cur_stone"), "Stone", "+" + UI3.fmt(int(d.get("stone", 0))))
+	r2.name = "RewardStone"
+	v.add_child(r2)
+	var r3 := Ui5DailyParts.kv(null, "Pass XP", "+" + UI3.fmt(int(d.get("xp", 0))))
+	r3.name = "RewardXp"
+	v.add_child(r3)
+	v.add_child(Ui5DailyParts.note("Claimed. Next one at %s." % reset if claimed else "Finish a run (win or lose) today to claim. Resets at %s." % reset))
+	_spacer(v)
 	if daily_result != "":
-		sub = daily_result
-	_body.add_child(_card("DailyCard", "Daily reward", sub, [
-		["Shards", "+%d" % int(d.get("shards", 0))], ["Stone", "+%d" % int(d.get("stone", 0))],
-		["Pass XP", "+%d" % int(d.get("xp", 0))]],
-		_claim_button("ClaimDaily", "Claim", daily_ok, reason, claim_daily, primary_daily)))
+		v.add_child(Ui5DailyParts.result_line(daily_result, &"ok" if daily_result_ok else &"error"))
+	v.add_child(_claim_button("DailyClaim", "Claim", "" if daily_ok else "Claim · " + why, claim_daily, true))
+	_cards_host.add_child(c["plate"])
+	# --- WeeklyCard
 	var w: Dictionary = cfg.get("weekly_bonus", {})
 	var need := int(w.get("min_days", 4))
-	var have := mini(MetaState.weekly_daily_days(), need)
-	var strip := HBoxContainer.new()
-	strip.name = "WeekStrip"
-	strip.add_theme_constant_override("separation", UI3Theme.space("8"))
+	var have := 0 if no_wallet else mini(MetaState.weekly_daily_days(), need)
+	var paid := MetaState.weekly_bonus_paid() and not no_wallet
+	c = Ui5DailyParts.card("WeeklyCard")
+	v = c["col"]
+	v.add_child(Ui5DailyParts.title("Weekly bonus"))
+	v.add_child(Ui5DailyParts.kv(_icon("cur_shard"), "Shards", "+" + UI3.fmt(int(w.get("shards", 0)))))
+	v.add_child(Ui5DailyParts.kv(_icon("cur_stone"), "Stone", "+" + UI3.fmt(int(w.get("stone", 0)))))
+	v.add_child(Ui5DailyParts.note("Claim the daily reward on %d days in a week. %d of %d so far.%s" % [need, have, need, " Paid this week." if paid else ""]))
+	var grid := GridContainer.new()
+	grid.name = "WeekStrip"
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", UI3Theme.space("8"))
+	grid.add_theme_constant_override("v_separation", UI3Theme.space("8"))
 	for i in need:
-		strip.add_child(_day_chip(day_chip_text(i + 1, i < have), i < have))
-	var paid := MetaState.weekly_bonus_paid()
-	# The weekly bonus pays by itself on the last day; the button only says where you are.
-	var wreason := "Paid this week" if paid else "%d of %d days · pays on day %d" % [have, need, need]
-	var wb := _claim_button("WeeklyStatus", "", false, wreason, func() -> void: pass, false)
-	_body.add_child(_card("WeeklyCard", "Weekly bonus",
-		"Claim the daily reward on %d days in a week. %d of %d so far.%s" % [need, have, need, " Paid this week." if paid else ""],
-		[["Shards", "+%d" % int(w.get("shards", 0))], ["Stone", "+%d" % int(w.get("stone", 0))]], wb, strip))
-	var greason := "Claimed today" if gs == "done" else ("At the cap" if gs == "cap" else reason)
+		grid.add_child(Ui5DailyParts.day_chip(day_chip_text(i + 1, i < have), i < have, "DayChip" if i == 0 else "DayChip%d" % (i + 1)))
+	v.add_child(grid)
+	_spacer(v)
+	var wb := _claim_button("WeeklyStatus", "", "Paid this week" if paid else "%d of %d days · pays on day %d" % [have, need, need], func() -> void: pass, false)
+	v.add_child(wb)
+	_cards_host.add_child(c["plate"])
+	# --- GemGiftCard
 	var cap := int(g.get("balance_cap", 900))
-	var gtxt := "Free Gems during the beta. You can hold up to %d." % cap
-	if gs == "cap":
-		gtxt = "You hold %d, nothing to claim." % MetaState.gem_wallet().balance()
-	if last_result != "":
-		gtxt = last_result
-	_body.add_child(_card("GiftCard", "Gem gift", gtxt, [
-		["Gem a day", "+%d" % int(g.get("per_day", 300))],
-		["You hold", str(MetaState.gem_wallet().balance())], ["Hold up to", str(cap)]],
-		_claim_button("ClaimGift", "Claim %d Gem" % int(g.get("per_day", 300)), gift_ok, greason, claim_gift, primary_gift)))
+	var gem_label := "Claim %d Gem" % int(g.get("per_day", 300))
+	var greason := ""
+	if _gift_pending:
+		gem_label = "Claiming…"
+		greason = "Claiming…"
+	elif gs == "done":
+		greason = gem_label + " · Claimed today"
+	elif gs == "cap":
+		greason = gem_label + " · At the cap"
+	elif not gift_ok:
+		greason = gem_label + " · " + why
+	c = Ui5DailyParts.card("GemGiftCard", true)
+	v = c["col"]
+	v.add_child(Ui5DailyParts.title("Gem gift"))
+	v.add_child(Ui5DailyParts.kv(_icon("cur_gem"), "Gem a day", "+" + UI3.fmt(int(g.get("per_day", 300)))))
+	v.add_child(Ui5DailyParts.kv(_icon("cur_gem"), "You hold", UI3.fmt(held)))
+	v.add_child(Ui5DailyParts.kv(_icon("cur_gem"), "Hold up to", UI3.fmt(cap)))
+	v.add_child(Ui5DailyParts.note("Free Gems during the beta. You can hold up to %s." % UI3.fmt(cap) if gs != "cap" else "You hold %s, nothing to claim." % UI3.fmt(held)))
+	_spacer(v)
+	if last_result != "" and not _gift_pending:
+		v.add_child(Ui5DailyParts.result_line(last_result, &"ok" if last_result.begins_with("+") else &"error"))
+	v.add_child(_claim_button("GemClaim", gem_label, greason, claim_gift, primary_gift, true))
+	_cards_host.add_child(c["plate"])
+	call_deferred("_focus_first")
 
 
-## Daily challenge "Form combo X" (lane GM D2): a wide card under the three claim cards. Done = Pair or Full formed today
+func _spacer(v: Control) -> void:
+	var sp := Control.new()
+	sp.name = "Grow"
+	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	v.add_child(sp)
+
+
+## Initial / post-claim focus: the first claim that can be pressed, else the back button.
+func _focus_first() -> void:
+	if not is_inside_tree():
+		return
+	for n in ["DailyClaim", "GemClaim"]:
+		var b := find_child(n, true, false) as Button
+		if b != null and not b.disabled:
+			b.grab_focus()
+			return
+	var back := find_child("BackButton", true, false) as Control
+	if back != null:
+		back.grab_focus()
+
+
+## Daily challenge "Form combo X" (lane GM D2): wide card under the three claim cards. Done = Pair or Full formed today
 ## in any run. Reward is a title only (Combo Maker on the 1st, Combo Master on the 7th), never Shards.
 func _refresh_combo() -> void:
 	if _combo_host == null:
@@ -298,31 +375,33 @@ func _refresh_combo() -> void:
 	if cid == "":
 		return
 	var done := bool(t["done"])
-	var p := UI3.plate(&"card")
-	p.name = "ComboCard"
-	p.custom_minimum_size = Vector2(CARD_W * 3 + 48, 0)
+	var box := PanelParts.plate_box("l", 0)
+	box.content_margin_left = UI3Theme.space("20")
+	box.content_margin_right = UI3Theme.space("20")
+	box.content_margin_top = UI3Theme.space("16")
+	box.content_margin_bottom = UI3Theme.space("16")
+	var p := PanelParts.panel(box, "ComboCard")
+	p.custom_minimum_size.x = UI3Theme.size_of("daily_card_w") * 3 + UI3Theme.space("24") * 2
 	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", UI3Theme.space("24"))
+	h.add_theme_constant_override("separation", UI3Theme.space("16"))
 	p.add_child(h)
 	var left := VBoxContainer.new()
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.add_theme_constant_override("separation", UI3Theme.space("8"))
 	h.add_child(left)
-	left.add_child(UI3.label("Form combo: %s" % UI3.title_case(ComboAdapter.display_name(cid)), "LabelScreenTitle"))
+	var tl := Ui5Text.label("Form combo: %s" % UI3.title_case(ComboAdapter.display_name(cid)), "text_title", "text", true)
+	tl.name = "Title"
+	left.add_child(tl)
 	var cores: Array[String] = []
-	for c in ComboAdapter.pair_cores(cid):
-		cores.append(RunCard.core_name(String(c)))
-	var sub := UI3.label("Hold %s in one run. Pair or Full both count." % " + ".join(cores), "LabelMuted")
+	for cc in ComboAdapter.pair_cores(cid):
+		cores.append(RunCard.core_name(String(cc)))
+	var sub := Ui5Text.label("Hold %s in one run. Pair or Full both count." % " + ".join(cores), "text_body", "text")
 	sub.name = "Sub"
 	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	left.add_child(sub)
 	var n := int(t["count"])
 	var next_title := "Combo Maker" if n < 1 else ("Combo Master" if n < 7 else "")
-	var reward := UI3.label("Reward: title %s (%d done)" % [next_title, n] if next_title != "" else "%d done" % n, "LabelMuted")
+	var reward := Ui5Text.label("Reward: title %s (%d done)" % [next_title, n] if next_title != "" else "%d done" % n, "text_body", "text_muted")
 	reward.name = "Reward"
 	left.add_child(reward)
-	var chip: Control = UI3.chip("Done") if done else _day_chip("Not yet", false)
-	chip.name = "ComboStatus"
-	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	h.add_child(chip)
+	h.add_child(Ui5DailyParts.status_chip(done))
 	_combo_host.add_child(p)

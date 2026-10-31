@@ -1,0 +1,893 @@
+# S11b: Store
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-meta2-screens.html
+# So frame: 26 (13 id, tinh ca ban 1920 va 1280)
+# Tien to: 19-store
+# Id frame:
+#   19-store--gem-packs
+#   19-store--gem-packs--1280
+#   19-store--gem-pack-picked
+#   19-store--gem-pack-picked--1280
+#   19-store--cosmetics
+#   19-store--cosmetics--1280
+#   19-store--cosmetic-picked
+#   19-store--cosmetic-picked--1280
+#   19-store--short-of-gem
+#   19-store--short-of-gem--1280
+#   19-store--tickets
+#   19-store--tickets--1280
+#   19-store--confirm
+#   19-store--confirm--1280
+#   19-store--owned-result
+#   19-store--owned-result--1280
+#   19-store--moon-card
+#   19-store--moon-card--1280
+#   19-store--gift-claimed
+#   19-store--gift-claimed--1280
+#   19-store--gem-full
+#   19-store--gem-full--1280
+#   19-store--offline
+#   19-store--offline--1280
+#   19-store--guest
+#   19-store--guest--1280
+
+=== 19-store--gem-packs (1920)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton [var(--size-btn-s)] "Claim 300 Gem"
+    Grid
+      GemPackTile "80 Gem $0.99"
+      GemPackTile "420 Gem $4.99"
+      GemPackTile "880 Gem $9.99"
+      GemPackTile "1,800 Gem $19.99"
+      GemPackTile "4,650 Gem $49.99"
+      GemPackTile "9,600 Gem $99.99"
+    DetailPlate
+      BuyButton "Pick an item"
+
+=== 19-store--gem-packs--1280 (1280)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton [var(--size-btn-s)] "Claim 300 Gem"
+    Grid
+      GemPackTile "80 Gem $0.99"
+      GemPackTile "420 Gem $4.99"
+      GemPackTile "880 Gem $9.99"
+      GemPackTile "1,800 Gem $19.99"
+      GemPackTile "4,650 Gem $49.99"
+      GemPackTile "9,600 Gem $99.99"
+    DetailPlate
+      BuyButton "Pick an item"
+
+=== 19-store--gem-pack-picked (1920)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton [var(--size-btn-s)] "Claim 300 Gem"
+    Grid
+      GemPackTile "80 Gem $0.99"
+      GemPackTile "420 Gem $4.99"
+      GemPackTile "880 Gem $9.99"
+      GemPackTile "1,800 Gem $19.99"
+      GemPackTile "4,650 Gem $49.99"
+      GemPackTile "9,600 Gem $99.99"
+    DetailPlate
+      BuyButton "Buy with USD"
+
+=== 19-store--gem-pack-picked--1280 (1280)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton [var(--size-btn-s)] "Claim 300 Gem"
+    Grid
+      GemPackTile "80 Gem $0.99"
+      GemPackTile "420 Gem $4.99"
+      GemPackTile "880 Gem $9.99"
+      GemPackTile "1,800 Gem $19.99"
+      GemPackTile "4,650 Gem $49.99"
+      GemPackTile "9,600 Gem $99.99"
+    DetailPlate
+      BuyButton "Buy with USD"
+
+=== 19-store--cosmetics (1920)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton [var(--size-btn-s)] "Claim 300 Gem"
+    Grid
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "90"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "90"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "180"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "180"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "720"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "720"
+    DetailPlate
+      BuyButton "Pick an item"
+
+=== 19-store--cosmetics--1280 (1280)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton [var(--size-btn-s)] "Claim 300 Gem"
+    Grid
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "90"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "90"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "180"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "180"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "720"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "720"
+    DetailPlate
+      BuyButton "Pick an item"
+
+=== 19-store--cosmetic-picked (1920)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton "Claim 300 Gem"
+    Grid
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "90"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "90"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "180"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "180"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "720"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "720"
+    DetailPlate
+      DiceSkinArt "6"
+      BuyButton "Buy for 90 Gem"
+
+=== 19-store--cosmetic-picked--1280 (1280)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton "Claim 300 Gem"
+    Grid
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "90"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "90"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "180"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "180"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "720"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "720"
+    DetailPlate
+      DiceSkinArt "6"
+      BuyButton "Buy for 90 Gem"
+
+=== 19-store--short-of-gem (1920)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton [var(--size-btn-s)] "Claim 300 Gem"
+    Grid
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "90"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "90"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "180"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "180"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "720"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "720"
+    DetailPlate
+      FrameArt "L"
+      BuyButton "Buy · need 320 more Gem"
+
+=== 19-store--short-of-gem--1280 (1280)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton [var(--size-btn-s)] "Claim 300 Gem"
+    Grid
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "90"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "90"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "180"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "180"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "720"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "720"
+    DetailPlate
+      FrameArt "L"
+      BuyButton "Buy · need 320 more Gem"
+
+=== 19-store--tickets (1920)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton "Claim 300 Gem"
+    Grid
+      TicketTile
+        GemCost "120"
+      TicketTile
+        GemCost "285"
+      TicketTile
+        GemCost "720"
+      TicketTile
+        GemCost "1,700"
+    DetailPlate
+      BuyButton "Buy for 285 Gem"
+
+=== 19-store--tickets--1280 (1280)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton "Claim 300 Gem"
+    Grid
+      TicketTile
+        GemCost "120"
+      TicketTile
+        GemCost "285"
+      TicketTile
+        GemCost "720"
+      TicketTile
+        GemCost "1,700"
+    DetailPlate
+      BuyButton "Buy for 285 Gem"
+
+=== 19-store--confirm (1920)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  # godot: Store confirm. Not now has focus (safe).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton "Claim 300 Gem"
+    Grid
+      TicketTile
+        GemCost "120"
+      TicketTile
+        GemCost "285"
+      TicketTile
+        GemCost "720"
+      TicketTile
+        GemCost "1,700"
+    DetailPlate
+      BuyButton "Buy for 285 Gem"
+  Scrim
+  BuyConfirm
+    Title "15 tickets"
+    Body "Adds 15 Echo Box tickets."
+    Footer
+      NotNowButton
+        KeyCap "Space"
+      BuyButton "Buy for 285 Gem"
+
+=== 19-store--confirm--1280 (1280)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  # godot: Store confirm. Not now has focus (safe).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton "Claim 300 Gem"
+    Grid
+      TicketTile
+        GemCost "120"
+      TicketTile
+        GemCost "285"
+      TicketTile
+        GemCost "720"
+      TicketTile
+        GemCost "1,700"
+    DetailPlate
+      BuyButton "Buy for 285 Gem"
+  Scrim
+  BuyConfirm
+    Title "15 tickets"
+    Body "Adds 15 Echo Box tickets."
+    Footer
+      NotNowButton
+        KeyCap "Space"
+      BuyButton "Buy for 285 Gem"
+
+=== 19-store--owned-result (1920)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton [var(--size-btn-s)] "Claim 300 Gem"
+    ResultLine
+      ToneDisc
+    Grid
+      CosmeticTile
+        DiceSkinArt "6"
+        OwnedButton "Owned"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "90"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "180"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "180"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "720"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "720"
+    DetailPlate
+      DiceSkinArt "6"
+      BuyButton "Owned"
+
+=== 19-store--owned-result--1280 (1280)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton [var(--size-btn-s)] "Claim 300 Gem"
+    ResultLine
+      ToneDisc
+    Grid
+      CosmeticTile
+        DiceSkinArt "6"
+        OwnedButton "Owned"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "90"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "180"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "180"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "720"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "720"
+    DetailPlate
+      DiceSkinArt "6"
+      BuyButton "Owned"
+
+=== 19-store--moon-card (1920)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton [var(--size-btn-s)] "Claim 300 Gem"
+    Grid
+      MoonCardTile "Moon Card 30 days"
+    DetailPlate
+      BuyButton "Buy Moon Card · Coming soon"
+
+=== 19-store--moon-card--1280 (1280)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton [var(--size-btn-s)] "Claim 300 Gem"
+    Grid
+      MoonCardTile "Moon Card 30 days"
+    DetailPlate
+      BuyButton "Buy Moon Card · Coming soon"
+
+=== 19-store--gift-claimed (1920)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton "Claim 300 Gem · Already claimed today"
+    Grid
+      TicketTile
+        GemCost "120"
+      TicketTile
+        GemCost "285"
+      TicketTile
+        GemCost "720"
+      TicketTile
+        GemCost "1,700"
+    DetailPlate
+      BuyButton "Pick an item"
+
+=== 19-store--gift-claimed--1280 (1280)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton "Claim 300 Gem · Already claimed today"
+    Grid
+      TicketTile
+        GemCost "120"
+      TicketTile
+        GemCost "285"
+      TicketTile
+        GemCost "720"
+      TicketTile
+        GemCost "1,700"
+    DetailPlate
+      BuyButton "Pick an item"
+
+=== 19-store--gem-full (1920)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton "Claim 300 Gem · Gem full"
+    Grid
+      TicketTile
+        GemCost "120"
+      TicketTile
+        GemCost "285"
+      TicketTile
+        GemCost "720"
+      TicketTile
+        GemCost "1,700"
+    DetailPlate
+      BuyButton "Pick an item"
+
+=== 19-store--gem-full--1280 (1280)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    GiftStrip
+      GiftButton "Claim 300 Gem · Gem full"
+    Grid
+      TicketTile
+        GemCost "120"
+      TicketTile
+        GemCost "285"
+      TicketTile
+        GemCost "720"
+      TicketTile
+        GemCost "1,700"
+    DetailPlate
+      BuyButton "Pick an item"
+
+=== 19-store--offline (1920)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    Banner
+      ToneDisc "!"
+    GiftStrip
+      GiftButton "Claim 300 Gem · Needs a connection"
+    Grid
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "90"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "90"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "180"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "180"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "720"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "720"
+    DetailPlate
+      DiceSkinArt "6"
+      BuyButton "Needs a connection"
+
+=== 19-store--offline--1280 (1280)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    Banner
+      ToneDisc "!"
+    GiftStrip
+      GiftButton "Claim 300 Gem · Needs a connection"
+    Grid
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "90"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "90"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "180"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "180"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "720"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "720"
+    DetailPlate
+      DiceSkinArt "6"
+      BuyButton "Needs a connection"
+
+=== 19-store--guest (1920)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    Banner
+      ToneDisc "i"
+      SignInButton "Sign in"
+    GiftStrip
+      GiftButton "Claim 300 Gem · Sign in to claim"
+    Grid
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "90"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "90"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "180"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "180"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "720"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "720"
+    DetailPlate
+      DiceSkinArt "6"
+      BuyButton "Sign in to spend Gem"
+
+=== 19-store--guest--1280 (1280)
+  # godot: StoreScreen. Nothing picked at first (UI-05 B3): detail plate "Pick an item". Gem violet only on the paid controls (cost chips). The free Gem gift is amber: primary S while no Buy is live, else secondary with the Gem icon (30/10).
+  Header
+    BackButton "←"
+    Title "Store"
+    SubLine "Gem packs, cosmetics, tickets"
+    GemPacksTab "Gem packs"
+    CosmeticsTab "Cosmetics"
+    TicketsTab "Tickets"
+    MoonCardTab "Moon Card"
+  Body
+    Banner
+      ToneDisc "i"
+      SignInButton "Sign in"
+    GiftStrip
+      GiftButton "Claim 300 Gem · Sign in to claim"
+    Grid
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "90"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "90"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "180"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "180"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "360"
+      CosmeticTile
+        DiceSkinArt "6"
+        GemCost "720"
+      CosmeticTile
+        FrameArt "L"
+        GemCost "720"
+    DetailPlate
+      DiceSkinArt "6"
+      BuyButton "Sign in to spend Gem"

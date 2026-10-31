@@ -1,0 +1,842 @@
+# S9a: Echo Box (tru ceremony)
+# Nguon HTML: design/handoffs/ui-05-figma/round-3/ui05-meta2-screens.html
+# So frame: 30 (15 id, tinh ca ban 1920 va 1280)
+# Tien to: 20-echo--idle 20-echo--buy-confirm 20-echo--error 20-echo--guest 20-echo--last-pull 20-echo--loading 20-echo--no-tickets 20-echo--offline 20-echo--open10-confirm 20-echo--rates 20-echo--seasonal
+# Ghi chu: DOAN: ceremony = opening + reveal-* + open10 + summary; open10-confirm va seasonal-milestone o S9a.
+# Id frame:
+#   20-echo--idle
+#   20-echo--idle--1280
+#   20-echo--open10-confirm
+#   20-echo--open10-confirm--1280
+#   20-echo--rates
+#   20-echo--rates--1280
+#   20-echo--rates-season
+#   20-echo--rates-season--1280
+#   20-echo--no-tickets
+#   20-echo--no-tickets--1280
+#   20-echo--buy-confirm
+#   20-echo--buy-confirm--1280
+#   20-echo--seasonal
+#   20-echo--seasonal--1280
+#   20-echo--seasonal-confirm
+#   20-echo--seasonal-confirm--1280
+#   20-echo--seasonal-milestone
+#   20-echo--seasonal-milestone--1280
+#   20-echo--seasonal-cap
+#   20-echo--seasonal-cap--1280
+#   20-echo--offline
+#   20-echo--offline--1280
+#   20-echo--guest
+#   20-echo--guest--1280
+#   20-echo--error
+#   20-echo--error--1280
+#   20-echo--last-pull
+#   20-echo--last-pull--1280
+#   20-echo--loading
+#   20-echo--loading--1280
+
+=== 20-echo--idle (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+
+=== 20-echo--idle--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+
+=== 20-echo--open10-confirm (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Confirm. Cancel has focus (safe).
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+  Scrim
+  Open10Confirm
+    Title "Open 10 boxes?"
+    Body "This spends 10 tickets and leaves you 14."
+    Footer
+      CancelButton
+        KeyCap "Space"
+      Open10Button "Open 10 · 10 tickets"
+
+=== 20-echo--open10-confirm--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Confirm. Cancel has focus (safe).
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+  Scrim
+  Open10Confirm
+    Title "Open 10 boxes?"
+    Body "This spends 10 tickets and leaves you 14."
+    Footer
+      CancelButton
+        KeyCap "Space"
+      Open10Button "Open 10 · 10 tickets"
+
+=== 20-echo--rates (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Rates modal. Close has focus (Space; Esc too).
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+  Scrim
+  RatesModal [var(--size-defeat-panel-w)]
+    CloseButton
+      KeyCap "Space"
+
+=== 20-echo--rates--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Rates modal. Close has focus (Space; Esc too).
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+  Scrim
+  RatesModal [var(--size-defeat-panel-w)]
+    CloseButton
+      KeyCap "Space"
+
+=== 20-echo--rates-season (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Rates modal. Close has focus (Space; Esc too).
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1"
+      CostChip "5"
+      OpenNButton "Not enough tickets (24 of 40)"
+      RatesButton "Rates"
+    SideColumn
+      ProgressPlate "Lunar Echo · 0 / 11 · pulls opened 0 Mythic 0/2 Next pull: …"
+      Milestones "Milestones At 12 pulls: Echo Walker At 40 pulls: Midnight M…"
+      SeriesItems "Series items ? ? ? ? ? ? ? ? ? ? ? Once a tier is complete,…"
+  Scrim
+  RatesModal [var(--size-defeat-panel-w)]
+    CloseButton
+      KeyCap "Space"
+
+=== 20-echo--rates-season--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Rates modal. Close has focus (Space; Esc too).
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1"
+      CostChip "5"
+      OpenNButton "Not enough tickets (24 of 40)"
+      RatesButton "Rates"
+    SideColumn
+      ProgressPlate "Lunar Echo · 0 / 11 · pulls opened 0 Mythic 0/2 Next pull: …"
+      Milestones "Milestones At 12 pulls: Echo Walker At 40 pulls: Midnight M…"
+      SeriesItems "Series items ? ? ? ? ? ? ? ? ? ? ? Once a tier is complete,…"
+  Scrim
+  RatesModal [var(--size-defeat-panel-w)]
+    CloseButton
+      KeyCap "Space"
+
+=== 20-echo--no-tickets (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 0 / 999"
+      FragmentMeter "Fragments 2/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · Not enough tickets (0 of 1)"
+      BuyPullButton "Buy enough for 1 pull"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+
+=== 20-echo--no-tickets--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 0 / 999"
+      FragmentMeter "Fragments 2/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · Not enough tickets (0 of 1)"
+      BuyPullButton "Buy enough for 1 pull"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+
+=== 20-echo--buy-confirm (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: From the 16th ticket. Cancel has focus.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 415 Shards"
+      BuyTicketButton "Buy ticket · 415"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+  Scrim
+  BuyTicketConfirm
+    Title "Buy a ticket?"
+    Body "The next ticket costs 415 Shards, more than twice today's f…"
+    Footer
+      CancelButton
+        KeyCap "Space"
+      BuyButton "Buy"
+
+=== 20-echo--buy-confirm--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: From the 16th ticket. Cancel has focus.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 415 Shards"
+      BuyTicketButton "Buy ticket · 415"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+  Scrim
+  BuyTicketConfirm
+    Title "Buy a ticket?"
+    Body "The next ticket costs 415 Shards, more than twice today's f…"
+    Footer
+      CancelButton
+        KeyCap "Space"
+      BuyButton "Buy"
+
+=== 20-echo--seasonal (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1"
+      CostChip "5"
+      OpenNButton "Not enough tickets (24 of 40)"
+      RatesButton "Rates"
+    SideColumn
+      ProgressPlate "Lunar Echo · 0 / 11 · pulls opened 0 Mythic 0/2 Next pull: …"
+      Milestones "Milestones At 12 pulls: Echo Walker At 40 pulls: Midnight M…"
+      SeriesItems "Series items ? ? ? ? ? ? ? ? ? ? ? Once a tier is complete,…"
+
+=== 20-echo--seasonal--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1"
+      CostChip "5"
+      OpenNButton "Not enough tickets (24 of 40)"
+      RatesButton "Rates"
+    SideColumn
+      ProgressPlate "Lunar Echo · 0 / 11 · pulls opened 0 Mythic 0/2 Next pull: …"
+      Milestones "Milestones At 12 pulls: Echo Walker At 40 pulls: Midnight M…"
+      SeriesItems "Series items ? ? ? ? ? ? ? ? ? ? ? Once a tier is complete,…"
+
+=== 20-echo--seasonal-confirm (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: First season pull per session. Cancel has focus.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1"
+      CostChip "5"
+      OpenNButton "Not enough tickets (24 of 40)"
+      RatesButton "Rates"
+    SideColumn
+      ProgressPlate "Lunar Echo · 0 / 11 · pulls opened 0 Mythic 0/2 Next pull: …"
+      Milestones "Milestones At 12 pulls: Echo Walker At 40 pulls: Midnight M…"
+      SeriesItems "Series items ? ? ? ? ? ? ? ? ? ? ? Once a tier is complete,…"
+  Scrim
+  SeasonConfirm
+    Title "Open the season box?"
+    Body "This spends 5 tickets and leaves you 19. Pulls left today a…"
+    Footer
+      CancelButton
+        KeyCap "Space"
+      OpenButton "Open"
+
+=== 20-echo--seasonal-confirm--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: First season pull per session. Cancel has focus.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1"
+      CostChip "5"
+      OpenNButton "Not enough tickets (24 of 40)"
+      RatesButton "Rates"
+    SideColumn
+      ProgressPlate "Lunar Echo · 0 / 11 · pulls opened 0 Mythic 0/2 Next pull: …"
+      Milestones "Milestones At 12 pulls: Echo Walker At 40 pulls: Midnight M…"
+      SeriesItems "Series items ? ? ? ? ? ? ? ? ? ? ? Once a tier is complete,…"
+  Scrim
+  SeasonConfirm
+    Title "Open the season box?"
+    Body "This spends 5 tickets and leaves you 19. Pulls left today a…"
+    Footer
+      CancelButton
+        KeyCap "Space"
+      OpenButton "Open"
+
+=== 20-echo--seasonal-milestone (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Echo Box ceremony modal. Skip (Space). Reduce motion: tint 0.2 s, cards all at once.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1"
+      CostChip "5"
+      OpenNButton "Not enough tickets (24 of 40)"
+      RatesButton "Rates"
+    SideColumn
+      ProgressPlate "Lunar Echo · 2 / 11 · pulls opened 12 Mythic 0/2 Next pull:…"
+      Milestones "Milestones Done 12 pulls: Echo Walker At 40 pulls: Midnight…"
+      SeriesItems "Series items ? ? ? ? ? ? ? ? ? ? ? Once a tier is complete,…"
+  Scrim
+  Ceremony
+    Title "Reveal"
+    RevealCard
+      TierStrip
+      Art
+        FrameArt "L"
+        NewChip "New"
+      Name "Rune Ring"
+      Line "Epic frame"
+      MilestoneChip "Milestone: Echo Walker"
+    Footer
+      EquipButton "Equip now"
+      OpenAgainButton
+        CostChip [var(--size-keycap-h)] "1"
+      DoneButton
+        KeyCap "Space"
+
+=== 20-echo--seasonal-milestone--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  # godot: Echo Box ceremony modal. Skip (Space). Reduce motion: tint 0.2 s, cards all at once.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1"
+      CostChip "5"
+      OpenNButton "Not enough tickets (24 of 40)"
+      RatesButton "Rates"
+    SideColumn
+      ProgressPlate "Lunar Echo · 2 / 11 · pulls opened 12 Mythic 0/2 Next pull:…"
+      Milestones "Milestones Done 12 pulls: Echo Walker At 40 pulls: Midnight…"
+      SeriesItems "Series items ? ? ? ? ? ? ? ? ? ? ? Once a tier is complete,…"
+  Scrim
+  Ceremony
+    Title "Reveal"
+    RevealCard
+      TierStrip
+      Art
+        FrameArt "L"
+        NewChip "New"
+      Name "Rune Ring"
+      Line "Epic frame"
+      MilestoneChip "Milestone: Echo Walker"
+    Footer
+      EquipButton "Equip now"
+      OpenAgainButton
+        CostChip [var(--size-keycap-h)] "1"
+      DoneButton
+        KeyCap "Space"
+
+=== 20-echo--seasonal-cap (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "8 of 8 today - resets 00:00 UTC"
+      CostChip "5"
+      OpenNButton "Not enough tickets (24 of 40)"
+      RatesButton "Rates"
+    SideColumn
+      ProgressPlate "Lunar Echo · 0 / 11 · pulls opened 8 Mythic 0/2 Next pull: …"
+      Milestones "Milestones At 12 pulls: Echo Walker At 40 pulls: Midnight M…"
+      SeriesItems "Series items ? ? ? ? ? ? ? ? ? ? ? Once a tier is complete,…"
+
+=== 20-echo--seasonal-cap--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "8 of 8 today - resets 00:00 UTC"
+      CostChip "5"
+      OpenNButton "Not enough tickets (24 of 40)"
+      RatesButton "Rates"
+    SideColumn
+      ProgressPlate "Lunar Echo · 0 / 11 · pulls opened 8 Mythic 0/2 Next pull: …"
+      Milestones "Milestones At 12 pulls: Echo Walker At 40 pulls: Midnight M…"
+      SeriesItems "Series items ? ? ? ? ? ? ? ? ? ? ? Once a tier is complete,…"
+
+=== 20-echo--offline (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    Banner
+      ToneDisc "!"
+      TryAgainButton "Try again"
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · Not available right now"
+    Stage
+      OpenButton "Needs a connection - nothing is spent"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+
+=== 20-echo--offline--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    Banner
+      ToneDisc "!"
+      TryAgainButton "Try again"
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · Not available right now"
+    Stage
+      OpenButton "Needs a connection - nothing is spent"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+
+=== 20-echo--guest (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    Banner
+      ToneDisc "i"
+      SignInButton "Sign in"
+    TicketBar
+      Tickets "Tickets 0 / 999"
+      FragmentMeter "Fragments 0/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · Not available right now"
+    Stage
+      OpenButton "Sign in to get tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+
+=== 20-echo--guest--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    Banner
+      ToneDisc "i"
+      SignInButton "Sign in"
+    TicketBar
+      Tickets "Tickets 0 / 999"
+      FragmentMeter "Fragments 0/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · Not available right now"
+    Stage
+      OpenButton "Sign in to get tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+
+=== 20-echo--error (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    Banner
+      ToneDisc "!"
+      TryAgainButton "Try again"
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+
+=== 20-echo--error--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    Banner
+      ToneDisc "!"
+      TryAgainButton "Try again"
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+
+=== 20-echo--last-pull (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    Banner
+      ToneDisc "i"
+    TicketBar
+      Tickets "Tickets 14 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+      Summary "Last pull · 2,100 Stone · 3 new · 2 duplicates 250 Stone St…"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+
+=== 20-echo--last-pull--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    Banner
+      ToneDisc "i"
+    TicketBar
+      Tickets "Tickets 14 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      Open1Button "Open 1 · 1 ticket"
+      Open10Button "Open 10 · 10 tickets"
+      RatesButton "Rates"
+      Summary "Last pull · 2,100 Stone · 3 new · 2 duplicates 250 Stone St…"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+
+=== 20-echo--loading (1920)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      OpenButton "Loading…"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"
+
+=== 20-echo--loading--1280 (1280)
+  # godot: EchoBoxScreen. One primary: Open 10 when you can, else Open 1. Rolled on the server.
+  Header
+    BackButton "←"
+    Title "Echo Box"
+    SubLine "Spend tickets, get Stone or a cosmetic"
+    RegularTab "Regular"
+    SeasonalTab "Seasonal"
+  Body
+    TicketBar
+      Tickets "Tickets 24 / 999"
+      FragmentMeter "Fragments 6/10"
+      NextTicket "Next ticket 200 Shards"
+      BuyTicketButton "Buy ticket · 200"
+    Stage
+      OpenButton "Loading…"
+    SideColumn
+      PityPlate "Pity · cosmetic pulls only Each bar counts pulls toward a g…"
+      PoolPlate "Pool Common 18/61 Uncommon 9/55 Rare 6/47 Epic 2/28 Legenda…"

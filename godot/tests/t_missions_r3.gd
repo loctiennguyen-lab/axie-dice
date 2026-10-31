@@ -41,7 +41,7 @@ func _ready() -> void:
 	var s := await _make()
 	_ok(s.offers().size() == (cfg.tiers as Dictionary).size(), "one offer per tier in data")
 	for id in (cfg.tiers as Dictionary):
-		_ok(s.find_child("Card_" + id, true, false) != null, "card " + id)
+		_ok(s.find_child("TierRow" + id, true, false) != null, "card " + id)
 		var o := s.offer(id)
 		_ok(int(o.stake) == int(cfg.tiers[id].stake), "%s stake from data" % id)
 		_ok(int(o.payout) == MissionBoard.payout(id), "%s payout from MissionBoard" % id)
@@ -56,7 +56,7 @@ func _ready() -> void:
 	MetaState.starter_shard_locked = 0
 	_ok(s.block_reason("N1") == "", "N1 startable with enough usable Shard")
 	s.select_tier("N1")
-	_ok(not (s.find_child("Stake", true, false) as Button).disabled, "Stake button enabled")
+	_ok(not (s.find_child("StakeButton", true, false) as Button).disabled, "Stake button enabled")
 	var got: Array = []
 	s.start_hook = func(p: Dictionary) -> Dictionary:
 		got.append(p)
@@ -113,13 +113,13 @@ func _ready() -> void:
 	s.open_confirm("N2")
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_ok(s.find_child("NotNow", true, false) != null and s.find_child("ConfirmStake", true, false) != null, "confirm modal")
-	_ok((s.find_child("NotNow", true, false) as Button).has_focus(), "focus starts on Not now")
-	_ok(s.selected == "N2" and (s.find_child("DetailTitle", true, false) as Label).text.begins_with("N2"), "confirm and detail show the same tier")
-	_ok((s.find_child("Card_N2", true, false) as Button).get_meta("selected") and not (s.find_child("Card_N1", true, false) as Button).get_meta("selected"), "only the selected row is lit")
+	_ok(s.find_child("NotNowButton", true, false) != null and s.find_child("Modal", true, false).find_child("StakeButton", true, false) != null, "confirm modal")
+	_ok((s.find_child("NotNowButton", true, false) as Button).has_focus(), "focus starts on Not now")
+	_ok(s.selected == "N2" and (s.find_child("DetailScroll", true, false).find_child("Title", true, false) as Label).text.begins_with("N2"), "confirm and detail show the same tier")
+	_ok((s.find_child("TierRowN2", true, false) as Ui5ListRow).state == &"selected" and (s.find_child("TierRowN1", true, false) as Ui5ListRow).state != &"selected", "only the selected row is lit")
 	s.close_modal()
 	s.select_tier("N1")
-	_ok((s.find_child("DetailTitle", true, false) as Label).text.begins_with("N1") and (s.find_child("Card_N1", true, false) as Button).get_meta("selected"), "select_tier moves row and detail together")
+	_ok((s.find_child("DetailScroll", true, false).find_child("Title", true, false) as Label).text.begins_with("N1") and (s.find_child("TierRowN1", true, false) as Ui5ListRow).state == &"selected", "select_tier moves row and detail together")
 	s.open_confirm("N2")
 	await get_tree().process_frame
 	_ok(s.rule_lines(s.offer("N2")).size() == 1 + (s.offer("N2").rules as Array).size(), "rule lines: standard + extras")
@@ -131,9 +131,9 @@ func _ready() -> void:
 	# insufficient Shard
 	MetaState.shard_pool = int(cfg.tiers.N1.stake) - 50
 	s._refresh()
-	_ok(s.block_reason("N1") == "Need 50 more Shard", "missing amount shown")
+	_ok(s.block_reason("N1") == "Need 50 more Shards", "missing amount shown")
 	s.select_tier("N1")
-	_ok((s.find_child("Stake", true, false) as Button).text == "Need 50 more Shard", "button shows missing amount")
+	_ok((s.find_child("StakeButton", true, false) as Button).text == "Need 50 more Shards", "button shows missing amount")
 	MetaState.shard_pool = 5000
 	# newcomer: every card locked
 	MetaState.runs = 2
@@ -147,7 +147,7 @@ func _ready() -> void:
 	MetaState.runs_with_battle = 8
 	# open run blocks
 	s.set_state("open_run")
-	_ok(s.block_reason("N1") != "" and (s.find_child("Stake", true, false) as Button).disabled, "open run disables cards")
+	_ok(s.block_reason("N1") != "" and (s.find_child("StakeButton", true, false) as Button).disabled, "open run disables cards")
 	_ok(s.find_child("Banner", true, false) != null, "open run banner")
 	# offline / guest block only with remote flag
 	for st in ["offline", "guest"]:
@@ -161,22 +161,22 @@ func _ready() -> void:
 	s.remote_on = true
 	s.select_tier("N1")
 	s.set_state("guest")
-	_ok(s.is_guest_view() and s.find_child("Balance", true, false).text == "Sign in to see your Shards", "guest: no Shard numbers")
-	var gb := s.find_child("Stake", true, false) as Button
-	_ok(not gb.disabled and gb.text == "Sign in to stake Shard" and gb.theme_type_variation == "ButtonPrimaryM", "guest: sign-in button looks active (primary)")
+	_ok(s.is_guest_view() and s.find_child("Balance", true, false).get_node("Value").text == "Sign in to see your Shards", "guest: no Shard numbers")
+	var gb := s.find_child("StakeButton", true, false) as Button
+	_ok(not gb.disabled and gb.text == "Sign in to stake Shards" and gb.theme_type_variation == &"ButtonPrimaryL", "guest: sign-in button looks active (primary)")
 	gb.pressed.emit()
 	_ok(s.sign_in_calls == 1, "guest: the button signs in")
-	var gbn := s.find_child("SignIn", true, false) as Button
+	var gbn := s.find_child("SignInButton", true, false) as Button
 	_ok(gbn != null and not gbn.disabled, "guest: banner has a sign-in button")
 	if gbn != null:
 		gbn.pressed.emit()
 	_ok(s.sign_in_calls == 2, "guest: banner button signs in")
 	_ok(s.block_reason("N1") != "", "guest: still cannot stake")
 	s.set_state("offline")
-	_ok(not s.is_guest_view() and s.find_child("Balance", true, false).text.begins_with("Stakeable"), "offline: numbers stay")
+	_ok(not s.is_guest_view() and s.find_child("Balance", true, false).get_node("Value").text.begins_with("Stakeable"), "offline: numbers stay")
 	s.remote_on = false
 	s.set_state("guest")
-	_ok(not s.is_guest_view() and s.find_child("Balance", true, false).text.begins_with("Stakeable"), "local guest: numbers stay")
+	_ok(not s.is_guest_view() and s.find_child("Balance", true, false).get_node("Value").text.begins_with("Stakeable"), "local guest: numbers stay")
 	# S3-2 lock text = the full condition
 	MetaState.runs = 2
 	MetaState.runs_with_battle = 2
@@ -188,7 +188,7 @@ func _ready() -> void:
 	MetaState.runs_with_battle = 8
 	MetaState.set_mission_unlocks(["N1", "N2"], false)
 	s.set_state("loading")
-	_ok(s.find_child("Grid", true, false) == null, "loading renders no cards")
+	_ok(s.find_child("TierRowN1", true, false) == null, "loading renders no cards")
 	await _l1_n1_to_n3_only(s, cfg)
 	MetaState.mission_escrow = {}
 	s.queue_free()

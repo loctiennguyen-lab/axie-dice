@@ -27,6 +27,12 @@ func _ready() -> void:
 	get_tree().root.add_child.call_deferred(_tut)
 	await _settle(60)
 	_shoot("01-welcome")
+	var coach := _tut.get("_coach") as Node
+	coach.call("_ask_skip")
+	await _settle(10)
+	_shoot("01b-skip-confirm")
+	coach.find_child("SkipConfirm", true, false).queue_free()
+	await _settle(5)
 
 	# Drive the flow the way a player would: press the coach's own button, click the die the
 	# coach lit, click the enemy it lit. Going through the real handlers (rather than poking

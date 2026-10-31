@@ -63,7 +63,7 @@ func _a7_reroll() -> void:
 	await _wait(1.6)   # first reveal done
 	var old_keys: Array = RunState.pending_rewards.map(func(r): return String(r["key"]))
 	var other1: Control = rm._reward_cards[1]
-	var btn := rm._overlay_root.find_child("CardReroll0", true, false) as Button
+	var btn := rm._reward_cards[0].find_child("RerollButton", true, false) as Button
 	_check(btn != null and not btn.disabled, "reroll button on card 0 is live")
 	rm.gacha_log.clear()
 	rm._on_core_card_reroll(0)
@@ -74,15 +74,15 @@ func _a7_reroll() -> void:
 	var new_keys: Array = RunState.pending_rewards.map(func(r): return String(r["key"]))
 	_check(new_keys[0] != old_keys[0] and new_keys[1] == old_keys[1] and new_keys[2] == old_keys[2], "only slot 0 changed")
 	var c0: Control = rm._reward_cards[0]
-	_check(c0.find_child("CardBack", true, false) != null, "new card is face-down")
+	_check(c0.find_child("CoreCardBack", true, false) != null, "new card is face-down")
 	var c1: Control = rm._reward_cards[1]
-	_check(c1.find_child("CardBack", true, false) == null, "other cards stay face-up")
+	_check(c1.find_child("CoreCardBack", true, false) == null, "other cards stay face-up")
 	_check(rm._overlay_root.find_child("RerollNote", true, false) != null, "note 'Won't come back this run' shown")
 	var shot := OS.get_environment("AXIE_SHOT_REROLL")
 	if shot != "" and DisplayServer.get_name() != "headless":
 		get_viewport().get_texture().get_image().save_png(shot)
 	await _wait(1.2)
-	_check(c0.find_child("CardBack", true, false) == null and rm._reveal != null and not rm._reveal.running, "new card flipped up")
+	_check(c0.find_child("CoreCardBack", true, false) == null and rm._reveal != null and not rm._reveal.running, "new card flipped up")
 	_check(RunState.pending_rewards.map(func(r): return String(r["key"])) == new_keys, "animation did not change the offer")
 
 
@@ -156,9 +156,9 @@ func _banner() -> void:
 	var c0: Control = rm._reward_cards[0]
 	var tag := c0.find_child("ComboWord", true, false) as Label
 	_check(tag != null and tag.text == "PAIR" and c0.find_child("ComboPlate", true, false) != null, "card that completes a Pair has a gold PAIR plate")
-	var ww := c0.find_child("WorksWith", true, false)
+	var ww := c0.find_child("ComboChip", true, false)
 	_check(ww != null and String((ww.find_child("Text", true, false) as Label).text).contains("Nest"), "With chip lists the owned partner")
-	_check(c0.find_child("CoreChips", true, false).find_child("WorksWith", true, false) != null, "partner chip sits in the chip row")
+	_check(c0.find_child("ChipRow", true, false).find_child("ComboChip", true, false) != null, "partner chip sits in the chip row")
 	_check((rm._reward_cards[1] as Control).find_child("ComboTag", true, false) == null, "other cards have no combo label")
 	_check(not tag.text.contains("1/2") and rm._overlay_root.find_child("ComboProgress", true, false) == null, "no 1/2 label, no progress bar")
 	rm.gacha_log.clear()
@@ -167,17 +167,27 @@ func _banner() -> void:
 	await _frames(3)
 	_check(rm.gacha_log.has("banner:pair"), "taking the Pair card raises the PAIR banner")
 	var ban: Node = rm._overlay_layer.find_child("ComboBanner", true, false)
-	_check(ban != null and ban.find_child("BannerPlate", true, false) != null and ban.find_child("BannerScrim", true, false) != null, "banner is a centre panel with a scrim")
+	_check(ban != null and ban.find_child("Band", true, false) != null and ban.find_child("Scrim", true, false) != null, "banner is a centre band with a scrim")
 	_check(rm._overlay_root.visible, "pair banner plays over the still-open Core overlay")
-	var bt := ban.find_child("BannerText", true, false) as Label
-	_check(bt != null and bt.theme_type_variation == &"LabelScreenTitle" and UI3Theme.get_theme().get_font_size("font_size", "LabelScreenTitle") == 32, "banner name is 32 px (not 36)")
-	_check(ban.find_child("BannerRing3", true, false) == null and (ban.find_child("TagText", true, false) as Label).text == "PAIR", "pair: single gold frame + PAIR tag")
-	var shot := OS.get_environment("AXIE_SHOT_PAIR")
-	if shot != "" and DisplayServer.get_name() != "headless":
-		get_viewport().get_texture().get_image().save_png(shot)
-	_check(ban.find_child("MutationStrip", true, false) != null and ban.find_child("MutationName", true, false) != null, "pair banner carries the MUTATION strip")
-	await _wait(2.3)
-	_check(rm._overlay_layer.find_child("ComboBanner", true, false) == null, "pair banner gone after 2.0 s (mutation strip)")
+	var bt := ban.find_child("ComboName", true, false) as Label
+	_check(bt != null and bt.get_theme_font_size("font_size") == UI3Theme.size_of("text_hero"), "UI-05: banner name at text_hero")
+	_check((ban.find_child("ComboWord", true, false) as Label).text == "PAIR", "pair: PAIR tag")
+	_check(ban.find_child("MutationBox", true, false) != null and ban.find_child("MutationName", true, false) != null, "pair banner carries the MUTATION box")
+	await _wait(3.2)
+	_check(rm._overlay_layer.find_child("ComboBanner", true, false) != null, "UI-05: no timer, the band waits for a click")
+	var lone := GachaFx.new()   # F2: a banner has no spin label; skip() ends it like a click (emit finished + free)
+	lone.name = "ComboBanner"
+	add_child(lone)
+	lone.running = true
+	var fired := [false]
+	lone.finished.connect(func() -> void: fired[0] = true)
+	lone.skip()
+	_check(not lone.running and fired[0], "F2: skip() on a label-less banner ends it and emits finished")
+	await _frames(2)
+	_check(not is_instance_valid(lone), "F2: a skipped banner is freed")
+	(ban as GachaFx)._banner_end()
+	await _frames(2)
+	_check(rm._overlay_layer.find_child("ComboBanner", true, false) == null, "click dismisses the pair banner")
 	RunState.owned_relic_ids.append("c_golden_egg")
 	await _offer_with(["c_spore_burst", "c_kindle", "c_dewdrop"])
 	await _wait(1.0)
@@ -188,11 +198,10 @@ func _banner() -> void:
 	_check(rm.gacha_log.has("banner:full"), "taking the third Core raises the FULL banner")
 	ban = rm._overlay_layer.find_child("ComboBanner", true, false)
 	_check(ban != null, "full banner is up")
-	_check(ban.find_child("BannerRing3", true, false) != null and (ban.find_child("TagText", true, false) as Label).text == "FULL", "full: thicker frame + FULL tag")
-	await _wait(1.9)
-	_check(rm._overlay_layer.find_child("ComboBanner", true, false) != null, "full banner outlasts the pair length (2.8 s)")
-	await _wait(1.2)
-	_check(rm._overlay_layer.find_child("ComboBanner", true, false) == null, "full banner gone after 2.8 s")
+	_check((ban.find_child("ComboWord", true, false) as Label).text == "FULL", "full: FULL tag")
+	(ban as GachaFx)._banner_end()
+	await _frames(2)
+	_check(rm._overlay_layer.find_child("ComboBanner", true, false) == null, "full banner gone after a click")
 
 
 func _set_capped_state(capped: bool) -> void:
@@ -228,7 +237,7 @@ func _near_miss() -> void:
 	var cov: Control = null   # first demoted card (at the offer's tier); lower cards are not demoted and carry no reason
 	for rc in rm._reward_cards:
 		if int(rc.get_meta("gacha_tier", 0)) == 1:
-			cov = rc.find_child("CardBack", true, false) as Control
+			cov = rc.find_child("CoreCardBack", true, false) as Control
 			break
 	_check(cov != null and cov.find_child("ReasonLine", true, false) != null, "cover carries the reason line")
 	_check(cov != null and (cov.find_child("TierWord", true, false) as Label).text == "Crystal", "cover starts as the capped tier")

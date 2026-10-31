@@ -167,7 +167,7 @@ func _case(c: Dictionary) -> void:
 		var st := card.find_child("AnchorState", true, false) as Label
 		_check(nm != null and nm.text.contains(AnchorAdapter.name_of(aid)), "%s: AnchorCard names the Anchor" % aid)
 		_check(st != null and st.text == "Awakened", "%s: AnchorCard says Awakened" % aid)
-		var rel := rv.find_child("RelicsCard", true, false)
+		var rel := rv.find_child("CoresCard", true, false)
 		_check(rel != null and rel.get_parent() == card.get_parent() and card.get_index() == rel.get_index() - 1, "%s: AnchorCard sits directly above the Cores card" % aid)
 	rv.free()
 
