@@ -260,8 +260,7 @@ func test_the_row_band_keeps_its_height_and_slides_at_both_ends() -> void:
 	runmap.set("_graph", RunMapGraph.from_data({
 		"rows": long_rows, "boss_rows": [20], "elite_rows": [], "start_node_id": "L1_c0"}))
 
-	# RunMapController.gd has no `class_name`, so its constants are read off the script
-	# resource rather than hardcoded here — the point of this check is that the band matches
+	# Constants are read off RunMapController's script resource rather than hardcoded here — the point of this check is that the band matches
 	# ITS OWN declared height, not a 7 typed into a test.
 	var consts: Dictionary = (load("res://scenes/run_map/RunMapController.gd") as GDScript) \
 		.get_script_constant_map()
