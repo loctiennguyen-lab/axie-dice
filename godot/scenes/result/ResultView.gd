@@ -100,6 +100,12 @@ func _build_ui(s: Dictionary) -> void:
 	# `.res-plate`: result_plate_w wide, centred, top and bottom space 24 from the window; the card scroll takes the rest.
 	var plate := UI3.plate(&"dialog")
 	plate.name = "ResultPlate"
+	var psb := UI3Theme.get_theme().get_stylebox("panel", "PanelDialog").duplicate() as StyleBox   # `.res-plate` padding 24 / 24 / 20 (shared dialog theme stays)
+	psb.content_margin_left = UI3Theme.space("24")
+	psb.content_margin_right = UI3Theme.space("24")
+	psb.content_margin_top = UI3Theme.space("24")
+	psb.content_margin_bottom = UI3Theme.space("20")
+	plate.add_theme_stylebox_override("panel", psb)
 	var w := UI3Theme.size_of("result_plate_w")
 	var m := float(UI3Theme.space("24"))
 	plate.anchor_left = 0.5
@@ -251,9 +257,14 @@ func _build_party_row(roster: Array) -> Control:
 		var entry: Dictionary = e
 		var hero_key := String(entry.get("hero_key", ""))
 		var def: Dictionary = ContentDB.heroes.get(hero_key, {})
+		var cell := MarginContainer.new()   # `.party-cells .cell` padding 4
+		cell.name = "PartyCell"
+		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		for side in ["left", "right", "top", "bottom"]:
+			cell.add_theme_constant_override("margin_" + side, UI3Theme.space("4"))
 		var v := VBoxContainer.new()
-		v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		v.add_theme_constant_override("separation", 0)
+		cell.add_child(v)
 		var nm := _centered("", "LabelDisplay")
 		nm.name = "PartyName"
 		nm.autowrap_mode = TextServer.AUTOWRAP_OFF
@@ -262,7 +273,7 @@ func _build_party_row(roster: Array) -> Control:
 		v.add_child(nm)
 		Ui5Ellipsis.set_text(nm, String(def.get("n", hero_key)))   # B9: "Pomod…" at 1280, never "Pomodor"
 		v.add_child(_centered("T%d" % int(entry.get("tier", 1)), "LabelMuted"))
-		row.add_child(v)
+		row.add_child(cell)
 	return row
 
 
@@ -737,15 +748,34 @@ func _build_actions() -> Control:
 	return host
 
 
-## KeyCap sits right after the centred label, 12 px apart, vertically centred on the button.
+## KeyCap: HTML `.btn` centres the whole group [label + 12 + keycap]. Every button style gets content_margin_right
+## widened by cap width + 12 so the label shifts left; the keycap sits 12 px after the label, centred vertically.
 func _place_cap(cap: Control) -> void:
 	if _back == null or not is_instance_valid(cap):
 		return
+	cap.size = cap.get_combined_minimum_size()
+	var extra := cap.size.x + float(UI3Theme.space("12"))
+	var ml := 0.0
+	var mrt := 0.0
+	for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var sb := UI3Theme.get_theme().get_stylebox(st, String(_back.theme_type_variation))
+		if sb == null:
+			continue
+		var d := sb.duplicate() as StyleBox
+		if not _back.has_meta("cap_base_" + st):
+			_back.set_meta("cap_base_" + st, d.content_margin_right if d.content_margin_right >= 0.0 else sb.get_margin(SIDE_RIGHT))
+		var base := float(_back.get_meta("cap_base_" + st))
+		d.content_margin_right = base + extra
+		if d.content_margin_left < 0.0:
+			d.content_margin_left = sb.get_margin(SIDE_LEFT)
+		_back.add_theme_stylebox_override(st, d)
+		if st == "normal":
+			ml = d.content_margin_left
+			mrt = d.content_margin_right
 	var font := _back.get_theme_font("font")
 	var fs := _back.get_theme_font_size("font_size")
 	var tw := font.get_string_size(_back.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-	cap.size = cap.get_combined_minimum_size()
-	cap.position = Vector2((_back.size.x + tw) / 2.0 + UI3Theme.space("12"), (_back.size.y - cap.size.y) / 2.0)
+	cap.position = Vector2((ml + _back.size.x - mrt + tw) / 2.0 + UI3Theme.space("12"), (_back.size.y - cap.size.y) / 2.0)
 
 
 ## Lane GM (D4): run card text to the clipboard; the button says "Copied" for the next click.

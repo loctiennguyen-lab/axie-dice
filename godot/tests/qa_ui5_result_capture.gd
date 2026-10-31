@@ -37,13 +37,21 @@ func _ready() -> void:
 	MetaState.best = 3
 	var v := _stage(true, true, false, 14)
 	await _shot(tag, "10-result--win")
-	var row: Control = v.call("_build_title_unlock", {"new_titles": [String(TitleNames.ascension_titles()[0]["id"])]})
-	var outer := v.find_child("ResultPlate", true, false).get_child(0)
-	outer.add_child(row)
-	outer.move_child(row, 1)
 	await _shot(tag, "10-result--new-title")
 	v.queue_free()
 	await get_tree().process_frame
+	ComboAdapter.test_combos = [
+		{"id": "t_pair", "name_en": "Shield Engine", "pair": ["c_bastion", "c_fissure"], "full": null, "jackpot": false},
+		{"id": "t_full", "name_en": "Golden Turtle Fortress", "pair": ["c_bastion", "c_plague_spread"], "full": "c_fissure", "jackpot": false}]
+	ComboAdapter.test_done = {"t_pair": "pair", "t_full": "full"}
+	ComboAdapter.test_skipped = ["c_bastion"]
+	v = _stage(true, true, false, 14)
+	await _shot(tag, "10-result--combos-full")
+	v.queue_free()
+	await get_tree().process_frame
+	ComboAdapter.test_combos = null
+	ComboAdapter.test_done = null
+	ComboAdapter.test_skipped = null
 	v = _stage(false, false, false, 6)
 	await _shot(tag, "10-result--loss")
 	v.queue_free()

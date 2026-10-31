@@ -64,7 +64,7 @@ func _geometry(v: Node, tag: String, scale: float) -> void:
 	var plate := v.find_child("ResultPlate", true, false) as Control
 	var vp := (v as Control).get_viewport_rect().size
 	var want := UI3Theme.size_of("result_plate_w")
-	_check(is_equal_approx(plate.size.x, want) or plate.size.x > want, "%s: plate is result_plate_w wide (%s vs %s)" % [tag, plate.size.x, want])
+	_check(absf(plate.size.x - want) <= 1.0, "%s: plate is result_plate_w wide (%s vs %s)" % [tag, plate.size.x, want])
 	_check(plate.global_position.y >= 0.0 and plate.global_position.y + plate.size.y <= vp.y + 0.5, "%s: plate inside the window" % tag)
 	var foot := v.find_child("Actions", true, false) as Control
 	_check(foot.global_position.y + foot.size.y <= vp.y + 0.5, "%s: actions inside the window" % tag)
@@ -72,6 +72,17 @@ func _geometry(v: Node, tag: String, scale: float) -> void:
 	_check(back.has_focus(), "%s: Back has focus" % tag)
 	var cap := v.find_child("KeyCap", true, false) as Control
 	_check(cap != null and cap.get_global_rect().end.x <= back.get_global_rect().end.x, "%s: keycap inside the Back button" % tag)
+	var psb := plate.get_theme_stylebox("panel")
+	_check(psb is StyleBoxFlat and (psb as StyleBoxFlat).border_width_left > 0 and (psb as StyleBoxFlat).bg_color.a > 0.85, "%s: plate keeps the dialog look (rim, opaque)" % tag)
+	var bsb := back.get_theme_stylebox("normal")
+	_check(bsb is StyleBoxFlat and (bsb as StyleBoxFlat).bg_color == UI3Theme.color("accent"), "%s: Back keeps the amber fill" % tag)
+	_check(psb.content_margin_left == 24 and psb.content_margin_right == 24 and psb.content_margin_top == 24 and psb.content_margin_bottom == 20, "%s: plate padding 24/24/20" % tag)
+	var bf := back.get_theme_font("font")
+	var tw := bf.get_string_size(back.text, HORIZONTAL_ALIGNMENT_LEFT, -1, back.get_theme_font_size("font_size")).x
+	var group_l := back.global_position.x + (cap.global_position.x - back.global_position.x) - UI3Theme.space("12") - tw
+	var group_r := cap.get_global_rect().end.x
+	_check(absf((group_l + group_r) / 2.0 - back.get_global_rect().get_center().x) <= 2.0, "%s: label + keycap group centred on the button (%.1f vs %.1f)" % [tag, (group_l + group_r) / 2.0, back.get_global_rect().get_center().x])
+	_check(float(back.get_theme_font_size("font_size")) * scale >= 14.0 - 0.01, "%s: button text >= 14 real px" % tag)
 	var small := 0
 	var low := ""
 	for l in v.find_children("*", "Label", true, false):
@@ -107,9 +118,7 @@ func _ready() -> void:
 				_check(v.find_child("PlateHost", true, false) != null, "win: backdrop")
 			else:
 				_check(v.find_child(n, true, false) != null, "%s win: node %s" % [tag, n])
-		for n in ["NewBestChip", "SaveRecordButton", "SubmitLine", "BestSetLine_optional"]:
-			if n.ends_with("_optional"):
-				continue
+		for n in ["NewBestChip", "SaveRecordButton", "SubmitLine"]:
 			_check(v.find_child(n, true, false) != null, "%s ranked win: node %s" % [tag, n])
 		_check(v.find_child("StakeBox", true, false) == null, "%s: no stake box on a normal run" % tag)
 		_geometry(v, tag + " win", sc)
