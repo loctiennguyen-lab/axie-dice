@@ -88,6 +88,13 @@ func _ready() -> void:
 	_check(disc != null and disc.visible and disc.size == Vector2(56, 56) and gl.visible and gl.get_index() > disc.get_index(), "gold disc 56 behind the glyph")
 	var tile_bg := (fxs.card_frame.get_theme_stylebox("panel") as StyleBoxFlat).bg_color
 	_check(tile_bg.is_equal_approx(UI3Theme.color("plate")), "tile fill is the plate token (#3b2416)")
+	var dsc := fxs.card_frame.find_child("AwakenDisc", true, false) as Control
+	var gly := fxs.card_frame.find_child("AwakenGlyph", true, false) as Control
+	await _frames(2)
+	var dr := dsc.get_global_rect()
+	var gr := gly.get_global_rect()
+	_check(dr.size.x > 0.0 and dr.grow(0.5).encloses(gr) and gr.get_center().distance_to(dr.get_center()) <= 2.0,
+		"glyph sits inside the disc, centred (%s in %s)" % [gr, dr])
 	fxs.skip()
 	await _frames(2)
 	# 4 timing: normal vs Reduce flashing

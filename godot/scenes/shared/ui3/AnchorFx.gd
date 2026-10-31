@@ -158,12 +158,15 @@ func _build(extra_line: String) -> void:
 	var aw := TextureRect.new()
 	aw.name = "AwakenGlyph"
 	aw.texture = UI3.icon(CorePanel.AWAKEN_ICON)
-	aw.custom_minimum_size = Vector2(mark, mark)
-	aw.size = Vector2(mark, mark)
+	var gl := roundf(mark * 0.6)   # glyph sits inside the disc, centred on it
+	aw.custom_minimum_size = Vector2(gl, gl)
+	aw.size = Vector2(gl, gl)
+	aw.position = Vector2(mark - gl, mark - gl) * 0.5
 	aw.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	aw.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED   # else the icon draws at native size, bigger than the disc
 	aw.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	aw.visible = false
+	aw.size = Vector2(gl, gl)   # again, after expand_mode: the texture's native size had already stretched the rect
 	# Gold disc (56) behind the glyph: html #mark, right -18 / top -18 of the tile.
 	var disc := Panel.new()
 	disc.name = "AwakenDisc"

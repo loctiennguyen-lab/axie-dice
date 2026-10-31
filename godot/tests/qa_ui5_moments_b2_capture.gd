@@ -44,6 +44,8 @@ func _ready() -> void:
 	fx.skip()
 	host.queue_free()
 	AnchorAdapter.test_state = {}
+	AnchorFx.pending = ""
+	AnchorFx.played_run = "never"
 	await get_tree().process_frame
 	RunState.start_new_run_seeded(424242, {"team_keys": ["plant1", "beast1", "aqua1", "reptile1", "bug1"],
 		"mode": "short", "ascension": 0, "ranked": false, "rules_on": true})
@@ -54,11 +56,27 @@ func _ready() -> void:
 	rm._select_reward(1)
 	await get_tree().process_frame
 	rm._take_selected_reward()
-	await _wait(1.3)
+	await _wait(0.2)
+	var aw := rm.find_child("AnchorAwaken", true, false)
+	if aw != null and aw.has_method("skip"):
+		aw.skip()   # the real run awakens its Anchor on this pick; the capture wants the reveal alone
+	await _wait(1.0)
 	await _shot("core-reveal-a")
 	await _wait(0.5)
 	await _shot("core-reveal-b")
 	await _wait(2.0)
 	await _shot("core-reveal-rest")
+	# treasure-open: the opened chest with three reward cards, mid rise
+	if not RunState.pending_rewards.is_empty():
+		rm._select_reward(0)
+		await get_tree().process_frame
+		rm._take_selected_reward()
+		await _wait(1.5)
+	RunState._set_pending_rewards(0, 2, 99)
+	rm._treasure._build_treasure(true, true)
+	await _wait(0.45)
+	await _shot("treasure-open-mid")
+	await _wait(1.5)
+	await _shot("treasure-open-rest")
 	_guard.restore()
 	get_tree().quit()
