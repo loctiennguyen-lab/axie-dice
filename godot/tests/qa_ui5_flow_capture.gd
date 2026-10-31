@@ -303,7 +303,10 @@ func _map_tick(m: Node) -> void:
 			await _wait(0.7)
 			if is_instance_valid(fx) and (fx as GachaFx).running:
 				_shot_once("moment-%s" % String(fx.name).to_lower())
-				(fx as GachaFx).skip()
+				if fx.name == "ComboBanner":
+					fx._banner_end()   # what a click does; skip() would crash here (GachaFx.skip assumes the spin label)
+				else:
+					(fx as GachaFx).skip()
 			return
 	if m.get("_taking"):
 		return
