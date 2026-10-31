@@ -17,72 +17,84 @@ const SUMMARY := {
 ## Jargon explained once, on the screen (SET etc. are never defined elsewhere before the first pick).
 const GLOSSARY := "SET = 3+ dice that match and fire together. M = a die's damage multiplier. Cracked = a die broken by a risky reroll (Gamble). Held = a die you keep for next turn. Temp Face = a die that joins any SET for one turn. House Cores = the 5 Cores tied to an Anchor."
 
-const CARD_W := 480.0
-const CARD_H := 560.0
+const TEXT_W := 480.0   ## text width of the shared RULE/AWAKENS blocks (Codex detail)
+const AnchorCardScript := preload("res://scenes/run_map/ui5/AnchorCard.gd")
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 
 var cards: Array[PanelContainer] = []
 var take_button: Button
 var reveal: GachaReveal
 var selected := -1
 var _ids: Array = []
-var _skipped_flip := false
+var _row: HBoxContainer
+var _cap: PanelContainer
 
 
+## UI-05 48-anchor-pick: one column from offer_top, gap 32: Header (Title + ShardPill), SubLine, CardRow, Glossary, Footer
+## (TakeButton). Nothing is chosen on open; TakeButton is disabled and says why until a card is picked.
 func setup(ids: Array, first_time := true) -> void:
 	_ids = ids
+	UI3Theme.sync_scale()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var head := VBoxContainer.new()
-	head.name = "AnchorHead"
-	head.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	head.offset_top = 56
-	head.offset_bottom = 156
-	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	head.add_theme_constant_override("separation", 8)
-	add_child(head)
-	var t := UI3.label(tr("Choose your Anchor"), "LabelScreenTitle")
-	t.name = "AnchorTitle"
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	head.add_child(t)
-	var sub := UI3.label(tr("Anchor = a rule that stays all run. Hold 2 of its House Cores to awaken it. Click a card to choose."), "LabelMuted")
-	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	head.add_child(sub)
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	center.offset_top = 96   # keep the cards clear of the title + subtitle now that the glossary sits under the button
-	add_child(center)
 	var col := VBoxContainer.new()
 	col.name = "AnchorColumn"
-	col.add_theme_constant_override("separation", 24)
-	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	center.add_child(col)
-	var row := HBoxContainer.new()
-	row.name = "AnchorRow"
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 48)
-	row.custom_minimum_size.y = CARD_H
-	col.add_child(row)
+	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	col.offset_top = UI3Theme.size_of("offer_top")
+	col.add_theme_constant_override("separation", UI3Theme.space("32"))
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(col)
+	# html .offer-sub has margin-top -24: Header and SubLine sit 8 apart inside one block, not 32.
+	var top := VBoxContainer.new()
+	top.name = "TopBlock"
+	top.add_theme_constant_override("separation", UI3Theme.space("8"))
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(top)
+	var head := HBoxContainer.new()
+	head.name = "Header"
+	head.alignment = BoxContainer.ALIGNMENT_CENTER
+	head.add_theme_constant_override("separation", UI3Theme.space("20"))
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top.add_child(head)
+	var t := PanelParts.on_view(PanelParts.text(tr("Choose your Anchor"), "text_banner", "text", true))
+	t.name = "Title"
+	head.add_child(t)
+	head.add_child(_shard_pill(int(RunState.shards_this_run)))
+	var sub := PanelParts.on_view(PanelParts.text(tr("Anchor = a rule that stays all run. Hold 2 of its House Cores to awaken it. Click a card to choose.")))
+	sub.name = "SubLine"
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	top.add_child(sub)
+	_row = HBoxContainer.new()
+	_row.name = "CardRow"
+	_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_row.add_theme_constant_override("separation", UI3Theme.space("32"))
+	_row.custom_minimum_size.y = UI3Theme.size_of("anchor_card_h")
+	_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_row.sort_children.connect(_lift_selected)
+	col.add_child(_row)
 	for i in ids.size():
 		var c := _build_card(String(ids[i]), i)
-		row.add_child(c)
+		_row.add_child(c)
 		cards.append(c)
-	var actions := VBoxContainer.new()
-	actions.alignment = BoxContainer.ALIGNMENT_CENTER
-	actions.add_theme_constant_override("separation", 8)
-	col.add_child(actions)
-	take_button = UI3.button(tr("Take"), &"primary", &"L")
-	take_button.name = "TakeAnchor"
-	take_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	take_button.pressed.connect(_take)
-	actions.add_child(take_button)
-	var gl := UI3.label(tr(GLOSSARY), "LabelMuted")
-	gl.name = "AnchorGlossary"
+	var gl := PanelParts.on_view(PanelParts.text(tr(GLOSSARY)))
+	gl.name = "Glossary"
 	gl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	gl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	gl.custom_minimum_size.x = 1200
+	gl.custom_minimum_size.x = UI3Theme.size_of("glossary_w")
 	gl.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	actions.add_child(gl)
+	col.add_child(gl)
+	var foot := HBoxContainer.new()
+	foot.name = "Footer"
+	foot.alignment = BoxContainer.ALIGNMENT_CENTER
+	foot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(foot)
+	take_button = UI3.button(tr("Take"), &"primary", &"L")
+	take_button.name = "TakeButton"
+	take_button.pressed.connect(_take)
+	foot.add_child(take_button)
+	_cap = Ui5Keycap.make("Space", &"primary")
+	take_button.add_child(_cap)
+	take_button.resized.connect(_place_cap)
 	_refresh_take()
 	# Flip like the Core pick (no random tier: neutral moss look, first time = longer aura).
 	reveal = GachaReveal.new()
@@ -94,84 +106,48 @@ func setup(ids: Array, first_time := true) -> void:
 	reveal.finished.connect(func() -> void: if not cards.is_empty(): cards[0].grab_focus())
 
 
+func _shard_pill(n: int) -> PanelContainer:
+	var box := PanelParts.plate_box("pill")
+	box.content_margin_left = UI3Theme.space("16")
+	box.content_margin_right = UI3Theme.space("16")
+	var chip := PanelParts.panel(box, "ShardPill")
+	chip.custom_minimum_size = Vector2(0, UI3Theme.size_of("btn_m"))
+	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var r := HBoxContainer.new()
+	r.add_theme_constant_override("separation", UI3Theme.space("8"))
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_child(r)
+	var px := UI3Theme.size_of("icon_m")
+	r.add_child(PanelParts.icon_rect(UI3.currency_icon("cur_shard", px), px))
+	var v := PanelParts.text(UI3.fmt(n), "text_title", "text", true)
+	v.name = "Value"
+	v.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	r.add_child(v)
+	return chip
+
+
+func _lift_selected() -> void:
+	for c in cards:
+		var ac := c as Control
+		if ac.has_method("lift_px"):
+			ac.position.y -= float(ac.call("lift_px"))
+
+
 func _build_card(id: String, idx: int) -> PanelContainer:
-	var house := AnchorAdapter.house_id(id)
-	var reason := AnchorAdapter.disabled_reason(id)
-	var card := UI3.plate(&"card")
-	card.name = "AnchorCard%d" % idx
-	card.set_meta("anchor_id", id)
-	card.custom_minimum_size = Vector2(CARD_W, CARD_H)
-	card.focus_mode = Control.FOCUS_ALL
-	card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	card.draw.connect(func() -> void:
-		if card.has_focus():
-			card.draw_style_box(UI3Theme.focus_style(UI3Theme.radius("l")), Rect2(Vector2.ZERO, card.size)))
-	card.focus_entered.connect(card.queue_redraw)
-	card.focus_exited.connect(card.queue_redraw)
+	var card: PanelContainer = AnchorCardScript.new()
+	card.setup(id)
+	card.name = "AnchorCard%d" % idx   # the design name is AnchorCard; the index keeps siblings apart (data-name prefix)
 	card.gui_input.connect(func(ev: InputEvent) -> void:
 		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
 			select(idx)
 			card.grab_focus()
 		elif ev.is_action_pressed("ui_accept") and not ev.is_echo():
-			select(idx))
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 8)
-	card.add_child(col)
-	var top := HBoxContainer.new()
-	top.add_theme_constant_override("separation", 16)
-	var g := TextureRect.new()
-	g.name = "HouseGlyph"
-	g.texture = UI3.icon(AnchorAdapter.house_icon(house))
-	g.custom_minimum_size = Vector2(64, 64)
-	g.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	g.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	g.modulate = AnchorAdapter.house_color(house)
-	top.add_child(g)
-	var names := VBoxContainer.new()
-	var nm := UI3.label(AnchorAdapter.name_of(id), "LabelScreenTitle")
-	nm.name = "AnchorName"
-	names.add_child(nm)
-	var hn := UI3.label(tr("House: %s") % AnchorAdapter.house_name(house), "LabelMuted")
-	hn.name = "HouseName"
-	hn.add_theme_color_override("font_color", AnchorAdapter.house_color(house))
-	names.add_child(hn)
-	top.add_child(names)
-	col.add_child(top)
-	if SUMMARY.has(id):
-		var sm := UI3.label(tr(String(SUMMARY[id])), "LabelTitle")
-		sm.name = "AnchorSummary"
-		sm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		sm.custom_minimum_size.x = CARD_W - 48.0
-		col.add_child(sm)
-	add_text_blocks(col, id)
-	var hcap := HBoxContainer.new()
-	hcap.add_theme_constant_override("separation", 8)
-	var hg := TextureRect.new()
-	hg.name = "HouseCoresGlyph"
-	hg.texture = UI3.icon(AnchorAdapter.house_icon(house))
-	hg.custom_minimum_size = Vector2(16, 16)
-	hg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	hg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	hg.modulate = AnchorAdapter.house_color(house)
-	hcap.add_child(hg)
-	hcap.add_child(UI3.label(tr("House Cores"), "LabelMuted"))
-	col.add_child(hcap)
-	var hc := HFlowContainer.new()
-	hc.name = "HouseCores"
-	hc.add_theme_constant_override("h_separation", 8)
-	hc.add_theme_constant_override("v_separation", 4)
-	hc.custom_minimum_size.x = CARD_W - 48.0
-	for cid in AnchorAdapter.house_cores(id):
-		hc.add_child(_core_icon(String(cid)))
-	col.add_child(hc)
-	if reason != "":
-		for ch in col.get_children():
-			(ch as CanvasItem).modulate = Color(1, 1, 1, 0.55)   # dim the body only; the reason row below stays at alpha 1
-		var why := UI3.label(AnchorAdapter.reason_text(reason), "LabelMuted")
-		why.name = "DisabledReason"
-		why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		why.custom_minimum_size.x = CARD_W - 48.0
-		col.add_child(why)
+			if selected == idx:
+				_take()   # Space / Enter on the card that is already chosen takes it
+			else:
+				select(idx)
+			card.accept_event())
 	return card
 
 
@@ -188,13 +164,13 @@ static func add_text_blocks(col: VBoxContainer, id: String) -> void:
 	var ar := UI3.label(AnchorAdapter.awaken_rule(id), "LabelMuted")
 	ar.name = "AwakenRule"
 	ar.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	ar.custom_minimum_size.x = CARD_W - 48.0
+	ar.custom_minimum_size.x = TEXT_W - 48.0
 	aw.add_child(ar)
 	var cond := UI3.label(TranslationServer.translate("Awakens when you hold 2 of these 5 Cores"), "LabelMuted")
 	cond.name = "AwakenCondition"
 	cond.add_theme_color_override("font_color", UI3Theme.color("anchor_awake"))
 	cond.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	cond.custom_minimum_size.x = CARD_W - 48.0
+	cond.custom_minimum_size.x = TEXT_W - 48.0
 	aw.add_child(cond)
 
 
@@ -208,49 +184,10 @@ static func _section(col: VBoxContainer, cap: String, _key: String, text: String
 		var l := UI3.label(text, "LabelDisplay")
 		l.name = cap.capitalize() + "Text"
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		l.custom_minimum_size.x = CARD_W - 48.0
+		l.custom_minimum_size.x = TEXT_W - 48.0
 		b.add_child(l)
 	col.add_child(b)
 	return b
-
-
-func _core_icon(core_id: String) -> Control:
-	var def = RelicRegistry.get_def(core_id)
-	var p := PanelContainer.new()
-	p.name = "HouseCore_%s" % core_id
-	p.custom_minimum_size = Vector2(48, 48)
-	p.mouse_filter = Control.MOUSE_FILTER_STOP
-	p.focus_mode = Control.FOCUS_ALL
-	var sb := UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 2, UI3Theme.color("text_muted"))
-	sb.content_margin_left = 8
-	sb.content_margin_right = 8
-	sb.content_margin_top = 4
-	sb.content_margin_bottom = 4
-	p.add_theme_stylebox_override("panel", sb)
-	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 8)
-	hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	p.add_child(hb)
-	var ic := TextureRect.new()
-	var axis := String(def.core_axis) if def != null else ""
-	ic.texture = UI3.icon(String(CorePanel.AXIS_ICON.get(axis, "face_buff")))
-	ic.custom_minimum_size = Vector2(32, 32)
-	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hb.add_child(ic)
-	var title := core_id
-	var tip := core_id
-	if def != null:
-		title = UI3.title_case(UI3.player_text(String(def.name)))
-		tip = "%s\n%s" % [title, UI3.player_text(String(def.description))]
-	var nl := UI3.label(title, "LabelMuted")
-	nl.name = "CoreName"
-	nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	nl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	hb.add_child(nl)
-	UI3Tooltip.bind(p, tip)
-	return p
 
 
 func select(i: int) -> void:
@@ -260,11 +197,19 @@ func select(i: int) -> void:
 		return
 	selected = i
 	for k in cards.size():
-		UI3.set_card_selected(cards[k], k == i, false)
+		(cards[k] as Object).call("set_selected", k == i)
+	_row.queue_sort()
 	_refresh_take()
 
 
+func _place_cap() -> void:
+	if _cap != null and is_instance_valid(take_button):
+		Ui5HudStyle.place_trailing(take_button, _cap, UI3Theme.space("32"))
+
+
 func _refresh_take() -> void:
+	if _cap != null:
+		_cap.visible = selected >= 0   # no key cap on a disabled button
 	if selected < 0:
 		take_button.text = tr("Take")
 		take_button.disabled = true
@@ -273,6 +218,8 @@ func _refresh_take() -> void:
 		UI3.clear_disabled_reason(take_button)
 		take_button.disabled = false
 		take_button.text = tr("Take %s") % AnchorAdapter.name_of(String(_ids[selected]))
+	if _cap != null:
+		_place_cap.call_deferred()
 
 
 func _take() -> void:
@@ -287,6 +234,9 @@ func _unhandled_key_input(ev: InputEvent) -> void:
 	if not (ev is InputEventKey) or not ev.pressed or ev.echo:
 		return
 	var k := (ev as InputEventKey).keycode
-	if k in [KEY_1, KEY_2, KEY_3]:
+	if k == KEY_SPACE and selected >= 0:
+		_take()
+		get_viewport().set_input_as_handled()
+	elif k in [KEY_1, KEY_2, KEY_3]:
 		select(int(k - KEY_1))
 		get_viewport().set_input_as_handled()

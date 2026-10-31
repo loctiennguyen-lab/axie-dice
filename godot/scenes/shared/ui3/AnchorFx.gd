@@ -1,5 +1,6 @@
 class_name AnchorFx
 extends Control
+const Ps := preload("res://scenes/shared/ui5/PanelParts.gd")
 ## Lane AU2 job 4: the Anchor AWAKENING moment (design/ux/anchor-mvp.md section 4). Blocks input, scrim 80%, the Anchor card
 ## big in the middle, frame turns to the double `anchor_awake` frame, two house-coloured waves, shake. At most 2.5 s
 ## (1.6 s with Reduce flashing: no shake, no waves, fades only). Click / Space / Enter / A / Esc jump to the end.
@@ -116,13 +117,16 @@ func _build(extra_line: String) -> void:
 	add_child(cc)
 	_card = VBoxContainer.new()
 	_card.name = "AwakenColumn"
-	_card.add_theme_constant_override("separation", 12)
+	_card.add_theme_constant_override("separation", UI3Theme.space("16"))
 	_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cc.add_child(_card)
-	var tag := UI3.label(TranslationServer.translate("ANCHOR AWAKENED"), "LabelDisplay")
+	# Static layout = round-2/moments/moment-anchor-awaken.html #grp: tag 28 gold, tile (plate, house border, glyph + name),
+	# name 56 gold, rule (body, <= r3_fx_text_w), strip pill, hint. Gap 16. Sizes are tokens (r3_fx_*).
+	var tile := UI3Theme.size_of("r3_fx_tile")
+	var frame_w := UI3Theme.size_of("r3_fx_frame")
+	var text_w := UI3Theme.size_of("r3_fx_text_w")
+	var tag := Ps.on_view(Ps.text(TranslationServer.translate("ANCHOR AWAKENED"), "num_die", "anchor_awake", true))
 	tag.name = "AwakenTag"
-	tag.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
-	tag.add_theme_color_override("font_color", gold)
 	tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card.add_child(tag)
@@ -131,33 +135,31 @@ func _build(extra_line: String) -> void:
 	_card.add_child(row)
 	card_frame = PanelContainer.new()
 	card_frame.name = "AnchorCard"
-	card_frame.custom_minimum_size = Vector2(280, 280)
+	card_frame.custom_minimum_size = Vector2(tile, tile)
 	card_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card_frame.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("l"), 4, hcol, Vector4(16, 16, 16, 16)))
+	card_frame.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("plate"), UI3Theme.radius("xl"), frame_w, hcol,
+		Vector4(frame_w, frame_w, frame_w, frame_w), Ps.lip(UI3Theme.color("plate_ink"), true)))
 	row.add_child(card_frame)
 	var cv := VBoxContainer.new()
 	cv.alignment = BoxContainer.ALIGNMENT_CENTER
-	cv.add_theme_constant_override("separation", 12)
+	cv.add_theme_constant_override("separation", UI3Theme.space("8"))
 	cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card_frame.add_child(cv)
-	var ic := TextureRect.new()
-	ic.name = "HouseGlyph"
-	ic.texture = UI3.icon(AnchorAdapter.house_icon(house))
-	ic.custom_minimum_size = Vector2(120, 120)
-	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var gpx := UI3Theme.size_of("r3_fx_glyph")
+	var ic := Ps.icon_rect(UI3.icon(AnchorAdapter.house_icon(house)), gpx, "HouseGlyph")
+	ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	cv.add_child(ic)
-	var nm := UI3.label(AnchorAdapter.name_of(anchor_id), "LabelScreenTitle")
+	var nm := Ps.text(AnchorAdapter.name_of(anchor_id), "text_title", "text", true)
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cv.add_child(nm)
+	var mark := UI3Theme.size_of("r3_fx_mark")
 	var aw := TextureRect.new()
 	aw.name = "AwakenGlyph"
 	aw.texture = UI3.icon(CorePanel.AWAKEN_ICON)
-	aw.custom_minimum_size = Vector2(56, 56)
+	aw.custom_minimum_size = Vector2(mark, mark)
 	aw.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	aw.position = Vector2(280 - 16 - 56 - 4, 4)   # top-right corner; a plain Control holder so the PanelContainer does not stretch it over the name
+	aw.position = Vector2(tile - mark + UI3Theme.space("16") + 2, -UI3Theme.space("16") - 2)   # html #mark: right -18, top -18
 	aw.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	aw.visible = false
 	var holder := Control.new()
@@ -165,29 +167,27 @@ func _build(extra_line: String) -> void:
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	holder.add_child(aw)
 	card_frame.add_child(holder)
-	var an := UI3.label(AnchorAdapter.awaken_name(anchor_id), "LabelScreenTitle")
+	var an := Ps.text(AnchorAdapter.awaken_name(anchor_id), "text_hero", "anchor_awake", true)
 	an.name = "AwakenName"
-	an.add_theme_color_override("font_color", gold)
 	an.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	an.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card.add_child(an)
-	var ar := UI3.label(AnchorAdapter.awaken_rule(anchor_id), "LabelMuted")
+	var ar := Ps.on_view(Ps.text(AnchorAdapter.awaken_rule(anchor_id)))
 	ar.name = "AwakenRule"
-	ar.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
 	ar.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ar.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	ar.custom_minimum_size.x = 760
+	ar.custom_minimum_size.x = text_w
 	ar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card.add_child(ar)
-	var strip := UI3.label(extra_line if extra_line != "" else "%s %d/%d" % [TranslationServer.translate("House Cores"), Anchors.AWAKEN_NEED, Anchors.AWAKEN_NEED], "LabelMuted")
+	var strip_text := extra_line if extra_line != "" else "%s %d/%d" % [TranslationServer.translate("House Cores"), Anchors.AWAKEN_NEED, Anchors.AWAKEN_NEED]
+	var strip := Ps.text(strip_text, "text_title" if extra_line != "" else "text_body", "text_muted", true)
 	strip.name = "AwakenStrip"
-	strip.add_theme_font_size_override("font_size", 24 if extra_line != "" else 18)
 	strip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	strip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	strip.custom_minimum_size.x = 760
+	strip.custom_minimum_size.x = text_w
 	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_card.add_child(strip)
-	var hint := UI3.label(TranslationServer.translate("Click to continue"), "LabelKeyHint")
+	var hint := Ps.on_view(Ps.text(TranslationServer.translate("Click to continue"), "text_key_hint"))
 	hint.name = "AwakenHint"
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -201,17 +201,18 @@ func _build(extra_line: String) -> void:
 func _swap_frame() -> void:
 	var gold := UI3Theme.color("anchor_awake")
 	var hcol := AnchorAdapter.house_color(AnchorAdapter.house_id(anchor_id))
-	card_frame.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("l"), 6, gold, Vector4(16, 16, 16, 16)))
+	card_frame.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("xl"), UI3Theme.size_of("r3_fx_frame"), gold, Vector4(UI3Theme.size_of("r3_fx_frame"), UI3Theme.size_of("r3_fx_frame"), UI3Theme.size_of("r3_fx_frame"), UI3Theme.size_of("r3_fx_frame")), Ps.lip(UI3Theme.color("plate_ink"), true)))
 	if card_frame.get_node_or_null("InnerFrame") == null:
 		var inner := Panel.new()
 		inner.name = "InnerFrame"
 		inner.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		inner.offset_left = 10
-		inner.offset_top = 10
-		inner.offset_right = -10
-		inner.offset_bottom = -10
+		var gi := UI3Theme.size_of("r3_fx_frame") + UI3Theme.stroke("focus_offset")
+		inner.offset_left = gi
+		inner.offset_top = gi
+		inner.offset_right = -gi
+		inner.offset_bottom = -gi
 		inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		inner.add_theme_stylebox_override("panel", UI3Theme.flat(Color(0, 0, 0, 0), UI3Theme.radius("m"), 3, hcol))
+		inner.add_theme_stylebox_override("panel", UI3Theme.flat(Color(0, 0, 0, 0), UI3Theme.radius("m"), UI3Theme.stroke("btn"), hcol))
 		card_frame.add_child(inner)
 	(card_frame.find_child("AwakenGlyph", true, false) as Control).visible = true
 
