@@ -92,7 +92,7 @@ const META: Dictionary = {
 	"house": {"name": "House", "key": "2", "sub": "Team presets"},
 	"missions": {"name": "Missions", "key": "3", "sub": "Missions N1–N3"},
 	"echobox": {"name": "Echo Box", "key": "4", "sub": "Rolled on the server"},
-	"pass": {"name": "Season Pass", "key": "5", "sub": "Season 1 · ends 29 Dec 2026"},
+	"pass": {"name": "Season Pass", "key": "5", "sub": "Season 1 · ends 28 Dec 2026"},
 	"vault": {"name": "Vault", "key": "6", "sub": ""},
 	"store": {"name": "Store", "key": "7", "sub": ""},
 	"board": {"name": "Leaderboard", "key": "B", "sub": "Season ranking"},
@@ -250,7 +250,7 @@ func _show_reset_notice() -> void:
 func _gift_and_tier_notices() -> void:
 	if _gift_given:
 		_gift_given = false
-		_show_toast("Welcome gift: 3 decor in your storage — press E (Edit Land) to place them", 6.0)
+		_show_toast("Welcome gift: 3 decor in your storage. Open Edit Land to place them.", 6.0)
 	if MetaState.land_tier_banner_seen < _tier and not has_modal():
 		MetaState.land_tier_banner_seen = _tier
 		MetaState.save_to_disk()
@@ -258,21 +258,7 @@ func _gift_and_tier_notices() -> void:
 
 
 func _show_tier_banner() -> void:
-	var ok := UI3.button("Look around", &"primary")
-	ok.name = "TierBannerOk"
-	ok.pressed.connect(_close_modal)
-	var body := "%s is open." % TIER_NAMES[_tier - 1]
-	var used: int = maxi(preload("res://scripts/meta/economy_db.gd").land_tier_cost(_tier - 1), 0)
-	if used > 0:
-		body += " Used %s Stone." % _fmt(used)
-	var where := String(LandUpgradeScreen.ADDS_WHERE.get(_tier, ""))
-	if where != "":
-		body += "\nNew: " + where.replace(" · ", "\n")
-	var m := UI3.modal("Your Land is now %s" % TIER_NAMES[_tier - 1], body, [ok], 0)
-	m.name = "TierBanner"
-	m.cancelled.connect(_close_modal)
-	_modal = m
-	_ui.add_child(_modal)
+	_hud.show_tier_banner()
 
 
 func _exit_tree() -> void:
@@ -1095,7 +1081,7 @@ func _wire_focus() -> void:
 	for id in NUM_KEYS + ["board"]:
 		if _hits.has(id):
 			order.append(_hits[id])
-	order.append(find_child("Settings", true, false) as Control)
+	order.append(find_child("SettingsButton", true, false) as Control)
 	for i in order.size():
 		var nxt := order[(i + 1) % order.size()]
 		var prv := order[(i - 1 + order.size()) % order.size()]
@@ -1143,7 +1129,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	var tap: bool = event is InputEventMouseButton and event.pressed and event.device == InputEvent.DEVICE_ID_EMULATION
 	if tap:
 		if _hits.has(_touch_id):
-			UI3Tooltip.hide_for(_hits[_touch_id] as Control)
+			_hud.tip_hide(_hits[_touch_id] as Control)
 		_touch_id = ""
 		_refresh_signs()
 
@@ -1152,7 +1138,7 @@ func _on_hit_pressed(id: String) -> void:
 	if _is_touch() and id != "portal" and _touch_id != id:
 		_touch_id = id
 		_refresh_signs()
-		UI3Tooltip.show_now(_hits[id] as Control)   # first tap shows the name, second tap opens
+		_hud.tip_show_now(_hits[id] as Control)   # first tap shows the name, second tap opens
 		return
 	_on_house_pressed(id)
 
@@ -1184,11 +1170,7 @@ func _focus(id: String, on: bool) -> void:
 ## Names live in a UI3 tooltip only: hover, keyboard focus, or the first touch tap. The text is rebuilt on every
 ## hover / focus / state change so status and lock reasons are current.
 func _refresh_signs() -> void:
-	for id in _hits:
-		UI3Tooltip.bind(_hits[id] as Control, _tip_text(id))
-	for id in _plot_marks:
-		UI3Tooltip.bind(_plot_marks[id] as Control, _tip_text(id))
-	_layout()
+	_hud.bind_tips()   # S1a: BuildingTooltip plate (LandHud) instead of the generic UI3 tooltip
 
 
 ## "Name  [key]" title, then the lock reason if locked, else the useful status and the sub-line.
@@ -1274,97 +1256,7 @@ func _cell(btn_name: String, content: Control, on_press: Callable) -> MarginCont
 
 
 func _build_hud() -> void:
-	# Top-left: profile plate (+ quiet Land upgrade link under it).
-	_hud_tl = VBoxContainer.new()
-	_hud_tl.name = "HudTopLeft"
-	_hud_tl.theme = UI3Theme.get_theme()
-	_hud_tl.add_theme_constant_override("separation", UI3Theme.space("8"))
-	_ui.add_child(_hud_tl)
-	var prof := UI3.plate(&"plate")
-	prof.name = "ProfilePlate"
-	prof.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	prof.add_child(_profile_cell())
-	_hud_tl.add_child(prof)
-	var lp := UI3.plate(&"plate")
-	lp.name = "LandPlate"
-	lp.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	lp.add_child(_land_link())
-	_hud_tl.add_child(lp)
-
-	# Top-right: one plate, currencies then settings (spec 01).
-	_wallet = UI3.plate(&"plate")
-	_wallet.name = "Wallet"
-	var wrow := HBoxContainer.new()
-	wrow.add_theme_constant_override("separation", UI3Theme.space("24"))
-	_wallet.add_child(wrow)
-	var cur := UI3.currency_pill(UI3.currency_entries(_loading))   # one order everywhere
-	_currencies = cur.get_child(0) as Control   # the pill's own row of icon + value cells
-	cur.remove_child(_currencies)
-	cur.free()
-	_currencies.name = "Currencies"
-	_currencies.visible = not _guest   # signed out: currencies hidden
-	wrow.add_child(_currencies)
-	var st := UI3.icon_button("ui_settings", "Settings")
-	st.name = "Settings"
-	st.pressed.connect(_open_screen.bind(&"settings"))
-	wrow.add_child(st)
-	_ui.add_child(_wallet)
-
-	# Bottom-left: Show names (N) and Codex (C).
-	_hud_bl = UI3.plate(&"plate")
-	_hud_bl.name = "HudBottomLeft"
-	var blr := HBoxContainer.new()
-	blr.add_theme_constant_override("separation", UI3Theme.space("24"))
-	_hud_bl.add_child(blr)
-	var crow := HBoxContainer.new()
-	crow.add_theme_constant_override("separation", UI3Theme.space("12"))
-	crow.add_child(UI3.label("Codex"))
-	blr.add_child(_cell("Codex", crow, _on_rail_pressed.bind(&"codex")))
-	var erow := HBoxContainer.new()
-	erow.add_theme_constant_override("separation", UI3Theme.space("12"))
-	erow.add_child(UI3.label("Edit Land"))
-	erow.add_child(UI3.key_hint("E"))
-	blr.add_child(_cell("EditLand", erow, _on_edit_pressed))
-	# Raid R1 (lane RV): fight another player's defence team (online only; the screen explains why when it can't).
-	var rrow := HBoxContainer.new()
-	rrow.add_theme_constant_override("separation", UI3Theme.space("12"))
-	rrow.add_child(UI3.label("Raid"))
-	var raid_cell := _cell("Raid", rrow, _on_rail_pressed.bind(&"raid"))
-	raid_cell.name = "Rail_Raid"
-	blr.add_child(raid_cell)
-	# Moon Card: L1 shows it disabled, no price (answered in round 2). Hidden when signed out.
-	_moon_btn = UI3.button("Moon Card · Coming soon", &"secondary", &"S")
-	_moon_btn.name = "MoonCardButton"
-	_moon_btn.disabled = true
-	_moon_btn.visible = not _guest
-	blr.add_child(_moon_btn)
-	_ui.add_child(_hud_bl)
-
-	# Bottom-right: one primary, up to two secondary.
-	_hud_br = HBoxContainer.new()
-	_hud_br.name = "HudBottomRight"
-	_hud_br.theme = UI3Theme.get_theme()
-	_hud_br.add_theme_constant_override("separation", UI3Theme.space("16"))
-	_hud_br.alignment = BoxContainer.ALIGNMENT_END
-	_ui.add_child(_hud_br)
-	_new_run_btn = UI3.button("New run · " + KeyBindings.text(&"land_new_run"), &"secondary", &"M")
-	_new_run_btn.name = "NewRunButton"
-	_new_run_btn.pressed.connect(_on_new_run_pressed)
-	_new_run_btn.visible = _has_run
-	_hud_br.add_child(_new_run_btn)
-	_daily_btn = UI3.button("Daily run", &"secondary", &"M")
-	_daily_btn.name = "Rail_Daily"
-	_daily_btn.pressed.connect(_on_rail_pressed.bind(&"daily"))
-	var dwhy := _block_reason_screen(&"daily")
-	if dwhy != "":
-		UI3.set_disabled_reason(_daily_btn, "Daily run · needs connection")
-	elif _tag("daily") == "CLAIM":
-		_daily_btn.text = "Daily run · claim"
-	_daily_btn.visible = not (_first and not _has_run) and not _guest   # first visit / signed out: Daily hidden
-	_hud_br.add_child(_daily_btn)
-	_load_daily_tries()
-	_run_plate = _build_run_button()
-	_hud_br.add_child(_run_plate)
+	_hud.build_hud()   # S1a: plates live in LandHud + land/ui5/LandPlates.gd
 
 
 ## Daily tries left today ("Daily run · 2 of 3"), the same numbers Run Setup shows. Quiet when offline,

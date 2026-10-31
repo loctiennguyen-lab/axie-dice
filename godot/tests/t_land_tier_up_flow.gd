@@ -46,10 +46,10 @@ func _ready() -> void:
 	s.queue_free()
 	var h := await _land()
 	_check(int(h.get("_tier")) == 2, "Land opens on tier 2 with no reload")
-	var chip := h.find_child("UpgradeLand", true, false)
+	var chip := h.find_child("LandPlate", true, false)
 	_check(chip != null, "chip opens the upgrade screen")
-	_check(h.find_child("TierBanner", true, false) != null, "banner after the upgrade")
-	var okb := h.find_child("TierBannerOk", true, false) as Button
+	_check(h.find_child("TierUpBanner", true, false) != null, "banner after the upgrade")
+	var okb := h.find_child("LookAroundButton", true, false) as Button
 	await get_tree().process_frame
 	_check(okb != null and okb.has_focus(), "banner button has keyboard focus")
 	h.call("_close_modal")
