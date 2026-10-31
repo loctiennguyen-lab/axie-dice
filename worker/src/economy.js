@@ -117,6 +117,7 @@ export async function syncPassXp(env, pid, at = nowS()) {
 
 const maxPassXp = () => pass.levels[pass.levels.length - 1].xp_total;
 const weekStartS = (at) => (Math.floor((Math.floor(at / 86400) + 3) / 7) * 7 - 3) * 86400;   // Monday 00:00 UTC of `at`'s week
+const weekOf = (day) => Math.floor((day + 3) / 7);   // Monday-based week of a unix-day index
 const inSeasonAt = (at) => at >= passStart() && at < passEnd();
 
 /** Weekly task progress for the week of `at`, from closed runs on the server: runs = every closed run with a battle
@@ -129,6 +130,26 @@ async function weeklyProgress(env, pid, at) {
        FROM runs WHERE player_id = ? AND state = 'closed' AND battles_done >= 1 AND closed_at >= ? AND closed_at < ?`,
   ).bind(pid, Math.max(from, passStart()), Math.min(from + 7 * 86400, passEnd())).first();
   return { runs: r.runs, wins: r.wins, boss: r.boss };
+}
+/** Daily claims inside the Monday-based week that holds `at` (one per UTC day, counted from OUR ledger). */
+async function dailyDaysInWeek(env, pid, at) {
+  const from = weekStartS(at);
+  const r = await env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM wallet_ledger WHERE player_id = ? AND currency = 'shard' AND idem_key LIKE 'shard:claim:daily:%' AND at >= ? AND at < ?`,
+  ).bind(pid, from, from + 7 * 86400).first();
+  return r ? r.n : 0;
+}
+/** The Daily screen's numbers (the client has no other way to know them when the economy is remote): today's daily
+ *  claimed or not, this week's daily claims and whether the weekly bonus is paid. */
+async function dailyState(env, pid, at) {
+  const day = utcDay(at);
+  const w = weekOf(Math.floor(at / 86400));
+  const [d, wk, days] = await Promise.all([
+    env.DB.prepare('SELECT 1 AS x FROM wallet_ledger WHERE player_id = ? AND idem_key = ?').bind(pid, `op:claim:daily:${day}`).first(),
+    env.DB.prepare('SELECT 1 AS x FROM wallet_ledger WHERE player_id = ? AND idem_key = ?').bind(pid, `op:claim:weekly:${w}`).first(),
+    dailyDaysInWeek(env, pid, at),
+  ]);
+  return { day, claimed: !!d, week: utcDay(weekStartS(at)), days, weekly_paid: !!wk };
 }
 const post30Claimed = async (env, pid) => {
   const per = pass.post30_loop.shard;
@@ -157,7 +178,9 @@ async function state(env, pid) {
   const wprog = inSeasonAt(nowS()) ? await weeklyProgress(env, pid, nowS()) : { runs: 0, wins: 0, boss: 0 };
   const loops = Math.max(0, Math.floor((xp - maxPassXp()) / pass.post30_loop.xp));
   const p30 = await post30Claimed(env, pid);
+  const dly = await dailyState(env, pid, nowS());
   return {
+    daily: dly,
     pass: { weekly: { week: utcDay(weekStartS(nowS())), ...wprog, claimed: wk.results.map((x) => x.idem_key.split(':').pop()) },
       post30: { pending: Math.max(0, loops - p30), claimed: p30 },
       season: pass.season_id, xp, level: passLevel(xp), claimed: claimed.results.map((r) => Number(r.idem_key.split(':').pop())).sort((a, b) => a - b) },
@@ -244,7 +267,6 @@ function bundle(env, pid, key, p, reason, at) {
   return runOp(env, pid, key, { shards: p.shards || 0, stone: p.stone || 0, tickets: p.tickets || 0, gem: p.gem || 0, items: p.items || [] }, st, at);
 }
 
-const weekOf = (day) => Math.floor((day + 3) / 7);   // Monday-based week of a unix-day index
 // A run that counts for rewards: closed, played at least one battle, not a Mission run (those pay via escrow).
 // NOTE (Liam accepted until B3): `closed`, `battles_done` and summary are the client's claims, there is no verifier
 // yet, so this cannot stop a forged run. It only stops the cheap cases (empty runs, double pay, Mission double pay).
@@ -277,22 +299,25 @@ async function claim(env, pid, b, at) {
     return runOp(env, pid, key, { shards: cfg.shards || 0, stone: cfg.stone || 0 }, stmts, at);
   };
   switch (b.kind) {
-    case 'daily':   // any closed run today
+    case 'daily': {   // any closed run today
       if (!(await closedRunToday(env, pid, at))) return { ok: false, code: 'no_run_today' };
       // +daily_bonus Pass XP (no run cap), in season, in the same batch as the reward
-      return grant(daily.daily_reward, `claim:daily:${day}`, 'daily', at >= passStart() && at < passEnd()
+      const r = await grant(daily.daily_reward, `claim:daily:${day}`, 'daily', at >= passStart() && at < passEnd()
         ? [passRow(env, pid), env.DB.prepare('UPDATE pass_xp SET xp = xp + ? WHERE player_id = ? AND season = ?').bind(pass.xp.daily_bonus, pid, pass.season_id)] : []);
+      // The weekly bonus pays itself on the min_days-th daily claim of the week, like the offline game
+      // (MetaState._grant_weekly_bonus_if_due). Tried on a retry too; its own op key keeps it to once a week.
+      if (r.ok && (await dailyDaysInWeek(env, pid, at)) >= daily.weekly_bonus.min_days) {
+        const wr = await grant(daily.weekly_bonus, `claim:weekly:${weekOf(dIdx)}`, 'daily_weekly');
+        if (wr.ok && !wr.dup) return { ...r, answer: { ...(r.answer || {}), weekly: wr.answer } };
+      }
+      return r;
+    }
     case 'daily_run':   // first finished Daily-mode run
       if (!(await closedRunToday(env, pid, at, 'daily'))) return { ok: false, code: 'no_run_today' };
       return grant(daily.daily_run_reward, `claim:daily_run:${day}`, 'daily_run');
-    case 'weekly': {   // >= min_days daily claims inside this Monday-based week (counted from OUR ledger)
-      const w = weekOf(dIdx);
-      const from = (w * 7 - 3) * 86400;
-      const r = await env.DB.prepare(
-        `SELECT COUNT(*) AS n FROM wallet_ledger WHERE player_id = ? AND currency = 'shard' AND idem_key LIKE 'shard:claim:daily:%' AND at >= ? AND at < ?`,
-      ).bind(pid, from, from + 7 * 86400).first();
-      if (!r || r.n < daily.weekly_bonus.min_days) return { ok: false, code: 'not_enough_days' };
-      return grant(daily.weekly_bonus, `claim:weekly:${w}`, 'daily_weekly');
+    case 'weekly': {   // >= min_days daily claims inside this Monday-based week (the daily claim also pays it on its own)
+      if ((await dailyDaysInWeek(env, pid, at)) < daily.weekly_bonus.min_days) return { ok: false, code: 'not_enough_days' };
+      return grant(daily.weekly_bonus, `claim:weekly:${weekOf(dIdx)}`, 'daily_weekly');
     }
     case 'run': {   // Shard reward of ONE closed run, once per run id. The amount is computed HERE from what the run
       // recorded at close (summary_json.shards), never taken from the request, and clamped to RUN_SHARD_MAX.

@@ -35,6 +35,10 @@ func _ready() -> void:
 	if use_account:
 		state = derive_state()
 	set_state(state)
+	if MetaState.econ_remote() != null:   # today's claim / week count come from the server snapshot, not an old cache
+		MetaState.econ_remote().refresh(func(_r: Dictionary) -> void:
+			if is_inside_tree():
+				_refresh())
 
 
 func derive_state() -> String:
@@ -71,9 +75,16 @@ func claim_daily() -> bool:
 		return false
 	if MetaState.econ_remote() != null:
 		# SR1: the server pays (needs a closed run today); the cache updates from its answer.
+		if _daily_pending:
+			return false
+		_daily_pending = true
+		_refresh()
 		MetaState.econ_remote().claim("daily", {}, func(r: Dictionary) -> void:
+			_daily_pending = false
 			daily_result_ok = bool(r["ok"])
 			daily_result = "Claimed" if daily_result_ok else RemoteEcon.message_for(String(r["code"]))
+			if daily_result_ok and (r["result"] as Dictionary).has("weekly"):
+				daily_result += " · weekly bonus paid"
 			_refresh()
 			if daily_result_ok:
 				_play_claim_moment())
@@ -112,6 +123,7 @@ func _play_claim_moment() -> void:
 
 
 var _gift_pending := false
+var _daily_pending := false   # a remote daily claim is on its way: the button stays off so a double click sends one request
 
 
 func claim_gift() -> Dictionary:
@@ -269,7 +281,9 @@ func _refresh() -> void:
 	var why := "Claimed today" if claimed else ("Sign in to claim" if state == "guest" else "Needs a connection")
 	var g: Dictionary = _Econ.get_table("gem").get("gift", {})
 	var gs := gift_state()
-	var daily_ok := not claimed and not blocked
+	var daily_ok := not claimed and not blocked and not _daily_pending
+	if _daily_pending:
+		why = "Claiming…"
 	var gift_ok := gs == "claim" and not blocked and not _gift_pending
 	var primary_gift := gift_ok and not daily_ok
 	var held := 0 if no_wallet else MetaState.gem_wallet().balance()

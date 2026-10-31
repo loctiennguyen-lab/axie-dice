@@ -152,23 +152,21 @@ func build_hud() -> void:
 	_l._run_plate.minimum_size_changed.connect(_l._layout, CONNECT_DEFERRED)   # the keycap widens the plate: re-place the row
 
 
-## LandPlate: "Upgrade Land · Forest 2/6 · Stone a/b · n to Next" (secondary S button), or the max-tier plate.
+## LandPlate: just "Upgrade Land" (secondary S button; Liam 1/11: keep it short), or the max-tier plate. Tier, Stone and
+## what is left go in the tooltip.
 func land_plate() -> Control:
 	var tn: String = _l.TIER_NAMES[_l._tier - 1]
 	if _l._tier >= 6:
 		return Plates.max_plate("%s Land · max tier" % tn)
 	var need: int = _l._upgrade_cost()
 	var have: int = _l._meta_int("stone")
-	var txt := "Upgrade Land · %s %d/6 · Stone ···" % [tn, _l._tier]
 	var tip := ""
 	if not _l._loading:
 		var can_up := preload("res://scripts/meta/economy_db.gd").land_upgrade_enabled() and have >= need
-		txt = "Upgrade Land · %s %d/6 · Stone %s/%s" % [tn, _l._tier, UI3.fmt(mini(have, need)), UI3.fmt(need)]
-		txt += " · ready" if can_up else " · %s to %s" % [UI3.fmt(maxi(need - have, 0)), _l.TIER_NAMES[_l._tier]]
-		tip = "%s / %s Land Stone · L" % [UI3.fmt(have), UI3.fmt(need)]
-	else:
-		txt = "Upgrade Land · ···"
-	var btn := UI3.button(txt, &"secondary", &"S")
+		tip = "%s %d/6 · Stone %s/%s" % [tn, _l._tier, UI3.fmt(mini(have, need)), UI3.fmt(need)]
+		tip += " · ready" if can_up else " · %s to %s" % [UI3.fmt(maxi(need - have, 0)), _l.TIER_NAMES[_l._tier]]
+		tip += " · L"
+	var btn := UI3.button("Upgrade Land", &"secondary", &"S")
 	btn.name = "LandPlate"
 	btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	btn.tooltip_text = tip
