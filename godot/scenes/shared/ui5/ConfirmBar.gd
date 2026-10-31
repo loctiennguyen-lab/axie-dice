@@ -6,7 +6,7 @@ extends PanelContainer
 signal back_pressed
 signal confirmed
 
-const PanelParts := preload("res://scenes/combat/ui5/PanelParts.gd")
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 
 var back_button: Button
 var take_button: Button
