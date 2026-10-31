@@ -10,11 +10,9 @@ extends RefCounted
 const WELCOME_W := 760.0
 const CHOICE_W := 980.0
 const MOVE_W := 760.0
-const TOAST_W := 860.0
 const TOAST_SECONDS := 10.0
 const Parts := preload("res://scenes/account/ui5/AccountParts.gd")
-const Parts_ := preload("res://scenes/shared/ui5/PanelParts.gd")
-const LandPlates := preload("res://scenes/land/ui5/LandPlates.gd")
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 
 
 # ============================================================================ A · welcome
@@ -102,8 +100,13 @@ static func show_offline_gate(layer: CanvasLayer, service: Node) -> Control:
 static func show_desktop_flow(layer: CanvasLayer, service: Node, auto_dismiss_s: float = 1.6) -> Control:
 	var overlay := _overlay(layer)
 	overlay.name = "DesktopSignInFlow"
-	var box := _modal(overlay, 640.0)
-	box.get_parent().name = "DesktopSignIn"   # a09-a12 data-name
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(center)
+	var dlg: Dictionary = Parts.box("DesktopSignIn", true)   # .dialog.s: radius xl, pad 32, gap 20, modal_s_w
+	center.add_child(dlg["panel"])
+	var box := dlg["col"] as VBoxContainer
 	var dismissed := [false]
 	var refresh := Callable()
 	refresh = func() -> void:
@@ -136,7 +139,7 @@ static func show_desktop_flow(layer: CanvasLayer, service: Node, auto_dismiss_s:
 				var go := Parts.btn("ContinueButton", "Continue", &"primary", &"L", true)
 				go.pressed.connect(func() -> void: service.dismiss_desktop_result())
 				box.add_child(go)
-				LandPlates.attach_space_cap(go, UI3Theme.space("32"))
+				_space_cap(go)
 				focus = go
 				if auto_dismiss_s > 0.0 and not dismissed[0] and overlay.is_inside_tree():
 					dismissed[0] = true
@@ -166,6 +169,26 @@ static func show_desktop_flow(layer: CanvasLayer, service: Node, auto_dismiss_s:
 			service.changed.disconnect(refresh))
 	refresh.call()
 	return overlay
+
+
+## Space keycap trailing the label of the primary button (as RunPauseMenu): pins the variation's styles as overrides,
+## then HudStyle.place_trailing once the button is in the tree and again on every resize.
+static func _space_cap(b: Button) -> void:
+	var cap := Ui5Keycap.make("Space", &"primary")
+	b.add_child(cap)
+	var pad := UI3Theme.space("32")
+	var place := func() -> void:
+		if not is_instance_valid(b) or not b.is_inside_tree():
+			return
+		if not b.has_meta("styles_pinned"):
+			b.set_meta("styles_pinned", true)
+			for st in ["normal", "hover", "pressed", "disabled", "hover_pressed", "focus"]:
+				var src: StyleBox = UI3Theme.get_theme().get_stylebox(st, b.theme_type_variation)
+				if src != null:
+					b.add_theme_stylebox_override(st, src.duplicate())
+		Ui5HudStyle.place_trailing(b, cap, pad)
+	b.resized.connect(place)
+	place.call_deferred()
 
 
 # ============================================================================ B · chip
@@ -418,8 +441,8 @@ static func show_toast(layer: CanvasLayer, code: String) -> Control:
 	var tw := float(UI3Theme.size_of("toast_max_w"))
 	var st := UI3Theme.flat(UI3Theme.color("plate"), UI3Theme.radius("l"), UI3Theme.stroke("rim"), UI3Theme.color("plate_rim"),
 		Vector4(UI3Theme.space("12"), UI3Theme.space("12"), UI3Theme.space("20"), UI3Theme.space("12")),
-		Parts_.lip(UI3Theme.color("plate_ink")))
-	var panel := Parts_.panel(st, "AccountToast")
+		PanelParts.lip(UI3Theme.color("plate_ink")))
+	var panel := PanelParts.panel(st, "AccountToast")
 	panel.anchor_left = 0.5
 	panel.anchor_right = 0.5
 	panel.anchor_top = 1.0

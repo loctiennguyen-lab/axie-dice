@@ -129,6 +129,18 @@ func _screens(sc: float) -> void:
 			var b := s.find_child("SignOutButton", true, false) as Button
 			_check(b.text == "Press again to sign out" and b.theme_type_variation == &"ButtonDanger", "[%s] armed: danger button" % tag)
 			_common(s, base + ["SignOutWarn"], tag + " armed", sc)
+	svc.account = {}
+	svc.status = 0
+	svc.desktop_phase = "waiting"
+	svc.changed.emit()
+	await _frames(2)
+	svc.calls.clear()
+	var esc := InputEventKey.new()
+	esc.keycode = KEY_ESCAPE
+	esc.pressed = true
+	Input.parse_input_event(esc)
+	await _frames(3)
+	_check(svc.calls.has("cancel"), "Esc while waiting cancels the sign-in (%s)" % svc.calls)
 	s.queue_free()
 	svc.queue_free()
 	await get_tree().process_frame
@@ -166,6 +178,15 @@ func _overlays(sc: float) -> void:
 			_check((ov.find_child("Title", true, false) as Label).text == "Signed in as Mai", "[%s] title uses the service name" % tag)
 			var cap := ov.find_child("KeyCap", true, false)
 			_check(cap != null and cap.get_node("Key").text == "Space", "[%s] Continue carries Space" % tag)
+	for b in [["error", "network", "TryAgainButton", ["clear", "sign_in:false"]], ["error", "network", "CloseButton", ["clear"]],
+			["waiting", "", "OpenBrowserButton", ["reopen"]], ["waiting", "", "CancelButton", ["cancel"]]]:
+		svc.desktop_phase = b[0]
+		svc.desktop_error = b[1]
+		svc.changed.emit()
+		await _frames(2)
+		svc.calls.clear()
+		(ov.find_child(b[2], true, false) as Button).pressed.emit()
+		_check(svc.calls == b[3], "overlay %s calls %s (got %s)" % [b[2], b[3], svc.calls])
 	svc.desktop_phase = "idle"
 	svc.changed.emit()
 	await _frames(2)
@@ -190,11 +211,19 @@ func _toasts(sc: float) -> void:
 		_check(disc != null and disc.get_meta("tone") == c[2], "[%s] tone %s" % [tag, c[2]])
 		var t := h.find_child("AccountToast", true, false) as Control
 		_check(absf(t.size.x - float(UI3Theme.size_of("toast_max_w"))) < 1.0, "[%s] toast is toast_max_w wide (%s)" % [tag, t.size.x])
-		_inside(t, Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size / maxf(sc, 0.01) * sc), tag)
+		_inside(t, Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size), tag)
 		for n in c[1]:
 			var b := h.find_child(n, true, false) as Button
 			_check(b != null and b.theme_type_variation != &"ButtonPrimaryM", "[%s] %s is secondary" % [tag, n])
-		h.queue_free()
+		var first := h.find_child(c[1][0], true, false) as Button
+		svc.calls.clear()
+		first.pressed.emit()
+		await _frames(2)
+		var want: String = {"TryAgainButton": "sign_in:false", "SignInButton": "sign_in:false", "UseAnotherButton": "sign_in:true"}[c[1][0]]
+		_check(svc.calls == [want], "[%s] %s calls the service (%s)" % [tag, c[1][0], svc.calls])
+		_check(not is_instance_valid(h) or h.is_queued_for_deletion(), "[%s] pressing an action frees the toast" % tag)
+		if is_instance_valid(h):
+			h.queue_free()
 		await get_tree().process_frame
 	layer.queue_free()
 	svc.queue_free()
