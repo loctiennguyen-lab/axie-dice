@@ -32,9 +32,9 @@ func _ready() -> void:
 	add_child(st)
 	for _i in 4:
 		await get_tree().process_frame
-	(st.find_child("Index_Controls", true, false) as Button).pressed.emit()
+	(st.find_children("IndexRow*", "Button", true, false)[2] as Button).pressed.emit()
 	await _shot("settings_controls")
-	(st.find_child("Key_combat_reroll", true, false) as Button).pressed.emit()
+	(st._key_buttons[&"combat_reroll"] as Button).pressed.emit()
 	await _shot("settings_capturing")
 	st.queue_free()
 	_guard.restore()

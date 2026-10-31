@@ -51,13 +51,13 @@ func _ready() -> void:
 
 func test_the_volume_sliders_move_the_real_audio_buses() -> void:
 	var view := await _open()
-	var slider := _find(view, HSlider, "MusicSlider") as HSlider
+	var slider := view._sliders.get(&"music") as Ui5Slider
 	_assert(slider != null, "there is no music slider on the settings screen")
 	if slider == null:
 		_done("test_the_volume_sliders_move_the_real_audio_buses")
 		return
 
-	slider.value = 0.25
+	_slide(slider, 0.25)
 	await get_tree().process_frame
 	_assert(is_equal_approx(MetaState.audio_music_volume, 0.25),
 		"moving the music slider left MetaState at %f" % MetaState.audio_music_volume)
@@ -67,7 +67,7 @@ func test_the_volume_sliders_move_the_real_audio_buses() -> void:
 	_assert(bus != -1, "the Music bus does not exist after the settings screen touched it")
 	if bus != -1:
 		var quiet := AudioServer.get_bus_volume_db(bus)
-		slider.value = 1.0
+		_slide(slider, 1.0)
 		await get_tree().process_frame
 		var loud := AudioServer.get_bus_volume_db(bus)
 		_assert(loud > quiet,
@@ -88,10 +88,10 @@ func test_reduce_flashing_actually_suppresses_the_effects_that_flash() -> void:
 		"effects report themselves suppressed with the setting off and no test flag set")
 
 	var view := await _open()
-	var box := _find(view, CheckBox, "ReduceCheck") as CheckBox
-	_assert(box != null, "there is no reduce-flashing checkbox on the settings screen")
+	var box := view._switches.get(&"reduce_flash") as Ui5Switch
+	_assert(box != null, "there is no reduce-flashing switch on the settings screen")
 	if box != null:
-		box.button_pressed = true
+		_flip(box, true)
 		await get_tree().process_frame
 		_assert(MetaState.reduce_flash, "ticking the box did not set MetaState.reduce_flash")
 		_assert(CombatView.flashes_suppressed(),
@@ -111,10 +111,10 @@ func test_reduce_motion_toggle_sets_the_setting_and_gates_combat_motion() -> voi
 	MetaState.reduce_flash = false
 	_assert(not CombatView.motion_suppressed(), "motion suppressed with the setting off")
 	var view := await _open()
-	var box := _find(view, CheckBox, "ReduceMotionCheck") as CheckBox
+	var box := view._switches.get(&"reduce_motion") as Ui5Switch
 	_assert(box != null, "there is no Reduce motion toggle on the settings screen")
 	if box != null:
-		box.button_pressed = true
+		_flip(box, true)
 		await get_tree().process_frame
 		_assert(MetaState.reduce_motion and not MetaState.reduce_flash, "motion toggle did not set only reduce_motion")
 		_assert(CombatView.motion_suppressed(), "shake / hit-stop gate ignores reduce_motion")
@@ -130,9 +130,9 @@ func test_reduce_motion_toggle_sets_the_setting_and_gates_combat_motion() -> voi
 func test_abandon_run_is_hidden_when_there_is_no_run_to_abandon() -> void:
 	RunState.clear_saved_run()
 	var view := await _open()
-	_assert(_find_button(view, "Abandon run") == null,
-		"the screen offers to abandon a run when there is no saved run — a question the player "
-		+ "should never be asked")
+	var ab := _find_button(view, "Abandon run")
+	_assert(ab != null and ab.disabled,
+		"UI-05 frame: with no saved run Abandon run is shown but disabled, never live")
 	_assert(_all_text(view).contains("No run in progress"),
 		"with no saved run the screen says nothing about it; an empty section reads as a bug")
 	view.queue_free()
@@ -159,7 +159,7 @@ func test_abandon_run_needs_a_confirmation_and_then_deletes_the_save() -> void:
 		+ "control in the game that destroys a save")
 	# BY NAME, not "the first CheckBox": the first one on this screen is Mute, and an earlier
 	# draft of this test ticked that instead and then reported the confirmation as broken.
-	var confirm := _find(view, CheckBox, "ConfirmAbandonCheck") as CheckBox
+	var confirm := view.abandon_check as CheckBox
 	_assert(confirm != null, "there is no confirmation control next to ABANDON RUN")
 	if confirm != null:
 		confirm.button_pressed = true
@@ -200,6 +200,16 @@ func test_settings_survive_a_reload() -> void:
 
 
 # ---------------------------------------------------------------------------
+
+func _slide(sl: Ui5Slider, v: float) -> void:
+	sl.set_value(v)
+	sl.value_changed.emit(v)
+
+
+func _flip(sw: Ui5Switch, v: bool) -> void:
+	sw.set_on(v)
+	sw.toggled.emit(v)
+
 
 func _open() -> Node:
 	var view: Node = (load("res://scenes/settings/Settings.tscn") as PackedScene).instantiate()

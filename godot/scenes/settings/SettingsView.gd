@@ -1,7 +1,7 @@
 class_name SettingsView
 extends Control
 ## M11 Settings (Esc on the hub), Round 3. Spec: design/handoffs/ui-02-round3 README M11, frames M11a-d.
-## Section index (260) + one column (max 960), rows >= 56, toggles print On/Off, sliders 300.
+## UI-05 (frames 26-settings*): SectionIndex (settings_index_w) + one column (max settings_col_w), SettingRow settings_row_h, switches print On/Off, sliders 200.
 ## Every control here is wired to something real: music/sfx/mute (MetaState + CombatAudioDirector),
 ## reduce flashing (CombatView.flashes_suppressed), replay tutorial, abandon run, account.
 ## Not drawn, because nothing backs them yet: text size, UI scale, spending presets, hide-Aid, language,
@@ -11,28 +11,29 @@ extends Control
 ## In-run mode (opened from the combat menu): set `SettingsView.in_run = true` and `return_scene`
 ## before changing to Settings.tscn; Back reads "Back to run", the Run section goes first.
 
-const BG_TEXTURE := "res://assets/backgrounds/origins/scene/4-entrance.jpg"
-const INDEX_W := 260.0
-const COL_MAX := 960.0
-const ROW_MIN := 72.0   # components.md: Slider / Toggle rows 72 high
+const Parts := preload("res://scenes/settings/ui5/SettingsParts.gd")
 
 static var in_run: bool = false
 static var return_scene: String = ""
 
 var _content: VBoxContainer
 var _abandon_status: Label = null
-var _sections: Dictionary = {}   # name -> header Label
+var _sections: Dictionary = {}   # section title -> section plate
 var _scroll: ScrollContainer
 var _first_focus: Control = null
 var _shell: Dictionary = {}
-var _tabs: Dictionary = {}   # section name -> tab Button
+var _tabs: Dictionary = {}   # section title -> IndexRow button
 var _capturing: StringName = &""   # action waiting for a key press ("" = none)
-var _key_buttons: Dictionary = {}  # action -> Button showing its keys
+var _key_buttons: Dictionary = {}  # action -> KeyButton
 var _controls_status: Label = null
+var _cur: VBoxContainer = null   # body of the section being built
+var _switches: Dictionary = {}   # &"mute" / &"reduce_flash" / &"reduce_motion" -> Ui5Switch
+var _sliders: Dictionary = {}    # &"music" / &"sfx" -> Ui5Slider
+var abandon_button: Button = null
+var abandon_check: CheckBox = null
 
 
 func _ready() -> void:
-	# UI-03 26-settings on the UI3Meta shell: header (title plate with back, tabs), then the scrolling column.
 	var shell := UI3Meta.build(self, "Settings",
 		"Opened from the combat menu. The run is paused." if in_run else "Every toggle states On / Off in words.",
 		_on_back)
@@ -40,18 +41,31 @@ func _ready() -> void:
 	var back := shell["back"] as Button
 	back.name = "BackButton"
 	back.tooltip_text = "Back to run · Esc" if in_run else UI3Meta.BACK_HINT
+	(shell["sub"] as Control).name = "SubLine"
 	(shell["panel"] as Control).name = "PlateHost"   # t_ui_laws L0
+	var hr := shell["header_right"] as Control
+	hr.get_parent().remove_child(hr)
+	hr.queue_free()
 	var currencies := find_child("Currencies", true, false)
 	if currencies != null:
 		currencies.visible = false   # Settings spec: no wallet here
 
-	_content = VBoxContainer.new()
-	_content.add_theme_constant_override("separation", 16)
-	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
 	var order: Array[String] = ["Audio", "Accessibility", "Controls", "Aid and spending", "How to play", "Run", "Account"]
 	if in_run:
 		order = ["Run", "Audio", "Accessibility", "Controls", "Aid and spending", "How to play", "Account"]
+
+	var body := HBoxContainer.new()
+	body.name = "Body"
+	body.add_theme_constant_override("separation", UI3Theme.space("16"))
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	(shell["col"] as Control).add_child(body)
+	var idx := Parts.index_plate()
+	body.add_child(idx["plate"])
+
+	_content = VBoxContainer.new()
+	_content.name = "Column"
+	_content.add_theme_constant_override("separation", UI3Theme.space("16"))
+	_content.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	for sec in order:
 		_section(sec)
 		match sec:
@@ -59,27 +73,41 @@ func _ready() -> void:
 			"Accessibility": _build_accessibility()
 			"Controls": _build_controls()
 			"Aid and spending":
-				_row("Spending limit (monthly)", "Applies when purchases open.")
+				var r := Parts.row("SettingRow", "Spending limit (monthly)", "Applies when purchases open.")
+				var v := Ui5Text.label("—", "text_body", "text_muted")
+				(r["h"] as Control).add_child(v)
+				_add(r["row"])
 			"How to play": _build_tutorial()
 			"Run": _build_abandon_section()
 			"Account": _build_account_section()
 
-	_build_index(order, shell["header_right"] as Control)
+	_build_index(order, idx["rows"] as Control)
 	_scroll = ScrollContainer.new()
+	_scroll.name = "Scroll"
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_scroll.get_v_scroll_bar().custom_minimum_size.x = 12.0   # visible overflow (t_ui_laws L2)
 	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var center := CenterContainer.new()
-	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_content.custom_minimum_size.x = COL_MAX
-	center.add_child(_content)
-	_scroll.add_child(center)
-	(shell["col"] as Control).add_child(_scroll)
+	var wrap := HBoxContainer.new()
+	wrap.name = "ColumnWrap"
+	wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	wrap.add_child(_content)
+	_scroll.add_child(wrap)
+	body.add_child(_scroll)
+	_scroll.resized.connect(_fit_column)
+	_fit_column.call_deferred()
 	_scroll.get_v_scroll_bar().value_changed.connect(func(_v: float) -> void: _sync_tabs())
 	_sync_tabs.call_deferred()
 	if _first_focus != null:
 		_first_focus.call_deferred("grab_focus")
+
+
+## The column fills what the scroll leaves, up to settings_col_w.
+func _fit_column() -> void:
+	if _scroll == null or _content == null:
+		return
+	var avail := _scroll.size.x - 12.0 - 4.0
+	_content.custom_minimum_size.x = minf(avail, float(UI3Theme.size_of("settings_col_w")))
 
 
 func _on_back() -> void:
@@ -134,9 +162,12 @@ func _apply_binding(action: StringName, keycode: int) -> void:
 func _end_capture(msg: String) -> void:
 	_capturing = &""
 	for a in _key_buttons:
-		(_key_buttons[a] as Button).text = KeyBindings.text_all(a)
+		var kb := _key_buttons[a] as Button
+		kb.text = KeyBindings.text_all(a)
+		Parts.set_key_on(kb, false)
 	if _controls_status != null:
 		_controls_status.text = msg
+		_controls_status.visible = msg != ""
 
 
 func _save_bindings() -> void:
@@ -146,36 +177,46 @@ func _save_bindings() -> void:
 
 func _build_controls() -> void:
 	KeyBindings.ensure()
-	_controls_status = _body("Click a shortcut, then press the new key. Esc cancels.")
+	var hint := Ui5Text.label("Click a shortcut, then press the new key. Esc cancels.", "text_body", "text_muted")
+	hint.name = "ControlsHint"
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_cur.add_child(hint)
+	_controls_status = Ui5Text.label("", "text_body", "text_muted")
 	_controls_status.name = "ControlsStatus"
+	_controls_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_controls_status.visible = false
+	_cur.add_child(_controls_status)
 	for group in KeyBindings.GROUPS:
-		var title := UI3.label(group, "LabelDisplay")
-		title.name = "ControlsGroup_" + group
-		_content.add_child(title)
+		var gl := Parts.group_label(group)
+		_cur.add_child(gl, true)
 		for d in KeyBindings.DEFS:
 			if d["group"] != group:
 				continue
 			var action: StringName = d["id"]
-			var b := UI3.button(KeyBindings.text_all(action), &"secondary", &"M")
-			b.name = "Key_" + String(action)
-			b.custom_minimum_size = Vector2(220, 56)
+			var r := Parts.row("ShortcutRow", String(d["label"]))
+			var b := Parts.key_button(KeyBindings.text_all(action))
 			b.tooltip_text = "Click, then press a key. Esc cancels."
 			b.pressed.connect(func() -> void:
 				if _capturing != &"":
 					_end_capture("")
 				_capturing = action
-				b.text = "Press a key..."
+				b.text = "Press a key…"
+				Parts.set_key_on(b, true)
 				if _controls_status != null:
-					_controls_status.text = "Press a key for \"%s\". Esc cancels." % _label_of(action))
+					_controls_status.text = "Press a key for \"%s\". Esc cancels." % _label_of(action)
+					_controls_status.visible = true)
 			_key_buttons[action] = b
-			_row(String(d["label"]), "", b)
+			(r["h"] as Control).add_child(b)
+			_add(r["row"])
 	var reset := UI3.button("Reset to defaults", &"secondary", &"M")
-	reset.name = "ResetKeysButton"
+	reset.name = "ResetButton"
 	reset.pressed.connect(func() -> void:
 		KeyBindings.reset_all()
 		_save_bindings()
 		_end_capture("All shortcuts are back to their defaults."))
-	_row("Reset shortcuts", "Puts every key back to its default.", reset)
+	var rr := Parts.row("SettingRow", "Reset shortcuts", "Puts every key back to its default.")
+	(rr["h"] as Control).add_child(reset)
+	_add(rr["row"])
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
@@ -184,17 +225,16 @@ func _unhandled_key_input(ev: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 
 
-## Section tabs in the header: the one whose section is at the top of the column shows as selected.
+## SectionIndex: one IndexRow per section; the one at the top of the column shows as selected.
 func _build_index(order: Array[String], host: Control) -> void:
 	for sec in order:
-		var b := UI3Meta.tab(sec, false)
-		b.name = "Index_" + sec.replace(" ", "")
+		var b := Parts.index_row(sec)
 		b.pressed.connect(func() -> void:
 			var hdr: Control = _sections.get(sec)
 			if hdr != null:
 				_scroll.scroll_vertical = int(hdr.global_position.y - _content.global_position.y)
 			_sync_tabs(sec))
-		host.add_child(b)
+		host.add_child(b, true)
 		_tabs[sec] = b
 
 
@@ -213,43 +253,47 @@ func _sync_tabs(forced := "") -> void:
 		if active == "" and not _sections.is_empty():
 			active = String(_sections.keys()[0])
 	for sec in _tabs:
-		(_tabs[sec] as Button).set_pressed_no_signal(sec == active)
+		Parts.style_index_row(_tabs[sec] as Button, sec == active)
 
 
 func _build_audio() -> void:
-	_slider("Music", MetaState.audio_music_volume, func(v: float) -> void:
+	_slider(&"music", "Music", MetaState.audio_music_volume, func(v: float) -> void:
 		MetaState.audio_music_volume = v
 		MetaState.save_to_disk()
 		_apply_audio())
-	_slider("Sound effects", MetaState.audio_sfx_volume, func(v: float) -> void:
+	_slider(&"sfx", "Sound effects", MetaState.audio_sfx_volume, func(v: float) -> void:
 		MetaState.audio_sfx_volume = v
 		MetaState.save_to_disk()
 		_apply_audio())
-	_toggle("Mute everything", "", MetaState.audio_muted, func(on: bool) -> void:
+	_toggle(&"mute", "Mute everything", "", MetaState.audio_muted, func(on: bool) -> void:
 		MetaState.audio_muted = on
 		MetaState.save_to_disk()
 		_apply_audio())
 
 
 func _build_accessibility() -> void:
-	_toggle("Reduce flashing and screen shake",
+	_toggle(&"reduce_flash", "Reduce flashing and screen shake",
 		"Turns off the screen shake on a hit and the colour flash on a resonant Axie. Dice, actions and damage numbers are untouched, because those tell you what happened.",
 		MetaState.reduce_flash, func(on: bool) -> void:
 			MetaState.reduce_flash = on
 			MetaState.save_to_disk())
-	_toggle("Reduce motion", "No shaking, no particles, quicker transitions",
+	_toggle(&"reduce_motion", "Reduce motion", "No shaking, no particles, quicker transitions",
 		MetaState.reduce_motion, func(on: bool) -> void:
 			MetaState.reduce_motion = on
-			MetaState.save_to_disk(), "ReduceMotionCheck")
-	_row("Colour-blind-safe glyphs", "Always on: every mechanic colour ships with its glyph and word.")
+			MetaState.save_to_disk())
+	var r := Parts.row("SettingRow", "Colour-blind-safe glyphs", "Always on: every mechanic colour ships with its glyph and word.")
+	(r["h"] as Control).add_child(Ui5Text.label("Always on", "text_body", "text_muted"))
+	_add(r["row"])
 
 
 func _build_tutorial() -> void:
 	var btn := UI3.button("Replay the tutorial", &"secondary")
-	btn.name = "ReplayTutorialButton"
+	btn.name = "ReplayButton"
 	btn.pressed.connect(func() -> void:
 		get_tree().change_scene_to_file("res://scenes/tutorial/Tutorial.tscn"))
-	_row("Replay tutorial", "One turn end to end: roll, spend, target, end. Replaying it changes nothing you own.", btn)
+	var r := Parts.row("SettingRow", "Replay tutorial", "One turn end to end: roll, spend, target, end. Replaying it changes nothing you own.")
+	(r["h"] as Control).add_child(btn)
+	_add(r["row"])
 
 
 ## Pushes the stored levels at the running audio buses immediately, so a slider is audible
@@ -262,20 +306,34 @@ func _apply_audio() -> void:
 
 
 func _build_abandon_section() -> void:
-	if not RunState.has_saved_run():
-		_row("Abandon run", "No run in progress.")
+	var has_run := RunState.has_saved_run()
+	var stake := int(MetaState.mission_escrow.get("stake", 0)) if has_run else 0
+	var warn := "No run in progress."
+	if has_run:
+		warn = ("You will lose your stake (%d Shards). This cannot be undone." % stake) if stake > 0 \
+			else "A run is saved. Abandoning it deletes that save. The Axies, Cores and Gene Shard in it are gone, and Gene Shard already banked from finished runs is not affected."
+	var btn := UI3.button("Abandon run", &"secondary")
+	btn.name = "AbandonButton"
+	abandon_button = btn
+	var r := Parts.row("SettingRow", "Abandon mission run" if stake > 0 else "Abandon run", warn)
+	_add(r["row"])
+	if not has_run:
+		btn.disabled = true
+		btn.tooltip_text = "No run in progress."
+		(r["h"] as Control).add_child(btn)
 		return
-	var stake := int(MetaState.mission_escrow.get("stake", 0))
-	var warn := ("You will lose your stake (%d Shard). This cannot be undone." % stake) if stake > 0 \
-		else "A run is saved. Abandoning it deletes that save. The Axies, Cores and Gene Shard in it are gone, and Gene Shard already banked from finished runs is not affected."
+	var cr := Parts.row("ConfirmRow")
 	var confirm := CheckBox.new()
-	confirm.name = "ConfirmAbandonCheck"
+	confirm.name = "Checkbox"
 	confirm.text = "Yes, I want to abandon the saved run"
-	var btn := UI3.button("Abandon run", &"danger")
+	abandon_check = confirm
+	(cr["txt"] as Control).add_child(confirm)
 	btn.disabled = true
-
+	(cr["h"] as Control).add_child(btn)
+	_add(cr["row"])
 	confirm.toggled.connect(func(on: bool) -> void:
-		btn.disabled = not on)
+		btn.disabled = not on
+		btn.theme_type_variation = "ButtonDanger" if on else "ButtonSecondary")
 	btn.pressed.connect(func() -> void:
 		abandon_current_run()
 		if in_run:
@@ -285,17 +343,12 @@ func _build_abandon_section() -> void:
 			LandNav.back_to_land()
 			return
 		btn.disabled = true
+		btn.theme_type_variation = "ButtonSecondary"
 		confirm.disabled = true
 		confirm.button_pressed = false
 		if _abandon_status != null:
 			_abandon_status.text = "The saved run has been deleted."
 			_abandon_status.visible = true)
-	# Stacked, not side by side: next to a long description a wide checkbox row squeezed it and clipped it.
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 12)
-	box.add_child(confirm)
-	box.add_child(btn)
-	_row("Abandon mission run" if stake > 0 else "Abandon run", warn, box)
 	_abandon_status = _body("")
 	_abandon_status.visible = false
 
@@ -318,39 +371,61 @@ static func abandon_current_run() -> void:
 func _build_account_section() -> void:
 	if not AccountService.enabled:
 		if SaveStore.is_web() or not AccountService.desktop_enabled_override:
-			_body("Accounts are available in the web version at axiedice.fun. Progress here stays "
-				+ "on this computer.")
+			_signed_out_row("Accounts are available in the web version at axiedice.fun. Progress here stays "
+				+ "on this computer.", null)
 			return
 		# Desktop, signed out: the Account screen (B3) owns the browser flow, waiting and errors.
-		_body("You're signed out. You can browse and play the tutorial; runs need an account. Progress stays on this computer. Sign in with Google to "
-			+ "keep it on every device.")
-		var open_acct := UI3.button("Account", &"primary")
-		open_acct.name = "OpenAccountButton"
+		var open_acct := _big_primary("Account", "AccountButton")
 		open_acct.pressed.connect(func() -> void: LandNav.open(&"account"))
-		_content.add_child(open_acct)
+		_signed_out_row("You're signed out. You can browse and play the tutorial; runs need an account. Progress stays on this computer. Sign in with Google to "
+			+ "keep it on every device.", open_acct)
 		return
 	if not AccountService.is_signed_in():
-		_body("You're signed out. You can browse and play the tutorial; runs need an account. Progress stays on this browser only. Sign in with "
-			+ "Google to keep it on every device. Your Sky Mavis work account works too.")
-		var sign_in := UI3.button("Continue with Google", &"primary")
-		sign_in.name = "SignInButton"
+		var sign_in := _big_primary("Continue with Google", "SignInButton")
 		sign_in.pressed.connect(func() -> void:
 			if SaveStore.is_web():
 				AccountService.sign_in()
 			else:
 				LandNav.open(&"account"))
-		_content.add_child(sign_in)
+		_signed_out_row("You're signed out. You can browse and play the tutorial; runs need an account. Progress stays on this browser only. Sign in with "
+			+ "Google to keep it on every device. Your Sky Mavis work account works too.", sign_in)
 		return
 
-	var who := HBoxContainer.new()
-	who.add_theme_constant_override("separation", 10)
-	var name_lbl := UI3.label(AccountService.display_name(), "LabelTitle")
-	who.add_child(name_lbl)
+	if AccountService.status == AccountServiceScript.Status.EXPIRED:
+		# Frame 26-settings--account-expired: notice + Sign in, nothing else.
+		var er := Parts.row("ExpiredRow")
+		(er["h"] as HBoxContainer).add_child(Ui5ToneDisc.make(&"error"))
+		(er["h"] as HBoxContainer).move_child((er["h"] as HBoxContainer).get_child(-1), 0)
+		var el := Ui5Text.label("Your session expired. Sign in again to keep saving. Your progress is safe on this device.", "text_body", "text")
+		el.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		(er["txt"] as Control).add_child(el)
+		var again := _big_primary("Sign in", "SignInButton")
+		again.pressed.connect(func() -> void:
+			if SaveStore.is_web():
+				AccountService.sign_in()
+			else:
+				LandNav.open(&"account"))
+		(er["h"] as Control).add_child(again)
+		_add(er["row"])
+		return
+
+	var who := Parts.row("AccountRow")
+	var h := who["h"] as HBoxContainer
+	var name_text := AccountService.display_name()
+	h.add_child(Parts.avatar(name_text))
+	h.move_child(h.get_child(-1), 0)
+	var nm := HBoxContainer.new()
+	nm.add_theme_constant_override("separation", UI3Theme.space("8"))
+	var name_lbl := Ui5Text.label(name_text, "text_body", "text", true)
+	nm.add_child(name_lbl)
 	if bool(AccountService.account.get("sky_mavis", false)):
-		who.add_child(AccountUI.sky_mavis_badge())
-	_content.add_child(who)
-	_body("%s · Google" % String(AccountService.account.get("email", "")))
-	var status_lbl := _body("")
+		nm.add_child(AccountUI.sky_mavis_badge())
+	(who["txt"] as Control).add_child(nm)
+	(who["txt"] as Control).add_child(Ui5Text.label("%s · Google" % String(AccountService.account.get("email", "")), "text_body", "text_muted"))
+	var status_lbl := Ui5Text.label("", "text_body", "text_muted")
+	status_lbl.name = "CloudStatus"
+	h.add_child(status_lbl)
+	_add(who["row"])
 	var refresh := func() -> void:
 		var line: Array = AccountUI.status_line(AccountService)
 		var text: String = "Cloud save: " + String(line[0])
@@ -363,39 +438,34 @@ func _build_account_section() -> void:
 		if AccountService.changed.is_connected(refresh):
 			AccountService.changed.disconnect(refresh))
 
-	if AccountService.status == AccountServiceScript.Status.EXPIRED:
-		_body("Your session expired. Sign in again to keep saving. Your progress is safe on this device.")
-		var again := UI3.button("Sign in", &"primary")
-
-		again.pressed.connect(func() -> void:
-			if SaveStore.is_web():
-				AccountService.sign_in()
-			else:
-				LandNav.open(&"account"))
-		_content.add_child(again)
-
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-	_content.add_child(row)
-	var switch_btn := UI3.button("Switch account", &"secondary")
-	switch_btn.name = "SwitchAccountButton"
-	switch_btn.pressed.connect(func() -> void: AccountService.sign_in(true))
-	row.add_child(switch_btn)
-
-	var out_btn := UI3.button("Sign out", &"danger")
-	out_btn.name = "SignOutButton"
-	row.add_child(out_btn)
-	var confirm_lbl := _body("")
+	var confirm_lbl := Ui5Text.label("", "text_body", "text_muted")
+	confirm_lbl.name = "SignOutNote"
+	confirm_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	confirm_lbl.visible = false
+	_cur.add_child(confirm_lbl)
+	var br := Parts.row("ButtonRow")
+	var bh := br["h"] as HBoxContainer
+	(br["txt"] as Control).queue_free()
+	var sp := Control.new()
+	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bh.add_child(sp)
+	var switch_btn := UI3.button("Switch account", &"secondary", &"S")
+	switch_btn.name = "SwitchButton"
+	switch_btn.pressed.connect(func() -> void: AccountService.sign_in(true))
+	bh.add_child(switch_btn)
+	var out_btn := UI3.button("Sign out", &"secondary", &"S")
+	out_btn.name = "SignOutButton"
+	bh.add_child(out_btn)
+	_add(br["row"])
 	var armed := [false]
 	out_btn.pressed.connect(func() -> void:
 		if not armed[0]:
 			armed[0] = true
 			var unsynced: bool = AccountService.has_unsynced_changes()
 			out_btn.text = "Sync and sign out" if unsynced else "Confirm sign out"
-			confirm_lbl.text = ("Sign out? Your progress is saved to your account. This browser "
-				+ "is signed out.") if not unsynced else ("Sign out? Your latest "
-				+ "progress uploads first, then this browser is signed out.")
+			out_btn.theme_type_variation = "ButtonDanger"
+			confirm_lbl.text = "You will need to sign in again to start a run. Your progress stays saved." if not unsynced \
+				else "Your latest progress uploads first, then you are signed out."
 			confirm_lbl.visible = true
 			return
 		out_btn.disabled = true
@@ -403,87 +473,66 @@ func _build_account_section() -> void:
 		AccountService.sign_out())
 
 
+func _big_primary(text: String, node_name: String) -> Button:
+	var b := UI3.button(text, &"primary")
+	b.name = node_name
+	b.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
+	return b
+
+
+func _signed_out_row(text: String, btn: Button) -> void:
+	var r := Parts.row("SignedOutRow")
+	var l := Ui5Text.label(text, "text_body", "text")
+	l.name = "Body"
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	(r["txt"] as Control).add_child(l)
+	if btn != null:
+		(r["h"] as Control).add_child(btn)
+	_add(r["row"])
+
+
 # --- small builders ---------------------------------------------------------
 
-func _section(text: String) -> void:
-	var lbl := UI3.label(text, "LabelTitle")
-	lbl.name = "Section_" + text.replace(" ", "")
-	_content.add_child(lbl)
-	_sections[text] = lbl
+func _section(title: String) -> void:
+	var sec := Parts.section(title)
+	_content.add_child(sec["plate"])
+	_cur = sec["body"]
+	_sections[title] = sec["plate"]
 
 
-## Plain info text under a row group (also used for transient status lines).
+func _add(c: Control) -> void:
+	_cur.add_child(c, true)
+
+
+## Plain info text under a row group (transient status lines).
 func _body(text: String) -> Label:
-	var lbl := UI3.label(text, "LabelMuted")
+	var lbl := Ui5Text.label(text, "text_body", "text_muted")
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_content.add_child(lbl)
+	_cur.add_child(lbl)
 	return lbl
 
 
-## One settings row: title + optional description on the left, `ctrl` (optional) on the right. Min 56.
-func _row(title: String, desc: String = "", ctrl: Control = null) -> HBoxContainer:
-	var card := UI3.plate(&"row")
-	card.custom_minimum_size = Vector2(0, ROW_MIN)
-	# Spec row margin is 12 sides / 0 top: fine for one line, cramped with a description. 16 x 12 here.
-	var rsb := UI3Theme.get_theme().get_stylebox("panel", "PanelRow").duplicate() as StyleBoxFlat
-	rsb.content_margin_left = 16
-	rsb.content_margin_right = 16
-	rsb.content_margin_top = 12
-	rsb.content_margin_bottom = 12
-	card.add_theme_stylebox_override("panel", rsb)
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 16)
-	card.add_child(h)
-	var left := VBoxContainer.new()
-	left.add_theme_constant_override("separation", 2)
-	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var t := UI3.label(title, "LabelDisplay")
-	left.add_child(t)
-	if desc != "":
-		var d := UI3.label(desc, "LabelMuted")
-		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		left.add_child(d)
-	h.add_child(left)
-	if ctrl != null:
-		ctrl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		h.add_child(ctrl)
-	_content.add_child(card)
-	return h
-
-
-## A toggle that prints On / Off as text next to the check.
-func _toggle(label: String, desc: String, pressed: bool, on_toggle: Callable, node_name := "") -> void:
-	var box := CheckBox.new()
-	box.name = node_name if node_name != "" else "%sCheck" % label.split(" ")[0]
-	box.text = "On" if pressed else "Off"
-	box.button_pressed = pressed
-	box.toggled.connect(func(on: bool) -> void:
-		box.text = "On" if on else "Off"
-		on_toggle.call(on))
-	_row(label, desc, box)
+## A switch row: label (+ description) on the left, "On" / "Off" word and Ui5Switch on the right.
+func _toggle(id: StringName, label: String, desc: String, pressed: bool, on_toggle: Callable) -> void:
+	var r := Parts.row("SettingRow", label, desc)
+	var c := Parts.switch_cell(pressed)
+	var sw := c["switch"] as Ui5Switch
+	sw.toggled.connect(func(on: bool) -> void: on_toggle.call(on))
+	(r["h"] as Control).add_child(c["cell"])
+	_add(r["row"])
+	_switches[id] = sw
 	if _first_focus == null:
-		_first_focus = box
+		_first_focus = sw
 
 
-## A slider with its value ON SCREEN (300 wide).
-func _slider(label: String, value: float, on_change: Callable) -> void:
-	var box := HBoxContainer.new()
-	box.add_theme_constant_override("separation", 12)
-	var slider := HSlider.new()
-	slider.name = "%sSlider" % label.replace(" ", "")
-	slider.min_value = 0.0
-	slider.max_value = 1.0
-	slider.step = 0.05
-	slider.value = value
-	slider.custom_minimum_size = Vector2(300, 28)
-	box.add_child(slider)
-	var value_lbl := UI3.label("%d%%" % roundi(value * 100.0))
-	value_lbl.custom_minimum_size = Vector2(56, 0)
-	box.add_child(value_lbl)
-	slider.value_changed.connect(func(v: float) -> void:
-		value_lbl.text = "%d%%" % roundi(v * 100.0)
-		on_change.call(v))
-	_row(label, "", box)
+## A slider with its value on screen.
+func _slider(id: StringName, label: String, value: float, on_change: Callable) -> void:
+	var r := Parts.row("SettingRow", label)
+	var c := Parts.slider_cell(value)
+	var sl := c["slider"] as Ui5Slider
+	sl.value_changed.connect(func(v: float) -> void: on_change.call(v))
+	(r["h"] as Control).add_child(c["cell"])
+	_add(r["row"])
+	_sliders[id] = sl
 	if _first_focus == null:
-		_first_focus = slider
+		_first_focus = sl

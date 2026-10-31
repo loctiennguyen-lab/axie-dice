@@ -157,7 +157,7 @@ func _abandon_from_run() -> void:
 	var confirm: CheckBox = null
 	for n in v.find_children("*", "", true, false):
 		if n is Button and (n as Button).text == "Abandon run": btn = n
-		if n is CheckBox and n.name == "ConfirmAbandonCheck": confirm = n
+		if n is CheckBox and n.name == "Checkbox": confirm = n
 	_assert(btn != null and confirm != null, "in-run Settings has no Abandon run")
 	if btn == null or confirm == null:
 		return

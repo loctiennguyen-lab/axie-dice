@@ -127,6 +127,9 @@ static func key_button(text: String) -> Button:
 	b.size_flags_horizontal = Control.SIZE_SHRINK_END
 	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	b.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
+	var f := UI3Theme.get_theme().get_font("font", "LabelDisplay")
+	if f != null:
+		b.add_theme_font_override("font", f)
 	set_key_on(b, false)
 	return b
 

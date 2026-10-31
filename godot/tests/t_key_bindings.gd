@@ -82,10 +82,10 @@ func _ready() -> void:
 	add_child(st)
 	for i in 4:
 		await get_tree().process_frame
-	var btn := st.find_child("Key_combat_reroll", true, false) as Button
+	var btn := st._key_buttons[&"combat_reroll"] as Button
 	_check(btn != null and btn.text == "R", "Controls lists Reroll with R")
 	btn.pressed.emit()
-	_check(btn.text == "Press a key...", "click waits for a key")
+	_check(btn.text == "Press a key…", "click waits for a key")
 	st.call("_input", _ev(KEY_ESCAPE))
 	_check(btn.text == "R" and KeyBindings.keys_of(&"combat_reroll") == [KEY_R], "Esc cancels, binding unchanged")
 	btn.pressed.emit()
@@ -95,7 +95,7 @@ func _ready() -> void:
 	var status := (st.find_child("ControlsStatus", true, false) as Label).text
 	_check(status.contains("was on") , "conflict warning shown: " + status)
 	_check(MetaState.key_bindings.has("combat_reroll"), "Settings saved the change")
-	(st.find_child("ResetKeysButton", true, false) as Button).pressed.emit()
+	(st.find_child("ResetButton", true, false) as Button).pressed.emit()
 	_check(KeyBindings.keys_of(&"combat_reroll") == [KEY_R] and MetaState.key_bindings.is_empty(), "Reset restores defaults and clears the save")
 	st.queue_free()
 
