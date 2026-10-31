@@ -1373,10 +1373,13 @@ func _place_hud(f: float) -> void:
 	var bsz := _hud_br.get_combined_minimum_size()
 	_hud_br.scale = sc
 	_hud_br.position = Vector2(w - 24.0 - bsz.x * f, h - 24.0 - bsz.y * f)
+	var lk := Rect2(_hud_bl.position, _hud_bl.get_combined_minimum_size() * f)
+	if _hud_br.position.x < lk.end.x + 16.0:   # too narrow for both on one line (1280 + long reasons): RunRow rides above LinksPlate
+		_hud_br.position.y = lk.position.y - 12.0 * f - bsz.y * f
 	_start_hint.reset_size()
 	var hs := _start_hint.get_combined_minimum_size()
 	_start_hint.scale = sc
-	_start_hint.position = Vector2(w - 24.0 - hs.x * f, h - 24.0 - bsz.y * f - 4.0 * f - hs.y * f)
+	_start_hint.position = Vector2(w - 24.0 - hs.x * f, _hud_br.position.y - 4.0 * f - hs.y * f)
 	_offline_banner.reset_size()
 	var os := _offline_banner.get_combined_minimum_size()
 	_offline_banner.scale = sc

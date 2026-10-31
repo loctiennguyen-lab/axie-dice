@@ -23,6 +23,7 @@ func _ready() -> void:
 	for sc in [1.0, 2.0 / 3.0]:
 		UI3Theme.set_scale_override(sc)
 		await _pass(sc)
+		await _states(sc)
 	UI3Theme.set_scale_override(1.0)
 	LandHub.qa = {}
 	LandHub.tier_override = 0
@@ -175,3 +176,38 @@ func _pass(sc: float) -> void:
 	_small(h.find_child("BetaResetModal", true, false), tag + " beta", sc)
 	MetaState.reset_notice_id = ""
 	await _free(h)
+
+
+## Every state: RunRow children never touch LinksPlate and every HUD button is inside the window.
+func _no_overlap(h: LandHub, tag: String) -> void:
+	await _frames(h)
+	var lk := (h.find_child("LinksPlate", true, false) as Control).get_global_rect()
+	var win := h.get_viewport().get_visible_rect().grow(1.0)
+	for n in ["DailyButton", "RunPlate", "NewRunButton"]:
+		var c := h.find_child(n, true, false) as Control
+		if c == null or not c.is_visible_in_tree():
+			continue
+		_ok(not c.get_global_rect().intersects(lk), "%s: %s clear of LinksPlate (%s vs %s)" % [tag, n, str(c.get_global_rect()), str(lk)])
+		_ok(win.encloses(c.get_global_rect()), "%s: %s inside the frame" % [tag, n])
+	for c in h.find_child("LinksPlate", true, false).find_children("*", "Button", true, false):
+		if (c as Control).is_visible_in_tree():
+			_ok(win.encloses((c as Control).get_global_rect()), "%s: %s inside the frame" % [tag, c.name])
+
+
+func _states(sc: float) -> void:
+	var tag := "scale %.2f" % sc
+	var cases := {
+		"online": [{"guest": false, "newcomer": false, "first_launch": false}, false],
+		"offline": [{"guest": false, "newcomer": false, "first_launch": false, "offline": true}, false],
+		"offline+run": [{"guest": false, "newcomer": false, "first_launch": false, "offline": true}, true],
+		"guest": [{"guest": true, "first_launch": false}, false],
+		"signed-in run": [{"guest": false, "newcomer": false, "first_launch": false}, true],
+		"loading": [{"guest": false, "newcomer": false, "first_launch": false, "loading": true}, false]}
+	for k in cases:
+		var h := await _hub(cases[k][0], cases[k][1])
+		await _no_overlap(h, "%s %s" % [tag, k])
+		await _free(h)
+	var h2 := await _hub({"guest": false, "newcomer": false, "first_launch": false}, true)
+	h2.call("_set_continue_busy", h2.find_child("RunPlate", true, false), true)
+	await _no_overlap(h2, tag + " reconnecting")
+	await _free(h2)
