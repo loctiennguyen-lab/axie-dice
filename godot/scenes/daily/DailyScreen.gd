@@ -95,10 +95,10 @@ func _play_claim_moment() -> void:
 		return
 	var rows: Array = []
 	var card := _cards_host.find_child("DailyCard", true, false)
-	var col := card.find_child("Col", true, false) if card != null else null
-	if col != null:
-		for i in range(1, mini(4, col.get_child_count())):
-			rows.append(col.get_child(i))
+	for n in ["RewardShards", "RewardStone", "RewardXp"]:
+		var row := card.find_child(n, true, false) if card != null else null
+		if row != null:
+			rows.append(row)
 	for r in rows:
 		(r as Control).pivot_offset = (r as Control).size / 2.0
 	UI3Motion.play_timeline("daily-claim", {"claim_btn": _cards_host.find_child("DailyClaim", true, false), "rows": rows},
@@ -271,9 +271,15 @@ func _refresh() -> void:
 	var c := Ui5DailyParts.card("DailyCard")
 	var v: VBoxContainer = c["col"]
 	v.add_child(Ui5DailyParts.title("Daily reward"))
-	v.add_child(Ui5DailyParts.kv(_icon("cur_shard"), "Shards", "+" + UI3.fmt(int(d.get("shards", 0)))))
-	v.add_child(Ui5DailyParts.kv(_icon("cur_stone"), "Stone", "+" + UI3.fmt(int(d.get("stone", 0)))))
-	v.add_child(Ui5DailyParts.kv(null, "Pass XP", "+" + UI3.fmt(int(d.get("xp", 0)))))
+	var r1 := Ui5DailyParts.kv(_icon("cur_shard"), "Shards", "+" + UI3.fmt(int(d.get("shards", 0))))
+	r1.name = "RewardShards"
+	v.add_child(r1)
+	var r2 := Ui5DailyParts.kv(_icon("cur_stone"), "Stone", "+" + UI3.fmt(int(d.get("stone", 0))))
+	r2.name = "RewardStone"
+	v.add_child(r2)
+	var r3 := Ui5DailyParts.kv(null, "Pass XP", "+" + UI3.fmt(int(d.get("xp", 0))))
+	r3.name = "RewardXp"
+	v.add_child(r3)
 	v.add_child(Ui5DailyParts.note("Claimed. Next one at %s." % reset if claimed else "Finish a run (win or lose) today to claim. Resets at %s." % reset))
 	_spacer(v)
 	if daily_result != "":
