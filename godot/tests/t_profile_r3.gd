@@ -57,11 +57,11 @@ func _run() -> void:
 
 	# guest + empty
 	var pv := await _view(svc)
-	_ok(pv.find_child("Banner", true, false) != null and pv.find_child("SignIn", true, false) != null, "guest: banner with Sign in")
+	_ok(pv.find_child("GuestBanner", true, false) != null and pv.find_child("SignInButton", true, false) != null, "guest: banner with Sign in")
 	_ok(pv.find_child("RunsEmpty", true, false) != null, "empty: no runs line")
-	_ok(String((pv.find_child("PlayerName", true, false) as Label).text) == "Guest", "guest name")
-	_ok("Guest" in (pv.find_child("SyncText", true, false) as Label).text, "guest sync chip")
-	_ok(String((pv.find_child("Stat_Wins", true, false).find_child("Value", true, false) as Label).text) == "0", "wins tile 0")
+	_ok(String((pv.find_child("Name", true, false) as Label).text) == "Guest", "guest name")
+	_ok("Guest" in (pv.find_child("SyncChip", true, false).find_child("Text", true, false) as Label).text, "guest sync chip")
+	_ok(String((pv.find_child("StatTile_Wins", true, false).find_child("Value", true, false) as Label).text) == "—", "wins tile — with no run")
 	pv.queue_free()
 
 	# run log: 12 runs, newest first, cap 10; aid / pure / mission counted
@@ -77,13 +77,13 @@ func _run() -> void:
 	MetaState.wins = 13
 	svc.account = {"name": "Mai", "sky_mavis": true}
 	pv = await _view(svc)
-	_ok(pv.find_child("Banner", true, false) == null, "signed in: no banner")
-	_ok(pv.find_children("Run_*", "PanelContainer", true, false).size() == 10, "ten run rows")
-	_ok(pv.find_child("Run_1", true, false).find_child("AidMark", true, false).text == "Aid 2", "Aid marker")
-	_ok(pv.find_child("Run_0", true, false).find_child("AidMark", true, false).text == "no Aid (mission)", "mission marker")
-	_ok(pv.find_child("Run_2", true, false).find_child("PurePill", true, false) != null, "pure pill")
-	_ok(pv.find_child("Run_1", true, false).find_child("PurePill", true, false) == null, "no pill when Aid used")
-	_ok(String((pv.find_child("Stat_Pure wins".replace(" ", ""), true, false).find_child("Value", true, false) as Label).text) == "12", "pure tile")
+	_ok(pv.find_child("GuestBanner", true, false) == null, "signed in: no banner")
+	_ok(pv.find_children("RunRow_*", "PanelContainer", true, false).size() == 10, "ten run rows")
+	_ok(pv.find_child("RunRow_1", true, false).find_child("AidMark", true, false).text == "Aid 2", "Aid marker")
+	_ok(pv.find_child("RunRow_0", true, false).find_child("AidMark", true, false).text == "no Aid (mission)", "mission marker")
+	_ok(pv.find_child("RunRow_2", true, false).find_child("PurePill", true, false) != null, "pure pill")
+	_ok(pv.find_child("RunRow_1", true, false).find_child("PurePill", true, false) == null, "no pill when Aid used")
+	_ok(String((pv.find_child("StatTile_Purewins", true, false).find_child("Value", true, false) as Label).text) == "12", "pure tile")
 	pv.queue_free()
 
 	# survives reload
@@ -94,35 +94,35 @@ func _run() -> void:
 	# cosmetics tab
 	pv = await _view(svc)
 	pv.set_tab(1)
-	var tiles := pv.find_children("Tile_die_*", "Button", true, false)
-	_ok(tiles.size() == ProfileView.catalog("die").size() + 1 - 1 and tiles.size() > 0 and pv.find_child("Tile_default_die", true, false) != null,
+	var tiles := pv.find_children("CosmeticTile_die_*", "Button", true, false)
+	_ok(tiles.size() == ProfileView.catalog("die").size() + 1 - 1 and tiles.size() > 0 and pv.find_child("CosmeticTile_default_die", true, false) != null,
 		"grid lists every die skin (owned or not) + the Default tile first")
-	var eq := pv.find_child("Equip", true, false) as Button
-	_ok(eq.disabled and eq.text == "Equipped", "default selected and equipped: Equip says Equipped")
+	var eq := pv.find_child("EquipButton", true, false) as Button
+	_ok(eq.disabled and eq.text == "Equip · Equipped", "default selected and equipped: Equip says Equipped")
 	pv.queue_free()
 	MetaState.cosmetics_owned.append("die_c_clay")
 	pv = await _view(svc)
 	pv.set_tab(1)
-	_ok("2 of 27" in (pv.find_child("Cat_die", true, false) as Button).text, "category count")
+	_ok("2 of 27" in (pv.find_child("DiceTab", true, false) as Button).text, "category count")
 	var other := ProfileView.catalog("die")[1]
-	(pv.find_child("Tile_" + other, true, false) as Button).pressed.emit()
+	(pv.find_child("CosmeticTile_" + other, true, false) as Button).pressed.emit()
 	await get_tree().process_frame
-	eq = pv.find_child("Equip", true, false) as Button
-	_ok(eq.disabled and eq.text == "Locked", "unowned selected: disabled, says Locked")
-	(pv.find_child("Tile_die_c_clay", true, false) as Button).pressed.emit()
+	eq = pv.find_child("EquipButton", true, false) as Button
+	_ok(eq.disabled and eq.text == "Equip · Locked", "unowned selected: disabled, says Locked")
+	(pv.find_child("CosmeticTile_die_c_clay", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
-	(pv.find_child("Equip", true, false) as Button).pressed.emit()
+	(pv.find_child("EquipButton", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
 	_ok(MetaState.equipped_die_skin == "die_c_clay", "Equip equips")
-	_ok((pv.find_child("Equip", true, false) as Button).text == "Equipped" and (pv.find_child("Equip", true, false) as Button).disabled, "button says Equipped, disabled")
-	(pv.find_child("Tile_default_die", true, false) as Button).pressed.emit()
+	_ok((pv.find_child("EquipButton", true, false) as Button).text == "Equip · Equipped" and (pv.find_child("EquipButton", true, false) as Button).disabled, "button says Equipped, disabled")
+	(pv.find_child("CosmeticTile_default_die", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
-	(pv.find_child("Equip", true, false) as Button).pressed.emit()
+	(pv.find_child("EquipButton", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
 	_ok(MetaState.equipped_die_skin == "", "Equip on the Default tile clears the skin")
-	(pv.find_child("Cat_frame", true, false) as Button).pressed.emit()
+	(pv.find_child("FramesTab", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
-	_ok(pv.find_child("Grid_frame", true, false) != null, "frames category")
+	_ok(pv.find_child("Grid", true, false) != null, "frames category")
 	pv.queue_free()
 
 	# real path: RunState.end_run puts kind + aid_used in run_log; tutorial and abandoned runs add nothing

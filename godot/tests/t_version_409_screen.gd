@@ -48,7 +48,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 		_ok(layer != null and layer.name == UpdateRequired.NODE_NAME, "%s: NetNotice shows the update modal" % code)
 		_ok(host.get_node_or_null(NetNotice.NODE_NAME) == null, "%s: no raw notice under it" % code)
-		var dl := host.find_child("DownloadButton", true, false) as Button
+		var dl := host.find_child("UpdateButton", true, false) as Button
 		_ok(dl != null and dl.has_focus(), "%s: Download is the focused primary" % code)
 		opened.clear()
 		dl.pressed.emit()

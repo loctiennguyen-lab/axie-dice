@@ -179,9 +179,20 @@ static func place_trailing(b: Button, trailing: Control, pad: int) -> void:
 	trailing.size = tw
 
 
+## The button's real style for `st`. Before the button has resolved its theme, get_theme_stylebox() can answer with the
+## grey engine default (dark fill, dark text) and the clone made from it would stick as an override. So an un-overridden
+## state is read from the theme by variation instead.
+static func _real_style(b: Button, st: String) -> StyleBox:
+	if not b.has_theme_stylebox_override(st) and String(b.theme_type_variation) != "":
+		var th: Theme = b.theme if b.theme != null else UI3Theme.get_theme()
+		if th.has_stylebox(st, b.theme_type_variation):
+			return th.get_stylebox(st, b.theme_type_variation)
+	return b.get_theme_stylebox(st)
+
+
 static func _set_side_margins(b: Button, left: int, right: int) -> void:
 	for st in ["normal", "hover", "pressed", "disabled", "hover_pressed", "focus"]:
-		var base: StyleBox = b.get_theme_stylebox(st)
+		var base: StyleBox = _real_style(b, st)
 		if base == null:
 			continue
 		if is_equal_approx(base.content_margin_left, left) and is_equal_approx(base.content_margin_right, right):

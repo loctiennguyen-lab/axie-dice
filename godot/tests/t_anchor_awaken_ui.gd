@@ -38,7 +38,7 @@ func _ready() -> void:
 	add_child(host)
 	var fx := AnchorFx.play(host, "a_volley", "PAIR: Shield Engine . MUTATION: Spiked Shield")
 	_check((fx.find_child("AwakenName", true, false) as Label).text == AnchorAdapter.awaken_name("a_volley"), "shows the awaken name")
-	_check((fx.find_child("AwakenStrip", true, false) as Label).text.contains("Shield Engine"), "PAIR line merged in")
+	_check((fx.find_child("AwakenStripText", true, false) as Label).text.contains("Shield Engine"), "PAIR line merged in")
 	await _frames(2)
 	_check(not is_instance_valid(fx), "instant: node freed")
 	# 2b the three newer awakenings show their own name + rule, and each has its own combat float line
@@ -73,6 +73,47 @@ func _ready() -> void:
 		_check(not f.running and f.skipped, "input %d jumps to the end" % k)
 		await _frames(2)
 		_check(not is_instance_valid(f), "skipped moment freed (%d)" % k)
+	# 3b round-2 review (R3): strip = pill plate 48 high + 2 dots of 16, hint bottom-right 24/24, gold disc 56 behind the glyph
+	var fxs := AnchorFx.play(host, "a_volley")
+	await _frames(2)
+	fxs._show_final()
+	await _frames(2)
+	var strip := fxs.find_child("AwakenStrip", true, false) as Control
+	_check(strip != null and strip.size.y >= 47.9 and strip.size.y <= 48.1, "AwakenStrip is 48 high (%s)" % [strip.size if strip else null])
+	_check(fxs.find_child("AwakenPip1", true, false) != null and (fxs.find_child("AwakenPip2", true, false) as Control).size.is_equal_approx(Vector2(16, 16)), "two 16 px dots")
+	var hint := fxs.find_child("AwakenHint", true, false) as Control
+	_check(hint != null and absf(fxs.size.x - hint.get_rect().end.x - 24.0) < 1.5 and absf(fxs.size.y - hint.get_rect().end.y - 24.0) < 1.5, "AwakenHint sits 24/24 from the bottom-right corner")
+	var disc := fxs.find_child("AwakenDisc", true, false) as Control
+	var gl := fxs.find_child("AwakenGlyph", true, false) as Control
+	_check(disc != null and disc.visible and disc.size == Vector2(56, 56) and gl.visible and gl.get_index() > disc.get_index(), "gold disc 56 behind the glyph")
+	var tile_bg := (fxs.card_frame.get_theme_stylebox("panel") as StyleBoxFlat).bg_color
+	_check(tile_bg.is_equal_approx(UI3Theme.color("plate")), "tile fill is the plate token (#3b2416)")
+	var dsc := fxs.card_frame.find_child("AwakenDisc", true, false) as Control
+	var gly := fxs.card_frame.find_child("AwakenGlyph", true, false) as Control
+	await _frames(2)
+	var dr := dsc.get_global_rect()
+	var gr := gly.get_global_rect()
+	_check(dr.size.x > 0.0 and dr.grow(0.5).encloses(gr) and gr.get_center().distance_to(dr.get_center()) <= 2.0,
+		"glyph sits inside the disc, centred (%s in %s)" % [gr, dr])
+	fxs.skip()
+	await _frames(2)
+	# 3c full motion, timeline runs to its natural end (no _show_final, no skip): glyph sits in the disc, centred
+	var fxm := AnchorFx.play(host, "a_volley")
+	var rest := {}
+	fxm.finished.connect(func() -> void:
+		var d2 := fxm.card_frame.find_child("AwakenDisc", true, false) as Control
+		var g2 := fxm.card_frame.find_child("AwakenGlyph", true, false) as Control
+		rest.merge({"d": d2.get_global_rect(), "g": g2.get_global_rect(), "size": g2.size, "scale": g2.scale, "rot": g2.rotation}))   # merge: a lambda cannot rebind captured locals
+	var t_end := Time.get_ticks_msec() + 8000
+	while rest.is_empty() and Time.get_ticks_msec() < t_end:
+		await _tree.process_frame
+	_check(not rest.is_empty(), "full motion: timeline reached its natural end")
+	if not rest.is_empty():
+		var dr2: Rect2 = rest["d"]
+		var gr2: Rect2 = rest["g"]
+		_check(dr2.size.x > 0.0 and dr2.grow(0.5).encloses(gr2) and gr2.get_center().distance_to(dr2.get_center()) <= 2.0,
+			"full motion end: glyph inside the disc, centred (%s in %s, scale %s rot %s size %s)" % [gr2, dr2, rest["scale"], rest["rot"], rest["size"]])
+	await _frames(2)
 	# 4 timing: normal vs Reduce flashing
 	var t_full := AnchorFx.duration()
 	MetaState.reduce_flash = true
@@ -81,6 +122,7 @@ func _ready() -> void:
 	var fr := AnchorFx.play(host, "a_volley")
 	await _frames(2)
 	_check(fr._card.get_node("AwakenName").modulate.a < 1.0 and fr._waves.get_parent() == fr, "reduced: runs (fades only, no waves drawn)")
+	_check(fr.card_frame.get_node_or_null("InnerFrame") != null, "reduced: the double frame is set at once (no timer)")
 	fr.skip()
 	MetaState.reduce_flash = false
 	await _frames(2)

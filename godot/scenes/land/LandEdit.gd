@@ -6,6 +6,8 @@ extends Node
 
 signal mode_changed(on: bool)
 
+const Parts := preload("res://scenes/land/ui5/LandEditParts.gd")
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 const PANEL_W := 480
 const PICK_PAD := 0.25
 const DRAG_MIN_PX := 6.0
@@ -43,6 +45,9 @@ var _store_btn: Button
 var _why_tip: PanelContainer
 var _why_label: Label
 var _tab_btns := {}
+var _tabs: Ui5TabBar
+var _wallet_hidden: Array = []   # [cell, was_visible] of the CurrencyPlate cells hidden while editing
+var _hint_head: Label
 
 
 func setup(hub: Node3D, ui: Control, cam: Camera3D, inst: Callable, aabb: Callable, ctx: Callable, toast: Callable, floor_fn: Callable) -> void:
@@ -110,65 +115,78 @@ func _set_pos(n: Node3D, id: String, pos: Vector3) -> void:
 # ================================================================ UI
 
 func build_ui() -> void:
-	_panel = UI3.plate(&"plate")
-	_panel.name = "EditPanel"
+	_panel = PanelParts.panel(PanelParts.plate_box("l", UI3Theme.space("16")), "EditLandPanel")
 	_panel.visible = false
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", UI3Theme.space("8"))
+	v.name = "Col"
+	v.add_theme_constant_override("separation", UI3Theme.space("12"))
 	_panel.add_child(v)
-	v.add_child(UI3.label("Edit Land", "LabelTitle"))
-	_head_score = UI3.label("", "LabelMuted")
-	_head_score.name = "ScoreLabel"
-	v.add_child(_head_score)
-	_head_cap = UI3.label("", "LabelMuted")
-	_head_cap.name = "CapLabel"
-	v.add_child(_head_cap)
-	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", UI3Theme.space("8"))
-	var grp := ButtonGroup.new()
-	for t in [["place", "Place"], ["craft", "Craft"], ["rewards", "Rewards"]]:
-		var b := UI3.tab(String(t[1]), String(t[0]) == _tab)
-		b.name = "Tab_" + String(t[0])
-		b.button_group = grp
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.pressed.connect(_set_tab.bind(String(t[0])))
-		tabs.add_child(b)
-		_tab_btns[String(t[0])] = b
-	v.add_child(tabs)
+	var ttl := Ui5Text.label("Edit Land", "text_title", "text", true)
+	ttl.name = "Title"
+	v.add_child(ttl)
+	var lines := VBoxContainer.new()
+	lines.name = "Lines"
+	lines.add_theme_constant_override("separation", 0)
+	v.add_child(lines)
+	_head_score = Ui5Text.label("", "text_body", "text_muted")
+	_head_score.name = "AestheticLine"
+	lines.add_child(_head_score)
+	_head_cap = Ui5Text.label("", "text_body", "text_muted")
+	_head_cap.name = "PlacedLine"
+	lines.add_child(_head_cap)
+	_tabs = Parts.tabs(0, func(i: int) -> void: _set_tab(["place", "craft", "rewards"][i]))
+	v.add_child(_tabs)
+	for i in 3:
+		_tab_btns[["place", "craft", "rewards"][i]] = _tabs.get_node(Parts.TAB_NAMES[i])
 	var sc := ScrollContainer.new()
 	sc.name = "Scroll"
 	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	sc.get_v_scroll_bar().custom_minimum_size.x = UI3Theme.SCROLL_W
 	_list = VBoxContainer.new()
 	_list.name = "List"
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_list.add_theme_constant_override("separation", UI3Theme.space("8"))
 	sc.add_child(_list)
 	v.add_child(sc)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", UI3Theme.space("8"))
-	_rotate_btn = UI3.button("Rotate · R", &"secondary", &"S")
+	var tools := VBoxContainer.new()
+	tools.name = "Tools"
+	tools.add_theme_constant_override("separation", UI3Theme.space("8"))
+	_rotate_btn = UI3.button("Rotate", &"secondary", &"S")
 	_rotate_btn.name = "RotateButton"
 	_rotate_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_rotate_btn.tooltip_text = "Rotate · R"
 	_rotate_btn.pressed.connect(rotate_selected)
-	row.add_child(_rotate_btn)
-	_store_btn = UI3.button("Store · Del", &"secondary", &"S")
+	tools.add_child(_rotate_btn)
+	_store_btn = UI3.button("Store", &"secondary", &"S")
 	_store_btn.name = "StoreButton"
 	_store_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_store_btn.tooltip_text = "Store · Del"
 	_store_btn.pressed.connect(store_selected)
-	row.add_child(_store_btn)
-	v.add_child(row)
-	var done := UI3.button("Done · Esc", &"primary", &"M")
+	tools.add_child(_store_btn)
+	v.add_child(tools)
+	var done := UI3.button("Done", &"primary", &"M")
 	done.name = "DoneButton"
+	done.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	done.tooltip_text = "Done · Esc"
 	done.pressed.connect(exit)
 	v.add_child(done)
 	_ui.add_child(_panel)
-	_why_tip = UI3.plate(&"notice")
-	_why_tip.name = "WhyTip"
+	# GhostHint: tooltip plate by the cursor, "Placing: <name>" and the reason when the spot is refused.
+	_why_tip = PanelParts.panel(UI3Theme.flat(UI3Theme.color("plate"), UI3Theme.radius("m"), UI3Theme.stroke("rim"),
+		UI3Theme.color("plate_rim"), Vector4(UI3Theme.space("16"), UI3Theme.space("12"), UI3Theme.space("16"), UI3Theme.space("12")),
+		PanelParts.lip(UI3Theme.color("plate_ink"))), "GhostHint")
 	_why_tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_why_tip.visible = false
-	_why_label = UI3.label("")
-	_why_tip.add_child(_why_label)
+	var hv := VBoxContainer.new()
+	hv.add_theme_constant_override("separation", UI3Theme.space("4"))
+	_why_tip.add_child(hv)
+	_hint_head = Ui5Text.label("", "text_body", "text", true)
+	_hint_head.name = "Placing"
+	hv.add_child(_hint_head)
+	_why_label = Ui5Text.label("", "text_body", "danger_text")
+	_why_label.name = "Why"
+	hv.add_child(_why_label)
 	_ui.add_child(_why_tip)
 
 
@@ -180,8 +198,8 @@ func layout() -> void:
 	var h := _ui.size.y
 	_panel.scale = Vector2(f, f)
 	_panel.custom_minimum_size = Vector2(PANEL_W, 0)
-	_panel.size = Vector2(PANEL_W, (h - 112.0 - 24.0) / f)
-	_panel.position = Vector2(w - 24.0 - PANEL_W * f, 112.0)
+	_panel.size = Vector2(PANEL_W, (h - 104.0 * f - 24.0) / f)
+	_panel.position = Vector2(w - 24.0 - PANEL_W * f, 104.0 * f)
 
 
 func _set_tab(t: String) -> void:
@@ -200,6 +218,18 @@ func refresh() -> void:
 	var nxt := LandDecor.next_milestone(score)
 	_head_score.text = "Aesthetic %d" % score + ("" if nxt.is_empty() else " · next reward at %d" % int(nxt["points"]))
 	_head_cap.text = "Placed %d of %d (Land tier %d)" % [placed.size(), LandDecor.tier_cap(MetaState.land_tier), MetaState.land_tier]
+	# remember which row/button had focus, so the rebuild below can give it back
+	var fo := get_viewport().gui_get_focus_owner() if is_inside_tree() else null
+	var f_row := -1
+	var f_id := ""
+	var f_btn := ""
+	if fo != null and _list.is_ancestor_of(fo):
+		var rw: Node = fo
+		while rw.get_parent() != _list:
+			rw = rw.get_parent()
+		f_row = rw.get_index()
+		f_id = String(rw.get_meta("decor_id", ""))
+		f_btn = String(fo.name)
 	for c in _list.get_children():
 		c.queue_free()
 		_list.remove_child(c)
@@ -212,37 +242,33 @@ func refresh() -> void:
 			_build_place()
 	var has_sel := _sel_idx >= 0 and _sel_idx < placed.size()
 	if has_sel or _sel_id != "":
-		UI3.clear_disabled_reason(_rotate_btn)
+		Ui5DisabledReason.clear(_rotate_btn)
 	else:
-		UI3.set_disabled_reason(_rotate_btn, "Rotate · pick a decor")
+		Ui5DisabledReason.apply(_rotate_btn, "Rotate · pick a decor")
 	if has_sel:
-		UI3.clear_disabled_reason(_store_btn)
+		Ui5DisabledReason.clear(_store_btn)
 	else:
-		UI3.set_disabled_reason(_store_btn, "Store · pick a decor")
-
-
-func _row(title: String, sub: String, btn: Button, selected := false) -> PanelContainer:
-	var card := UI3.plate(&"card")
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", UI3Theme.space("8"))
-	var v := VBoxContainer.new()
-	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var t := UI3.label(title)
-	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v.add_child(t)
-	var s := UI3.label(sub, "LabelMuted")
-	s.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v.add_child(s)
-	h.add_child(v)
-	h.add_child(btn)
-	card.add_child(h)
-	if selected:
-		UI3.set_card_selected(card, true, false)
-	return card
+		Ui5DisabledReason.apply(_store_btn, "Store · pick a decor")
+	if has_sel or _sel_id != "":
+		_rotate_btn.tooltip_text = "Rotate · R"
+	if has_sel:
+		_store_btn.tooltip_text = "Store · Del"
+	if f_row >= 0:
+		call_deferred("_restore_focus", f_row, f_id, f_btn)
 
 
 func _rarity_word(r: String) -> String:
 	return {"C": "Common", "R": "Rare", "E": "Epic"}.get(r, r)
+
+
+func _rarity_token(r: String) -> String:
+	return {"C": "rarity_common", "R": "rarity_rare", "E": "rarity_epic"}.get(r, "text_muted")
+
+
+func _sbtn(text: String) -> Button:
+	var b := UI3.button(text, &"secondary", &"S")
+	b.custom_minimum_size.x = 120
+	return b
 
 
 func _build_place() -> void:
@@ -255,18 +281,50 @@ func _build_place() -> void:
 			continue
 		any = true
 		var left := LandDecor.in_storage(id, _placed(), owned)
-		var b := UI3.button("Place", &"secondary", &"S")
-		b.name = "Place_" + id
-		b.custom_minimum_size.x = 120
+		var b := _sbtn("Place")
+		b.name = "PlaceButton"
 		if left <= 0:
 			UI3.set_disabled_reason(b, "All placed")
 		else:
 			b.pressed.connect(_pick_stored.bind(id))
-		_list.add_child(_row(String(d["name"]), "%s · %d in storage of %d" % [_rarity_word(String(d["rarity"])), left, have], b, id == _sel_id))
+		var rr := String(d["rarity"])
+		var prow := Parts.row("DecorRow", String(d["name"]), _rarity_word(rr), _rarity_token(rr), " · %d in storage of %d" % [left, have], b, id == _sel_id)
+		prow.set_meta("decor_id", id)
+		_list.add_child(prow, true)
 	if not any:
-		var l := UI3.label("Nothing to place yet. Craft decor with Shard in the Craft tab.", "LabelMuted")
-		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_list.add_child(l)
+		_list.add_child(Parts.empty_state("Nothing to place yet. Craft decor with Shards in the Craft tab."))
+
+
+## "[shard icon] Craft · 40" centred in the button: the button text stays (it sizes the button) but is drawn transparent.
+func _shard_cluster(cost: int) -> HBoxContainer:
+	var h := HBoxContainer.new()
+	h.name = "ShardCluster"
+	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	h.alignment = BoxContainer.ALIGNMENT_CENTER
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_theme_constant_override("separation", UI3Theme.space("8"))
+	var ic := PanelParts.icon_rect(UI3.currency_icon("cur_shard", UI3Theme.size_of("icon_s")), UI3Theme.size_of("icon_s"))
+	ic.name = "ShardIcon"
+	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(ic)
+	var l := Ui5Text.label("Craft · %d" % cost, "text_body", "text", true)
+	l.name = "ShardText"
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(l)
+	return h
+
+
+func _attach_cluster(b: Button, h: Control) -> void:
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color", "font_disabled_color"]:
+		b.add_theme_color_override(c, Color.TRANSPARENT)
+	b.add_child(h)
+	# the label's font is only known once it is in the tree, so size the button from the cluster then
+	_fit_craft_button.call_deferred(b, h)
+
+
+func _fit_craft_button(b: Button, h: Control) -> void:
+	if is_instance_valid(b) and is_instance_valid(h):
+		b.custom_minimum_size.x = h.get_combined_minimum_size().x + 2.0 * UI3Theme.space("12")
 
 
 func _build_craft() -> void:
@@ -275,16 +333,21 @@ func _build_craft() -> void:
 		if not bool(d["craftable"]):
 			continue
 		var why := LandDecor.craft_block(id, MetaState.land_tier, MetaState.land_decor_owned, MetaState.shard_pool)
-		var b := UI3.button("Craft · %d" % int(d["shard_cost"]), &"secondary", &"S")
-		b.name = "Craft_" + id
-		b.custom_minimum_size.x = 136
-		var sub := "%s · own %d of %d" % [_rarity_word(String(d["rarity"])), int(MetaState.land_decor_owned.get(id, 0)), int(d["max_own"])]
+		var b := _sbtn("Craft · %d" % int(d["shard_cost"]))
+		b.name = "CraftButton"
+		var cl := _shard_cluster(int(d["shard_cost"]))
+		var rr := String(d["rarity"])
+		var sub := " · own %d of %d" % [int(MetaState.land_decor_owned.get(id, 0)), int(d["max_own"])]
 		if why != "":
-			UI3.set_disabled_reason(b, "Locked")
+			Ui5DisabledReason.apply(b, "Locked")
 			sub += " · " + why
+			cl.free()
 		else:
 			b.pressed.connect(_craft.bind(id))
-		_list.add_child(_row(String(d["name"]), sub, b))
+			_attach_cluster(b, cl)
+		var crow := Parts.row("CraftRow", String(d["name"]), _rarity_word(rr), _rarity_token(rr), sub, b)
+		crow.set_meta("decor_id", id)
+		_list.add_child(crow, true)
 
 
 func _build_rewards() -> void:
@@ -293,16 +356,17 @@ func _build_rewards() -> void:
 		var id := String(m["id"])
 		var pts := int(m["points"])
 		var claimed := MetaState.land_milestones_claimed.has(id)
-		var b := UI3.button("Claim", &"secondary", &"S")
-		b.name = "Claim_" + id
-		b.custom_minimum_size.x = 120
+		var b := _sbtn("Claim")
+		b.name = "ClaimButton"
 		if claimed:
-			UI3.set_disabled_reason(b, "Claimed")
+			Ui5DisabledReason.apply(b, "Claimed")
 		elif score < pts:
-			UI3.set_disabled_reason(b, "Need %d" % pts)
+			Ui5DisabledReason.apply(b, "Need %d" % pts)
 		else:
 			b.pressed.connect(_claim.bind(id))
-		_list.add_child(_row("%d points · %s" % [pts, String(m["label"])], "No Stone, no power.", b))
+		var wrow := Parts.row("RewardRow", "%d points · %s" % [pts, String(m["label"])], "", "", "No Stone, no power.", b)
+		wrow.set_meta("milestone_id", id)
+		_list.add_child(wrow, true)
 
 
 func _craft(id: String) -> void:
@@ -332,6 +396,7 @@ func _pick_stored(id: String) -> void:
 	_drop_ghost()
 	_ghost = _make_node(id, Vector3(0, 0, 0), _pend_rot)
 	if _ghost != null:
+		_ghost.name = "PlacingGhost"
 		_hub.add_child(_ghost)
 		_ghost.visible = false
 	_update_ring(Vector3.ZERO, id, false)
@@ -340,14 +405,51 @@ func _pick_stored(id: String) -> void:
 
 # ================================================================ enter / leave
 
+func _restore_focus(row: int, id: String, btn: String) -> void:
+	if not active or _list.get_child_count() == 0:
+		return
+	var rw: Node = null
+	for c in _list.get_children():
+		if id != "" and String(c.get_meta("decor_id", "")) == id:
+			rw = c
+	if rw == null:
+		rw = _list.get_child(mini(row, _list.get_child_count() - 1))
+	var bs := rw.find_children("*", "Button", true, false)
+	for b in bs:
+		if String(b.name) == btn and (b as Button).focus_mode != Control.FOCUS_NONE:
+			(b as Button).grab_focus()
+			return
+	for b in bs:
+		if (b as Button).focus_mode != Control.FOCUS_NONE:
+			(b as Button).grab_focus()
+			return
+	var tb := _tab_btns.get(_tab) as Button
+	if tb != null:
+		tb.grab_focus()
+
+
+func _focus_tab() -> void:
+	var tb := _tab_btns.get(_tab) as Button
+	if active and tb != null and tb.is_visible_in_tree():
+		tb.grab_focus()
+
+
+func _focus_hud_button() -> void:
+	var eb := get_tree().root.find_child("EditLandButton", true, false) as Control
+	if eb != null and eb.is_visible_in_tree():
+		eb.grab_focus()
+
+
 func enter() -> void:
 	if active:
 		return
 	active = true
 	_panel.visible = true
+	_hide_wallet_cells(true)
 	layout()
 	refresh()
 	mode_changed.emit(true)
+	call_deferred("_focus_tab")
 
 
 func exit() -> void:
@@ -361,7 +463,28 @@ func exit() -> void:
 	_why_tip.visible = false
 	active = false
 	_panel.visible = false
+	_hide_wallet_cells(false)
 	mode_changed.emit(false)
+	call_deferred("_focus_hud_button")
+
+
+## Frame e01: while editing, the CurrencyPlate shows only the settings button (cells hidden, put back on exit).
+func _hide_wallet_cells(on: bool) -> void:
+	if on:
+		var w: Variant = _hub.get("_wallet")
+		if w is Control:
+			for n in ["ShardValue", "StoneValue", "GemValue"]:
+				var c := (w as Control).find_child(n, true, false) as Control
+				if c != null:
+					_wallet_hidden.append([c, c.visible])
+					c.visible = false
+	else:
+		for e in _wallet_hidden:
+			if is_instance_valid(e[0]):
+				(e[0] as Control).visible = bool(e[1])
+		_wallet_hidden.clear()
+	if _hub.has_method("_layout"):
+		_hub.call("_layout")
 
 
 func _cancel_drag() -> void:
@@ -407,8 +530,14 @@ func _hide_ring() -> void:
 
 
 func _show_why(text: String, at: Vector2) -> void:
+	var head := ""
+	if _sel_id != "" and not _dragging:
+		head = "Placing: %s" % String(LandDecor.def(_sel_id)["name"])
+	_hint_head.text = head
+	_hint_head.visible = head != ""
 	_why_label.text = text
-	_why_tip.visible = text != ""
+	_why_label.visible = text != ""
+	_why_tip.visible = head != "" or text != ""
 	_why_tip.reset_size()
 	_why_tip.position = at + Vector2(24, 24)
 

@@ -6,6 +6,8 @@ extends RefCounted
 const _ConfirmBarUi := preload("res://scenes/shared/ui5/ConfirmBar.gd")
 const _PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 const _RewardCardUi := preload("res://scenes/shared/ui5/RewardCard.gd")
+const _RuleCardUi := preload("res://scenes/run_map/ui5/RuleCard.gd")
+const _CoreCardUi := preload("res://scenes/run_map/ui5/CoreCard.gd")
 
 var ctrl: RunMapController
 
@@ -74,15 +76,22 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	UI3Theme.sync_scale()   # the 1280 text floor follows the window
 	var host := ctrl._open_ui3_screen()
 	var col := VBoxContainer.new()
-	col.name = "RewardPick"
+	var core_mode := ctrl._core_offer_active()
+	for rr1 in RunState.pending_rewards:
+		if bool((rr1 as Dictionary).get("rule", false)):
+			core_mode = false   # the Run rule pick keeps the reward layout (R2b)
+	var rule_mode := false
+	for rr2 in RunState.pending_rewards:
+		rule_mode = rule_mode or bool((rr2 as Dictionary).get("rule", false))
+	col.name = "RunRuleOffer" if rule_mode else ("CoreOffer" if core_mode else "RewardPick")
 	col.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	col.offset_top = UI3Theme.size_of("d_reward_top")
+	col.offset_top = UI3Theme.size_of("offer_top" if (core_mode or rule_mode) else "d_reward_top")
 	col.add_theme_constant_override("separation", UI3Theme.space("32"))
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	host.add_child(col)
 
 	var head := HBoxContainer.new()
-	head.name = "Head"
+	head.name = "Header"
 	head.alignment = BoxContainer.ALIGNMENT_CENTER
 	head.add_theme_constant_override("separation", UI3Theme.space("20"))
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -99,24 +108,37 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	title_lbl.name = "Title"
 	head.add_child(title_lbl)
 	if ctrl._core_offer_active() and not core_rule:
-		var tier_line := _PanelParts.on_view(_PanelParts.text(tr(ctrl.CORE_TIER_HINT)))   # S3-9: say what the tier words mean
-		tier_line.name = "CoreTierHint"
-		head.add_child(tier_line)
+		# TierLadder: Moss / Amber / Crystal; the tooltip says what the tier words mean (S3-9).
+		var ladder := HBoxContainer.new()
+		ladder.name = "TierLadder"
+		ladder.add_theme_constant_override("separation", UI3Theme.space("8"))
+		ladder.mouse_filter = Control.MOUSE_FILTER_STOP
+		ladder.add_child(_PanelParts.on_view(_PanelParts.text(tr("Core tier:"))))
+		for lt in 3:
+			if lt > 0:
+				ladder.add_child(_PanelParts.on_view(_PanelParts.text("\u2192", "text_body", "text", false)))
+			ladder.add_child(_CoreCardUi.tier_chip(lt, tr(ctrl._CORE_TIER_NAME[lt])), true)   # TierChip, TierChip2, TierChip3
+		ladder.add_child(_PanelParts.on_view(_PanelParts.text(tr("(strongest)"))))
+		UI3Tooltip.bind(ladder, tr(ctrl.CORE_TIER_HINT))
+		head.add_child(ladder)
 	# Gacha pack: the NEXT pick's tier is never shown anywhere (Liam 22/10).
-	head.add_child(_shard_chip(RunState.shards_this_run))
+	var shard_chip := _shard_chip(RunState.shards_this_run)
+	if rule_mode:
+		shard_chip.name = "ShardPill"
+	head.add_child(shard_chip)
 
 	ctrl._overlay_vbox = HBoxContainer.new()
 	ctrl._overlay_vbox.name = "CardRow"
 	ctrl._overlay_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	ctrl._overlay_vbox.add_theme_constant_override("separation", UI3Theme.space("32"))
 	# Fixed card band (cards are reward_card_h): Take never moves between states (GU 3).
-	ctrl._overlay_vbox.custom_minimum_size.y = UI3Theme.size_of("reward_card_h")
+	ctrl._overlay_vbox.custom_minimum_size.y = UI3Theme.size_of("rule_card_h" if rule_mode else ("core_card_h" if core_mode else "reward_card_h"))
 	ctrl._overlay_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ctrl._overlay_vbox.sort_children.connect(_lift_selected_card)
 	col.add_child(ctrl._overlay_vbox)
 
 	ctrl._reward_cards.clear()
-	ctrl._reward_sel = 0
+	ctrl._reward_sel = -1   # UI-05: nothing is chosen until the player picks (Take stays off)
 	for reward in RunState.pending_rewards:
 		_add_reward_card(reward)
 
@@ -137,7 +159,7 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 		if not core_rule:
 			var lc := _PanelParts.on_view(_PanelParts.text((tr("%d reroll left") if left == 1 else tr("%d rerolls left")) % left,
 				"text_title", "text", true))
-			lc.name = "RerollLeft"
+			lc.name = "RerollCounter"
 			actions.add_child(lc)
 	else:
 		reroll = _PanelParts.button((tr("Reroll · %d left")) % left, &"secondary", &"M")
@@ -175,9 +197,17 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 		chain[k].focus_next = chain[k].get_path_to(nxt)
 		chain[k].focus_previous = chain[k].get_path_to(prv)
 
-	_select_reward(0)
+	_select_reward(-1)
+	_sync_face_down(col, host)
 	if not ctrl._reward_cards.is_empty():
-		ctrl._reward_cards[0].grab_focus.call_deferred()
+		var first_card: Control = ctrl._reward_cards[0]
+		if ctrl._reveal != null and is_instance_valid(ctrl._reveal) and ctrl._reveal.running:
+			# Face-down cards carry no focus ring (the design has none); card 0 gets focus once they are turned.
+			ctrl._reveal.finished.connect(func() -> void:
+				if is_instance_valid(first_card) and first_card.is_inside_tree():
+					first_card.grab_focus(), CONNECT_ONE_SHOT)
+		else:
+			first_card.grab_focus.call_deferred()
 	else:
 		take.grab_focus.call_deferred()
 
@@ -229,12 +259,87 @@ func _ask_skip_reward(col: VBoxContainer) -> void:
 
 
 func _select_reward(i: int) -> void:
-	ctrl._reward_sel = clampi(i, 0, maxi(ctrl._reward_cards.size() - 1, 0))
+	ctrl._reward_sel = -1 if i < 0 or ctrl._reward_cards.is_empty() else clampi(i, 0, ctrl._reward_cards.size() - 1)
 	for k in ctrl._reward_cards.size():
 		if is_instance_valid(ctrl._reward_cards[k]) and ctrl._reward_cards[k].has_method("set_selected"):   # rebuilt on reroll / chained offers
 			ctrl._reward_cards[k].call("set_selected", k == ctrl._reward_sel)
 	if ctrl._overlay_vbox != null and is_instance_valid(ctrl._overlay_vbox):
 		ctrl._overlay_vbox.queue_sort()
+	_refresh_take()
+
+
+## Take is off until a card is picked (and, on a face-down Core offer, until the cards are revealed) and says why;
+## the label and the Space keycap come back when it is on. Chosen cards are never logged.
+func _refresh_take() -> void:
+	if ctrl._overlay_root == null or not is_instance_valid(ctrl._overlay_root):
+		return
+	var tb := ctrl._overlay_root.find_child("TakeButton", true, false) as Button
+	if tb == null or ctrl._reward_cards.is_empty():
+		return
+	var face_down: bool = ctrl._reveal != null and is_instance_valid(ctrl._reveal) and ctrl._reveal.running
+	if face_down or ctrl._reward_sel < 0:
+		var why := "Reveal the cards first"
+		if not face_down:
+			why = "Pick a card"
+			var r0: Dictionary = RunState.pending_rewards[0] if RunState.pending_rewards.size() > 0 else {}
+			if bool(tb.get_meta("treasure", false)):
+				why = "Pick a reward"
+			elif bool(r0.get("rule", false)):
+				why = "Pick a rule"
+			elif ctrl._is_core_card(r0):
+				why = "Pick a Core"
+		_set_take_cap(tb, false)
+		if tb.has_meta("ui3_label"):
+			tb.text = tr(why)
+		else:
+			UI3.set_disabled_reason(tb, tr(why))
+	else:
+		if tb.disabled and tb.has_meta("ui3_label"):
+			UI3.clear_disabled_reason(tb)
+		_set_take_cap(tb, true)
+
+
+## Space keycap after the Take caption (only while Take is on). Placed by HudStyle once the button is in the tree.
+func _set_take_cap(tb: Button, on: bool) -> void:
+	var cap := tb.get_node_or_null("KeyCap") as PanelContainer
+	var pad := int(tb.get_theme_stylebox("normal").content_margin_left)
+	if not on:
+		if cap != null:
+			tb.remove_child(cap)
+			cap.queue_free()
+			Ui5HudStyle.reserve_trailing(tb, null, pad)
+		return
+	if cap == null:
+		cap = Ui5Keycap.make(KeyBindings.text(KeyBindings.COMBAT_END_TURN), &"primary")
+		cap.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		tb.add_child(cap)
+		if not tb.has_meta("cap_wired"):
+			tb.set_meta("cap_wired", true)   # one resized hook per button, however often the cap is re-added
+			tb.resized.connect(func() -> void:
+				var c := tb.get_node_or_null("KeyCap") as Control
+				if c != null:
+					Ui5HudStyle.place_trailing(tb, c, pad))
+	Ui5HudStyle.place_trailing.call_deferred(tb, cap, pad)
+
+
+## Face-down Core offer: Take reads "Reveal the cards first", the rerolls counter is hidden and "Click or Space to skip"
+## shows, all until the reveal is over.
+func _sync_face_down(col: Control, host: Control) -> void:
+	_refresh_take()
+	if ctrl._reveal == null or not is_instance_valid(ctrl._reveal) or not ctrl._reveal.running:
+		return
+	var counter := col.find_child("RerollCounter", true, false) as Control
+	if counter != null:
+		counter.visible = false
+	var hint := Ui5SkipHint.new()
+	host.add_child(hint)
+	hint.place_in.call_deferred(ctrl._overlay_root.get_viewport_rect().size)
+	ctrl._reveal.finished.connect(func() -> void:
+		if is_instance_valid(hint):
+			hint.queue_free()
+		if is_instance_valid(counter):
+			counter.visible = true
+		_refresh_take(), CONNECT_ONE_SHOT)
 
 
 ## The selected card sits 12 px above the row (design `.reward-card.is-selected{margin-top:-12px}`). Runs after
@@ -246,11 +351,11 @@ func _lift_selected_card() -> void:
 
 
 func _take_selected_reward() -> void:
-	if ctrl._taking:
-		return
+	if ctrl._taking or ctrl._reward_sel < 0:
+		return   # nothing picked: Space / Enter / Take do nothing (and the reveal is not skipped)
 	if ctrl._reveal != null and is_instance_valid(ctrl._reveal):
 		ctrl._reveal.skip()
-	if ctrl._reward_sel >= 0 and ctrl._reward_sel < RunState.pending_rewards.size():
+	if ctrl._reward_sel < RunState.pending_rewards.size():
 		var r: Dictionary = RunState.pending_rewards[ctrl._reward_sel]
 		if String(r.get("t", "")) in ["chaos", "curse"]:
 			_ask_lasting_reward(r)
@@ -336,6 +441,8 @@ func _start_core_reveal(shake_host: Control) -> void:
 		ctrl._reward_cards[slot].set_meta("jackpot_card", jp)
 		ctrl._reveal.start([ctrl._reward_cards[slot]], rt, UI3Gacha.first_seen(str(RunState.get("_core_base_seed")), rt), jp, shake_host,
 			float(UI3Gacha.timing().get("reroll_in_sec", 0.5)))
+		for cv in ctrl._reveal._covers:
+			(cv as Node).name = "CoreCardBack"
 		_reroll_note(ctrl._reward_cards[slot])
 		return
 	var tier := 0
@@ -346,6 +453,10 @@ func _start_core_reveal(shake_host: Control) -> void:
 	var from_t := UI3Gacha.capped_from(tier)
 	if from_t > tier:
 		ctrl.gacha_log.append("near_miss:%d>%d" % [from_t, tier])
+		for cc in ctrl._reward_cards:   # CapStrip on the one card the Crystal cap pulled down
+			if cc.has_method("add_cap_strip") and int(cc.get("tier")) == tier:
+				cc.call("add_cap_strip", tr("Crystal cap reached \u2014 max %d Crystal Cores this run") % CoreOffer.t_cap(String(RunState.get("mode"))))
+				break
 	var first := UI3Gacha.first_seen(str(RunState.get("_core_base_seed")), from_t if from_t > tier else tier)
 	ctrl._reveal = GachaReveal.new()
 	ctrl._reveal.name = "GachaReveal"
@@ -358,30 +469,59 @@ func _start_core_reveal(shake_host: Control) -> void:
 			ctrl._reward_cards[k].set_meta("jackpot_card", hit)
 			jackpot = jackpot or hit
 	ctrl._reveal.start(ctrl._reward_cards, tier, first, jackpot, shake_host, -1.0, from_t)
+	for cv in ctrl._reveal._covers:
+		(cv as Node).name = "CoreCardBack"
+	_play_reveal_moment(tier, shake_host)
+
+
+## UI-05 b23 lane M2: the `core-reveal` rows GachaReveal does not draw (name punch, sparks, Crystal shake), timed from
+## the real first flip. GachaReveal still owns backs / aura / flips; the table is the shared timing.
+func _play_reveal_moment(tier: int, shake_host: Control) -> void:
+	var rv: GachaReveal = ctrl._reveal
+	if rv == null or not is_instance_valid(rv) or not rv.running or rv._plan.is_empty() or UI3Gacha.is_instant():
+		return
+	var tg := {}
+	for k in ctrl._reward_cards.size():
+		var card: Control = ctrl._reward_cards[k]
+		tg["card%d" % (k + 1)] = card
+		var nm := card.find_child("CoreName", true, false)
+		if nm is CanvasItem:
+			var nc := nm as Control
+			nc.pivot_offset = nc.size * 0.5
+			# The card has not been laid out yet at this point: keep the pivot on the centre through every resize.
+			nc.resized.connect(func() -> void: nc.pivot_offset = nc.size * 0.5)
+			tg["name%d" % (k + 1)] = nm
+	var first_flip_ms: float = float((rv._plan["flips"] as Array)[0]) * 1000.0
+	# A jackpot card is already shaken by GachaReveal: the table's Crystal shake would shake twice.
+	var only := ["name_1", "name_2", "name_3", "sparks_1", "sparks_2", "sparks_3"]
+	if not bool(rv._plan.get("jackpot", false)):
+		only.append("shake_last")
+	var tl := UI3Motion.play_timeline("core-reveal", tg, {"host": rv, "tier": tier, "delay_ms": first_flip_ms - 840.0,
+		"tier_color": UI3Gacha.tier_color(tier), "only": only,
+		"shake": func(px: float, sec: float) -> void:
+			if shake_host != null and is_instance_valid(shake_host):
+				UI3Motion.wobble(shake_host, px, sec)})
+	# click / Space skips GachaReveal ("skip" is logged before its `finished`); the timeline follows. A natural end must not
+	# cut the sparks that are still flying.
+	rv.finished.connect(func() -> void:
+		if tl != null and tl.running() and rv.events.has("skip"):
+			tl.skip())
 
 
 ## One UI-05 RewardCard (31-reward): Category + RarityChip, RewardArt (rarity edge), RewardName, then the body:
-## RewardBody text, or GainBox + GambleBox / CurseBox (always in that order) for Chaos / Curse. A Core shows its tier
-## (Moss / Amber / Crystal) in the RarityChip, the axis / partner / house chips, and its own Reroll at the bottom.
+## RewardBody text, or GainBox + GambleBox / CurseBox (always in that order) for Chaos / Curse. Core cards
+## go to _add_core_card (CoreCard) and Run rules to _add_rule_card (RuleCard).
 ## Real strings come from the offer (RewardGenerator / CoreOffer), never from the mockup samples.
 func _add_reward_card(r: Dictionary, _wide := false) -> PanelContainer:
 	var t := String(r.get("t", ""))
 	var rar := ctrl._reward_rarity(r)
-	var is_core := ctrl._is_core_card(r)
-	var is_rule := is_core and bool(r.get("rule", false))
+	if ctrl._is_core_card(r):
+		return _add_rule_card(r) if bool(r.get("rule", false)) else _add_core_card(r)
 	var accent := ctrl._rarity_color(rar)
 	var rar_word := ctrl._rarity_name(rar)
-	var tier := clampi(int(r.get("tier", 0)), 0, 2)
-	if is_core and not is_rule:
-		accent = UI3Theme.color(ctrl._CORE_TIER_TOKEN[tier])
-		rar_word = tr(ctrl._CORE_TIER_NAME[tier])
 	var idx := ctrl._reward_cards.size()
 	var kind_text := String(ctrl._REWARD_KIND.get(t, "Reward"))
-	if is_core:
-		kind_text = "Run rule" if is_rule else "Core"
 	var icon_tex := UI3.icon(String(ctrl._REWARD_ICON.get(t, "ui_mooncard")))
-	if is_core:
-		icon_tex = UI3.icon(String(CorePanel.AXIS_ICON.get(String(r.get("axis", "")), "face_buff")))
 
 	# A relic offer arrives as title "RELIC", desc = relic name, sub = effect text.
 	var name_text := String(r.get("title", ""))
@@ -394,21 +534,13 @@ func _add_reward_card(r: Dictionary, _wide := false) -> PanelContainer:
 	if t == "chaos":
 		name_text = String(r.get("desc", ""))
 	name_text = UI3.title_case(UI3.player_text(name_text))
-	if String(r.get("key", "")) == "rule_none":
-		body_text = tr("Play this run with the base rules.")
 	var dsc := UI3.describe(body_text)
 	body_text = ("MP %d · " % int(dsc["mp"]) if int(dsc["mp"]) >= 0 else "") + String(dsc["text"])
 
 	var card := _RewardCardUi.new()
 	card.name = "RewardCard%d" % idx
 	card.setup(tr(kind_text), rar_word, accent, icon_tex, name_text)
-	var col: VBoxContainer = card.column
-	if is_rule:
-		card.rarity_chip.visible = false   # a Run rule has no rarity or tier
-	if is_core and not is_rule:
-		card.rarity_chip.mouse_filter = Control.MOUSE_FILTER_STOP
-		UI3Tooltip.bind(card.rarity_chip, tr(ctrl.CORE_TIER_HINT))
-	card.focus_entered.connect(_select_reward.bind(idx))
+	var col: VBoxContainer = card.text_box
 	card.gui_input.connect(func(ev: InputEvent) -> void:
 		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
 			_select_reward(idx)
@@ -420,33 +552,6 @@ func _add_reward_card(r: Dictionary, _wide := false) -> PanelContainer:
 				tb.grab_focus())
 	ctrl._overlay_vbox.add_child(card)
 	ctrl._reward_cards.append(card)
-	if is_core:
-		card.mouse_entered.connect(_dm_core_hover)
-		card.focus_entered.connect(_dm_core_hover)
-	var crystal := is_core and not is_rule and tier >= 2
-	if crystal:
-		# A3: Crystal cards keep their own bevelled silhouette and extra rings, and rise on hover.
-		card.set_meta("prism_accent", accent)
-		card.use_prism(func(sel: bool) -> StyleBoxFlat: return UI3Gacha.prism_style(accent, sel))
-		card.add_child(UI3Gacha.prism_frame(accent))
-		card.mouse_entered.connect(_prism_hover.bind(card, true))
-		card.mouse_exited.connect(_prism_hover.bind(card, false))
-	if is_rule and String(r.get("key", "")) != "rule_none":
-		card.art_icon.modulate = ctrl.rule_tint(String(r.get("key", "")))
-
-	if is_core and not is_rule:
-		# Axis chip (glyph + word), partner / combo labels and the house chip. The tier word is the RarityChip.
-		var chips := HFlowContainer.new()
-		chips.name = "CoreChips"
-		chips.add_theme_constant_override("h_separation", UI3Theme.space("8"))
-		chips.add_theme_constant_override("v_separation", UI3Theme.space("8"))
-		chips.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var axis := String(r.get("axis", ""))
-		chips.add_child(CorePanel.word_chip(tr(String(CorePanel.AXIS_NAME.get(axis, "Core"))),
-			String(CorePanel.AXIS_ICON.get(axis, "face_buff")), UI3Theme.color("text_muted"), "AxisChip"))
-		_add_combo_labels(col, String(r.get("key", "")), chips)
-		RunMapController._add_house_chip(card, chips, String(r.get("key", "")))
-		col.add_child(chips)
 	if t in ["chaos", "curse"]:
 		var tp := _trade_parts(r)
 		col.add_child(_RewardCardUi.trade_box(&"gain", String(tp["gain"])))
@@ -459,25 +564,46 @@ func _add_reward_card(r: Dictionary, _wide := false) -> PanelContainer:
 	desc.custom_minimum_size.x = body_w
 	desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	col.add_child(desc)
-	if is_rule and ctrl._RULE_PRICE.has(String(r.get("key", ""))):
-		var pb := VBoxContainer.new()
-		pb.name = "RulePrice"
-		pb.add_child(_PanelParts.text(tr("Price"), "text_body", "text_muted"))
-		var pl := _PanelParts.text("− " + tr(String(ctrl._RULE_PRICE[String(r.get("key", ""))])), "text_body", "anchor_price", true)
-		pl.name = "PriceText"
-		pl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		pl.custom_minimum_size.x = body_w
-		pb.add_child(pl)
-		col.add_child(pb)
-	if is_core and not is_rule:
-		var rr := _PanelParts.button(tr("Reroll"), &"secondary", &"M")
-		rr.name = "CardReroll%d" % idx
-		rr.size_flags_vertical = Control.SIZE_SHRINK_END
-		if RunState.core_can_reroll(idx):
-			rr.pressed.connect(_on_core_card_reroll.bind(idx))
-		else:
-			UI3.set_disabled_reason(rr, tr("Rerolled") if RunState.core_rerolled_slots.has(idx) else tr("No rerolls left"))
-		col.add_child(rr)
+	return card
+
+
+## One Run rule card (05-run-rule-offer): Kind, ArtBox (settings glyph in the house colour), RuleName, RuleText and, for a real
+## rule, the PriceBox. "No Rule" has no PriceBox. Selecting works like every pick: nothing is chosen until the player picks.
+func _add_rule_card(r: Dictionary) -> PanelContainer:
+	var idx := ctrl._reward_cards.size()
+	var key := String(r.get("key", ""))
+	# Offer shape (like a relic offer): title = "RUN RULE", desc = the rule name, sub = its effect.
+	var name_text := UI3.title_case(UI3.player_text(String(r.get("desc", ""))))
+	var body_text := String(r.get("sub", ""))
+	if key == "rule_none":
+		body_text = tr("Play this run with the base rules.")
+	var dsc := UI3.describe(body_text)
+	body_text = ("MP %d \u00b7 " % int(dsc["mp"]) if int(dsc["mp"]) >= 0 else "") + String(dsc["text"])
+	var price := ""
+	if key != "rule_none" and ctrl._RULE_PRICE.has(key):
+		price = tr(String(ctrl._RULE_PRICE[key]))
+	var used: Array = []
+	for oc in ctrl._reward_cards:
+		if is_instance_valid(oc) and oc.has_meta("tint_index"):
+			used.append(int(oc.get_meta("tint_index")))
+	var ti: int = _RuleCardUi.tint_index(key, ctrl._RULE_TINTS.size(), used)
+	var card := _RuleCardUi.new()
+	card.name = "RuleCard%d" % idx
+	card.set_meta("tint_index", ti)
+	card.setup_rule(UI3Theme.color(String(ctrl._RULE_TINTS[ti])), tr("Run rule"), UI3.icon("ui_settings"), name_text, body_text, price)
+	card.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			_select_reward(idx)
+			card.grab_focus()
+		elif ev.is_action_pressed("ui_accept") and not ev.is_echo():
+			_select_reward(idx)
+			var tb := ctrl._overlay_root.find_child("TakeButton", true, false) as Control
+			if tb != null and tb.is_visible_in_tree():
+				tb.grab_focus())
+	ctrl._overlay_vbox.add_child(card)
+	ctrl._reward_cards.append(card)
+	card.mouse_entered.connect(_dm_core_hover)
+	card.focus_entered.connect(_dm_core_hover)
 	return card
 
 
@@ -600,3 +726,72 @@ func _on_reward_reroll(title: String) -> void:
 			NetNotice.show(ctrl, String(res["code"]), _on_reward_reroll.bind(title))
 		return
 	_show_reward_overlay(title)
+
+
+## One UI-05 CoreCard (47-core-offer): tier chip + category chip + partner / house chips, rule text, own Reroll.
+func _add_core_card(r: Dictionary) -> PanelContainer:
+	var idx := ctrl._reward_cards.size()
+	var tier := clampi(int(r.get("tier", 0)), 0, 2)
+	var key := String(r.get("key", ""))
+	var axis := String(r.get("axis", ""))
+	var name_text := String(r.get("title", ""))
+	var body_text := String(r.get("desc", ""))
+	if String(r.get("t", "")) == "relic" and String(r.get("sub", "")) != "":
+		name_text = String(r.get("desc", ""))
+		body_text = String(r.get("sub", ""))
+	elif String(r.get("sub", "")) != "":
+		body_text += "\n" + String(r.get("sub", ""))
+	name_text = UI3.title_case(UI3.player_text(name_text))
+	var dsc := UI3.describe(body_text)
+	body_text = ("MP %d \u00b7 " % int(dsc["mp"]) if int(dsc["mp"]) >= 0 else "") + String(dsc["text"])
+	var card := _CoreCardUi.new()
+	card.name = "CoreCard%d" % idx
+	card.setup_core(tier, tr(ctrl._CORE_TIER_NAME[tier]), UI3.icon(String(CorePanel.AXIS_ICON.get(axis, "face_buff"))), name_text, body_text)
+	card.rarity_chip.mouse_filter = Control.MOUSE_FILTER_STOP
+	UI3Tooltip.bind(card.rarity_chip, tr(ctrl.CORE_TIER_HINT))
+	card.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			_select_reward(idx)
+			card.grab_focus()
+		elif ev.is_action_pressed("ui_accept") and not ev.is_echo():
+			_select_reward(idx)
+			var tb := ctrl._overlay_root.find_child("TakeButton", true, false) as Control
+			if tb != null and tb.is_visible_in_tree():
+				tb.grab_focus())
+	ctrl._overlay_vbox.add_child(card)
+	ctrl._reward_cards.append(card)
+	card.mouse_entered.connect(_dm_core_hover)
+	card.focus_entered.connect(_dm_core_hover)
+	if tier >= 2:
+		# A3: Crystal cards keep their own bevelled silhouette and extra rings, and rise on hover.
+		var accent: Color = card.accent
+		card.set_meta("prism_accent", accent)
+		card.use_prism(func(sel: bool) -> StyleBoxFlat: return UI3Gacha.prism_style(accent, sel))
+		card.add_child(UI3Gacha.prism_frame(accent))
+		card.mouse_entered.connect(_prism_hover.bind(card, true))
+		card.mouse_exited.connect(_prism_hover.bind(card, false))
+	card.chip_row.add_child(CorePanel.word_chip(tr(String(CorePanel.AXIS_NAME.get(axis, "Core"))),
+		String(CorePanel.AXIS_ICON.get(axis, "face_buff")), UI3Theme.color("text_muted"), "CategoryChip"))
+	_add_combo_labels(card.column, key, card.chip_row)
+	var tag := card.column.get_node_or_null("ComboTag")
+	if tag != null:
+		card.column.remove_child(tag)
+		card.body_box.add_child(tag)
+		card.body_box.move_child(tag, card.name_label.get_index() + 1)
+	var wc := card.chip_row.get_node_or_null("WorksWith")
+	if wc != null:
+		wc.name = "ComboChip"
+	RunMapController._add_house_chip(card, card.chip_row, key)
+	var hc := card.chip_row.get_node_or_null("HouseChip")
+	if hc != null:
+		hc.name = "HouseTag"
+	var rr := _PanelParts.button(tr("Reroll"), &"secondary", &"M")
+	rr.name = "RerollButton"
+	rr.size_flags_vertical = Control.SIZE_SHRINK_END
+	if RunState.core_can_reroll(idx):
+		rr.pressed.connect(_on_core_card_reroll.bind(idx))
+	else:
+		UI3.set_disabled_reason(rr, tr("Rerolled") if RunState.core_rerolled_slots.has(idx) else tr("No rerolls left"))
+	card.reroll_button = rr
+	card.column.add_child(rr)
+	return card

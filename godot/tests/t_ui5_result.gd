@@ -101,6 +101,10 @@ func _geometry(v: Node, tag: String, scale: float) -> void:
 				break
 
 
+func _Pass_cfg_id() -> String:
+	return String(MetaState.pass_season.get("id", "s1"))
+
+
 func _ready() -> void:
 	print("=== t_ui5_result: start ===")
 	_guard.capture()
@@ -132,6 +136,10 @@ func _ready() -> void:
 		for f in FILLER:
 			_check(not joined.contains(f), "%s: filler string '%s' on screen" % [tag, f])
 		_check(joined.contains("+87") and joined.contains("Seed 777001"), "%s: run numbers come from the run" % tag)
+		var shard_re := RegEx.create_from_string("\\d Shard\\b")
+		_check(shard_re.search(joined) == null, "%s: Pass card / screen writes Shards for an amount" % tag)
+		var xp0_line := PassSummary.line(PassSummary.info(PassV2.new_state(String(_Pass_cfg_id()))))
+		_check(xp0_line.contains("300 Shards") and shard_re.search(xp0_line) == null, "%s: Pass line says Shards: %s" % [tag, xp0_line])
 		# save record -> SavedLine; copy -> CopiedLine
 		var save := v.find_child("SaveRecordButton", true, false) as Button
 		save.pressed.emit()

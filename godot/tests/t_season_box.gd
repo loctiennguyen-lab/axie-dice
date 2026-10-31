@@ -132,8 +132,8 @@ func _run() -> void:
 	await get_tree().process_frame
 	s.select_tab("seasonal")
 	await get_tree().process_frame
-	_ok(s.find_child("SeasonOpen", true, false) != null and s.find_child("SeasonCost", true, false) != null, "Open button with ticket cost chip")
-	_ok(s.find_child("Open1", true, false) == null and s.find_child("PullsLeft", true, false) != null, "no normal Open on season tab, pulls left shown")
+	_ok(s.find_child("Open1Button", true, false) != null and s.find_child("CostChip", true, false) != null, "Open button with ticket cost chip")
+	_ok(s.find_child("Open10Button", true, false) == null and s.find_child("PullsLeft", true, false) != null, "no normal Open on season tab, pulls left shown")
 	_ok((s.find_child("PullsLeft", true, false) as Label).text.contains("8 / 8"), "pulls left 8 / 8")
 	_ok(s.find_child("SeasonGrid", true, false).get_child_count() == 11, "11-item pool grid")
 	for t in ["mythic", "legendary", "epic"]:
@@ -142,7 +142,7 @@ func _run() -> void:
 	# first pull confirms, nothing spent until Open
 	s._on_season_open(1)
 	await get_tree().process_frame
-	_ok(s.find_child("ConfirmSeason", true, false) != null and s.tickets() == 60, "first season pull confirms; nothing spent yet")
+	_ok(s.find_child("SeasonConfirm", true, false) != null and s.tickets() == 60, "first season pull confirms; nothing spent yet")
 	s.close_modal()
 	# confirming once covers the rest of the play session, also on a fresh visit to the screen
 	s.season_confirmed = true
@@ -158,7 +158,7 @@ func _run() -> void:
 	_ok(out10.size() == 7 and s.season_pulls_left() == 0, "8 pulls reach the daily cap")
 	s.close_modal()
 	await get_tree().process_frame
-	_ok((s.find_child("SeasonOpen", true, false) as Button).text.begins_with("8 of 8"), "cap reason inside the disabled button")
+	_ok((s.find_child("Open1Button", true, false) as Button).text.begins_with("8 of 8"), "cap reason inside the disabled button")
 	_ok((await s.pull(1)).is_empty(), "no pull past the daily cap")
 	s.queue_free()
 	# Store text still true: season items are not in the normal pool

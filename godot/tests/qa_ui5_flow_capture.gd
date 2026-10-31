@@ -193,6 +193,17 @@ func _player_turn(v: CombatView, c: CombatEngine) -> void:
 	var key := "%s-%d" % [c.kind, _kinds_seen[c.kind]]
 	if first_turn and (c.kind != "battle" or _kinds_seen[c.kind] <= 2):
 		await _wait(0.4)
+		# The "Your turn" band slides out from 740 ms (motion_ui3.json turn_banner_player): a shot mid-slide shows a
+		# bare amber band over the enemy column (its label already off screen). Wait until the band is gone.
+		# Combat.tscn also has a static "TurnBanner" plate; the moving band is the U5TurnBanner (it has finish()).
+		for _i in 180:
+			var band_up := false
+			for n in v.find_children("TurnBanner", "", true, false):
+				if n.has_method("finish") and (n as CanvasItem).is_visible_in_tree():
+					band_up = true
+			if not band_up:
+				break
+			await get_tree().process_frame
 		_shot_once("turn1-%s" % key)
 	var guard := 0
 	while guard < 64:
@@ -297,6 +308,17 @@ func _handle_defeat(v: CombatView) -> void:
 # ------------------------------------------------------------------ map / screens
 
 func _map_tick(m: Node) -> void:
+	# Moments that wait for a click / Space (combo band, awakening, spin): shoot once, then dismiss like a click would.
+	for fx in m.find_children("*", "GachaFx", true, false):
+		if (fx as GachaFx).running:
+			await _wait(0.7)
+			if is_instance_valid(fx) and (fx as GachaFx).running:
+				_shot_once("moment-%s" % String(fx.name).to_lower())
+				if fx.name == "ComboBanner":
+					fx._banner_end()   # what a click does; skip() would crash here (GachaFx.skip assumes the spin label)
+				else:
+					(fx as GachaFx).skip()
+			return
 	if m.get("_taking"):
 		return
 	var ov: Control = m.get("_overlay_root")
@@ -380,32 +402,36 @@ func _screen_tick(m: Node, ov: Control) -> void:
 	var sheet := ov.find_child("SlotSwapSheet", true, false)
 	if sheet != null:
 		_shot_once("slot-swap")
-		_anomaly("slot swap sheet opened (RunBot path has no sheet): taking the first sell cell")
-		for b in sheet.find_children("SlotCell_*", "Button", true, false):
-			(b as Button).pressed.emit()
-			break
-		var conf := sheet.find_child("SwapConfirm", true, false) as Button
-		if conf != null:
-			conf.pressed.emit()
+		_anomaly("slot swap sheet opened (RunBot path has no sheet): selling the first sellable cell")
+		var sold := false
+		for b in sheet.find_children("SellButton", "Button", true, false):
+			if not (b as Button).disabled:
+				(b as Button).pressed.emit()   # Make room: Sell is the action, there is no confirm step
+				sold = true
+				break
+		if not sold:
+			var bk := sheet.find_child("BackButton", true, false) as Button
+			if bk != null:
+				bk.pressed.emit()
 		return
-	if ov.find_child("LeaveShop", true, false) != null:
+	if ov.find_child("LeaveButton", true, false) != null and ov.find_child("ShopBody", true, false) != null:
 		_shot_once("shop")
 		var n := RunState.shop_items.size()
 		for i in n:
 			await m.call("_on_shop_buy", i)
 			await _wait(0.15)
 		_shot_once("shop-after-buy")
-		var leave := ov.find_child("LeaveShop", true, false) as Button
+		var leave := ov.find_child("LeaveButton", true, false) as Button
 		if leave != null:
 			leave.pressed.emit()
 		return
-	if ov.find_child("OpenChest", true, false) != null:
+	if ov.find_child("OpenButton", true, false) != null:
 		_shot_once("treasure-closed")
-		(ov.find_child("OpenChest", true, false) as Button).pressed.emit()
+		(ov.find_child("OpenButton", true, false) as Button).pressed.emit()
 		return
-	var ev_act := ov.find_child("EventAction", true, false) as Button
+	var ev_act := (ov.find_child("ChooseButton", true, false) if ov.find_child("ChooseButton", true, false) != null else ov.find_child("ContinueButton", true, false)) as Button
 	if ev_act != null:
-		if ov.find_child("EventOption0", true, false) != null and m.get("_event_sel") == -1 and not _shots.has("event-outcome-%d" % RunState.power_level):
+		if ov.find_child("ChoiceRow", true, false) != null and m.get("_event_sel") == -1 and not _shots.has("event-outcome-%d" % RunState.power_level):
 			if not ev_act.text.begins_with(tr("Continue")):
 				_shot_once("event-%d" % RunState.power_level)
 				if RunState.event_options().is_empty():
@@ -414,13 +440,14 @@ func _screen_tick(m: Node, ov: Control) -> void:
 				await _wait(0.5)
 				_shot("event-outcome-%d" % RunState.power_level)
 				return
-		var go := ov.find_child("EventAction", true, false) as Button
+		var go := ov.find_child("ContinueButton", true, false) as Button
 		if go != null:
 			go.pressed.emit()
 		return
-	if ov.find_child("RewardPick", true, false) != null or ov.find_child("TreasureCards", true, false) != null:
+	if ov.find_child("RewardPick", true, false) != null or ov.find_child("TreasureReward", true, false) != null \
+			or ov.find_child("CoreOffer", true, false) != null or ov.find_child("RunRuleOffer", true, false) != null:
 		var core: bool = m.call("_core_offer_active")
-		var label := "core" if core else ("treasure" if ov.find_child("TreasureCards", true, false) != null else "reward")
+		var label := "core" if core else ("treasure" if ov.find_child("TreasureReward", true, false) != null else "reward")
 		var has_chaos := false
 		for r in RunState.pending_rewards:
 			has_chaos = has_chaos or String((r as Dictionary).get("t", "")) in ["chaos", "curse"]

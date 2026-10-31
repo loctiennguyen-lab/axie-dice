@@ -1,7 +1,7 @@
 extends PanelContainer
 ## UI-05 RewardCard (31-reward): fixed reward_card_w x reward_card_h plate, padding 20, gap 12, radius xl.
-## Tree (data-names): RewardCard > Column > [CatRow(Category, RarityChip), RewardArt(icon), RewardName, ...].
-## The caller adds the body under `column` (RewardBody, GainBox / GambleBox / CurseBox, Core chips...).
+## Tree (data-names): RewardCard > Column > [CatRow(Category, RarityChip), RewardArt(icon), Body[RewardName, ...]].
+## The caller adds the body under `text_box` (RewardBody, GainBox / GambleBox / CurseBox); `column` is the outer box.
 ## Rarity is a filled chip and the colour of the art edge. Selected = 4 px cream ring outside the card and a
 ## 12 px lift (re-applied after every sort of the parent row); focus = the sky ring outside that.
 ## GachaReveal relies on child 0 being the content column: keep it first.
@@ -9,6 +9,7 @@ extends PanelContainer
 const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 
 var column: VBoxContainer
+var text_box: VBoxContainer   ## "Body": name + body text (left-aligned card text, not labels under the RewardArt icon)
 var cat_row: HBoxContainer
 var rarity_chip: PanelContainer
 var art: Panel
@@ -65,12 +66,19 @@ func setup(category: String, rarity_word: String, rarity_col: Color, icon: Textu
 	art_icon.offset_bottom = px / 2.0
 	art.add_child(art_icon)
 
+	text_box = VBoxContainer.new()
+	text_box.name = "Body"
+	text_box.add_theme_constant_override("separation", UI3Theme.space("12"))
+	text_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	text_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(text_box)
+
 	name_label = PanelParts.text(title, "text_screen_title", "text", true)
 	name_label.name = "RewardName"
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name_label.max_lines_visible = 2
 	name_label.custom_minimum_size.x = UI3Theme.size_of("reward_card_w") - 2 * pad
-	column.add_child(name_label)
+	text_box.add_child(name_label)
 
 	focus_entered.connect(queue_redraw)
 	focus_exited.connect(queue_redraw)

@@ -454,6 +454,7 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 	RunState.pending_rewards = [{"t": "relic", "key": "r_seedling", "rar": 0, "title": "RELIC", "desc": "Seedling", "sub": ""}]
 	runmap.call("_show_reward_overlay", "CHOOSE A REWARD")
 	await get_tree().process_frame
+	runmap.call("_select_reward", 0)
 	runmap.call("_take_selected_reward")
 	await get_tree().process_frame
 	var sheet := runmap.find_child("SlotSwapSheet", true, false)
@@ -597,22 +598,22 @@ func test_event_and_treasure_ui3() -> void:
 	RunState.event_key = String(ContentDB.events.keys()[0])
 	runmap.call("_on_event_node", "x")
 	await get_tree().process_frame
-	var go: Button = runmap.find_child("EventAction", true, false)
+	var go: Button = runmap.find_child("ChooseButton", true, false)
 	_assert(go != null and go.disabled and go.text == "Pick a choice", "event: action must start disabled as 'Pick a choice'")
 	var opts: Array = runmap.get("_event_opts")
-	_assert(opts.size() >= 1 and runmap.find_child("EventOption0", true, false) != null, "event: no choice rows")
+	_assert(opts.size() >= 1 and runmap.find_child("ChoiceRow", true, false) != null, "event: no choice rows")
 	runmap.call("_select_event", 0)
 	_assert(not go.disabled and go.text == "Choose", "event: action must read 'Choose' once a choice is picked")
 	runmap.call("_build_event_screen", 0, "Result text")
 	await get_tree().process_frame
-	go = runmap.find_child("EventAction", true, false)
-	_assert(go.text == "Continue" and not go.disabled, "event outcome: button must be Continue")
+	go = runmap.find_child("ContinueButton", true, false)
+	_assert(go != null and go.text == "Continue" and not go.disabled, "event outcome: button must be Continue")
 	if opts.size() > 1:
-		_assert(absf((runmap.find_child("EventOption1", true, false) as Control).modulate.a - 0.4) < 0.01, "event outcome: other choices at 40%")
-	_assert((runmap.find_child("EventBody", true, false) as Label).text == "Result text", "event outcome: body must be the result")
+		_assert(absf((runmap.find_child("ChoiceRow2", true, false) as Control).modulate.a - 0.4) < 0.01, "event outcome: other choices at 40%")
+	_assert((runmap.find_child("OutcomeText", true, false).find_child("Text", true, false) as Label).text == "Result text", "event outcome: OutcomeText must be the result")
 	runmap.call("_on_treasure_node", "tn")
 	await get_tree().process_frame
-	_assert(runmap.find_child("OpenChest", true, false) != null, "treasure: closed state needs 'Open chest'")
+	_assert(runmap.find_child("OpenButton", true, false) != null, "treasure: closed state needs 'Open chest'")
 	runmap.call("_build_treasure", true)
 	await get_tree().process_frame
 	_assert(runmap.find_child("TakeButton", true, false) != null, "treasure: opened state needs 'Take and continue'")

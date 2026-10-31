@@ -1,6 +1,153 @@
 # Axie Dice — trạng thái hiện tại
 
-## ⇢ BẮT ĐẦU TỪ ĐÂY (28/10 tối) — UI-05 QUA FIGMA; ROUND 1 CỦA CLAUDE DESIGN ĐÃ XONG
+## ⇢ BẮT ĐẦU TỪ ĐÂY (1/11) — UI-05 ĐỢT 1+2+3 ĐÃ DEPLOY; ĐỌC `production/ui05-next-session.md`
+- axiedice.fun chạy `godot-port` @ 68fd93a (UI-05 đủ 3 đợt, trừ S7a Leaderboard). Release_gate 329/329 + Worker 395/395.
+- Việc còn lại + thứ tự + trạng thái worktree: **`production/ui05-next-session.md`**.
+- Trước khi chạy agent: memory `ui-lane-token-savers`.
+
+## (cũ) ⇢ BẮT ĐẦU TỪ ĐÂY (30/10 tối) — CODE UI-05 ĐỢT 2+3, BẮT ĐẦU LÀN 0a
+**Đọc `production/ui05-b23-next-session.md`: có trạng thái, việc đầu tiên, luật chạy và backlog.**
+
+Tóm tắt:
+- godot-port 111daf9 gồm UI-05 đợt 1, animation, B2 và hotfix. Đã push, 296/296, CHƯA deploy.
+- Plan đợt 2+3 đã duyệt (`production/ui05-b23-plan.md`).
+- Worktree `../my-game-wt/u5b-0` (nhánh `int/ui5-b23`) sạch, sẵn sàng cho làn 0a.
+
+## (cũ) ⇢ BẮT ĐẦU TỪ ĐÂY (28/10 khuya) — UI-05 ĐỢT 1 ĐÃ VÀO FIGMA (STYLE A); KẸT HẠN MỨC FIGMA MCP
+- Round 1 ở `design/handoffs/ui-05-figma/round-1/` (README mục đầu = các sửa của mình). Liam chọn: style **A Toy Wood**, số SET làm tròn lên,
+  số to = 56 × tween 1.3, sàn chữ 14px ở 1280 (thẻ xúc xắc 116, dock 612, Aid 228 ở 1280). Sửa trong `build/`, chạy `node build/tools/run-gen.mjs`.
+  2 vòng review độc lập đã sửa hết. Chưa commit.
+- Figma: file "Axie Dice UI-05" https://www.figma.com/design/zPga8DWz6SXeI4CLjfBemk (team starter của Liam), trang "Batch 1 · Combat",
+  50 frame tên = id màn, xếp 4 hàng. Layer bên trong tên chung ("Container"/"Text"): importer lấy tên từ `aria-label`, không từ `data-name`.
+  Bản import có aria-label đã sẵn ở scratchpad nhưng chưa nhập lại được.
+- **Kẹt:** Starter = ~20 lượt Figma MCP/tháng, `html_to_figma` CŨNG bị tính → đã hết. Đọc số về (get_design_context…) cũng hết lượt.
+  Liam không nâng gói được → đi đường MIỄN PHÍ: (1) tên layer = plugin dev tự viết `design/handoffs/ui-05-figma/figma-plugin/`
+  (khớp box Figma với box HTML đo bằng Chrome; Liam chạy 1 lần trong Figma desktop, README trong thư mục; đã review + test giả lập);
+  (2) đọc số về = REST API với personal token (Full seat Starter: 10/phút Tier 1, không giới hạn tháng), token ở `.env.local`.
+  **30/10 tối: TẠM DỪNG theo lời Liam (hết token), mai làm tiếp.**
+  - **Code UI-05 đợt 2+3:**
+    - Plan đã duyệt: `production/ui05-b23-plan.md`. Review ở `-review.md`, luật làn ở `production/ui05-b23-lane-brief.md`.
+    - Liam chốt ở đầu plan:
+      - làm liền cả 2 đợt, deploy 1 lần ở cuối;
+      - tutorial: bấm thẻ là nhận luôn;
+      - làm Codex search;
+      - Pass hiện "ends 28 Dec";
+      - tối đa 4 làn cùng lúc.
+  - **Bước tiếp:** chạy làn 0a. Worktree `../my-game-wt/u5b-0`, nhánh `int/ui5-b23` @ 111daf9, CHƯA có thay đổi nào. Prompt 0a theo plan mục "1. Làn 0":
+    1. commit chỉ dời code: component dùng chung → `scenes/shared/ui5/`;
+    2. gộp token B2 + B3;
+    3. tool `ui5_names.py`;
+    4. cập nhật `godot/CLAUDE.md`.
+  - Sau 0a: 0b/0c/0d, rồi các sóng R1–R6, S1…S14.
+  - godot-port 111daf9 = UI-05 đợt 1 + B2 + hotfix, release_gate 296/296, đã push. CHƯA deploy (deploy chung ở cuối).
+  **30/10:**
+  - **UI-05 đợt cuối (3+4)** đã nhận và soát, ở `design/handoffs/ui-05-figma/round-3/`.
+    - Gồm: Land, run setup, presets, tutorial, Missions, Result, Leaderboard, Raid, đăng nhập, Echo Box, Pass, Daily, Store, Profile, Codex, Settings, hệ thống.
+    - 470 frame. 3 bản soát. Đã sửa 26 mục + các quyết định của Liam: `FIXES-30-10.md`, README "Our edits 30/10".
+    - Liam chốt 30/10:
+      - Land luôn có Space trên Start run, lúc tải thì tắt nút;
+      - viết "Shards" khi số nhiều;
+      - nút nhận Gem miễn phí màu amber;
+      - A8 để backlog;
+      - Account là primary;
+      - Pass offline/hết mùa: Claim all chỉ tắt, không ghi lý do.
+    - Đợt 2 + đợt 3 CHƯA CODE.
+    - Dev notes (chữ trong code cần sửa) ở README round-3.
+  **29/10 tối:**
+  - **UI-05 đợt 1 ĐÃ GỘP vào godot-port**: 94752e9, docs bef6522, đã push axiedice/main. Gồm:
+    - 5 làn combat;
+    - sửa QA B3–B11;
+    - vị trí quái (dời khung 3D, quái phụ xếp lại khi Elite/boss chết);
+    - animation đa dạng (Liam duyệt).
+  - Đã kiểm:
+    - release_gate --suite **295/295**, không cờ skip, có t_rules_version; Worker xanh;
+    - QA2 PASS: 6 luồng thật, soak 24/24 verify, Elite/boss không đè thẻ.
+  - **CHƯA DEPLOY UI-05**, chờ Liam cho phép.
+  - **Hotfix B1 (Continue kẹt) ĐÃ DEPLOY 29/10:**
+    - web pck 9b64e68a…, desktop b1841;
+    - log: `production/release/deploy-2026-10-29-hf-continue.md`;
+    - chưa ai mất Gem.
+  - **B2 ĐÃ SỬA + GỘP** (111daf9, đã push axiedice/main):
+    - epoch `reward` giờ rút sau khi log nước thắng;
+    - có thêm chặn Undo khi trận đã phân thắng bại;
+    - security review: ship client-only được;
+    - release_gate **296/296**, Worker xanh;
+    - CHƯA deploy (đi cùng lần deploy UI-05).
+    - Run cũ đã rút reward trên client cũ thì không verify được (không migrate được).
+  - Lỗi thấp còn mở:
+    - N1: số kết liễu đè chữ band Victory;
+    - N2: "Outside a SET" đè chip Armor;
+    - B10: "faces . Drawback";
+    - lỗi chữ trong data đợt 3 (A5/A10 tiếng Việt, "Mastery house"…).
+  - Worktree dọn sau: u5-0, u5-a..e, u5-anim, u5-stage, u5-cap, hf-cont.
+  - **Đợt 3 UI-05:** Liam đã có bản của Claude Design, gửi khi việc hiện tại xong.
+  **29/10 chiều:**
+  - QA UI-05 b1 (evidence `../my-game-wt/u5-0/production/qa/ui05-b1/qa/INDEX.md`): tất định OK (soak 48/48 verify).
+  - Lỗi CÓ SẴN trên production:
+    - **B1:** Continue xong thì End turn kẹt "Waiting…", Gem đã bị trừ. Đã xác nhận trong code godot-port.
+      - Hotfix đang làm: nhánh `hotfix/continue-stuck`, worktree `../my-game-wt/hf-cont`.
+      - Deploy cần Liam cho phép.
+    - **B2:** epoch `reward` được xin trước khi log nước đánh cuối, nên RunVerifier từ chối run chơi qua UI thật.
+      - Đã xác nhận (security-engineer). Hôm nay không hại: server chỉ kiểm chuỗi hash, chưa replay; stats SR-V production 0 verdict.
+      - Nhưng là BLOCKER trước khi bật verify ranked.
+      - Liam chọn hướng A: sửa client (hoãn `_finish` tới sau khi `use_die` trả về), không bump, không deploy Worker. Làm commit riêng NGAY SAU khi gộp UI-05.
+      - Kèm test chơi một trận thắng qua CombatView thật rồi RunVerifier.verify. Kiểm cả các đường thắng không đi qua `use_die` (play_active, poison/thorns lúc end_turn).
+  - Lỗi UI-05 đang sửa trên int/ui5-b1:
+    - B3: chữ phình khi scale < 0.667;
+    - B4: nhãn ToolKeys khó đọc trên 3D;
+    - B5: Best set;
+    - B7: số damage ra ngoài màn;
+    - B9: tên cắt không có "…";
+    - B6/B8/B11 nhỏ.
+  - Thứ tự: sửa xong → review → gộp int/ui5-b1 vào godot-port (merge-tree đã kiểm sạch) → full suite cây chính + số sàn 290+ → hỏi Liam deploy.
+  - Batch 2 UI-05: Liam duyệt (thêm luật chữ căn giữa icon).
+  - Prompt + zip đợt cuối (3+4+màn còn lại, chia 4 phần a–d) ở `send/AxieDice-UI05-batch34-inputs.zip`, chờ Liam dán.
+  **29/10 sáng:**
+  - Code đợt 1 combat UI-05: 5 làn A–E xong, mỗi làn đều review APPROVE; đã gộp hết vào `int/ui5-b1` (worktree `../my-game-wt/u5-0`, tip 17af4b4).
+  - Liam chốt 29/10:
+    - dòng trạng thái ưu tiên "N dice unused";
+    - Space lúc banner Your turn chỉ tắt banner;
+    - Get Gem tắt kèm lý do;
+    - band boss hiện lúc vào combat (có HP/SHELL/ENRAGE).
+  - Đang chạy: agent áp các quyết định trên, full suite trên bản tích hợp, rồi chụp ảnh 2 cỡ ở `production/qa/ui05-b1/integ/`.
+  - Sau đó:
+    - QA một run thật (tutorial, fight thường/elite/boss, SET 3/4, Wild/Embers/Overcast, thua + Continue, reward, resize cửa sổ);
+    - gộp `int/ui5-b1` vào godot-port (nhớ cập nhật số sàn test trong technical-preferences);
+    - deploy khi Liam cho.
+  - Lưu ý QA:
+    - Làn E sửa lỗi engine `UI3Motion.play`: delay/hold trước giờ không có tác dụng, giờ đã chạy, nên các màn khác dùng `play()` có thể hiện lâu hơn.
+    - Rarity Uncommon đổi tím → xanh dương.
+    - Màn Treasure: rương thu 256 → 192.
+  - Tỉ lệ trên Mac Retina chia DPR là ĐÚNG (cửa sổ 1920 px thật = 960 pt). Chỉ ảnh chụp mới phải ghim scale.
+  - Worktree: u5-0 (tích hợp), u5-a..e (các làn, dọn sau khi gộp).
+  **Tối 28/10:**
+  - Liam chỉ đổi 1 chỗ trong frame `bighit`: bỏ phím tắt hiện trên nút. Luật cho mọi màn: chỉ giữ Space.
+  - Đã áp vào build đợt 1: bỏ Z/R/A và "Esc to put back".
+  - **Code đợt 1:**
+    - Plan ở `production/ui05-b1-plan.md` (đã sửa theo review `-review.md`).
+    - Liam chốt: nhánh mới `int/ui5-b1` từ godot-port; ĐỔI HẾT token sang style A (gộp key, không thay file); duyệt mọi chuỗi mới; preview SET không sửa file luật.
+    - Làn 0 (nền + tách DiceDock/EnemyColumn) đang chạy ở worktree `../my-game-wt/u5-0`. Xong làn 0 thì làm A–E.
+  - **Đợt 2 (Run):**
+    - Prompt: `design/handoffs/ui-05-figma/PROMPT-UI05-BATCH2.md`, đã review.
+    - Zip: `send/AxieDice-UI05-batch2-inputs.zip`, có data `send/game-data-batch2.md` (đã review) và Shop (Liam thêm).
+    - Liam dán prompt vào Claude Design.
+  - **Lỗi nhỏ data tìm thấy (để sau):**
+    - "Make room" in cap 8 thay vì 6;
+    - chuỗi shrine "20%%";
+    - text event còn chữ "relic";
+    - Embers hiện "m_cap";
+    - comment stage 3/2 của Anchor.
+  - Frame `player-turn` trong Figma có nút Reroll bị nhóm lại (Group 1), có lẽ Liam lỡ tay.
+  Liam 28/10: chốt màn combat theo frame `02-combat--bighit` mà Liam đã chỉnh trong Figma (chỉ chỉnh frame này).
+  Việc tiếp: đọc frame đó qua REST (`round-1/build/tools/figma_read.py fetch|audit|dump`; token ở ~/.config/axie-dice/figma_token),
+  diff với map HTML theo tên layer → áp thay đổi cho mọi frame combat → code. KHÔNG chạy lại plugin trên frame đã chỉnh (khớp theo vị trí sẽ sai).
+  Plugin đã sửa (khớp thêm theo chữ, giữ nguyên văn chữ) nhưng chưa cần chạy lại.
+  Liam ĐÃ chạy plugin 28/10: "Named 4152 of 4288 in 50 frames (44 loose), 96 not matched". Còn: soát 96 thiếu + 44 khớp lỏng
+  qua REST (cần token trong `.env.local`), rồi Liam chỉnh trong Figma.
+- Đợt 2 trở đi: dặn Claude Design xuất `aria-label` = `data-name` trên mọi phần tử (và frame), file import ≤ 4 frame/lần (16 frame một lần bị 408).
+- Link file Figma mở được khi chưa đăng nhập (xem được) → hỏi Liam có muốn để riêng tư.
+
+## (cũ) ⇢ BẮT ĐẦU TỪ ĐÂY (28/10 tối) — UI-05 QUA FIGMA; ROUND 1 CỦA CLAUDE DESIGN ĐÃ XONG
 **Việc đầu tiên của session mới:** Liam đã có round 1 (đợt 1 = trận đấu) từ Claude Design. Hỏi Liam đường dẫn file/zip, rồi:
 1. Giải nén vào thư mục riêng (`design/handoffs/ui-05-figma/round-1/`), kiểm đủ: `ui05-<batch>-screens.html`, `tokens.json`, `assets/`, prototype HTML từng moment + bảng motion, README.
 2. Kiểm theo brief `design/handoffs/ui-05-figma/PROMPT-UI05-FIGMA.md` (§3 HTML sạch: flex/grid, id = tên node Godot, biến CSS = tên token, `.frame` 1920 + 1280) và `NOTE-DIECARD-PARTS.md` (DieCard phải có chip part + xem trước SET "5 → 8" + dấu Wild/Held/Overcast). Ghi chỗ thiếu, hỏi Liam trước khi viết prompt sửa (memory ask-before-handoff).

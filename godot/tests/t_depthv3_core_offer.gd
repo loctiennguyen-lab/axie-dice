@@ -43,12 +43,12 @@ func _ready() -> void:
 			panels.append(c)
 	_check(panels.size() == 3, "3 core cards")
 	_check(rm._overlay_root.find_child("Title", true, false).text == "Choose a Core", "core title")
-	var tl: Label = (panels[1] as Node).find_child("RarityChip", true, false).find_child("Text", true, false)
-	var al: Label = (panels[1] as Node).find_child("AxisChip", true, false).find_child("Text", true, false)
+	var tl: Label = (panels[1] as Node).find_child("TierChip", true, false).find_child("Text", true, false)
+	var al: Label = (panels[1] as Node).find_child("CategoryChip", true, false).find_child("Text", true, false)
 	_check(tl.text == "Moss" and al.text == "Dice faces", "tier chip + axis chip: %s / %s" % [tl.text, al.text])
-	_check((panels[1] as Node).find_child("AxisChip", true, false).find_child("Icon", true, false) != null, "axis chip has an icon")
-	_check(rm._overlay_root.find_child("CardReroll0", true, false) != null and rm._overlay_root.find_child("CardReroll2", true, false) != null, "reroll button on every core card")
-	var rr: Label = rm._overlay_root.find_child("RerollLeft", true, false)
+	_check((panels[1] as Node).find_child("CategoryChip", true, false).find_child("Icon", true, false) != null, "axis chip has an icon")
+	_check(rm._overlay_root.find_child("RerollButton", true, false) != null and (rm._reward_cards[2] as Node).find_child("RerollButton", true, false) != null, "reroll button on every core card")
+	var rr: Label = rm._overlay_root.find_child("RerollCounter", true, false)
 	_check(rr != null and rr.text.contains("2"), "shared reroll counter")
 	# Amber / Crystal use their own colours.
 	var cs := cards()
@@ -57,9 +57,9 @@ func _ready() -> void:
 	RunState.pending_rewards.assign(cs)
 	rm.call("_show_reward_overlay", "x")
 	await get_tree().process_frame
-	var l2: Label = rm._overlay_root.find_child("RewardCard0", true, false).find_child("RarityChip", true, false).find_child("Text", true, false)
+	var l2: Label = rm._overlay_root.find_child("CoreCard0", true, false).find_child("TierChip", true, false).find_child("Text", true, false)
 	_check(l2.text == "Amber", "amber tier word")
-	_check(rm._overlay_root.find_child("RewardCard1", true, false).find_child("RarityChip", true, false).find_child("Text", true, false).text == "Crystal", "crystal word")
+	_check(rm._overlay_root.find_child("CoreCard1", true, false).find_child("TierChip", true, false).find_child("Text", true, false).text == "Crystal", "crystal word")
 	# Take button picks the selected card (chosen reward reaches the game layer).
 	_check(rm._overlay_root.find_child("TakeButton", true, false) != null, "take button")
 	# Run rule: 2 cards, no reroll, "No Rule" card present.
@@ -67,7 +67,7 @@ func _ready() -> void:
 	rm.call("_show_reward_overlay", "x")
 	await get_tree().process_frame
 	_check(rm._overlay_root.find_child("Title", true, false).text == "Choose a run rule", "rule title")
-	_check(rm._overlay_root.find_child("RewardCard1", true, false) != null and rm._overlay_root.find_child("RewardCard2", true, false) == null, "2 rule cards")
+	_check(rm._overlay_root.find_child("RuleCard1", true, false) != null and rm._overlay_root.find_child("RuleCard2", true, false) == null, "2 rule cards")
 	var rb: Button = rm._overlay_root.find_child("RerollButton", true, false)
 	_check(rb == null or not rb.visible, "no reroll on rules")
 	RunState.pending_rewards.assign([])

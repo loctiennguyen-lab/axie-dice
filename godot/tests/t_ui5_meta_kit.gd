@@ -146,6 +146,9 @@ func _behaviour() -> void:
 	tb.tab_selected.connect(func(i: int) -> void: got[0] = i)
 	tb.select(2)
 	_check(tb.selected_index() == 2 and got[0] == 2, "tabs: select(2) presses tab 2 and emits")
+	tb.get_child(0).grab_focus()
+	tb.select(1)
+	_check(tb.get_child(1).has_focus() and not tb.get_child(0).has_focus(), "tabs: focus follows select() when it was inside the bar")
 	# ListRow
 	var lr := Ui5ListRow.new()
 	lr.setup("T", "s", "r")

@@ -639,10 +639,9 @@ func _draw_detail_money(dp: Ui5DetailPlate, o: Dictionary) -> void:
 	var wt := warning_text(effective_warning(o))
 	if wt != "":
 		dp.body.add_child(MissionParts.warning(wt))
-	var est := dp.add_line("Estimated win chance (simulated): about %s%%. On average you get back about %d%% of your stake. Real players may do better or worse." % [
+	var est := dp.add_line("Estimated win chance (simulated): about %s%%. On average you get back about %d%% of your stake. Real players may do better or worse. No Continue and no Aid." % [
 		_num(float(o.est_win_pct)), roundi(float(o.est_return_pct))], "text_muted")
 	est.name = "ChanceLine"
-	dp.add_line("No Continue and no Aid.", "text_muted")
 
 
 ## The tier's own warning kind (N3+: MissionBoard.warning_kind), else "most_lose" for any tier whose estimated win

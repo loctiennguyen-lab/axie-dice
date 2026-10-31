@@ -426,10 +426,6 @@ const _RULE_PRICE := {
 const _RULE_TINTS := ["house_volley", "house_gambler", "house_mana_mine", "house_kin", "house_embers", "house_big_hand"]
 
 
-## A tint per rule (stable from its key) so two Run rule cards never look identical.
-static func rule_tint(key: String) -> Color:
-	return UI3Theme.color(_RULE_TINTS[absi(key.hash()) % _RULE_TINTS.size()])
-
 
 func _is_core_card(r: Dictionary) -> bool:
 	return bool(r.get("core", false))
@@ -1019,7 +1015,7 @@ const _RewardCardUi := preload("res://scenes/shared/ui5/RewardCard.gd")
 const _ConfirmBarUi := preload("res://scenes/shared/ui5/ConfirmBar.gd")
 const _PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 
-var _reward_sel := 0
+var _reward_sel := -1
 var _reward_cards: Array[PanelContainer] = []
 
 
@@ -1197,7 +1193,6 @@ func _apply_and_finish(reward: Dictionary) -> void:
 	var before_owned: Array = RunState.owned_relic_ids.duplicate()
 	var was_awake := AnchorAdapter.awakened()
 	var is_core := _is_core_card(reward) and not bool(reward.get("rule", false))
-	var take_tw: Tween = null
 	var pool_names: Array = []
 	if is_core and String(reward.get("key", "")) == "c_dim_stone":
 		for d in CoreOffer.valid_pool(RunState._core_ctx(RunState._core_offer_pick)):
@@ -1206,15 +1201,27 @@ func _apply_and_finish(reward: Dictionary) -> void:
 	var pick_rect := Rect2()
 	if _reward_sel >= 0 and _reward_sel < _reward_cards.size() and is_instance_valid(_reward_cards[_reward_sel]):
 		pick_rect = (_reward_cards[_reward_sel] as Control).get_global_rect()
-	# UI-04 motion rows (copied from int/ui4, UI-05 b1 lane 0): core_take / level_up / reward_take on the picked card.
+	# UI-05 b23 lane M2: core-taken / level-up / reward-taken (motion_ui3.json layers) on the picked card. Layers whose
+	# node this screen does not have (the Cores plate slot, the party row) are data only; the card shrinks in place.
+	var take_tl: UI3Motion.Timeline = null
 	if not UI3Gacha.is_instant() and not bool(reward.get("rule", false)) and _reward_sel >= 0 and _reward_sel < _reward_cards.size() \
 			and is_instance_valid(_reward_cards[_reward_sel]):
 		var pc := _reward_cards[_reward_sel] as Control
-		var mid := "core_take" if _is_core_card(reward) else ("level_up" if String(reward.get("t", "")) == "level" else "reward_take")
+		var is_level := String(reward.get("t", "")) == "level"
+		var mid := "core-taken" if _is_core_card(reward) else ("level-up" if is_level else "reward-taken")
 		pc.pivot_offset = pc.size / 2.0
-		var mtw := UI3Motion.play(mid, pc)
-		if mtw != null and mtw.is_valid() and mid != "level_up":
-			take_tw = mtw
+		var others: Array = []
+		for oc in _reward_cards:
+			if oc != pc and is_instance_valid(oc):
+				others.append(oc)
+		var tg := {"card": pc, "axie": pc, "others": others}
+		for pair in [["title", "Title"], ["button", "TakeButton"]]:
+			var tn: Node = _overlay_root.find_child(String(pair[1]), true, false) if _overlay_root != null else null
+			if tn is CanvasItem:
+				tg[String(pair[0])] = tn
+		var tl := UI3Motion.play_timeline(mid, tg, {"host": self})
+		if not is_level:
+			take_tl = tl
 	RunState.apply_chosen_reward(reward)
 	var granted := ""
 	if not pool_names.is_empty():
@@ -1241,20 +1248,19 @@ func _apply_and_finish(reward: Dictionary) -> void:
 		var ban := _combo_banner(formed)
 		if ban != null and ban.running:
 			await ban.finished
-	await _wait_tween_bounded(take_tw, TAKE_TWEEN_CAP_MS)
+	await _wait_timeline_bounded(take_tl, TAKE_TWEEN_CAP_MS)
 	_taking = false
 	_finish_node()
 
 
-const TAKE_TWEEN_CAP_MS := 1000   ## longest core_take / reward_take beat is ~400 ms; this is the hard stop
+const TAKE_TWEEN_CAP_MS := 1000   ## hard stop for the take moment (`core-taken` / `reward-taken`, longest row ~0.5 s + a hit-stop); never waited on forever
 
-## Waits for `tw` but never forever: if the card the tween is bound to is freed mid-take the tween dies without
-## emitting `finished`, so a plain `await tw.finished` would leave `_taking` true and the node unfinished.
-func _wait_tween_bounded(tw: Tween, cap_ms: int) -> void:
-	if tw == null:
+## Same for a UI3Motion.Timeline (a freed host ends it through its watchdog; the cap is a second line of defence).
+func _wait_timeline_bounded(tl: UI3Motion.Timeline, cap_ms: int) -> void:
+	if tl == null:
 		return
 	var deadline := Time.get_ticks_msec() + cap_ms
-	while tw.is_valid() and tw.is_running() and Time.get_ticks_msec() < deadline and is_inside_tree():
+	while tl.running() and Time.get_ticks_msec() < deadline and is_inside_tree():
 		await get_tree().process_frame
 
 

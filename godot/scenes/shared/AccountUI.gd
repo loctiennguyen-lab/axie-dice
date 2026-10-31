@@ -7,84 +7,77 @@ extends RefCounted
 ## UI-03: welcome, desktop sign-in, save choice and toasts are on UI3 (round-2 screens 16 and 26).
 ## The account chip (B) is on UI3 tokens too (AccountChip, round-2 components.md).
 
-const WELCOME_W := 760.0
-const CHOICE_W := 980.0
-const MOVE_W := 760.0
-const TOAST_W := 860.0
 const TOAST_SECONDS := 10.0
+const Parts := preload("res://scenes/account/ui5/AccountParts.gd")
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 
 
 # ============================================================================ A · welcome
 
-## UI-03 (round 2, screen 16 / 26): plate dialog on a scrim, UI3 labels and buttons. One primary.
+## UI-05 a14: WelcomePanel on the scrim over the Land. SkyMavisTag, three Points, GoogleButton (the one primary),
+## GuestButton (quiet). Same service calls as before: sign_in() / play_as_guest(), overlay freed first.
 static func show_welcome(layer: CanvasLayer) -> Control:
 	var service: Node = layer.get_parent()
 	var overlay := _overlay(layer)
 	overlay.name = "AccountWelcome"
-	var box := _modal(overlay, WELCOME_W)
+	var box: VBoxContainer = Parts.centered(overlay, "WelcomePanel", "welcome")["col"]
 
-	var t := UI3.label("Save your progress", "LabelScreenTitle")
-	t.name = "Title"
-	box.add_child(t)
-	box.add_child(_prose("Sign in with Google to keep your Axies, Shards and runs on any device. "
-		+ "Your Sky Mavis work account works too. No new registration needed."))
+	var tag := UI3Meta.tag("SKY MAVIS")
+	tag.name = "SkyMavisTag"
+	tag.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	box.add_child(tag)
+	var title := Ui5Text.label("Save your progress", "text_banner", "text", true)
+	title.name = "Title"
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(title)
+	box.add_child(Parts.body("Sign in with Google to keep your Axies, Shards and runs on any device. "
+		+ "Your Sky Mavis work account works too. No new registration needed.", false, "Body"))
 
 	var perks := HBoxContainer.new()
-	perks.add_theme_constant_override("separation", UI3Theme.space("16"))
+	perks.name = "Points"
+	perks.add_theme_constant_override("separation", UI3Theme.space("12"))
 	for p in [["Vault", "your imported Axies"], ["Shards & Pass", "every unlock you earned"],
 			["Continue", "pick up a run on another device"]]:
-		var well := UI3.plate(&"card")
-		well.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var col := VBoxContainer.new()
-		col.add_theme_constant_override("separation", UI3Theme.space("8"))
-		var pt := UI3.label(p[0], "LabelTitle")
-		pt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		col.add_child(pt)
-		var c := _prose(p[1], "LabelMuted")
-		c.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		col.add_child(c)
-		well.add_child(col)
-		perks.add_child(well)
+		perks.add_child(Parts.point(p[0], p[1]), true)
 	box.add_child(perks)
 
-	var google := UI3.button("Continue with Google", &"primary", &"L")
-	google.name = "ContinueWithGoogle"
-	google.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var google := Parts.btn("GoogleButton", "Continue with Google", &"primary", &"L", true)
 	google.pressed.connect(func() -> void:
 		overlay.queue_free()
 		service.sign_in())
 	box.add_child(google)
 
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", UI3Theme.space("16"))
-	var hint := _prose("No Google account? You can create one on the next screen.", "LabelMuted")
-	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hint.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(hint)
-	var guest := UI3.button("Continue without signing in", &"secondary", &"M")
-	guest.name = "PlayAsGuest"
+	var hint := Parts.body("No Google account? You can create one on the next screen.", true, "Hint")
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(hint)
+	var guest := UI3.button("Continue without signing in", &"quiet", &"S")
+	guest.name = "GuestButton"
+	guest.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	guest.pressed.connect(func() -> void:
 		overlay.queue_free()
 		service.play_as_guest())
-	row.add_child(guest)
-	box.add_child(row)
+	box.add_child(guest)
 	google.call_deferred("grab_focus")
 	return overlay
 
 
-## B4: the game cannot open without the server. One primary (Try again); no way around it by design.
+## UI-05 a13: BootOfflineGate. The game cannot open without the server: one primary (TryAgainButton), no way around it.
 static func show_offline_gate(layer: CanvasLayer, service: Node) -> Control:
 	var overlay := _overlay(layer)
 	overlay.name = "OnlineGate"
-	var box := _modal(overlay, WELCOME_W)
-	var t := UI3.label("Can't reach the game server", "LabelScreenTitle")
-	t.name = "Title"
-	box.add_child(t)
-	box.add_child(_prose("Axie Dice needs an internet connection for every mode. Check your connection and try again. "
-		+ "Nothing is lost: your progress is kept on the server."))
-	var retry := UI3.button("Try again", &"primary", &"L")
-	retry.name = "TryAgain"
-	retry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var gate: Dictionary = Parts.box("BootOfflineGate")   # .acct: radius l, pad 32, gap 16, account_w
+	var center := CenterContainer.new()
+	center.name = "Center"
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(center)
+	center.add_child(gate["panel"])
+	var box := gate["col"] as VBoxContainer
+	box.add_child(Parts.brand(Parts.version_text()))
+	box.add_child(Parts.banner("Can't reach the game server", &"warn", "Title"))
+	box.add_child(Parts.body("Axie Dice needs an internet connection for every mode. Check your connection and try again. "
+		+ "Nothing is lost: your progress is kept on the server.", false, "Body"))
+	var retry := Parts.btn("TryAgainButton", "Try again", &"primary", &"L", true)
 	retry.pressed.connect(func() -> void: service.check())
 	box.add_child(retry)
 	retry.call_deferred("grab_focus")
@@ -99,7 +92,13 @@ static func show_offline_gate(layer: CanvasLayer, service: Node) -> Control:
 static func show_desktop_flow(layer: CanvasLayer, service: Node, auto_dismiss_s: float = 1.6) -> Control:
 	var overlay := _overlay(layer)
 	overlay.name = "DesktopSignInFlow"
-	var box := _modal(overlay, 640.0)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(center)
+	var dlg: Dictionary = Parts.box("DesktopSignIn", true)   # .dialog.s: radius xl, pad 32, gap 20, modal_s_w
+	center.add_child(dlg["panel"])
+	var box := dlg["col"] as VBoxContainer
 	var dismissed := [false]
 	var refresh := Callable()
 	refresh = func() -> void:
@@ -109,33 +108,31 @@ static func show_desktop_flow(layer: CanvasLayer, service: Node, auto_dismiss_s:
 			box.remove_child(c)
 			c.queue_free()
 		var phase := String(service.get("desktop_phase"))
+		var focus: Button = null
 		match phase:
 			"waiting":
-				var t := UI3.label("Waiting for the browser…", "LabelScreenTitle")
-				t.name = "Title"
-				box.add_child(t)
-				box.add_child(_prose("Finish signing in in your browser. Then come back here; the game picks it up by itself."))
-				var again := UI3.button("Open browser again", &"primary", &"M")
-				again.name = "OpenAgain"
+				box.add_child(Parts.banner("Waiting for the browser…", &"", "Title"))
+				box.add_child(Parts.body("Finish signing in in your browser. Then come back here; the game picks it up by itself.", false, "Body"))
+				var again := Parts.btn("OpenBrowserButton", "Open browser again", &"primary", &"L", true)
 				again.pressed.connect(func() -> void: service.reopen_desktop_browser())
 				box.add_child(again)
-				var cancel := UI3.button("Cancel", &"secondary", &"M")
-				cancel.name = "Cancel"
+				var cancel := Parts.btn("CancelButton", "Cancel")
 				cancel.pressed.connect(func() -> void: service.cancel_desktop_sign_in())
 				box.add_child(cancel)
+				focus = again
 			"finishing":
-				var t := UI3.label("Signing you in…", "LabelScreenTitle")
-				t.name = "Title"
-				box.add_child(t)
-				box.add_child(_prose("Google said yes. Checking your account."))
+				box.add_child(Parts.banner("Signing you in…", &"", "Title"))
+				box.add_child(Parts.body("Google said yes. Checking your account.", false, "Body"))
+				var sp := Ui5Spinner.new()
+				sp.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+				box.add_child(sp)
 			"signed_in":
-				var t := UI3.label("Signed in as %s" % String(service.display_name()), "LabelScreenTitle")
-				t.name = "Title"
-				box.add_child(t)
-				var go := UI3.button("Continue", &"primary", &"M")
-				go.name = "Continue"
+				box.add_child(Parts.banner("Signed in as %s" % String(service.display_name()), &"ok", "Title"))
+				var go := Parts.btn("ContinueButton", "Continue", &"primary", &"L", true)
 				go.pressed.connect(func() -> void: service.dismiss_desktop_result())
 				box.add_child(go)
+				_space_cap(go)
+				focus = go
 				if auto_dismiss_s > 0.0 and not dismissed[0] and overlay.is_inside_tree():
 					dismissed[0] = true
 					overlay.get_tree().create_timer(auto_dismiss_s).timeout.connect(func() -> void:
@@ -143,29 +140,47 @@ static func show_desktop_flow(layer: CanvasLayer, service: Node, auto_dismiss_s:
 							service.dismiss_desktop_result())
 			"error":
 				var copy: Array = AccountScreen.error_copy(String(service.get("desktop_error")))
-				var t := UI3.label(String(copy[0]), "LabelScreenTitle")
-				t.name = "Title"
-				t.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
-				box.add_child(t)
-				box.add_child(_prose(String(copy[1])))
-				var retry := UI3.button(String(copy[2]), &"primary", &"M")
-				retry.name = "Retry"
+				box.add_child(Parts.banner(String(copy[0]), &"error", "Title"))
+				box.add_child(Parts.body(String(copy[1]), false, "Body"))
+				var retry := Parts.btn("TryAgainButton", String(copy[2]), &"primary", &"L", true)
 				retry.pressed.connect(func() -> void:
 					service.clear_desktop_error()
 					service.sign_in())
 				box.add_child(retry)
-				var close := UI3.button("Close", &"secondary", &"M")
-				close.name = "Close"
+				var close := Parts.btn("CloseButton", "Close")
 				close.pressed.connect(func() -> void: service.clear_desktop_error())
 				box.add_child(close)
+				focus = retry
 			_:
 				overlay.queue_free()
+		if focus != null:
+			focus.grab_focus.call_deferred()
 	service.changed.connect(refresh)
 	overlay.tree_exiting.connect(func() -> void:
 		if is_instance_valid(service) and service.changed.is_connected(refresh):
 			service.changed.disconnect(refresh))
 	refresh.call()
 	return overlay
+
+
+## Space keycap trailing the label of the primary button (as RunPauseMenu): pins the variation's styles as overrides,
+## then HudStyle.place_trailing once the button is in the tree and again on every resize.
+static func _space_cap(b: Button) -> void:
+	var cap := Ui5Keycap.make("Space", &"primary")
+	b.add_child(cap)
+	var pad := UI3Theme.space("32")
+	var place := func() -> void:
+		if not is_instance_valid(b) or not b.is_inside_tree():
+			return
+		if not b.has_meta("styles_pinned"):
+			b.set_meta("styles_pinned", true)
+			for st in ["normal", "hover", "pressed", "disabled", "hover_pressed", "focus"]:
+				var src: StyleBox = UI3Theme.get_theme().get_stylebox(st, b.theme_type_variation)
+				if src != null:
+					b.add_theme_stylebox_override(st, src.duplicate())
+		Ui5HudStyle.place_trailing(b, cap, pad)
+	b.resized.connect(place)
+	place.call_deferred()
 
 
 # ============================================================================ B · chip
@@ -300,77 +315,65 @@ static func sky_mavis_badge() -> PanelContainer:
 ## kind: "move" (account empty, guest save here), "choose" (both have a save, first sign-in on
 ## this device) or "conflict" (the account moved on elsewhere since this device last synced).
 ## done(choice) gets "move"/"fresh" or "local"/"cloud". The dialog cannot be dismissed without
-## choosing — the whole point is that nothing is decided for the player.
-## UI-03: "Choose a save" shows two cards; exactly one primary (the newer save), the other secondary.
+## choosing: the whole point is that nothing is decided for the player.
+## UI-05 a15/a16: MoveGuestProgress (Start fresh, Move progress with Space and focus) and ChooseSave (two Ui5SaveCards,
+## nothing picked, one Keep button under each; primary goes to the save with more XP, a tie keeps the cloud).
 static func show_choice(layer: CanvasLayer, kind: String, info: Dictionary, done: Callable) -> Control:
 	var overlay := _overlay(layer)
-	var box := _modal(overlay, MOVE_W if kind == "move" else CHOICE_W)
 
 	if kind == "move":
-		box.add_child(UI3.label("Move your guest progress?", "LabelScreenTitle"))
-		box.add_child(_prose("This browser has progress from before you signed in, and your account "
-			+ "is empty. Move it to your account to keep it on every device."))
-		box.add_child(_save_card("This device (guest)", "", info.get("local", {})))
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", UI3Theme.space("16"))
-		var move := UI3.button("Move progress", &"primary", &"M")
-		move.name = "MoveProgress"
-		move.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		move.pressed.connect(func() -> void:
-			overlay.queue_free()
-			done.call("move"))
-		var fresh := UI3.button("Start fresh", &"secondary", &"M")
-		fresh.name = "StartFresh"
-		fresh.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var mbox: VBoxContainer = Parts.centered(overlay, "MoveGuestProgress")["col"]
+		mbox.add_child(Parts.dialog_head("Move your guest progress?", "This browser has progress from before you signed in, "
+			+ "and your account is empty. Move it to your account to keep it on every device."))
+		var fresh := Parts.btn("StartFreshButton", "Start fresh")
 		fresh.pressed.connect(func() -> void:
 			overlay.queue_free()
 			done.call("fresh"))
-		row.add_child(move)
-		row.add_child(fresh)
-		box.add_child(row)
+		var move := Parts.btn("MoveButton", "Move progress", &"primary", &"M")
+		move.pressed.connect(func() -> void:
+			overlay.queue_free()
+			done.call("move"))
+		mbox.add_child(Parts.save_card("This device (guest)", "On this browser", info.get("local", {}), move))
+		mbox.add_child(Ui5ModalFooter.make(move, fresh))
+		_space_cap(move)
 		move.call_deferred("grab_focus")
 		return overlay
 
-	var title := "This device has guest progress" if kind == "choose" \
+	var box: VBoxContainer = Parts.centered(overlay, "ChooseSave")["col"]
+	var heading := "This device has guest progress" if kind == "choose" \
 		else "This account was played somewhere else"
 	var body := ("Your account already has a save. Pick the one to keep on your account. The "
 		+ "other one stays on this device for %d days in case you change your mind.") if kind == "choose" \
 		else ("This device and your account both changed since they last matched. Pick the one "
 		+ "to keep. The other one stays on this device for %d days in case you change your mind.")
-	var tl := UI3.label("Choose a save", "LabelScreenTitle")
-	tl.name = "Title"
-	box.add_child(tl)
-	box.add_child(UI3.label(title, "LabelTitle"))
-	box.add_child(_prose(body % AccountServiceScript.BACKUP_DAYS, "LabelMuted"))
+	box.add_child(Parts.dialog_head("Choose a save", body % AccountServiceScript.BACKUP_DAYS, heading))
 
-	var cards := HBoxContainer.new()
-	cards.add_theme_constant_override("separation", UI3Theme.space("16"))
 	var local_title := "This device (guest)" if kind == "choose" else "This device"
 	var cloud: Dictionary = info.get("cloud", {})
 	var cloud_when := ""
 	if int(cloud.get("updated_at", 0)) > 0:
 		cloud_when = "Saved " + ago(int(cloud["updated_at"]))
-	# Primary goes to the save with more XP (the further-along one); a tie keeps the account's cloud save.
 	var local_xp := int((info.get("local", {}) as Dictionary).get("xp", 0))
 	var cloud_xp := int(cloud.get("xp", 0))
 	var local_primary := local_xp > cloud_xp
-	for side in [["local", local_title, "On this browser", "Keep this device", local_primary],
-			["cloud", "Cloud (your account)", cloud_when, "Keep cloud", not local_primary]]:
-		var col := VBoxContainer.new()
-		col.add_theme_constant_override("separation", UI3Theme.space("16"))
-		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		col.add_child(_save_card(side[1], side[2], info.get(side[0], {})))
-		var b := UI3.button(side[3], &"primary" if side[4] else &"secondary", &"M")
-		b.name = "Keep" + String(side[0]).capitalize()
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var cards := HBoxContainer.new()
+	cards.name = "CardRow"
+	cards.add_theme_constant_override("separation", UI3Theme.space("16"))
+	var foot := HBoxContainer.new()
+	foot.name = "Footer"
+	foot.add_theme_constant_override("separation", UI3Theme.space("16"))
+	for side in [["local", local_title, "On this browser", "Keep this device", local_primary, "KeepLocalButton"],
+			["cloud", "Cloud (your account)", cloud_when, "Keep cloud", not local_primary, "KeepCloudButton"]]:
+		var b := Parts.btn(String(side[5]), String(side[3]), &"primary" if side[4] else &"secondary", &"M", true)
 		var choice: String = side[0]
 		b.pressed.connect(func() -> void:
 			overlay.queue_free()
 			done.call(choice))
-		col.add_child(b)
-		cards.add_child(col)
+		cards.add_child(Parts.save_card(side[1], side[2], info.get(side[0], {}), b), true)
+		foot.add_child(b)
 		# No auto-focus: either button overwrites the other save, so Enter must never pick one by itself.
 	box.add_child(cards)
+	box.add_child(foot)
 	return overlay
 
 
@@ -406,66 +409,70 @@ static func _save_card(title: String, when: String, s: Dictionary) -> PanelConta
 static func show_toast(layer: CanvasLayer, code: String) -> Control:
 	var service: Node = layer.get_parent()
 	for c in layer.get_children():
-		if c.name == "AccountToast":
+		if c.name == "AccountToastHost":
 			c.queue_free()
 	var holder := Control.new()
-	holder.name = "AccountToast"
+	holder.name = "AccountToastHost"
 	holder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(holder)
 
 	var warn := code in ["session_expired", "save_failed", "sign_out_failed"]
-	var panel := UI3.plate(&"notice")
+	var tw := float(UI3Theme.size_of("toast_max_w"))
+	var st := UI3Theme.flat(UI3Theme.color("plate"), UI3Theme.radius("l"), UI3Theme.stroke("rim"), UI3Theme.color("plate_rim"),
+		Vector4(UI3Theme.space("12"), UI3Theme.space("12"), UI3Theme.space("20"), UI3Theme.space("12")),
+		PanelParts.lip(UI3Theme.color("plate_ink")))
+	var panel := PanelParts.panel(st, "AccountToast")
 	panel.anchor_left = 0.5
 	panel.anchor_right = 0.5
 	panel.anchor_top = 1.0
 	panel.anchor_bottom = 1.0
 	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	panel.custom_minimum_size = Vector2(TOAST_W, 0)
-	panel.offset_left = -TOAST_W / 2.0
-	panel.offset_right = TOAST_W / 2.0
-	panel.offset_bottom = -UI3Theme.space("24")
+	panel.custom_minimum_size = Vector2(tw, 0)
+	panel.offset_left = -tw / 2.0
+	panel.offset_right = tw / 2.0
+	panel.offset_bottom = -float(UI3Theme.space("screen_margin") + UI3Theme.size_of("btn_l") + UI3Theme.space("24"))
 	holder.add_child(panel)
 
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", UI3Theme.space("16"))
+	row.add_theme_constant_override("separation", UI3Theme.space("12"))
 	panel.add_child(row)
-	# Status dot, then the message in words (red only for a real failure of sign-in).
-	var dot := ColorRect.new()
-	dot.custom_minimum_size = Vector2(8, 8)
-	dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	dot.color = UI3Theme.color("accent") if warn else UI3Theme.color("danger")
-	row.add_child(dot)
-	var msg := _prose(AccountServiceScript.error_message(code))
+	row.add_child(Ui5ToneDisc.make(&"warn" if warn else &"error"))
+	var msg := Parts.body(AccountServiceScript.error_message(code), false, "Text")
 	msg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	msg.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	msg.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(msg)
+	var acts := HBoxContainer.new()
+	acts.name = "Acts"
+	acts.add_theme_constant_override("separation", UI3Theme.space("8"))
+	row.add_child(acts)
 
 	var actions: Array = []
 	match code:
 		"access_denied", "network":
 			actions = [["Try again" if code == "access_denied" else "Retry", true,
-					func() -> void: service.sign_in()],
-				["Continue without signing in", false, func() -> void: service.play_as_guest()]]
+					func() -> void: service.sign_in(), "TryAgainButton" if code == "access_denied" else "RetryButton"],
+				["Continue without signing in", false, func() -> void: service.play_as_guest(), "ContinueWithoutSigningInButton"]]
 		"admin_policy_enforced", "org_internal":
-			actions = [["Use another account", true, func() -> void: service.sign_in(true)]]
+			actions = [["Use another account", true, func() -> void: service.sign_in(true), "UseAnotherButton"]]
 		"session_expired":
-			actions = [["Sign in", true, func() -> void: service.sign_in()]]
+			actions = [["Sign in", true, func() -> void: service.sign_in(), "SignInButton"]]
 		"save_failed":
-			actions = [["Sync now", false, func() -> void: service.sync_now()]]
+			actions = [["Sync now", false, func() -> void: service.sync_now(), "SyncNowButton"]]
 		"sign_out_failed":
 			actions = []
 		_:
-			actions = [["Try again", true, func() -> void: service.sign_in()]]
+			actions = [["Try again", true, func() -> void: service.sign_in(), "TryAgainButton"]]
 	for a in actions:
-		var b := UI3.button(a[0], &"primary" if a[1] else &"secondary", &"M")
+		var b := Parts.btn(String(a[3]), String(a[0]), &"secondary", &"S")   # a17/a18: every toast action is secondary
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		var act: Callable = a[2]
 		b.pressed.connect(func() -> void:
 			holder.queue_free()
 			act.call())
-		row.add_child(b)
+		acts.add_child(b)
 
 	var timer := holder.get_tree().create_timer(TOAST_SECONDS)
 	timer.timeout.connect(func() -> void:

@@ -30,7 +30,7 @@ static func message(r: Dictionary) -> String:
 		"already_claimed": return "Gem gift already claimed today"
 		"at_cap": return "You hold the maximum, nothing to claim"
 		"offline": return "Couldn't reach the server. Check your connection and try again."
-		"pending": return "Claiming..."
+		"pending": return "Claiming…"
 	return "Could not claim the Gem gift. Try again."
 
 

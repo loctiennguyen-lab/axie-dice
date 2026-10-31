@@ -66,6 +66,8 @@ func _ready() -> void:
 	_run_id = String(log.header.get("run_id", "")) if log != null else ""
 	snapshot["mission_won"] = bool(RunState.mission_outcome(won)["won"])
 
+	if PassView.seen_level < 0:
+		PassView.seen_level = PassV2.level_for_xp(int(MetaState.pass_season.get("xp", 0)))   # so the Pass screen can play its level-up
 	RunState.end_run(won)   # pushes shards + XP into MetaState
 	# Pass XP granted this run: local = change in the Pass v2 state (day cap applied, 0 outside the season);
 	# remote = the server counts it later, so no number is claimed (-1).
@@ -79,6 +81,7 @@ func _ready() -> void:
 	_snap = snapshot
 	_build_ui(snapshot)
 	_back.grab_focus.call_deferred()
+	_play_end_moment()
 
 
 func _build_ui(s: Dictionary) -> void:
@@ -301,7 +304,10 @@ func _build_stat_grid(stats: Dictionary) -> Control:
 		var v := VBoxContainer.new()
 		v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		v.add_theme_constant_override("separation", 0)
-		v.add_child(UI3.label(String(t[1]), "LabelTitle"))
+		var val := UI3.label(String(t[1]), "LabelTitle")
+		val.name = "StatValue"
+		v.name = "Stat" + String(["Nodes", "Turns", "Damage", "Kills", "BiggestHit", "AxiesLost"][tiles.find(t)])
+		v.add_child(val)
 		v.add_child(UI3.label(String(t[0]), "LabelMuted"))
 		grid.add_child(v)
 	return grid
@@ -801,3 +807,40 @@ func _on_missions_pressed() -> void:
 
 func _on_menu_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/main_menu/MainMenu.tscn")
+
+
+## UI-05 b23 lane M3: `run-end-win` / `run-end-lose` from motion_ui3.json. Input is never locked (the Back-unlock row is data).
+## Not in instant / headless runs. The XP fill has no node here. The scrim is MOUSE_FILTER_IGNORE and skip is not wired: Space stays "Back to Land" and input is never locked.
+func _play_end_moment() -> void:
+	if UI3Gacha.is_instant() or DisplayServer.get_name() == "headless" or _plate == null:
+		return
+	# Hidden before the wait so the plate never shows one full frame, then the timeline fades it in.
+	var scrim0 := find_child("Scrim", false, false) as Control
+	if scrim0 != null:
+		scrim0.modulate.a = 0.0
+	_plate.modulate.a = 0.0
+	await get_tree().process_frame
+	if not is_inside_tree() or _plate == null:
+		return
+	var won := bool(_snap.get("won", false))
+	var tg := {"scrim": find_child("Scrim", false, false), "plate": _plate}
+	var title := find_child("Title", true, false) as Control
+	if title != null:
+		title.pivot_offset = title.size / 2.0
+		tg["title"] = title
+	var grid := find_child("StatGrid", true, false)
+	var counts := {}
+	var count_cb := Callable()
+	if grid != null:
+		tg["stats"] = grid.get_children()
+		var dmg := grid.get_node_or_null("StatDamage/StatValue") as Label
+		if dmg != null:
+			tg["damage"] = dmg
+			counts["damage_count"] = [0, int((_snap["stats"] as Dictionary).get("damage_dealt", 0))]
+	if _body != null:
+		tg["cards"] = _body.get_children()
+	var amt := find_child("ShardAmount", true, false)
+	if amt != null:
+		tg["shards"] = amt
+		counts["shards_count"] = [0, int(_snap.get("shards_this_run", 0))]
+	UI3Motion.play_timeline("run-end-win" if won else "run-end-lose", tg, {"host": self, "counts": counts})

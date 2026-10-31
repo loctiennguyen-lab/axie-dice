@@ -46,7 +46,7 @@ func _ready() -> void:
 
 func _make(sc: float) -> MissionsScreen:
 	var host := Control.new()
-	host.size = Vector2(1920, 1080) * sc
+	host.size = Vector2(1920, 1080)   # the canvas is logical 1920x1080 at every scale
 	add_child(host)
 	var s: MissionsScreen = load("res://scenes/missions/MissionsScreen.tscn").instantiate()
 	s.use_account = false
@@ -120,6 +120,23 @@ func _pass(sc: float, tag: String) -> void:
 	_check(Align.pairs(s) > 0, "%s: the centring check measured no icon / label pair" % tag)
 	for pr in Align.check(s, 1.5, tag + ": "):
 		_check(false, pr)
+	# the title tier (N6, the longest detail) fits: every Label inside the plate rect, no scrolling needed
+	MetaState.set_mission_unlocks(["N1", "N2", "N3", "N4", "N5", "N6"], false)
+	s._refresh()
+	s.select_tier("N6")
+	await _settle()
+	var plate := s.find_child("DetailPlate", true, false) as Control
+	var pr := plate.get_global_rect()
+	var spill := []
+	for lb in plate.find_children("*", "Label", true, false):
+		var l := lb as Label
+		if l.is_visible_in_tree() and not pr.grow(1.0).encloses(l.get_global_rect()):
+			spill.append(l.text.left(24))
+	_check(spill.is_empty(), "%s: N6 detail Labels all inside the plate %s" % [tag, str(spill)])
+	var dsc := s.find_child("DetailScroll", true, false) as ScrollContainer
+	_check(dsc.get_v_scroll_bar().max_value <= dsc.get_v_scroll_bar().page + 1.0, "%s: N6 detail needs no scrolling (max %.0f page %.0f)" % [tag, dsc.get_v_scroll_bar().max_value, dsc.get_v_scroll_bar().page])
+	MetaState.set_mission_unlocks(["N1", "N2"], false)
+	s._refresh()
 	# locked tier
 	s.select_tier("N4")
 	await _settle()
