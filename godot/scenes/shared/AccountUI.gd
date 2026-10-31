@@ -103,6 +103,7 @@ static func show_desktop_flow(layer: CanvasLayer, service: Node, auto_dismiss_s:
 	var overlay := _overlay(layer)
 	overlay.name = "DesktopSignInFlow"
 	var box := _modal(overlay, 640.0)
+	box.get_parent().name = "DesktopSignIn"   # a09-a12 data-name
 	var dismissed := [false]
 	var refresh := Callable()
 	refresh = func() -> void:
@@ -438,6 +439,7 @@ static func show_toast(layer: CanvasLayer, code: String) -> Control:
 	var msg := Parts.body(AccountServiceScript.error_message(code), false, "Text")
 	msg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	msg.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	msg.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(msg)
 	var acts := HBoxContainer.new()
 	acts.name = "Acts"
