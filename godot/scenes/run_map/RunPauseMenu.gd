@@ -328,9 +328,18 @@ func _ask_abandon() -> void:
 	var cap := Ui5Keycap.make("Space", &"primary")
 	keep.add_child(cap)
 	var pad := UI3Theme.space("32")
-	var place := func() -> void: HudStyle.place_trailing(keep, cap, pad)
+	var gap := UI3Theme.space("12")
+	# Cap sits after the centred label with a 12 gap (CSS .btn gap); the button is widened on both sides to hold it.
+	var place := func() -> void:
+		var font := keep.get_theme_font("font")
+		var fs := keep.get_theme_font_size("font_size")
+		var tw := font.get_string_size(keep.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var cs := cap.get_combined_minimum_size()
+		keep.custom_minimum_size.x = tw + (gap + cs.x + pad) * 2
+		cap.size = cs
+		cap.position = Vector2((keep.size.x + tw) * 0.5 + gap, (keep.size.y - cs.y) * 0.5)   # text stays centred, cap after it
 	keep.resized.connect(place)
-	keep.tree_entered.connect(place, CONNECT_DEFERRED | CONNECT_ONE_SHOT)
+	place.call_deferred()
 	var ab := Parts.danger_button(tr("Abandon run"), "AbandonButton")
 	keep.pressed.connect(_close_confirm)
 	ab.pressed.connect(func() -> void:
