@@ -191,10 +191,8 @@ func _claim_button(nm: String, label: String, reason: String, cb: Callable, prim
 		b = Ui5ClaimButton.make(label, &"L")
 	else:
 		b = PanelParts.button(label, &"secondary", &"M")
-	if gem_icon and reason == "" and not primary:   # the amber primary draws no icon (icon + text overlapped in the primary style)
-		b.icon = UI3.currency_icon("cur_gem", UI3Theme.size_of("icon_s"))
-		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		b.add_theme_constant_override("icon_max_width", UI3Theme.size_of("icon_s"))
+	if gem_icon and reason == "" and not primary:   # frame 41-daily--unclaimed: secondary has the Gem icon; the amber primary has none
+		_gem_cluster(b)
 	b.name = nm
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if reason != "":
@@ -204,6 +202,26 @@ func _claim_button(nm: String, label: String, reason: String, cb: Callable, prim
 
 
 const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
+
+
+## [Gem icon][text] drawn as one centred HBox over the button (Button.icon would overlap the centred text). The button keeps
+## its own text (tests, screen readers) but draws it transparent.
+func _gem_cluster(b: Button) -> void:
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color", "font_disabled_color"]:
+		b.add_theme_color_override(c, Color.TRANSPARENT)
+	var h := HBoxContainer.new()
+	h.name = "GemCluster"
+	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	h.alignment = BoxContainer.ALIGNMENT_CENTER
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_theme_constant_override("separation", UI3Theme.space("12"))
+	var ic := PanelParts.icon_rect(UI3.currency_icon("cur_gem", UI3Theme.size_of("icon_s")), UI3Theme.size_of("icon_s"))
+	ic.name = "GemIcon"
+	h.add_child(ic)
+	var l := Ui5Text.label(b.text, "text_title", "text", true)
+	l.name = "GemText"
+	h.add_child(l)
+	b.add_child(h)
 
 
 func _icon(n: String) -> Texture2D:

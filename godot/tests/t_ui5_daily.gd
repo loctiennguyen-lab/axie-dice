@@ -87,14 +87,19 @@ func _pass(sc: float) -> void:
 	_ok(d.find_children("DayChip*", "", true, false).size() == 4, "%s: 4 day chips (weekly min_days)" % tag)
 	_ok(not _btn(d, "DailyClaim").disabled and _btn(d, "DailyClaim").text == "Claim", "%s: Daily Claim live" % tag)
 	_ok(_btn(d, "DailyClaim").theme_type_variation == "ButtonPrimaryL" and _btn(d, "GemClaim").theme_type_variation == "ButtonSecondary", "%s: one primary" % tag)
-	_ok(_btn(d, "GemClaim").text == "Claim 300 Gem" and _btn(d, "GemClaim").icon != null, "%s: Gem claim secondary with icon, data amount" % tag)
+	_ok(_btn(d, "GemClaim").text == "Claim 300 Gem" and _btn(d, "GemClaim").find_child("GemIcon", true, false) != null, "%s: Gem claim secondary with icon, data amount" % tag)
 	_ok(get_viewport().gui_get_focus_owner() == _btn(d, "DailyClaim"), "%s: initial focus on Daily Claim" % tag)
 	var gb := _btn(d, "GemClaim")
-	_ok(gb.icon_alignment == HORIZONTAL_ALIGNMENT_CENTER, "%s: Gem icon travels with the text (centre)" % tag)
-	var fnt := gb.get_theme_font("font")
-	var tw := fnt.get_string_size(gb.text, HORIZONTAL_ALIGNMENT_LEFT, -1, gb.get_theme_font_size("font_size")).x
-	var iw := float(gb.get_theme_constant("icon_max_width")) + float(gb.get_theme_constant("h_separation"))
-	_ok(gb.get_theme_constant("icon_max_width") > 0 and iw > 0.0 and gb.size.x > tw + iw, "%s: icon + text group fits the button centred (group %.0f in %.0f)" % [tag, tw + iw, gb.size.x])
+	var gi := gb.find_child("GemIcon", true, false) as Control
+	var gt := gb.find_child("GemText", true, false) as Control
+	_ok(gi != null and gt != null and gb.icon == null, "%s: secondary Gem cluster (icon + text)" % tag)
+	if gi != null and gt != null:
+		var ri := Rect2(gi.global_position, gi.size)
+		var rt := Rect2(gt.global_position, gt.size)
+		_ok(ri.end.x <= rt.position.x + 0.5 and not ri.intersects(rt), "%s: icon left of the text, no overlap" % tag)
+		var cx := (ri.position.x + rt.end.x) * 0.5
+		var bx := gb.global_position.x + gb.size.x * 0.5
+		_ok(absf(cx - bx) <= 2.0, "%s: cluster centred on the button (off by %.1f)" % [tag, cx - bx])
 	_ok(_btn(d, "BackButton").text == "←", "%s: back arrow" % tag)
 	_ok(Ui5Keycap.all_under(d).is_empty(), "%s: no keycap (frames draw none)" % tag)
 	var txt := _texts(d)
