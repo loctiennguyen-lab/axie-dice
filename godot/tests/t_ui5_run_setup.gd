@@ -50,6 +50,17 @@ func _ready() -> void:
 		get_tree().quit(1)
 
 
+func _contrast(a: Color, b: Color) -> float:
+	var la := _lum(a)
+	var lb := _lum(b)
+	return (maxf(la, lb) + 0.05) / (minf(la, lb) + 0.05)
+
+
+func _lum(c: Color) -> float:
+	var f := func(v: float) -> float: return v / 12.92 if v <= 0.03928 else pow((v + 0.055) / 1.055, 2.4)
+	return 0.2126 * f.call(c.r) + 0.7152 * f.call(c.g) + 0.0722 * f.call(c.b)
+
+
 func _text(n: Node, sc: float, tag: String) -> void:
 	if n is CanvasItem and not (n as CanvasItem).is_visible_in_tree():
 		return
@@ -216,6 +227,10 @@ func _state_frame(id: String, sc: float, tag: String) -> void:
 			_check(s.find_child("PartyArea", true, false) == null or not (s.find_child("PartyArea", true, false) as Control).is_visible_in_tree(), "%s: seats hidden" % tag)
 			var cb := s.find_child("ContinueButton", true, false) as Control
 			var kc := cb.find_child("KeyCap", true, false) as Control
+			var cbb := cb as Button
+			var nsb := cbb.get_theme_stylebox("normal") as StyleBoxFlat
+			_check(nsb != null and nsb.bg_color.is_equal_approx((UI3Theme.get_theme().get_stylebox("normal", "ButtonPrimaryL") as StyleBoxFlat).bg_color), "%s: Continue fill is the primary token, got %s" % [tag, str(nsb.bg_color) if nsb else "null"])
+			_check(_contrast(cbb.get_theme_color("font_color"), nsb.bg_color) >= 4.5, "%s: Continue text contrast" % tag)
 			_check(cb.get_global_rect().encloses(kc.get_global_rect()), "%s: Continue keycap inside the button" % tag)
 		"start-error":
 			_check((s.find_child("Banner", true, false).find_child("Title", true, false) as Label).text == "No Daily tries left today", "%s: error title" % tag)
