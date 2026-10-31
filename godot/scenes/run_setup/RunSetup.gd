@@ -81,7 +81,6 @@ var start_timeout_s := 35.0
 ## Tests only: scene path to try instead of the run map.
 var run_map_override := ""
 var _begin_btn: Button
-var _start_cap: Control
 var _party_row: HBoxContainer
 var _party_label: Label
 var _asc_chips: Array[Button] = []
@@ -367,22 +366,8 @@ func select_kind(k: String) -> bool:
 	return true
 
 
-## Space keycap at the trailing edge of Start run, laid out by place_trailing once the button is in the tree.
-func _attach_start_cap() -> void:
-	var cap := Ui5Keycap.make("Space", &"primary")
-	cap.name = "KeyCap"
-	_begin_btn.add_child(cap, true)
-	_start_cap = cap
-	var pad := UI3Theme.space("16")
-	var place := func() -> void:
-		if is_instance_valid(_begin_btn) and _begin_btn.is_inside_tree():
-			Ui5HudStyle.place_trailing(_begin_btn, cap, pad)
-	_begin_btn.resized.connect(place)
-	place.call_deferred()
-
-
 ## Disabled look as in the frame (grey plate, lock icon + text as an HBox, no Button.icon). Not-locked: plain text.
-func _set_lock_look(b: Button, locked: bool, txt: String) -> void:
+func _set_lock_look(b: Button, locked: bool, txt: String, icon_px := 18, gap := 8) -> void:
 	var old := b.get_node_or_null("LockRow")
 	if old != null:
 		b.remove_child(old)
@@ -407,13 +392,13 @@ func _set_lock_look(b: Button, locked: bool, txt: String) -> void:
 	row.set_anchors_preset(Control.PRESET_FULL_RECT)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("separation", UI3Theme.space("8"))
+	row.add_theme_constant_override("separation", gap)
 	var ic := TextureRect.new()
 	ic.name = "LockIcon"
 	ic.texture = UI3.icon("ui_lock")
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	ic.custom_minimum_size = Vector2(18, 18)
+	ic.custom_minimum_size = Vector2(icon_px, icon_px)
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(ic)
 	var lb := Label.new()
@@ -445,8 +430,8 @@ func _refresh_kind() -> void:
 		b.disabled = why != ""
 		b.tooltip_text = why
 		b.set_pressed_no_signal(kind == k)
-		_mark_selected(b, kind == k)
 		_set_lock_look(b, why != "", "%s · %s" % [String(k).capitalize(), _kind_sub(k)])
+		_mark_selected(b, kind == k)   # after the lock look: it resets the style overrides
 	if _anchor_lbl != null:
 		_anchor_lbl.text = anchor_line()
 
@@ -669,6 +654,8 @@ func _lbl(text: String, variation := "") -> Label:
 
 ## Selected = 4 px cream outline on the button's own styles (never the focus ring).
 func _mark_selected(b: Button, on: bool) -> void:
+	if b.get_node_or_null("LockRow") != null:
+		return   # locked: keeps the disabled look
 	for k in ["normal", "hover", "pressed"]:
 		var base: StyleBox = b.get_meta("base_" + k) if b.has_meta("base_" + k) else null
 		if on:
@@ -890,7 +877,6 @@ func _build() -> void:
 	_begin_btn.pressed.connect(func() -> void: begin())
 	_begin_btn.custom_minimum_size.x = 300
 	acts.add_child(_begin_btn)
-	_attach_start_cap()
 
 	_modal_layer = Control.new()
 	_modal_layer.name = "Modals"
@@ -1084,8 +1070,6 @@ func _refresh_mode() -> void:
 	var full_ok := is_full_unlocked()
 	_short_btn.set_pressed_no_signal(mode == "short")
 	_full_btn.set_pressed_no_signal(mode == "full")
-	_mark_selected(_short_btn, mode == "short")
-	_mark_selected(_full_btn, mode == "full" and full_ok)
 	var cfg: Dictionary = RunMapGenerator.MODE_CONFIG.get(mode, {})
 	var txt := "%s · %d rows · %d bosses" % [mode.capitalize(), int(cfg.get("total_rows", 0)),
 		(cfg.get("boss_rows", []) as Array).size()]
@@ -1094,6 +1078,8 @@ func _refresh_mode() -> void:
 	_full_lock.visible = not full_ok
 	_full_btn.disabled = false   # stays clickable so the reason shows; drawn as disabled
 	_set_lock_look(_full_btn, not full_ok, tr("Full") if full_ok else tr("Full · locked"))
+	_mark_selected(_short_btn, mode == "short")
+	_mark_selected(_full_btn, mode == "full" and full_ok)
 
 
 func _build_asc_col() -> void:
@@ -1174,9 +1160,9 @@ func _refresh_asc() -> void:
 	for n in _asc_chips.size():
 		var b := _asc_chips[n]
 		var locked := n > ceil
+		_set_lock_look(b, locked, "A%d" % n, 14, 4)
 		_mark_selected(b, n == ascension)
-		b.icon = UI3.icon("ui_lock") if locked else null
-		b.modulate.a = 0.6 if locked else 1.0
+		b.modulate.a = 1.0
 		b.tooltip_text = tr("Win a run at A%d to unlock A%d") % [n - 1, n] if locked else ""
 	var m: Dictionary = ContentDB.ascension_mods(ascension)
 	if ascension == 0:
@@ -1236,10 +1222,6 @@ func _build_kit_col() -> Control:
 
 func _refresh_footer() -> void:
 	_refresh_footer_inner()
-	if _start_cap != null and is_instance_valid(_start_cap):
-		_start_cap.visible = not _begin_btn.disabled   # Space only works while Start is on
-		if _begin_btn.is_inside_tree():
-			Ui5HudStyle.place_trailing(_begin_btn, _start_cap, UI3Theme.space("16"))
 
 
 func _refresh_footer_inner() -> void:

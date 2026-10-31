@@ -91,22 +91,9 @@ func _frame(id: String, sc: float, tag: String) -> void:
 	_check(slots.size() == 5, "%s: 5 party slots" % tag)
 	for sl in slots:
 		_check(absf((sl as Control).size.x - (slots[0] as Control).size.x) < 1.5, "%s: party columns equal" % tag)
-	# Start: keycap only when enabled
+	# Start: the frame has no keycap on Start (and Space does not start the run)
 	var st := s.find_child("StartButton", true, false) as Button
-	var caps := Ui5Keycap.all_under(st)
-	if st.disabled:
-		_check(caps.is_empty() or not (caps[0] as Control).visible, "%s: no visible keycap on a disabled Start" % tag)
-	else:
-		_check(not caps.is_empty() and (caps[0] as Control).visible, "%s: Space keycap on enabled Start" % tag)
-		if not caps.is_empty():
-			await get_tree().process_frame
-			var kr := (caps[0] as Control).get_global_rect()
-			var br := st.get_global_rect()
-			var font := st.get_theme_font("font")
-			var tw := font.get_string_size(st.text, HORIZONTAL_ALIGNMENT_LEFT, -1, st.get_theme_font_size("font_size")).x
-			var text_right := br.position.x + (st.get_theme_stylebox("normal").content_margin_left + st.size.x - st.get_theme_stylebox("normal").content_margin_right) * 0.5 + tw * 0.5
-			_check(kr.position.x >= text_right - 0.5, "%s: KeyCap %.1f starts after the text (%.1f)" % [tag, kr.position.x, text_right])
-			_check(br.encloses(kr), "%s: KeyCap inside Start %s / %s" % [tag, str(kr), str(br)])
+	_check(Ui5Keycap.all_under(st).is_empty(), "%s: Start has no KeyCap" % tag)
 	# locked toggles: grey, icon+text row, no Button.icon
 	for tn in ["FullToggle", "RankedToggle"]:
 		var tb := s.find_child(tn, true, false) as Button
@@ -120,6 +107,20 @@ func _frame(id: String, sc: float, tag: String) -> void:
 		if ctl.is_visible_in_tree() and ctl.size.x > 0 and ctl.size.y > 0 and not (ctl.name in ["Modals", "PlateHost", "Stage"]):
 			_check(lim.encloses(ctl.get_global_rect()), "%s: %s outside the 1920 frame %s" % [tag, ctl.name, str(ctl.get_global_rect())])
 	_text(s, sc, tag)
+	_check(Align.pairs(s) > 0, "%s: align measured %d icon/label pairs" % [tag, Align.pairs(s)])
+	# initial focus: RunSetup grabs none itself (only modals do), so no node in the screen owns focus on open
+	var fo := s.get_viewport().gui_get_focus_owner()
+	_check(fo == null or not s.is_ancestor_of(fo), "%s: no initial focus inside RunSetup (owner %s)" % [tag, str(fo)])
+	# selected toggles keep the selection outline stylebox
+	for tn in ["NormalToggle", "DailyToggle", "RankedToggle", "ShortToggle", "FullToggle"]:
+		var tb2 := s.find_child(tn, true, false) as Button
+		if tb2 != null and tb2.button_pressed and tb2.get_node_or_null("LockRow") == null:
+			var sbx := tb2.get_theme_stylebox("normal") as StyleBoxFlat
+			_check(sbx != null and sbx.border_color == UI3Theme.color("selected_outline"), "%s: selected %s has the selection outline" % [tag, tn])
+	var chip_lock := s.find_children("LockRow", "HBoxContainer", true, false)
+	for lr in chip_lock:
+		var icr := (lr as Node).get_node("LockIcon") as Control
+		_check(icr.size.x >= 14.0 and icr.size.y >= 14.0, "%s: lock icon %s >= 14 px" % [tag, str(icr.size)])
 	for pr in Align.check(s, 1.5, tag + ": "):
 		_check(false, pr)
 	# start passes the same params as before (stub), only in the first full-party frame
