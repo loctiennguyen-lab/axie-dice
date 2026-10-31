@@ -120,6 +120,7 @@ Nhánh tích hợp: `int/ui5-b23`, worktree `../my-game-wt/u5b-0`. Luật chạy
 - R3: ở 1280 khoảng cách trong card Anchor 12 → 8 (logical) để Big Hand không vượt `anchor_card_h` khi chữ bị nâng lên sàn 14 px; HTML 1280 giữ 12.
 - S1a: tooltip toà nhà trên Land vẫn ghi phím trong Title ("Echo Box · 4") theo luật "phím khác chỉ ghi trong tooltip"; frame chỉ có tên.
 - R6: frame HTML không vẽ Pact trong panel "Cores owned". Đang hiện Pact theo kiểu hàng OwnedRule (tên trái, "Pact" phải, điều khoản phạt dưới) để không mất thông tin. Anh muốn hình khác thì báo.
+- S7a (1/11): màn Locked ghi "win a run at A%d" với `asc-1` (xem A9 khi mới mở A6 → "win a run at A8" dù A7 chưa mở). Có từ bản cũ, `t_leaderboard` khoá chuỗi này. Đổi sang "win a run at A{asc_max}" không?
 - Slider Settings: theo HTML không có núm (đang làm vậy, vùng bấm vô hình ≥ hit_min). Có muốn núm không?
 
 ## Backlog nhỏ phát hiện trong đợt

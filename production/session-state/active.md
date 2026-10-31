@@ -1,7 +1,9 @@
 # Axie Dice — trạng thái hiện tại
 
-## ⇢ BẮT ĐẦU TỪ ĐÂY (1/11) — UI-05 ĐỢT 1+2+3 ĐÃ DEPLOY; ĐỌC `production/ui05-next-session.md`
-- axiedice.fun chạy `godot-port` @ 68fd93a (UI-05 đủ 3 đợt, trừ S7a Leaderboard). Release_gate 329/329 + Worker 395/395.
+## ⇢ BẮT ĐẦU TỪ ĐÂY (1/11 chiều) — S7a + POLISH DAILY/LAND ĐÃ GỘP, CHƯA DEPLOY; ĐỌC `production/ui05-next-session.md`
+- axiedice.fun chạy `godot-port` @ 68fd93a. `godot-port` local @ 1a04951 có thêm S7a Leaderboard + sửa Daily online + nút
+  "Upgrade Land" — chưa push, chưa deploy; deploy lần này cần `wrangler deploy` (Worker đổi). Worker 397/397.
+- Liam 1/11: máy này sẽ chạy làm server 24/24 (memory `mac-as-24h-server`; chưa rõ chạy gì, đã hỏi).
 - Việc còn lại + thứ tự + trạng thái worktree: **`production/ui05-next-session.md`**.
 - Trước khi chạy agent: memory `ui-lane-token-savers`.
 
