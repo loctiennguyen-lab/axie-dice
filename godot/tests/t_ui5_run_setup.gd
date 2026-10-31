@@ -37,6 +37,8 @@ func _ready() -> void:
 		UI3Theme.set_scale_override(sc)
 		for id in Fx.IDS:
 			await _frame(id, sc, "%s %s" % ["1920" if sc == 1.0 else "1280", id])
+		for id in Fx.STATE_IDS:
+			await _state_frame(id, sc, "%s state %s" % ["1920" if sc == 1.0 else "1280", id])
 	UI3Theme.set_scale_override(1.0)
 	_guard.restore()
 	if _fails.is_empty():
@@ -131,5 +133,99 @@ func _frame(id: String, sc: float, tag: String) -> void:
 		_check(r.get("ok", false), "%s: begin ok" % tag)
 		_check(_got.get("ascension") == 5 and _got.get("mode") == "short" and _got.get("kind") == "normal" and _got.get("ranked") == false \
 				and (_got.get("team_keys") as Array).size() == 5 and _got.get("anchor") == true and _got.has("depth_stage") and _got.has("newcomer"), "%s: begin params %s" % [tag, str(_got)])
+	host.queue_free()
+	await get_tree().process_frame
+
+
+## S3a2: the state frames. Node names from names/S3a.txt, text >= 14 real px, inside 1920, align pairs > 0, first focus per state.
+func _state_frame(id: String, sc: float, tag: String) -> void:
+	var host := Control.new()
+	host.size = Vector2(1920, 1080)
+	add_child(host)
+	var s := Fx.make_state(id, _stub)
+	host.add_child(s)
+	s.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for i in 5:
+		await get_tree().process_frame
+	await Fx.apply_state(s, get_tree())
+	for i in 5:
+		await get_tree().process_frame
+	var must: Array[String] = ["SetupColumn", "BackButton", "NormalToggle", "DailyToggle", "RankedToggle"]
+	var focus_name := "NormalToggle"
+	match id:
+		"guest":
+			must += ["Banner", "ToneDisc", "Title", "Body", "SignInButton", "BlockReason", "FooterLine", "StartButton", "PartyHeader", "PartyRow"]
+			focus_name = "SignInButton"
+		"offline-live":
+			must += ["Banner", "ToneDisc", "TryAgainButton", "BlockReason", "StartButton"]
+			focus_name = "TryAgainButton"
+		"offline-local":
+			must += ["Banner", "ToneDisc", "Title", "Body", "StartButton"]
+		"party-short":
+			must += ["PartySlotEmpty", "PartySlot", "BlockReason", "StartButton"]
+		"blocked":
+			must += ["PartyRow", "StartButton"]
+		"loading":
+			must += ["PartyHeader", "SkeletonCol", "FooterLine", "StartButton"]
+			focus_name = ""
+		"open-run":
+			must += ["OpenRunArea", "OpenRunCard", "Title", "SubLine", "ContinueButton", "KeyCap", "NewRunButton", "Note"]
+			focus_name = "ContinueButton"
+		"start-error":
+			must += ["Banner", "ToneDisc", "Title", "Body", "StartButton"]
+		"starting":
+			must += ["FooterLine", "StartButton"]
+		"closing":
+			must += ["FooterLine", "BlockReason", "StartButton"]
+	for n in must:
+		_check(s.find_child(n, true, false) != null, "%s: node %s exists" % [tag, n])
+	var st := s.find_child("StartButton", true, false) as Button
+	var fo := s.get_viewport().gui_get_focus_owner()
+	if focus_name != "":
+		_check(fo != null and fo.name == focus_name, "%s: first focus is %s (owner %s)" % [tag, focus_name, str(fo)])
+	_check(fo == null or fo.name != "StartButton", "%s: focus not on Start" % tag)
+	# texts from the frames
+	match id:
+		"guest":
+			_check(st.text == "Sign in to play" and st.disabled, "%s: Start '%s' disabled" % [tag, st.text])
+			_check((s.find_child("DailyToggle", true, false) as Button).get_node("LockRow/LockText").text == "Daily · Sign in to play Daily", "%s: Daily reason" % tag)
+		"offline-live":
+			_check(st.text == "Start run" and st.disabled, "%s: Start '%s' disabled" % [tag, st.text])
+			_check((s.find_child("BlockReason", true, false) as Label).text == "Needs a connection to the server", "%s: block reason" % tag)
+		"offline-local":
+			_check(s.find_child("TryAgainButton", true, false) == null and st.text == "Start run", "%s: local banner has no retry, Start usable" % tag)
+		"party-short":
+			_check(st.text == "Start run · 3 of 5" and st.disabled, "%s: Start '%s'" % [tag, st.text])
+			_check((s.find_child("BlockReason", true, false) as Label).text == "Pick 2 more Axies to begin", "%s: block reason" % tag)
+			_check(s.find_children("PartySlotEmpty*", "Control", true, false).size() == 2, "%s: 2 empty seats" % tag)
+		"blocked":
+			_check((s.find_child("DailyToggle", true, false) as Button).get_node("LockRow/LockText").text == "Daily · No tries left today", "%s: Daily blocked text" % tag)
+			_check(not st.disabled, "%s: Start still on (Normal)" % tag)
+		"loading":
+			_check(st.text == "Loading…" and st.disabled, "%s: Start Loading…" % tag)
+			_check(s.find_children("PartySlot", "Control", true, false).is_empty(), "%s: no seats while loading" % tag)
+		"open-run":
+			_check((s.find_child("SubLine", true, false) as Label).text == "Saved run", "%s: SubLine" % tag)
+			_check(s.find_child("PartyArea", true, false) == null or not (s.find_child("PartyArea", true, false) as Control).is_visible_in_tree(), "%s: seats hidden" % tag)
+			var cb := s.find_child("ContinueButton", true, false) as Control
+			var kc := cb.find_child("KeyCap", true, false) as Control
+			_check(cb.get_global_rect().encloses(kc.get_global_rect()), "%s: Continue keycap inside the button" % tag)
+		"start-error":
+			_check((s.find_child("Banner", true, false).find_child("Title", true, false) as Label).text == "No Daily tries left today", "%s: error title" % tag)
+			_check(s.begin_error != "" and not st.disabled, "%s: error recorded, Start usable again" % tag)
+		"starting":
+			_check(st.text == "Starting…" and st.disabled, "%s: Start '%s'" % [tag, st.text])
+		"closing":
+			_check(st.text == "Closing your old run…" and st.disabled, "%s: Start '%s'" % [tag, st.text])
+			_check((s.find_child("BlockReason", true, false) as Label).text == "This can take a few seconds. Please wait.", "%s: wait line" % tag)
+	var lim := Rect2(Vector2.ZERO, Vector2(1920, 1080)).grow(1.0)
+	for c in s.find_children("*", "Control", true, false):
+		var ctl := c as Control
+		if ctl.is_visible_in_tree() and ctl.size.x > 0 and ctl.size.y > 0 and not (ctl.name in ["Modals", "PlateHost", "Stage"]):
+			_check(lim.encloses(ctl.get_global_rect()), "%s: %s outside the 1920 frame %s" % [tag, ctl.name, str(ctl.get_global_rect())])
+	_text(s, sc, tag)
+	_check(Align.pairs(s) > 0, "%s: align measured %d pairs" % [tag, Align.pairs(s)])
+	for pr in Align.check(s, 1.5, tag + ": "):
+		_check(false, pr)
 	host.queue_free()
 	await get_tree().process_frame

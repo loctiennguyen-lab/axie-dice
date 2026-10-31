@@ -12,6 +12,7 @@ extends Control
 ## when dice are server-rolled. Not wired: Kit/Boon purchase,
 ## preset save/load, seed well, Leaderboard button. Those render disabled with the reason shown.
 
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 const EconomyDBScript := preload("res://scripts/meta/economy_db.gd")
 const SCREEN_ID := "portal"
 const RUN_MAP := "res://scenes/run_map/RunMap.tscn"
@@ -408,8 +409,20 @@ func _set_lock_look(b: Button, locked: bool, txt: String, icon_px := 18, gap := 
 	lb.add_theme_font_override("font", b.get_theme_font("font"))
 	lb.add_theme_font_size_override("font_size", b.get_theme_font_size("font_size"))
 	lb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Long reasons ("Imported Axies can't play Ranked") wrap and grow the toggle instead of being cut with "…".
+	lb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.offset_left = UI3Theme.space("8")
+	row.offset_right = -UI3Theme.space("8")
 	row.add_child(lb)
 	b.add_child(row, true)
+	var base_h := b.custom_minimum_size.y if b.has_meta("lock_base_h") == false else float(b.get_meta("lock_base_h"))
+	b.set_meta("lock_base_h", base_h)
+	lb.minimum_size_changed.connect(func() -> void:
+		if is_instance_valid(b):
+			b.custom_minimum_size.y = maxf(base_h, lb.get_minimum_size().y + UI3Theme.space("16")))
 
 
 func _kind_sub(k: String) -> String:
@@ -461,25 +474,18 @@ func set_state(s: String) -> void:
 	if _panel == null:
 		return
 	_clear_banners()
-	if s == "normal" and _kind_btns.has("normal"):
-		_focus_later(_kind_btns["normal"])   # first stop: Normal toggle, never Start
-	_body.visible = s != "loading" and s != "open_run"
-	_stage.visible = s != "loading" and s != "open_run"
-	_panel.visible = s != "open_run"
-	var sk := _panel.get_node_or_null("Col/Skeleton")
-	if sk:
-		sk.get_parent().remove_child(sk)
-		sk.queue_free()
-	var oc := get_node_or_null("OpenRun")
+	_body.visible = true
+	_stage.visible = s != "open_run"
+	_panel.visible = true
+	var oc := get_node_or_null("OpenRunArea")
 	if oc:
 		remove_child(oc)
 		oc.queue_free()
-	if s == "loading":
-		_build_skeleton()
-	elif s == "open_run":
+	_refresh_party()   # loading draws skeleton columns instead of the seats
+	if s == "open_run":
 		_build_open_run()
 	elif s == "guest":
-		_add_banner("Sign in to play", "Runs are played on the server, so they need an account.", false, true)
+		_add_banner("Sign in to play", "Runs are played on the server, so they need an account.", false, true, &"info")
 	elif s == "offline":
 		if remote_on:
 			_add_banner("Can't reach the server", "Last updated %s. Runs are played on the server in this build."
@@ -487,6 +493,25 @@ func set_state(s: String) -> void:
 		else:
 			_add_banner("You're offline", "Runs play on this device for now; progress syncs when you reconnect.", false)
 	_refresh_footer()
+	_focus_for_state(s)
+
+
+## First focus stop per state (never Start): the screen's own primary way forward.
+func _focus_for_state(s: String) -> void:
+	var target: Control = null
+	match s:
+		"normal":
+			target = _kind_btns.get("normal")
+		"guest":
+			target = _banner_host.find_child("SignInButton", true, false) as Control
+		"offline":
+			target = _banner_host.find_child("TryAgainButton", true, false) as Control
+			if target == null:
+				target = _kind_btns.get("normal")
+		"open_run":
+			target = find_child("ContinueButton", true, false) as Control
+	if target != null:
+		_focus_later(target)
 
 
 ## Begin. Uses start_hook if set (tests), otherwise RunState.begin_run().
@@ -506,7 +531,7 @@ func begin() -> Dictionary:
 		get_tree().create_timer(start_timeout_s).timeout.connect(func() -> void:
 			if _busy and gen == _busy_gen:
 				_set_busy(false)
-				_add_banner("Couldn't start — try again", "Nothing was spent.", false))
+				_add_banner("Couldn't start — try again", "Nothing was spent.", false, false, &"error"))
 	var sess: RunSession = null
 	if not start_hook.is_valid() and RemoteEpochSource.flag_on():
 		sess = RunState.run_session()
@@ -535,7 +560,7 @@ func begin() -> Dictionary:
 			UpdateRequired.show(self, code)   # Begin refused by an old build: update modal, banner stays as the fallback
 		var msg := begin_error_text(code)
 		begin_error = msg[0]
-		_add_banner(msg[0], msg[1], false)
+		_add_banner(msg[0], msg[1], false, false, &"error")
 		return r
 	begin_error = ""
 	if not no_scene_change and is_inside_tree():
@@ -543,7 +568,7 @@ func begin() -> Dictionary:
 		if err != OK:
 			_set_busy(false)
 			begin_error = "Couldn't open the run map"
-			_add_banner("Couldn't open the run map", "Try Start run again.", false)
+			_add_banner("Couldn't open the run map", "Try Start run again.", false, false, &"error")
 	return r
 
 
@@ -797,9 +822,6 @@ func _build() -> void:
 	col.add_theme_constant_override("separation", 16)
 	_panel.add_child(col)
 	col.add_child(_build_header())
-	_banner_host = VBoxContainer.new()
-	_banner_host.add_theme_constant_override("separation", 8)
-	col.add_child(_banner_host)
 	_body = VBoxContainer.new()
 	_body.name = "Body"
 	_body.add_theme_constant_override("separation", 16)
@@ -821,6 +843,10 @@ func _build() -> void:
 	area.offset_right = 1896
 	area.add_theme_constant_override("separation", 16)
 	_stage.add_child(area)
+	_banner_host = VBoxContainer.new()   # frame: the Banner sits at the top of PartyArea
+	_banner_host.name = "BannerHost"
+	_banner_host.add_theme_constant_override("separation", UI3Theme.space("8"))
+	area.add_child(_banner_host)
 	_party_label = _lbl("", "LabelTitle")
 	_party_label.name = "PartyHeader"
 	area.add_child(_party_label)
@@ -912,7 +938,7 @@ func _refresh_party() -> void:
 		c.queue_free()
 	_party_label.text = tr("Party · %d of %d") % [filled_count(), PARTY_SIZE]
 	for i in PARTY_SIZE:
-		_party_row.add_child(_build_slot(i), true)
+		_party_row.add_child(_build_skeleton_col() if state == "loading" else _build_slot(i), true)
 	_refresh_kind()
 
 
@@ -1235,7 +1261,14 @@ func _refresh_footer_inner() -> void:
 		summary += " · " + kind.capitalize()
 	if _busy:
 		_footer_msg.text = summary
+		# frames: "Starting…" shows no extra line, the slower "Closing your old run…" asks for patience
 		_block_reason.text = tr("This can take a few seconds. Please wait.")
+		_block_reason.visible = _busy_text != tr("Starting…")
+		UI3.set_disabled_reason(_begin_btn, why)
+		return
+	if state == "loading":
+		_footer_msg.text = tr("Loading…")
+		_block_reason.visible = false
 		UI3.set_disabled_reason(_begin_btn, why)
 		return
 	_footer_msg.text = summary
@@ -1244,7 +1277,11 @@ func _refresh_footer_inner() -> void:
 	if why == "":
 		UI3.clear_disabled_reason(_begin_btn)
 	elif filled_count() < PARTY_SIZE and state in ["normal", "offline", "guest"] and (kind == "normal" or kind_block_reason(kind) == ""):
+		UI3.clear_disabled_reason(_begin_btn)
 		_begin_btn.text = tr("Start run") + " · %d of %d" % [filled_count(), PARTY_SIZE]
+		_begin_btn.disabled = true
+	elif state == "offline":
+		UI3.clear_disabled_reason(_begin_btn)   # frame: the label stays "Start run", the reason is the line above
 		_begin_btn.disabled = true
 	else:
 		UI3.set_disabled_reason(_begin_btn, why)
@@ -1259,30 +1296,39 @@ func _clear_banners() -> void:
 		c.queue_free()
 
 
-func _add_banner(msg: String, detail: String, with_retry: bool, with_sign_in: bool = false) -> void:
+func _add_banner(msg: String, detail: String, with_retry: bool, with_sign_in: bool = false, tone: StringName = &"warn") -> void:
 	_clear_banners()
-	var p := UI3.plate(&"notice")
+	var p := PanelContainer.new()
 	p.name = "Banner"
+	p.theme = UI3Theme.get_theme()
+	p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("plate"), UI3Theme.radius("l"), UI3Theme.stroke("rim"),
+		UI3Theme.color("notice_warn"), Vector4(UI3Theme.space("16"), UI3Theme.space("12"), UI3Theme.space("16"), UI3Theme.space("12")),
+		PanelParts.lip(UI3Theme.color("plate_ink"))))
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", UI3Theme.space("12"))
+	p.add_child(h)
+	h.add_child(Ui5ToneDisc.make(tone))
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
-	p.add_child(v)
-	var t := _lbl(msg, "LabelTitle")
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(v)
+	var t := Ui5Text.label(tr(msg), "text_body", "text", true)
+	t.name = "Title"
 	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	t.custom_minimum_size.x = 368
 	v.add_child(t)
-	var d := _lbl(detail)
+	var d := Ui5Text.label(tr(detail), "text_body", "text")
+	d.name = "Body"
 	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	d.custom_minimum_size.x = 368
 	v.add_child(d)
 	if with_retry:
 		var r := UI3.button(tr("Try again"), &"secondary", &"S")
+		r.name = "TryAgainButton"
 		r.pressed.connect(func() -> void: set_state("normal"))
-		v.add_child(r)
+		h.add_child(r)
 	if with_sign_in:
-		var si := UI3.button(tr("Sign in"), &"primary", &"M")
+		var si := UI3.button(tr("Sign in"), &"secondary", &"S")
 		si.name = "SignInButton"
 		si.pressed.connect(_on_sign_in)
-		v.add_child(si)
+		h.add_child(si)
 	_banner_host.add_child(p)
 
 
@@ -1294,44 +1340,77 @@ func _on_sign_in() -> void:
 		(account_service if account_service != null else AccountService).sign_in()
 
 
-func _build_skeleton() -> void:
-	var sk := VBoxContainer.new()
-	sk.name = "Skeleton"
-	sk.add_theme_constant_override("separation", 12)
-	for i in 4:
-		sk.add_child(UI3.skeleton_row())
-	var col := _panel.get_node("Col")
-	col.add_child(sk)
-	col.move_child(sk, 2)
+## One loading seat (frame: a square block, a button-high bar, a 60 % bar).
+func _build_skeleton_col() -> Control:
+	var c := VBoxContainer.new()
+	c.name = "SkeletonCol"
+	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	c.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	c.add_theme_constant_override("separation", UI3Theme.space("8"))
+	var sq := UI3.skeleton_row(0)
+	sq.name = "Skeleton"
+	c.add_child(sq)
+	var bar1 := UI3.skeleton_row(UI3Theme.size_of("btn_s"))
+	c.add_child(bar1)
+	var bar2 := UI3.skeleton_row(UI3Theme.size_of("btn_s"))
+	bar2.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	c.add_child(bar2)
+	c.resized.connect(func() -> void:   # square block, 60 % bar
+		sq.custom_minimum_size.y = c.size.x
+		bar2.custom_minimum_size.x = c.size.x * 0.6)
+	return c
 
 
+## Frame OpenRunArea: the setup column stays, the right side is one dialog card (Continue focused, Space keycap).
 func _build_open_run() -> void:
+	var area := Control.new()
+	area.name = "OpenRunArea"
+	area.set_anchors_preset(Control.PRESET_FULL_RECT)
+	area.offset_left = 24 + UI3Theme.size_of("setup_col_w") + 24
+	area.offset_top = 24
+	area.offset_right = -24
+	area.offset_bottom = -24
+	area.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var holder := CenterContainer.new()
-	holder.name = "OpenRun"
 	holder.set_anchors_preset(Control.PRESET_FULL_RECT)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	area.add_child(holder)
 	var card := UI3.plate(&"dialog")
+	card.name = "OpenRunCard"
 	card.custom_minimum_size.x = 560
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 16)
+	v.add_theme_constant_override("separation", UI3Theme.space("16"))
 	card.add_child(v)
-	v.add_child(_lbl(tr("You have an unfinished run"), "LabelScreenTitle"))
-	v.add_child(_lbl(tr("Saved run on disk"), "LabelMuted"))
+	var ttl := _lbl(tr("You have an unfinished run"), "LabelScreenTitle")
+	ttl.name = "Title"
+	v.add_child(ttl)
+	var sub := _lbl(tr("Saved run"), "LabelMuted")
+	sub.name = "SubLine"
+	v.add_child(sub)
 	var cont := UI3.button(tr("Continue run"), &"primary", &"L")
-	cont.name = "Continue"
+	cont.name = "ContinueButton"
 	cont.pressed.connect(_on_continue)
 	v.add_child(cont)
+	var cap := Ui5Keycap.make("Space", &"primary")
+	cont.add_child(cap, true)
+	var pad := UI3Theme.space("16")
+	var place := func() -> void:
+		if is_instance_valid(cont) and cont.is_inside_tree():
+			Ui5HudStyle.place_trailing(cont, cap, pad)
+	cont.resized.connect(place)
+	place.call_deferred()
 	var nw := UI3.button(tr("New run"), &"secondary", &"M")
-	nw.name = "NewRun"
+	nw.name = "NewRunButton"
 	nw.pressed.connect(_on_new_run)
 	v.add_child(nw)
 	var note := _lbl(tr("A new run ends the current run. Aid you used is not refunded."), "LabelMuted")
+	note.name = "Note"
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.custom_minimum_size.x = 496
 	v.add_child(note)
 	holder.add_child(card)
-	add_child(holder)
-	move_child(holder, get_child_count() - 2)   # under the modal layer
-	_focus_later(cont)
+	add_child(area)
+	move_child(area, get_child_count() - 2)   # under the modal layer
 
 
 ## "New run" on the unfinished-run card: the old run ends here (stake lost, save gone), as the card says.
@@ -1350,7 +1429,7 @@ func _on_continue() -> void:
 		set_state("normal")
 		return
 	var st: String = await RunContinue.reconnect(self, _on_continue,
-			find_child("Continue", true, false) as BaseButton)
+			find_child("ContinueButton", true, false) as BaseButton)
 	if st == "gone":
 		set_state("normal")
 		_on_back()   # Land shows RunState's discard notice
