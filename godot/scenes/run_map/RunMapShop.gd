@@ -4,6 +4,12 @@ extends RefCounted
 ## The controller keeps a same-name forwarder for every method here.
 
 
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
+const Parts := preload("res://scenes/run_map/ui5/RunMenuParts.gd")
+const Plates := preload("res://scenes/land/ui5/LandPlates.gd")
+const CoreCard := preload("res://scenes/run_map/ui5/ShopCoreCard.gd")
+const Supply := preload("res://scenes/run_map/ui5/SupplyItem.gd")
+
 var ctrl: RunMapController
 
 
@@ -39,96 +45,53 @@ func _render_shop() -> void:
 	ctrl._save_map_progress()
 	var host := ctrl._open_ui3_screen()
 	ctrl._shop_cards.clear()
-	var margin := MarginContainer.new()
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 24)
-	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	host.add_child(margin)
-	var root := HBoxContainer.new()
-	root.add_theme_constant_override("separation", 24)
-	margin.add_child(root)
+	var root := VBoxContainer.new()
+	root.name = "Shop"
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.add_theme_constant_override("separation", UI3Theme.space("24"))
+	root.offset_top = UI3Theme.space("40")
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(root)
 
-	# ---- Left: shop plate + Sell plate
-	var left := VBoxContainer.new()
-	left.custom_minimum_size.x = 384
-	left.add_theme_constant_override("separation", 16)
-	root.add_child(left)
-	var hp := UI3.plate(&"plate")
-	hp.name = "ShopHeader"
-	left.add_child(hp)
-	var hv := VBoxContainer.new()
-	hv.add_theme_constant_override("separation", 16)
-	hp.add_child(hv)
-	var hrow := HBoxContainer.new()
-	hrow.add_theme_constant_override("separation", 16)
-	hv.add_child(hrow)
-	var ic := TextureRect.new()
-	ic.texture = UI3.icon("node_shop")
-	ic.custom_minimum_size = Vector2(48, 48)
-	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	hrow.add_child(ic)
-	var tcol := VBoxContainer.new()
-	hrow.add_child(tcol)
-	tcol.add_child(UI3.label(tr("Shop"), "LabelScreenTitle"))
-	tcol.add_child(UI3.label(tr("Row %d") % maxi(ctrl._current_row(), 0), "LabelMuted"))
-	var pill := UI3.currency_pill([{"icon": "cur_shard", "value": str(RunState.shards_this_run)}])
-	pill.name = "ShardsPill"
-	hv.add_child(pill)
+	# ---- Header: icon, Title, RowLabel, ShardPill
+	var head := HBoxContainer.new()
+	head.name = "Header"
+	head.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	head.add_theme_constant_override("separation", UI3Theme.space("20"))
+	root.add_child(head)
+	head.add_child(PanelParts.icon_rect(UI3.icon("node_shop"), UI3Theme.size_of("node_icon"), "Icon"))
+	var title := PanelParts.on_view(PanelParts.text(tr("Shop"), "text_banner", "text_on_viewport", true))
+	title.name = "Title"
+	head.add_child(title)
+	var rowl := PanelParts.on_view(PanelParts.text(tr("Row %d") % maxi(ctrl._current_row(), 0), "text_title", "text_on_viewport", true))
+	rowl.name = "RowLabel"
+	head.add_child(rowl)
+	head.add_child(_shard_pill(RunState.shards_this_run))
 
-	var sp := UI3.plate(&"plate")
-	sp.name = "SellPlate"
-	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	left.add_child(sp)
-	var sv := VBoxContainer.new()
-	sv.add_theme_constant_override("separation", 8)
-	sp.add_child(sv)
-	sv.add_child(UI3.label(tr("Sell"), "LabelTitle"))
-	var sscroll := ScrollContainer.new()
-	sscroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	sscroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	sv.add_child(sscroll)
-	var slist := VBoxContainer.new()
-	slist.name = "SellList"
-	slist.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	slist.add_theme_constant_override("separation", 8)
-	sscroll.add_child(slist)
-	var sellable := 0
-	for rid in RunState.owned_relic_ids:
-		if RunState.relic_stickers.get(rid, "") == RelicSlots.STICKER_ETERNAL:
-			continue
-		var def = RelicRegistry.get_def(String(rid))
-		var price := RelicSlots.sell_price(String(rid), RunState.ascension)
-		var sb := UI3.button("%s · +%d" % [String(def.name) if def != null else String(rid), price], &"secondary", &"S")
-		sb.name = "Sell_%s" % rid
-		sb.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		sb.clip_text = true
-		sb.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		sb.pressed.connect(_on_shop_sell.bind(String(rid)))
-		slist.add_child(sb)
-		sellable += 1
-	if sellable == 0:
-		slist.add_child(UI3.label(tr("No Core to sell"), "LabelMuted"))
-
-	# ---- Middle: goods
-	var mid := VBoxContainer.new()
-	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mid.add_theme_constant_override("separation", 16)
-	root.add_child(mid)
 	var any_afford := false
 	for it in RunState.shop_items:
 		if not bool(it.get("bought", false)) and RunState.shards_this_run >= int(it.get("cost", 0)):
 			any_afford = true
 	if not any_afford and not RunState.shop_items.is_empty():
-		var notice := UI3.plate(&"plate")
-		notice.name = "NothingAffordable"
-		notice.add_child(UI3.label(tr("You can't afford anything here. Sell a Core or leave."), "LabelTitle"))
-		(notice.get_child(0) as Label).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		mid.add_child(notice)
-	var groups := [["relic", tr("Cores")], ["", tr("Supplies")]]
-	var idx_in_group := {}
-	for g in groups:
+		var nbox := UI3Theme.flat(UI3Theme.color("plate"), UI3Theme.radius("pill"), UI3Theme.stroke("btn"),
+			UI3Theme.color("attrition"), Vector4(UI3Theme.space("20"), UI3Theme.space("12"), UI3Theme.space("20"), UI3Theme.space("12")))
+		var notice := PanelParts.panel(nbox, "Notice")
+		notice.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		notice.add_child(PanelParts.text(tr("You can't afford anything here. Sell a Core or leave."), "text_title", "text", true))
+		root.add_child(notice)
+
+	# ---- Body: Cores + Supplies, Sell column
+	var body := HBoxContainer.new()
+	body.name = "ShopBody"
+	body.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	body.add_theme_constant_override("separation", UI3Theme.space("32"))
+	root.add_child(body)
+	var main := VBoxContainer.new()
+	main.add_theme_constant_override("separation", UI3Theme.space("12"))
+	main.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	body.add_child(main)
+	var first_buy: Button = null
+	for g in [["relic", tr("Cores"), "CoreStock"], ["", tr("Supplies"), "SupplyStock"]]:
 		var idxs: Array[int] = []
 		for i in RunState.shop_items.size():
 			var is_relic: bool = String(RunState.shop_items[i].get("kind", "")) == "relic"
@@ -136,112 +99,114 @@ func _render_shop() -> void:
 				idxs.append(i)
 		if idxs.is_empty():
 			continue
-		mid.add_child(UI3.label(g[1], "LabelScreenTitle"))
-		var grid := GridContainer.new()
-		grid.name = "ShopGrid_%s" % ("relic" if g[0] == "relic" else "supplies")
-		grid.columns = 2
-		grid.add_theme_constant_override("h_separation", 16)
-		grid.add_theme_constant_override("v_separation", 16)
-		mid.add_child(grid)
+		main.add_child(PanelParts.on_view(PanelParts.text(g[1], "text_title", "text_on_viewport", true)))
+		var stock := HBoxContainer.new()
+		stock.name = g[2]
+		stock.add_theme_constant_override("separation", UI3Theme.space("24"))
+		main.add_child(stock)
 		for i in idxs:
-			grid.add_child(_add_shop_row(RunState.shop_items[i], i))
+			var card := _add_shop_row(RunState.shop_items[i], i)
+			stock.add_child(card)
+			var bb := card.find_child("BuyButton", true, false) as Button
+			if first_buy == null and bb != null and not bb.disabled:
+				first_buy = bb
+	body.add_child(_sell_column())
 
-	# ---- Right: detail + Leave
-	var right := VBoxContainer.new()
-	right.custom_minimum_size.x = 416
-	right.add_theme_constant_override("separation", 16)
-	root.add_child(right)
-	var dp := UI3.plate(&"plate")
-	dp.name = "ShopDetail"
-	dp.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	right.add_child(dp)
-	var dv := VBoxContainer.new()
-	dv.name = "DetailCol"
-	dv.add_theme_constant_override("separation", 16)
-	dp.add_child(dv)
-	var leave := UI3.button(tr("Leave shop"), &"secondary", &"M")
-	leave.name = "LeaveShop"
+	var leave := UI3.button(tr("Leave shop"), &"primary", &"L")
+	leave.name = "LeaveButton"
+	leave.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	leave.pressed.connect(func() -> void: ctrl._finish_node())
-	right.add_child(leave)
+	root.add_child(leave)
+	Plates.attach_space_cap(leave, UI3Theme.space("32"))
 
 	if ctrl._shop_sel >= RunState.shop_items.size():
 		ctrl._shop_sel = 0
-	_select_shop(ctrl._shop_sel)
-	if not any_afford or ctrl._shop_cards.is_empty():
+	if first_buy != null:
+		first_buy.grab_focus.call_deferred()
+	else:
 		leave.grab_focus.call_deferred()
-	elif ctrl._shop_sel < ctrl._shop_cards.size():
-		ctrl._shop_cards[ctrl._shop_sel].grab_focus.call_deferred()
+
+
+func _shard_pill(n: int) -> PanelContainer:
+	var box := PanelParts.plate_box("pill")
+	box.content_margin_left = UI3Theme.space("16")
+	box.content_margin_right = UI3Theme.space("16")
+	var chip := PanelParts.panel(box, "ShardPill")
+	chip.custom_minimum_size = Vector2(0, UI3Theme.size_of("btn_m"))
+	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var r := HBoxContainer.new()
+	r.add_theme_constant_override("separation", UI3Theme.space("8"))
+	chip.add_child(r)
+	var px := UI3Theme.size_of("icon_m")
+	r.add_child(PanelParts.icon_rect(UI3.currency_icon("cur_shard", px), px))
+	var v := PanelParts.text(UI3.fmt(n), "text_title", "text", true)
+	v.name = "Value"
+	v.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	r.add_child(v)
+	return chip
+
+
+## Why this card's Buy is off: "" (buyable), "Bought" (a Core), "Sold out", or "Need N Shards".
+func _card_reason(it: Dictionary) -> String:
+	var why := _shop_block_reason(it)
+	if why == tr("Sold out") and String(it.get("kind", "")) == "relic":
+		return tr("Bought")
+	return why
+
+
+## SellColumn: one SellRow (CoreSlot + SellButton "Name · +N") per sellable Core; price from RelicSlots.sell_price.
+func _sell_column() -> PanelContainer:
+	var sp := PanelParts.panel(PanelParts.plate_box("l", UI3Theme.space("20")), "SellColumn")
+	sp.custom_minimum_size.x = UI3Theme.size_of("sell_w")
+	sp.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	var sv := VBoxContainer.new()
+	sv.add_theme_constant_override("separation", UI3Theme.space("8"))
+	sp.add_child(sv)
+	sv.add_child(PanelParts.text(tr("Sell"), "text_title", "text", true))
+	var sellable := 0
+	for rid in RunState.owned_relic_ids:
+		if RunState.relic_stickers.get(rid, "") == RelicSlots.STICKER_ETERNAL:
+			continue
+		var def = RelicRegistry.get_def(String(rid))
+		var price := RelicSlots.sell_price(String(rid), RunState.ascension)
+		var row := HBoxContainer.new()
+		row.name = "SellRow"
+		row.add_theme_constant_override("separation", UI3Theme.space("8"))
+		sv.add_child(row)
+		row.add_child(Parts.core_slot(def, false))
+		var sb := UI3.button("%s · +%d" % [String(def.name) if def != null else String(rid), price], &"secondary", &"S")
+		sb.name = "SellButton"
+		sb.set_meta("relic_id", String(rid))
+		sb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sb.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
+		sb.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		sb.icon = UI3.icon("cur_shard")
+		sb.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		sb.expand_icon = true
+		sb.add_theme_constant_override("icon_max_width", UI3Theme.size_of("icon_s"))
+		sb.clip_text = true
+		sb.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		sb.pressed.connect(_on_shop_sell.bind(String(rid)))
+		row.add_child(sb)
+		sellable += 1
+	if sellable == 0:
+		sv.add_child(PanelParts.text(tr("No Core to sell"), "text_body", "text_muted"))
+	return sp
 
 
 func _add_shop_row(raw: Dictionary, index: int) -> PanelContainer:
 	var it: Dictionary = raw
-	var rar := _shop_rarity(it)
-	var accent := ctrl._rarity_color(rar)
-	var bought := bool(it.get("bought", false))
-	var cost := int(it.get("cost", 0))
-	var afford := RunState.shards_this_run >= cost
-
-	var card := UI3.plate(&"card")
-	card.name = "ShopRow%d" % index
-	card.custom_minimum_size = Vector2(0, ctrl._SHOP_ROW_H)
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.focus_mode = Control.FOCUS_ALL
-	card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	card.draw.connect(func() -> void:
-		if card.has_focus():
-			card.draw_style_box(UI3Theme.focus_style(UI3Theme.radius("l")), Rect2(Vector2.ZERO, card.size)))
-	card.focus_entered.connect(card.queue_redraw)
-	card.focus_exited.connect(card.queue_redraw)
-	card.focus_entered.connect(_select_shop.bind(index))
-	card.gui_input.connect(func(ev: InputEvent) -> void:
-		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
-			card.grab_focus()
-			_select_shop(index)
-		elif ev.is_action_pressed("ui_accept") and not ev.is_echo():
-			_select_shop(index)
-			var bb := ctrl._overlay_root.find_child("BuyButton", true, false) as Button
-			if bb != null:
-				bb.grab_focus())
-	ctrl._shop_cards.append(card)
-	card.set_meta("shop_index", index)
-	if bought:
-		card.modulate.a = 0.4
-
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
-	card.add_child(row)
-	row.add_child(_shop_art(it, ctrl._SHOP_ART, accent))
-	var col := VBoxContainer.new()
-	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	col.add_theme_constant_override("separation", 8)
-	row.add_child(col)
-	var nm := UI3.label(String(it.get("title", "")), "LabelTitle")
-	nm.name = "ItemName"
-	nm.clip_text = true
-	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	col.add_child(nm)
-	var rl := UI3.label(ctrl._rarity_name(rar))
-	rl.name = "RarityLabel"
-	rl.add_theme_color_override("font_color", accent)
-	col.add_child(rl)
-	var price := HBoxContainer.new()
-	price.add_theme_constant_override("separation", 8)
-	col.add_child(price)
-	if bought:
-		price.add_child(UI3.label(tr("Bought")))
+	var why := _card_reason(it)
+	var card: PanelContainer
+	if String(it.get("kind", "")) == "relic":
+		card = CoreCard.new()
 	else:
-		var si := TextureRect.new()
-		si.texture = UI3.icon("cur_shard")
-		si.custom_minimum_size = Vector2(28, 28)
-		si.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		si.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		price.add_child(si)
-		var pl := UI3.label(str(cost), "LabelTitle")
-		pl.name = "Price"
-		if not afford:
-			pl.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
-		price.add_child(pl)
+		card = Supply.new()
+	card.call("setup", it, index, why)
+	ctrl._shop_cards.append(card)
+	var bb := card.find_child("BuyButton", true, false) as Button
+	if why == "" and bb != null:
+		bb.pressed.connect(func() -> void: _on_shop_buy(index))
 	return card
 
 
@@ -271,45 +236,9 @@ func _shop_art(it: Dictionary, px: float, accent: Color) -> Control:
 	return art
 
 
+## No preselect any more (each card has its own Buy): just remembers the last index for the controller.
 func _select_shop(index: int) -> void:
-	if ctrl._overlay_root == null or RunState.shop_items.is_empty():
-		return
 	ctrl._shop_sel = index
-	for c in ctrl._shop_cards:
-		c.theme_type_variation = "PanelCardSelected" if int(c.get_meta("shop_index")) == index else "PanelCard"   # no lift: it overlaps the grid heading
-	var dv := ctrl._overlay_root.find_child("DetailCol", true, false) as VBoxContainer
-	if dv == null or index >= RunState.shop_items.size():
-		return
-	for ch in dv.get_children():
-		dv.remove_child(ch)
-		ch.queue_free()
-	var it: Dictionary = RunState.shop_items[index]
-	var rar := _shop_rarity(it)
-	var accent := ctrl._rarity_color(rar)
-	var art := _shop_art(it, 200.0, accent)
-	art.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	dv.add_child(art)
-	var nm := UI3.label(String(it.get("title", "")), "LabelScreenTitle")
-	nm.name = "DetailName"
-	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	dv.add_child(nm)
-	var rl := UI3.label(ctrl._rarity_name(rar))
-	rl.add_theme_color_override("font_color", accent)
-	dv.add_child(rl)
-	var dsc := UI3.describe(String(it.get("desc", "")))
-	var desc := UI3.label(("MP %d · " % int(dsc["mp"]) if int(dsc["mp"]) >= 0 else "") + String(dsc["text"]))
-	desc.name = "DetailDesc"
-	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	dv.add_child(desc)
-	var why := _shop_block_reason(it)
-	var buy := UI3.button(tr("Buy · %d Shards") % int(it.get("cost", 0)), &"primary", &"L")
-	buy.name = "BuyButton"
-	if why == "":
-		buy.pressed.connect(func() -> void: _on_shop_buy(index))
-	else:
-		UI3.set_disabled_reason(buy, why)
-	dv.add_child(buy)
 
 
 func _on_shop_sell(relic_id: String) -> void:
