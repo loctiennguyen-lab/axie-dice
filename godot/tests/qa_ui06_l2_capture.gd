@@ -40,9 +40,12 @@ func _ready() -> void:
 	CoreTooltip.show_now(scene.find_child("RunRuleSlot", true, false) as Control)
 	await _shot("03-run-map--rule-tile-hover", tag)
 	CoreTooltip.hide_all(get_tree())
-	var pm := RunPauseMenu.new()
-	scene.add_child(pm)
-	pm.build({"floor": 4, "total": 18, "ascension": 0, "shards": 40})
+	scene.open_run_menu()
+	await get_tree().process_frame
+	var pm := scene.find_child("RunPauseMenu", true, false) as RunPauseMenu
+	if pm == null:
+		for n in scene.find_children("*", "RunPauseMenu", true, false):
+			pm = n
 	pm.show_side("relics")
 	await _shot("menu--cores-owned", tag)
 	scene.queue_free()
