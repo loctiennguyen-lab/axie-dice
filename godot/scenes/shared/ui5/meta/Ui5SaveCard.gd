@@ -47,6 +47,16 @@ func setup(title: String, sub: String, stats: Array) -> void:
 	set_picked(false)
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_FOCUS_ENTER or what == NOTIFICATION_FOCUS_EXIT:
+		queue_redraw()
+
+
+func _draw() -> void:
+	if has_focus():
+		draw_style_box(UI3Theme.focus_style(UI3Theme.radius("l")), Rect2(Vector2.ZERO, size))
+
+
 func set_picked(on: bool) -> void:
 	picked = on
 	var p := UI3Theme.space("16")
