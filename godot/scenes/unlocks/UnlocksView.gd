@@ -65,6 +65,7 @@ func refresh() -> void:
 	for def in ContentDB.UNLOCKS:
 		var d: Dictionary = def
 		var usable := not MetaState.has_unlock(String(d.get("id", ""))) \
+			and not ContentDB.UNLOCKS_WITHOUT_EFFECT.has(String(d.get("id", ""))) \
 			and MetaState.shard_pool >= int(d.get("cost", 0))
 		_list.add_child(_build_row(d, usable and not primary_given))
 		if usable:
@@ -101,10 +102,10 @@ func _build_row(def: Dictionary, primary: bool) -> PanelContainer:
 	var tag_text := "AVAILABLE"
 	if owned:
 		tag_text = "OWNED"
+	elif inert:
+		tag_text = "COMING SOON"
 	elif too_expensive:
 		tag_text = "TOO EXPENSIVE"
-	elif inert:
-		tag_text = "NO EFFECT YET"
 	name_row.add_child(UI3Meta.tag(tag_text))
 	var desc := UI3.label(String(def.get("d", "")), "LabelMuted")
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -114,6 +115,11 @@ func _build_row(def: Dictionary, primary: bool) -> PanelContainer:
 	if owned:
 		buy = UI3.button("OWNED", &"secondary", &"M")
 		buy.disabled = true
+	elif inert:
+		# Liam 1/11: no effect yet = locked, not buyable. A disabled button says why.
+		buy = UI3.button("Coming soon", &"secondary", &"M")
+		buy.disabled = true
+		buy.tooltip_text = "This unlock has no effect yet, so it can't be bought."
 	else:
 		buy = UI3.button(str(cost), &"primary" if primary else &"secondary", &"M")
 		buy.icon = MockupAssets.tex(SHARD_ICON)

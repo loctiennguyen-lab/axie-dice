@@ -192,12 +192,15 @@ func test_the_no_effect_yet_tag_appears_on_exactly_the_four_inert_ids() -> void:
 			continue
 		var has_tag := false
 		for lbl in row.find_children("*", "Label", true, false):
-			if String((lbl as Label).text) == "NO EFFECT YET":
+			if String((lbl as Label).text) == "COMING SOON":
 				has_tag = true
 				break
 		var should_have_tag := ContentDB.UNLOCKS_WITHOUT_EFFECT.has(id)
+		var bb := row.find_child("BuyButton", true, false) as Button
+		if should_have_tag:
+			_assert(bb != null and bb.disabled and bb.text == "Coming soon", "unlock '%s': inert is locked, says Coming soon" % id)
 		_assert(has_tag == should_have_tag,
-			"unlock '%s': NO EFFECT YET tag present=%s, expected=%s"
+			"unlock '%s': COMING SOON tag present=%s, expected=%s"
 			% [id, has_tag, should_have_tag])
 
 	await _free_and_wait(screen)
