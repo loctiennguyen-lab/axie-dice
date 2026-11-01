@@ -14,7 +14,13 @@ Liam duyệt 1/11 ("Deploy ngay").
   - pck md5 **037b5087657722b5aff15662157e673e** (364942828 byte, 2 part). Bản trước: 318463f0, chép ở `build/web-prev/`.
   - html 21e32f3a, js e923d4fb, wasm 8b163661 khớp local.
   - Range 0-99 trả 206, đúng 100 byte.
-- Desktop: không build lại. `/download` vẫn là b1841 (08cab37, trước UI-05). Worker mới tương thích bản cũ: block `daily` thêm vào là trường mới, client cũ bỏ qua.
+- Desktop (đăng sau, cùng ngày, Liam bảo "làm toàn bộ"): **b2265 (c453203)**.
+  - c453203 có cùng code game với 247f283, chỉ thêm docs và một scene chụp trong `tests/`, mà `tests/` bị loại khỏi export.
+  - Build trong worktree sạch u5b-0. Log kiểm: `check_export_no_override: sạch` ở cả hai bản, `codesign verify: ok (ad-hoc)`, `PE check: x86_64 ok`.
+  - Đăng bằng `publish_desktop.sh --prev`. Manifest trên R2 khớp `--prev` (b1841). Bản b1841 được cất ở `downloads/old/`, sha OK.
+  - `/download` hiện b2265. Hai zip trả 200, Content-Length khớp manifest; sha256 zip Windows tải về khớp.
+  - mac zip `018e7371…acd5`, win zip `64dd31cc…13e1`.
+  - Chưa cài thử app trên máy. Mở app sẽ dùng save thật của Liam.
 - Smoke web trên pane trình duyệt, phiên của Liam đã đăng nhập sẵn, không đăng nhập lại:
   - Tap to start, vào Land. `/api/me`, `wallet`, `econ` ×2, `save`, `run/daily` đều 200.
   - `/api/econ` có `daily` = {day 2026-10-31, claimed true, week 2026-10-26, days 1, weekly_paid false}.
@@ -28,3 +34,6 @@ Liam duyệt 1/11 ("Deploy ngay").
   - Bản cũ không gửi `daily`. Client mới khi đó giữ cache cũ: không hỏng, chỉ quay về lỗi hiển thị cũ.
   - Thưởng tuần đã trả vẫn nằm trong ledger, không trả lại lần hai, vì op key `claim:weekly:<tuần>` giữ nguyên.
 - Git: `git revert -m 1 1a04951` và `git revert -m 1 12eceba` trên godot-port.
+- Desktop:
+  - chép `downloads/old/AxieDice-0.1.0-L1-b1841-08cab37-{macos,windows}.zip` về gốc `downloads/`;
+  - up `build/old/latest-b1841.json` (manifest b1841, ở cây chính) lên `downloads/latest.json`.
