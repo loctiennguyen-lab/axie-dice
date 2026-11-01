@@ -64,7 +64,7 @@ func _ready() -> void:
 	_check(RunState.pending_rewards.is_empty(), "no pending offer after Core 1")
 	_check(not rm._overlay_root.visible and rm._board.visible, "overlay closed, map visible")
 	_check(RelicSlots.owned_cores(RunState.owned_relic_ids).size() == 1, "Core panel holds 1 Core")
-	var rail := rm.find_child("RelicPlate", true, false)
+	var rail := rm.find_child("CoresPlate", true, false)
 	var has_cores_label := false
 	for l in rail.find_children("*", "Label", true, false):
 		if (l as Label).text.begins_with("Cores"):

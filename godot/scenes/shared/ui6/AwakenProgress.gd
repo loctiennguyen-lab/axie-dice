@@ -25,6 +25,8 @@ static func pips(n: int, color: Color, px: int = 12) -> HBoxContainer:
 	for i in need():
 		var p := Panel.new()
 		p.custom_minimum_size = Vector2(px, px)
+		p.size_flags_horizontal = Control.SIZE_SHRINK_CENTER   # inside a chip row the pill must not stretch long
+		p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var lit := i < n
 		p.add_theme_stylebox_override("panel", UI3Theme.flat(color if lit else Color(0, 0, 0, 0), UI3Theme.radius("pill"), 2, color))

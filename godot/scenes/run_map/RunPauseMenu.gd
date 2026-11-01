@@ -155,8 +155,11 @@ func show_side(which: String) -> void:
 			list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			list.add_theme_constant_override("separation", UI3Theme.space("12"))
 			sc.add_child(list)
-			if cores.is_empty() and RunState.run_rule == "" and _other_ids(cores).is_empty():
+			if cores.is_empty() and RunState.run_rule == "" and _other_ids(cores).is_empty() and not AnchorAdapter.has_anchor():
 				list.add_child(PanelParts.text(tr("No Cores yet."), "text_body", "text_muted"))
+			var ar := _anchor_row()
+			if ar != null:
+				list.add_child(ar, true)
 			for id in cores:
 				list.add_child(_core_row(String(id)), true)
 			for id in _other_ids(cores):
@@ -206,14 +209,76 @@ func _core_row(id: String) -> Control:
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	left.add_theme_constant_override("separation", UI3Theme.space("12"))
 	h.add_child(left)
-	left.add_child(Parts.core_slot(def, false))
+	left.add_child(_socket(def, false))
+	var tv := VBoxContainer.new()
+	tv.name = "Texts"
+	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tv.add_theme_constant_override("separation", 0)
+	left.add_child(tv)
 	var nm := PanelParts.text("", "text_body", "text", true)
 	nm.name = "CoreName"
 	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	nm.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	left.add_child(nm)
+	tv.add_child(nm)
 	Ui5Ellipsis.set_text(nm, UI3.title_case(UI3.player_text(String(def.name) if def != null else id)))
-	h.add_child(Parts.tier_chip(int(def.rarity) if def != null else 0))
+	var hl := PanelParts.text("", "text_body", "core_headline")
+	hl.name = "Headline"
+	hl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tv.add_child(hl)
+	CoreHeadline.apply(hl, id)
+	h.add_child(TierShards.new().setup(int(def.rarity) if def != null else 0, 28))
+	return row
+
+
+## Socket picture + family emblem (or the Run Rule stamp) for a menu row. Name "CoreSlot" / "RunRuleSlot".
+func _socket(def, is_rule: bool) -> Control:
+	var px := float(UI3Theme.size_of("core_slot"))
+	var tier := clampi(int(def.rarity), 0, 2) if def != null else -1
+	var s := TextureRect.new()
+	s.name = "RunRuleSlot" if is_rule else "CoreSlot"
+	s.texture = UI6Assets.slot(tier, px)
+	s.custom_minimum_size = Vector2.ONE * px
+	s.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	s.stretch_mode = TextureRect.STRETCH_SCALE
+	s.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var e := TextureRect.new()
+	e.name = "RunRuleEmblem" if is_rule else "FamilyEmblem"
+	var ax := "run_rule" if is_rule else (String(def.core_axis) if def != null else "stat")
+	e.texture = CoreVisuals.family_texture(ax, px * 0.6)
+	e.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, int(px * 0.2))
+	e.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	e.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	e.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	s.add_child(e)
+	return s
+
+
+## AnchorRow: house emblem, Anchor name + house, awaken chip (1/2). Null without an Anchor.
+func _anchor_row() -> Control:
+	var id := AnchorAdapter.current_id()
+	if id == "":
+		return null
+	var house := AnchorAdapter.house_id(id)
+	var row := PanelParts.panel(PanelParts.cell_box(UI3Theme.space("8"), UI3Theme.space("16"), "s"), "AnchorRow")
+	row.custom_minimum_size.y = UI3Theme.size_of("btn_s")
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", UI3Theme.space("12"))
+	row.add_child(h)
+	var ic := TextureRect.new()
+	ic.name = "HouseEmblem"
+	var px := float(UI3Theme.size_of("core_slot"))
+	ic.texture = UI6Assets.house(house, px)
+	ic.custom_minimum_size = Vector2.ONE * px
+	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	h.add_child(ic)
+	var nm := PanelParts.text("", "text_body", "text", true)
+	nm.name = "AnchorName"
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(nm)
+	Ui5Ellipsis.set_text(nm, "%s · %s" % [AnchorAdapter.name_of(id), AnchorAdapter.house_name(house)])
+	var chip := AwakenProgress.chip()
+	if chip != null:
+		h.add_child(chip)
 	return row
 
 
@@ -269,6 +334,7 @@ func _rule_row(id: String) -> Control:
 	var nm := PanelParts.text("", "text_body", "text", true)
 	nm.name = "RuleName"
 	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(_socket(def, true))
 	h.add_child(nm)
 	Ui5Ellipsis.set_text(nm, UI3.title_case(UI3.player_text(String(def.name) if def != null else id)))
 	h.add_child(PanelParts.text(tr("Run rule"), "text_body", "text_muted"))
