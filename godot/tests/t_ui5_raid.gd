@@ -275,6 +275,11 @@ func _pass(sc: float, tag: String) -> void:
 		var db := _btn(s, "DefenceButton")
 		_check(db.disabled and db.text == case[1] and Ui5Keycap.all_under(db).is_empty(), "%s %s: DefenceButton disabled, says '%s'" % [tag, case[0], case[1]])
 		_check(s.find_child("RetryButton", true, false) == null and _sent.is_empty(), "%s %s: no Retry, no request" % [tag, case[0]])
+		var sib := s.find_child("SignInButton", true, false) as Button
+		_check(sib != null and not sib.disabled, "%s %s: real Sign in button" % [tag, case[0]])
+		if sib != null:
+			sib.pressed.emit()
+			_check(s.sign_in_calls == 1, "%s %s: Sign in press reaches the account flow" % [tag, case[0]])
 		var fd := s.find_child("FailedState", true, false)
 		_check((fd.find_child("ToneDisc", true, false) as Control).get_meta("tone") == &"info" and (fd.find_child("Text", true, false) as Label).text == case[2], "%s %s: info disc + text" % [tag, case[0]])
 		_check(get_viewport().gui_get_focus_owner() == _btn(s, "BackButton"), "%s %s: focus falls to Back" % [tag, case[0]])

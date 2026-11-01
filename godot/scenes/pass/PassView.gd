@@ -686,14 +686,14 @@ func _tile(def: Dictionary) -> Control:
 			b.text = next_text(lv)
 			b.disabled = true
 		_:
-			b.text = "Reach Level %d" % lv if season_phase() != "over" else "Not claimed"
+			b.text = "Lv %d" % lv if season_phase() != "over" else "Not claimed"   # short on the tile; tooltip keeps the sentence
 			b.disabled = true
 	# A long state ends in "…" with the whole text in the tooltip, so it never widens the column (B6).
 	Ui5HudStyle.reserve_trailing(b, null, UI3Theme.space("4"))   # slim side padding so "Claimed" fits a 1280 column
 	# Column width must not depend on text: the button never sizes the tile. "Claimed" fits with the slim padding (tested).
 	b.clip_text = true
 	b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	b.tooltip_text = b.text
+	b.tooltip_text = "Reach Level %d" % lv if b.text == "Lv %d" % lv else b.text
 	b.focus_entered.connect(select_level.bind(lv))
 	b.mouse_entered.connect(select_level.bind(lv))
 	v.add_child(b)

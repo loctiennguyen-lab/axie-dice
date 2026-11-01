@@ -14,7 +14,7 @@ extends Node
 ##     failure this project already shipped once in the event system.
 ##  3. **An inert unlock (`u_relic1`/`u_relic2`/`u_face1`/`u_face2`) hiding what it does.**
 ##     Buying one is a real, refundless spend of Gene Shard for an effect this port has not
-##     built; the "NO EFFECT YET" tag is the only thing telling the player that before they buy.
+##     built; the "COMING SOON" tag is the only thing telling the player that before they buy.
 ##
 ## Run: godot --headless --path godot res://tests/t_pass_unlocks.tscn
 
@@ -192,12 +192,15 @@ func test_the_no_effect_yet_tag_appears_on_exactly_the_four_inert_ids() -> void:
 			continue
 		var has_tag := false
 		for lbl in row.find_children("*", "Label", true, false):
-			if String((lbl as Label).text) == "NO EFFECT YET":
+			if String((lbl as Label).text) == "COMING SOON":
 				has_tag = true
 				break
 		var should_have_tag := ContentDB.UNLOCKS_WITHOUT_EFFECT.has(id)
+		var bb := row.find_child("BuyButton", true, false) as Button
+		if should_have_tag:
+			_assert(bb != null and bb.disabled and bb.text == "Coming soon", "unlock '%s': inert is locked, says Coming soon" % id)
 		_assert(has_tag == should_have_tag,
-			"unlock '%s': NO EFFECT YET tag present=%s, expected=%s"
+			"unlock '%s': COMING SOON tag present=%s, expected=%s"
 			% [id, has_tag, should_have_tag])
 
 	await _free_and_wait(screen)

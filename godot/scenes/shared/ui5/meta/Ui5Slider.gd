@@ -1,6 +1,6 @@
 class_name Ui5Slider
 extends Control
-## UI-05 Slider (meta1 .slider): width 200, track hp_bar_h high on `hp_track`, fill `accent`, both fully rounded, NO knob. The
+## UI-05 Slider (meta1 .slider): width 200, track hp_bar_h high on `hp_track`, fill `accent`, both fully rounded, plus a round knob (Liam 1/11) at the fill end. The
 ## clickable box is invisible and >= hit_min high. Drag / click sets the value, Left / Right step it. Signal value_changed(v);
 ## set_value() is silent.
 
@@ -39,8 +39,14 @@ func set_value(v: float) -> void:
 	queue_redraw()
 
 
+## Knob radius; the knob travels on [r, width - r] and that span maps min..max (drawing and input agree).
+func _knob_r() -> float:
+	return minf(float(track_height()) * 1.5 + 2.0, size.y * 0.5 - 1.0)   # knob stays inside the hit box
+
+
 func _set_from_x(x: float) -> void:
-	var f := clampf(x / maxf(size.x, 1.0), 0.0, 1.0)
+	var kr := _knob_r()
+	var f := clampf((x - kr) / maxf(size.x - 2.0 * kr, 1.0), 0.0, 1.0)
 	var v := clampf(snappedf(min_value + f * (max_value - min_value), step), min_value, max_value)
 	if not is_equal_approx(v, value):
 		value = v
@@ -71,10 +77,14 @@ func _draw() -> void:
 	sb.anti_aliasing = true
 	draw_style_box(sb, track)
 	var f := 0.0 if is_equal_approx(max_value, min_value) else (value - min_value) / (max_value - min_value)
+	var kr := _knob_r()
+	var kx := kr + maxf(size.x - 2.0 * kr, 0.0) * clampf(f, 0.0, 1.0)   # the knob's whole travel maps the value (0 and 5% are apart)
 	if f > 0.0:
 		var fill := UI3Theme.flat(UI3Theme.color("accent"), UI3Theme.radius("pill"))
 		fill.anti_aliasing = true
-		draw_style_box(fill, Rect2(track.position, Vector2(maxf(track.size.x * f, th), th)))
+		draw_style_box(fill, Rect2(track.position, Vector2(maxf(kx, th), th)))
+	draw_circle(Vector2(kx, size.y * 0.5), kr, UI3Theme.color("accent"), true, -1.0, true)
+	draw_circle(Vector2(kx, size.y * 0.5), kr - 3.0, UI3Theme.color("text"), true, -1.0, true)
 	if has_focus():
 		draw_style_box(UI3Theme.flat(Color.TRANSPARENT, UI3Theme.radius("pill") + 4, UI3Theme.stroke("focus"),
 			UI3Theme.color("focus_ring")), track.grow(UI3Theme.stroke("focus_gap")))

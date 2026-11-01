@@ -172,6 +172,7 @@ func _choose(sc: float) -> void:
 		for c in cards:
 			_check(not (c as Ui5SaveCard).picked, "[%s] no card is picked" % tag)
 		_check(_focus_name() != "KeepLocalButton" and _focus_name() != "KeepCloudButton", "[%s] no Keep button has focus (%s)" % [tag, _focus_name()])
+		_check(get_viewport().gui_get_focus_owner() == cards[0], "[%s] focus starts on the first card" % tag)
 		var p := ov.find_child("ChooseSave", true, false) as Control
 		_check(absf(p.size.x - float(UI3Theme.size_of("defeat_panel_w"))) < 1.0, "[%s] dialog is defeat_panel_w wide (%s)" % [tag, p.size.x])
 		_inside(p, Rect2(Vector2.ZERO, ov.size), tag)
@@ -184,8 +185,8 @@ func _choose(sc: float) -> void:
 		_check((cards[1].find_children("*", "Label", true, false).any(func(l: Label) -> bool: return l.text.begins_with("Saved "))), "[%s] cloud card says when it was saved" % tag)
 		var pri := ov.find_child(case[3], true, false) as Button
 		var sec := ov.find_child(case[4], true, false) as Button
-		_check(pri.theme_type_variation == &"ButtonPrimaryM" and sec.theme_type_variation == &"ButtonSecondary",
-			"[%s] primary goes to %s, the other is secondary" % [tag, case[3]])
+		_check(pri.theme_type_variation == &"ButtonSecondary" and sec.theme_type_variation == &"ButtonSecondary",
+			"[%s] both Keep buttons are the same (secondary) style" % tag)
 		var foot := ov.find_child("Footer", true, false) as Control
 		_check(foot.get_global_rect().position.y > (cards[0] as Control).get_global_rect().end.y - 1.0, "[%s] Footer is under the cards" % tag)
 		_check(ov.find_children("KeyCap", "", true, false).is_empty(), "[%s] no keycap on a pick-a-save dialog" % tag)

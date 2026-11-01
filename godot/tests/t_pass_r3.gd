@@ -36,7 +36,7 @@ func _ready() -> void:
 	_ok(s.find_children("TileButton*", "Button", true, false).size() == 30, "30 nodes")
 	_ok(s.node_state(5) == "claimable" and s.node_state(6) == "next" and s.node_state(9) == "locked", "node states")
 	_ok((s.tile_button(6) as Button).disabled, "next node disabled")
-	_ok((s.tile_button(9) as Button).text == "Reach Level 9", "locked text")
+	_ok((s.tile_button(9) as Button).text == "Lv 9", "locked text")
 	_ok(s.find_child("PremiumRibbon", true, false) != null and (s.find_child("PremiumRibbon", true, false) as Label).text == "SEASON 2", "premium ribbon")
 	_ok(s.find_children("*", "Button", true, false).filter(func(b): return "buy" in (b as Button).text.to_lower()).is_empty(), "no purchase button")
 	# no internal id leaks into any visible label (every level, plate, tiles)

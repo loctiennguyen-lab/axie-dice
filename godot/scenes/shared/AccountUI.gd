@@ -362,16 +362,24 @@ static func show_choice(layer: CanvasLayer, kind: String, info: Dictionary, done
 	var foot := HBoxContainer.new()
 	foot.name = "Footer"
 	foot.add_theme_constant_override("separation", UI3Theme.space("16"))
+	var first_card: Control = null
 	for side in [["local", local_title, "On this browser", "Keep this device", local_primary, "KeepLocalButton"],
 			["cloud", "Cloud (your account)", cloud_when, "Keep cloud", not local_primary, "KeepCloudButton"]]:
-		var b := Parts.btn(String(side[5]), String(side[3]), &"primary" if side[4] else &"secondary", &"M", true)
+		var b := Parts.btn(String(side[5]), String(side[3]), &"secondary", &"M", true)   # Liam 1/11: two equal buttons, no primary
 		var choice: String = side[0]
 		b.pressed.connect(func() -> void:
 			overlay.queue_free()
 			done.call(choice))
-		cards.add_child(Parts.save_card(side[1], side[2], info.get(side[0], {}), b), true)
+		var card := Parts.save_card(side[1], side[2], info.get(side[0], {}), b)
+		card.focus_mode = Control.FOCUS_ALL   # focus only moves between cards; a card press just focuses its button
+		cards.add_child(card, true)
+		if first_card == null:
+			first_card = card
 		foot.add_child(b)
-		# No auto-focus: either button overwrites the other save, so Enter must never pick one by itself.
+	# Focus starts on the first card, not on a Keep button: Enter on a card only moves focus to its button,
+	# so Enter can never overwrite a save by itself.
+	if first_card != null:
+		first_card.call_deferred("grab_focus")
 	box.add_child(cards)
 	box.add_child(foot)
 	return overlay
