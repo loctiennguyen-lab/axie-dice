@@ -38,6 +38,7 @@ var _info_tone := &"info"
 var _view: Node = null
 var _challenge: Dictionary = {}
 var _busy := false
+var sign_in_calls := 0   # tests count presses without opening a browser
 var _req := 0
 var _focus_fight := -1
 
@@ -137,6 +138,7 @@ func save_defense() -> void:
 		_set_info("That team has no usable Axie.", &"error")
 		return
 	_busy = true
+	_set_info("Working…", &"info")   # replaced by the answer (ok or error)
 	_redraw()
 	client.save_defense(team, {}, RaidGhost.power_hint(team), func(ok: bool, d: Dictionary) -> void:
 		_busy = false
@@ -152,6 +154,7 @@ func challenge(i: int) -> void:
 	if _busy or _view != null or block_reason() != "" or i < 0 or i >= opponents.size():
 		return
 	_busy = true
+	_set_info("Working…", &"info")
 	_redraw()
 	client.start(String((opponents[i] as Dictionary).get("ghost_id", "")), func(ok: bool, d: Dictionary) -> void:
 		_busy = false
@@ -365,6 +368,12 @@ func _redraw() -> void:
 				rb.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 				rb.pressed.connect(reload)
 				(cb["col"] as Control).add_child(rb)
+			if fail_code == "guest" or fail_code == "offline":
+				var si := PanelParts.button("Sign in", &"secondary", &"M")
+				si.name = "SignInButton"
+				si.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+				si.pressed.connect(_sign_in)
+				(cb["col"] as Control).add_child(si)
 			_list.add_child(cb["block"])
 		_:
 			for i in opponents.size():
@@ -392,6 +401,12 @@ func _ghost_row(i: int) -> Control:
 
 ## Keeps a keyboard focus on the screen: the primary Defence button when it can act, else Retry, else Back.
 ## Never moves focus off a control the player is on, and does nothing while the combat view is open.
+func _sign_in() -> void:
+	sign_in_calls += 1
+	if use_account:
+		AccountService.sign_in()
+
+
 func _ensure_focus() -> void:
 	if not is_inside_tree() or _view != null:
 		return
