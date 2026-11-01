@@ -94,6 +94,8 @@ func _start(e: Dictionary) -> void:
 	if slot != null:
 		from = _local(slot.get_global_rect().get_center())
 		_ring(holder, slot, col, noflash, nomove)
+		if anchor:
+			_anchor_pulse(holder, slot, col, noflash, nomove)
 	var uv: Vector2 = unit_pos.call(int(e["uid"])) if unit_pos.is_valid() else Vector2(-1, -1)
 	var has_unit := uv.x >= 0.0 and uv.y >= 0.0
 	var to := _local(uv) if has_unit else Vector2(-1, -1)
@@ -121,6 +123,34 @@ func _ring(holder: Control, slot: Control, col: Color, noflash: bool, nomove: bo
 	if not nomove:
 		tw.tween_property(r, "scale", Vector2.ONE * 1.3, 0.36).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tw.tween_property(r, "modulate:a", 0.0, 0.36).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+
+## Anchor only (motion-ui06 "Anchor fires"): gold glow behind / around the AnchorTile (outside the ring) and the tile
+## itself pops 1 -> 1.25 -> 1 in 160 ms. Reduce motion: no pop, glow only fades. Reduce flashing: glow alpha <= 0.12.
+func _anchor_pulse(holder: Control, slot: Control, col: Color, noflash: bool, nomove: bool) -> void:
+	var rc := slot.get_global_rect()
+	var g := TextureRect.new()
+	g.name = "AnchorPulse"
+	g.texture = UI6Assets.fx("pulse", 128)
+	g.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	g.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	g.stretch_mode = TextureRect.STRETCH_SCALE
+	g.modulate = Color(col.r, col.g, col.b, 0.12 if noflash else 0.9)
+	var side := maxf(rc.size.x, rc.size.y) * 2.4
+	g.size = Vector2.ONE * side
+	g.position = _local(rc.get_center()) - g.size * 0.5
+	g.pivot_offset = g.size * 0.5
+	g.scale = Vector2.ONE * (1.0 if nomove else 0.7)
+	holder.add_child(g)
+	var tw := g.create_tween().set_parallel(true)
+	if not nomove:
+		tw.tween_property(g, "scale", Vector2.ONE * 1.25, 0.36).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(g, "modulate:a", 0.0, 0.36).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	if not nomove:
+		slot.pivot_offset = slot.size * 0.5
+		var pt := slot.create_tween()
+		pt.tween_property(slot, "scale", Vector2.ONE * 1.25, 0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		pt.tween_property(slot, "scale", Vector2.ONE, 0.08)
 
 
 func _line(holder: Control, from: Vector2, to: Vector2, col: Color) -> void:

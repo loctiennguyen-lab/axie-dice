@@ -789,7 +789,8 @@ func _refresh_anchor_chip() -> void:
 		_anchor_chip.get_parent().remove_child(_anchor_chip)
 		_anchor_chip.queue_free()
 	_anchor_chip = null
-	if not AnchorAdapter.has_anchor():
+	# UI-06 frame 02-combat--cores-strip: no AnchorChip in combat, the AnchorTile in the Cores strip carries the Anchor.
+	if true:
 		layout()
 		return
 	var house := AnchorAdapter.house_id(AnchorAdapter.current_id())
@@ -837,7 +838,11 @@ func layout() -> void:
 		_anchor_chip.position = Vector2(EDGE, col_bottom + 16.0)
 		col_bottom = _anchor_chip.position.y + _anchor_chip.get_combined_minimum_size().y
 	_relic_plate.size = Vector2.ZERO
-	_relic_plate.position = Vector2(EDGE, col_bottom + 8.0)
+	# Frame 02-combat--cores-strip: strip top = token combat_strip_top (under RunInfo); a boss/elite foe card pushes it down.
+	var strip_y := col_bottom + 8.0
+	if not _foe_card.visible:
+		strip_y = maxf(strip_y, float(UI3Theme.size_of("combat_strip_top")))
+	_relic_plate.position = Vector2(EDGE, strip_y)
 	var rel_bottom := _relic_plate.position.y + _relic_plate.get_combined_minimum_size().y \
 		if _relic_plate.visible else col_bottom
 	_attr_card.size = Vector2.ZERO

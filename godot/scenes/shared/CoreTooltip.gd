@@ -83,7 +83,16 @@ static func show_now(c: Control) -> void:
 	var r := c.get_global_rect()
 	var pos := Vector2(r.position.x, r.end.y + 8.0)
 	if pos.y + sz.y > vs.y - 8.0:
-		pos.y = r.position.y - 8.0 - sz.y
+		# Map: the strip sits at the bottom of the left rail, so "above" would cover the PartyPlate. Open beside the
+		# whole CoresPlate instead, bottom-aligned with it (never over the party rows).
+		var plate_host := c.get_parent()
+		while plate_host != null and plate_host.name != "CoresPlate":
+			plate_host = plate_host.get_parent()
+		if plate_host is Control and (plate_host as Control).get_global_rect().end.x + 12.0 + sz.x <= vs.x - 8.0:
+			var pr := (plate_host as Control).get_global_rect()
+			pos = Vector2(pr.end.x + 12.0, clampf(r.end.y - sz.y, 8.0, vs.y - 8.0 - sz.y))
+		else:
+			pos.y = r.position.y - 8.0 - sz.y
 	pos.x = clampf(pos.x, 8.0, maxf(8.0, vs.x - 8.0 - sz.x))
 	plate.position = pos
 

@@ -4,8 +4,8 @@ extends Node
 var _guard := SaveGuard.new()
 
 
-func _shot(name: String, tag: String) -> void:
-	await get_tree().create_timer(0.5).timeout
+func _shot(name: String, tag: String, pre := 0.5) -> void:
+	await get_tree().create_timer(pre).timeout
 	var out := ProjectSettings.globalize_path("res://").path_join("../production/qa/ui06/l2").simplify_path()
 	DirAccess.make_dir_recursive_absolute(out)
 	get_viewport().get_texture().get_image().save_png("%s/%s_%s.png" % [out, name, tag])
@@ -59,12 +59,12 @@ func _ready() -> void:
 	var ally: int = v._combat.party[0].uid
 	var foe: int = v._combat.enemies[0].uid
 	EventBus.core_fired.emit("c_bastion", ally, 3, "shield")
-	await get_tree().create_timer(0.35).timeout
-	await _shot("02-combat--core-firing", tag)
+	await get_tree().create_timer(0.0).timeout
+	await _shot("02-combat--core-firing", tag, 0.13)
 	await get_tree().create_timer(1.2).timeout
 	EventBus.core_fired.emit("a_volley", foe, 6, "dmg")
-	await get_tree().create_timer(0.35).timeout
-	await _shot("02-combat--anchor-firing", tag)
+	await get_tree().create_timer(0.0).timeout
+	await _shot("02-combat--anchor-firing", tag, 0.13)
 	_guard.restore()
 	AnchorAdapter.test_state = {}
 	get_tree().quit(0)
