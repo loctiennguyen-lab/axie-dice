@@ -23,7 +23,6 @@ var _card: Control = null
 var _waves: Control = null
 var _tw: Tween = null
 var _tl: UI3Motion.Timeline = null
-var _wave_r := [-1.0, -1.0]
 var _fly_to := Rect2()
 
 
@@ -342,14 +341,6 @@ func _animate() -> void:
 	_tw.tween_interval(0.46)   # frame turns double (layer "frame": set at once, no tween)
 	_tw.tween_callback(_swap_frame)
 	_tl = UI3Motion.play_timeline("anchor-awaken", tg, opts)
-
-
-func _shake(px: float) -> void:
-	var tw := create_tween()
-	var base := position
-	for i in 5:
-		tw.tween_property(self, "position", base + Vector2(randf_range(-px, px), randf_range(-px, px)), 0.05)
-	tw.tween_property(self, "position", base, 0.0)
 
 
 func skip() -> void:
