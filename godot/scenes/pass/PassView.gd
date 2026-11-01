@@ -593,18 +593,18 @@ func _build_weekly() -> void:
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.clip_text = true   # the long reason wraps inside the button, it never sets the card's width
-		b.custom_minimum_size = Vector2(UI3Theme.space("32") * 7, UI3Theme.size_of("btn_m"))   # wraps a long reason inside the card (frame: max 55%), never char by char
+		b.custom_minimum_size = Vector2(UI3Theme.space("32") * 8, UI3Theme.size_of("btn_m"))   # wraps a long reason inside the card (frame: max 55%), never char by char
 		b.set_meta("task_id", id)
 		if bool(st["claimed"]):
 			Ui5ClaimButton.set_claimed(b)
 			b.name = "ClaimButton"
 		elif not live:
-			b.text = "Claim · The season is not running"
+			b.text = "Claim · Season not running"
 			b.disabled = true
 		elif not bool(st["done"]):
 			b.text = "Claim · Task not finished"
 			b.disabled = true
-		b.tooltip_text = b.text if b.disabled else ""
+		b.tooltip_text = ("Claim · The season is not running" if not live else b.text) if b.disabled and not bool(st["claimed"]) else ""
 		b.pressed.connect(claim_weekly.bind(id))
 		hb.add_child(b)
 		row.add_child(card, true)
