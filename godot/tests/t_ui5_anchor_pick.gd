@@ -4,8 +4,8 @@ extends Node
 ## Run: godot --headless --path godot res://tests/t_ui5_anchor_pick.tscn
 
 const Align := preload("res://tests/ui5_align_check.gd")
-const NAMES := ["AnchorPick", "Header", "Title", "ShardPill", "SubLine", "CardRow", "AnchorCard0", "HouseGlyph", "AnchorName",
-	"HouseLine", "Summary", "RuleBox", "AwakensBox", "HouseCores", "HouseCoreChip", "Glossary", "Footer", "TakeButton"]
+const NAMES := ["AnchorPick", "Header", "Title", "ShardPill", "SubLine", "CardRow", "AnchorCard0", "HouseEmblem", "AnchorName",
+	"HouseLine", "Tagline", "RuleBox", "AwakensBox", "HouseCores", "HouseCoreChip", "Glossary", "Footer", "TakeButton"]
 var _guard := SaveGuard.new()
 var _fails: Array[String] = []
 var _checks := 0
