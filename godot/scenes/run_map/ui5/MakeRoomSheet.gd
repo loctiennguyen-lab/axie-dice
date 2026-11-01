@@ -7,6 +7,7 @@ extends RefCounted
 
 const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 const Parts := preload("res://scenes/run_map/ui5/RunMenuParts.gd")
+const ComboBand := preload("res://scenes/run_map/ui5/ComboBand.gd")
 
 
 static func build(new_title: String, new_tier: int, line: String, cells: Array, on_confirm: Callable,
@@ -71,13 +72,23 @@ static func build(new_title: String, new_tier: int, line: String, cells: Array, 
 		var h := HBoxContainer.new()
 		h.add_theme_constant_override("separation", UI3Theme.space("12"))
 		row.add_child(h)
-		h.add_child(Parts.core_slot(def, false))
+		h.add_child(ComboBand.core_socket(id, UI3Theme.size_of("core_slot")))
+		var names := VBoxContainer.new()
+		names.name = "Names"
+		names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		names.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		names.add_theme_constant_override("separation", 0)
 		var nm := PanelParts.text(String(cell.get("name", "")), "text_body", "text", true)
 		nm.name = "CoreName"
-		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		nm.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		h.add_child(nm)
-		h.add_child(Parts.tier_chip(tier))
+		names.add_child(nm)
+		var hl := PanelParts.text("", "text_body", "core_headline")
+		hl.name = "Headline"
+		CoreHeadline.apply(hl, id)
+		names.add_child(hl)
+		h.add_child(names)
+		var sh := TierShards.new().setup(tier, UI3Theme.size_of("icon_m"))
+		sh.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		h.add_child(sh)
 		var eternal := bool(cell.get("eternal", false))
 		var sb := UI3.button("%s · +%d" % [TranslationServer.translate("Sell"), int(cell.get("sell", 0))], &"secondary", &"S")
 		sb.name = "SellButton"
@@ -109,6 +120,10 @@ static func build(new_title: String, new_tier: int, line: String, cells: Array, 
 	var lead := PanelParts.text(TranslationServer.translate("Taking: %s").replace("%s", "").strip_edges(), "text_body", "text_muted")
 	lead.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	taking.add_child(lead)
+	var tsh := TierShards.new().setup(new_tier, UI3Theme.size_of("icon_m"))
+	tsh.name = "TakingShards"
+	tsh.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	taking.add_child(tsh)
 	var tn := PanelParts.text(new_title, "text_body", Parts.TIER_TOKEN[clampi(new_tier, 0, 2)], true)
 	tn.name = "TakingName"
 	tn.vertical_alignment = VERTICAL_ALIGNMENT_CENTER

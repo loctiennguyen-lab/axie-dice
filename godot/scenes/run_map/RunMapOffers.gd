@@ -117,13 +117,21 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 		for lt in 3:
 			if lt > 0:
 				ladder.add_child(_PanelParts.on_view(_PanelParts.text("\u2192", "text_body", "text", false)))
-			ladder.add_child(_CoreCardUi.tier_chip(lt, tr(ctrl._CORE_TIER_NAME[lt])), true)   # TierChip, TierChip2, TierChip3
+			var step := HBoxContainer.new()
+			step.name = "TierStep"
+			step.add_theme_constant_override("separation", UI3Theme.space("4"))
+			step.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			step.add_child(TierShards.new().setup(lt, UI3Theme.size_of("icon_s")))
+			var tw := _PanelParts.on_view(_PanelParts.text(tr(ctrl._CORE_TIER_NAME[lt]), "text_key", "text", true))
+			tw.add_theme_color_override("font_color", CoreVisuals.tier_text_color(lt))
+			step.add_child(tw)
+			ladder.add_child(step, true)
 		ladder.add_child(_PanelParts.on_view(_PanelParts.text(tr("(strongest)"))))
 		UI3Tooltip.bind(ladder, tr(ctrl.CORE_TIER_HINT))
 		head.add_child(ladder)
 	# Gacha pack: the NEXT pick's tier is never shown anywhere (Liam 22/10).
 	var shard_chip := _shard_chip(RunState.shards_this_run)
-	if rule_mode:
+	if rule_mode or core_mode:
 		shard_chip.name = "ShardPill"
 	head.add_child(shard_chip)
 
@@ -259,7 +267,11 @@ func _ask_skip_reward(col: VBoxContainer) -> void:
 
 
 func _select_reward(i: int) -> void:
+	var was := ctrl._reward_sel
 	ctrl._reward_sel = -1 if i < 0 or ctrl._reward_cards.is_empty() else clampi(i, 0, ctrl._reward_cards.size() - 1)
+	if ctrl._reward_sel >= 0 and ctrl._reward_sel != was and ctrl._reward_sel < ctrl._reward_cards.size() \
+			and ctrl._is_core_card(RunState.pending_rewards[ctrl._reward_sel] if ctrl._reward_sel < RunState.pending_rewards.size() else {}):
+		_core_select_squash(ctrl._reward_cards[ctrl._reward_sel])
 	for k in ctrl._reward_cards.size():
 		if is_instance_valid(ctrl._reward_cards[k]) and ctrl._reward_cards[k].has_method("set_selected"):   # rebuilt on reroll / chained offers
 			ctrl._reward_cards[k].call("set_selected", k == ctrl._reward_sel)
@@ -410,11 +422,142 @@ func _trade_parts(r: Dictionary) -> Dictionary:
 	return {"gain": sub.trim_prefix("IN EXCHANGE: you gain ").trim_suffix("."), "cost": desc, "cost_kind": &"curse"}
 
 
-func _prism_hover(card: Control, on: bool) -> void:
-	if ctrl._reveal != null and is_instance_valid(ctrl._reveal) and ctrl._reveal.running:
+## One interaction tween per card (meta "ix_tw"): hover, select squash and the headline pop all go through it, so a new
+## one always kills the old one and the card never ends up half scaled.
+func _ix_tween(card: Control) -> Tween:
+	if card.has_meta("ix_tw"):
+		var old = card.get_meta("ix_tw")
+		if old is Tween and (old as Tween).is_valid():
+			(old as Tween).kill()
+	var tw := card.create_tween()
+	card.set_meta("ix_tw", tw)
+	return tw
+
+
+func _reveal_running() -> bool:
+	return ctrl._reveal != null and is_instance_valid(ctrl._reveal) and ctrl._reveal.running
+
+
+## UI-06 card-interact (motion-ui06.md, Hover): scale + tilt toward the pointer, 140 ms cubic out, headline pop 1 -> 1.06 -> 1.
+## Reduce motion = end state. Skipped while the reveal runs. Only scale / rotation are driven (the card row owns position).
+func _core_hover_fx(card: Control, on: bool) -> void:
+	if not is_instance_valid(card) or _reveal_running():
 		return
 	card.pivot_offset = card.size / 2.0
-	ctrl.create_tween().tween_property(card, "scale", Vector2.ONE * (1.04 if on else 1.0), UI3Theme.motion_sec("fast"))
+	var to_scale := Vector2.ONE * (1.03 if on else 1.0)
+	var to_rot := 0.0
+	if on:
+		var local := card.get_local_mouse_position()
+		to_rot = deg_to_rad(clampf((local.x / maxf(1.0, card.size.x) - 0.5) * 4.0, -2.0, 2.0))
+	if UI3Motion.reduced() or UI3Gacha.is_instant():
+		_ix_tween(card).kill()
+		card.scale = to_scale
+		card.rotation = 0.0
+		return
+	var tw := _ix_tween(card)
+	tw.set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(card, "scale", to_scale, 0.14)
+	tw.tween_property(card, "rotation", to_rot, 0.14)
+	var hl := card.find_child("Headline", true, false) as Control
+	if on and hl != null and hl.visible:
+		hl.pivot_offset = hl.size / 2.0
+		tw.chain().tween_property(hl, "scale", Vector2.ONE * 1.06, 0.09).set_trans(Tween.TRANS_BACK)
+		tw.tween_property(hl, "scale", Vector2.ONE, 0.09)
+		tw.tween_callback(func() -> void: hl.scale = Vector2.ONE)
+
+
+## UI-06 card-interact (Select): squash 0.97 x 1.02 for 90 ms, then back to rest / hover scale. Reduce motion = nothing.
+func _core_select_squash(card: Control) -> void:
+	if not is_instance_valid(card) or UI3Motion.reduced() or UI3Gacha.is_instant() or _reveal_running():
+		return
+	card.pivot_offset = card.size / 2.0
+	var rest := Vector2.ONE * (1.03 if card.get_global_rect().has_point(card.get_global_mouse_position()) else 1.0)
+	var tw := _ix_tween(card)
+	tw.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(card, "scale", Vector2(0.97, 1.02), 0.09)
+	tw.tween_property(card, "scale", rest, 0.15)
+
+
+## UI-06 offer-reveal (motion-ui06.md): before each flip the back dips (0.96 x 1.03, 120 ms, "compression"), after it the
+## face settles on a spring (scale 1 -> punch -> 0.98 -> 1, +-1 degree tilt), the punch is tier scaled and Crystal is the
+## biggest. Runs beside GachaReveal (which owns the flip itself on scale:x); each dip ends before that flip starts and
+## each settle starts after it ends. Skipping the reveal resets every card. Reduce motion: none of it.
+func _offer_reveal_springs(rv: GachaReveal, tier: int) -> void:
+	if UI3Motion.reduced() or not rv.running or rv._plan.is_empty():
+		return
+	var punch: float = [1.04, 1.07, 1.10][clampi(tier, 0, 2)]
+	var flips: Array = rv._plan["flips"]
+	var flip_sec := float(rv._plan["flip"])
+	var cards: Array = rv._cards.duplicate()
+	var tws: Array[Tween] = []
+	for i in cards.size():
+		var card := cards[i] as Control
+		if not is_instance_valid(card):
+			continue
+		var at := float(flips[i])
+		var tw := card.create_tween()
+		tws.append(tw)
+		tw.tween_interval(maxf(0.0, at - 0.12))
+		tw.tween_callback(func() -> void: card.pivot_offset = card.size / 2.0)
+		tw.tween_property(card, "scale", Vector2(0.96, 1.03), 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.tween_interval(flip_sec)   # GachaReveal flips here (scale:x 1 -> 0 -> 1)
+		tw.tween_callback(func() -> void: card.scale = Vector2.ONE)
+		tw.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tw.tween_property(card, "scale", Vector2.ONE * punch, 0.08)
+		tw.parallel().tween_property(card, "rotation", deg_to_rad(1.0), 0.08)
+		tw.tween_property(card, "scale", Vector2.ONE * (2.0 - punch) * 0.99, 0.07)
+		tw.parallel().tween_property(card, "rotation", deg_to_rad(-1.0), 0.07)
+		tw.tween_property(card, "scale", Vector2.ONE, 0.07)
+		tw.parallel().tween_property(card, "rotation", 0.0, 0.07)
+	rv.finished.connect(func() -> void:
+		for t in tws:
+			if t.is_valid():
+				t.kill()
+		for c in cards:
+			if is_instance_valid(c):
+				(c as Control).scale = Vector2.ONE
+				(c as Control).rotation = 0.0, CONNECT_ONE_SHOT)
+
+
+## UI-06 take-to-strip (motion-ui06.md, Take). PUBLIC for the integrator: call it from RunMapController._apply_and_finish
+## after apply_chosen_reward (and switch the old core-taken shrink off, or the card flies twice). A copy of the card's
+## "Face" node (no GPU read-back) shrinks to 0.11 and flies in an arc over 520 ms to the node named CoreStrip, else
+## CoresPlate, else the top-left corner, then frees itself. Only a real Core card flies (a Run rule card / anything
+## without a CoreCard Face does not). Nothing happens with Reduce motion or an instant reveal. Returns the proxy or null.
+func fly_card_to_strip(card: Control) -> Control:
+	if UI3Motion.reduced() or UI3Gacha.is_instant() or not is_instance_valid(card) or not card.is_inside_tree() \
+			or ctrl._overlay_layer == null or card.get_script() != _CoreCardUi:
+		return null
+	var face := card.get("face") as Control
+	if face == null or not is_instance_valid(face):
+		return null
+	var r := face.get_global_rect()
+	var proxy := face.duplicate() as Control
+	proxy.name = "TakeFlyCard"
+	proxy.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	proxy.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	proxy.z_index = 60
+	ctrl._overlay_layer.add_child(proxy)
+	proxy.position = r.position
+	proxy.size = r.size
+	proxy.pivot_offset = r.size / 2.0
+	var dest := Vector2(40, 40)
+	var strip := ctrl.find_child("CoreStrip", true, false)
+	if strip == null:
+		strip = ctrl.find_child("CoresPlate", true, false)
+	if strip is Control and (strip as Control).is_visible_in_tree():
+		dest = (strip as Control).get_global_rect().get_center()
+	var from := r.get_center()
+	var mid := Vector2((from.x + dest.x) * 0.5, minf(from.y, dest.y) - 140.0)
+	var tw := proxy.create_tween()
+	tw.tween_interval(0.12)
+	tw.tween_method(func(t: float) -> void:
+		var c := from.lerp(mid, t).lerp(mid.lerp(dest, t), t)   # quadratic bezier: up then into the slot
+		proxy.position = c - proxy.size / 2.0
+		proxy.scale = Vector2.ONE * lerpf(1.0, 0.11, t)
+		proxy.modulate.a = 1.0 if t < 0.85 else (1.0 - t) / 0.15, 0.0, 1.0, 0.52).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_callback(proxy.queue_free)
+	return proxy
 
 
 func _start_core_reveal(shake_host: Control) -> void:
@@ -441,8 +584,8 @@ func _start_core_reveal(shake_host: Control) -> void:
 		ctrl._reward_cards[slot].set_meta("jackpot_card", jp)
 		ctrl._reveal.start([ctrl._reward_cards[slot]], rt, UI3Gacha.first_seen(str(RunState.get("_core_base_seed")), rt), jp, shake_host,
 			float(UI3Gacha.timing().get("reroll_in_sec", 0.5)))
-		for cv in ctrl._reveal._covers:
-			(cv as Node).name = "CoreCardBack"
+		_skin_covers(ctrl._reveal)
+		_offer_reveal_springs(ctrl._reveal, rt)
 		_reroll_note(ctrl._reward_cards[slot])
 		return
 	var tier := 0
@@ -469,9 +612,45 @@ func _start_core_reveal(shake_host: Control) -> void:
 			ctrl._reward_cards[k].set_meta("jackpot_card", hit)
 			jackpot = jackpot or hit
 	ctrl._reveal.start(ctrl._reward_cards, tier, first, jackpot, shake_host, -1.0, from_t)
-	for cv in ctrl._reveal._covers:
-		(cv as Node).name = "CoreCardBack"
+	_skin_covers(ctrl._reveal)
 	_play_reveal_moment(tier, shake_host)
+
+
+## UI-06: GachaReveal still owns timing / halo / cracks; each cover's old body (mooncard + tier word) is hidden and a
+## CardBack (tier frame, crest, back art, tier word) sits on top. A near-miss cover keeps the tier it is holding.
+func _skin_covers(rv: GachaReveal) -> void:
+	for cv in rv._covers:
+		var c := cv as Control
+		c.name = "CoreCardBack"
+		var real := int(c.get_parent().get_meta("gacha_tier", 0)) if c.get_parent() != null else 0
+		var demoted := bool(c.get_meta("demoted", false)) and rv._from > real
+		var shown := rv._from if demoted else real   # a Crystal-capped cover holds the tier it was pulled down from
+		c.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+		for ch in c.get_children():
+			if ch is VBoxContainer:
+				for x in ch.get_children():
+					if x is TextureRect or (x is Label and x.name == "TierWord"):
+						x.visible = false   # ReasonLine stays: GachaReveal fades it in on the crack
+		_put_back(c, shown)
+		if demoted and not rv._plan.is_empty():
+			# GachaReveal._crack recolours its own (now empty) panel; the CardBackFace drops to the real tier at the same moment,
+			# with the crack lines and the reason line drawn above it.
+			var tw := c.create_tween()
+			tw.tween_interval(float(rv._plan.get("crack_at", 0.0)))
+			tw.tween_callback(func() -> void: _put_back(c, real))
+
+
+func _put_back(cover: Control, tier: int) -> void:
+	var old := cover.get_node_or_null("CardBackFace")
+	if old != null:
+		cover.remove_child(old)
+		old.queue_free()
+	var back := CardBack.new().setup(tier)
+	back.name = "CardBackFace"
+	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cover.add_child(back)
+	cover.move_child(back, 0)
 
 
 ## UI-05 b23 lane M2: the `core-reveal` rows GachaReveal does not draw (name punch, sparks, Crystal shake), timed from
@@ -480,6 +659,7 @@ func _play_reveal_moment(tier: int, shake_host: Control) -> void:
 	var rv: GachaReveal = ctrl._reveal
 	if rv == null or not is_instance_valid(rv) or not rv.running or rv._plan.is_empty() or UI3Gacha.is_instant():
 		return
+	_offer_reveal_springs(rv, tier)
 	var tg := {}
 	for k in ctrl._reward_cards.size():
 		var card: Control = ctrl._reward_cards[k]
@@ -590,7 +770,7 @@ func _add_rule_card(r: Dictionary) -> PanelContainer:
 	var card := _RuleCardUi.new()
 	card.name = "RuleCard%d" % idx
 	card.set_meta("tint_index", ti)
-	card.setup_rule(UI3Theme.color(String(ctrl._RULE_TINTS[ti])), tr("Run rule"), UI3.icon("ui_settings"), name_text, body_text, price)
+	card.setup_rule(UI3Theme.color(String(ctrl._RULE_TINTS[ti])), tr("Run rule"), null, name_text, body_text, price, key)
 	card.gui_input.connect(func(ev: InputEvent) -> void:
 		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
 			_select_reward(idx)
@@ -604,6 +784,8 @@ func _add_rule_card(r: Dictionary) -> PanelContainer:
 	ctrl._reward_cards.append(card)
 	card.mouse_entered.connect(_dm_core_hover)
 	card.focus_entered.connect(_dm_core_hover)
+	card.mouse_entered.connect(_core_hover_fx.bind(card, true))
+	card.mouse_exited.connect(_core_hover_fx.bind(card, false))
 	return card
 
 
@@ -688,8 +870,12 @@ func _on_core_card_reroll(idx: int) -> void:
 		old_card.pivot_offset = old_card.size / 2.0
 		var out := float(UI3Gacha.timing().get("reroll_out_sec", 0.3))
 		var tw := old_card.create_tween().set_parallel(true)
-		tw.tween_property(old_card, "position:y", old_card.position.y - 120.0, out)
-		tw.tween_property(old_card, "modulate:a", 0.0, out)
+		if UI3Motion.reduced():
+			tw.tween_property(old_card, "modulate:a", 0.0, UI3Motion.REDUCED_MAX_SEC)
+		else:   # card-interact, Reroll: the old card spins out (scale.x 1 -> 0, y -20, quad in)
+			tw.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+			tw.tween_property(old_card, "scale:x", 0.0, out)
+			tw.tween_property(old_card, "position:y", old_card.position.y - 20.0, out)
 		await tw.finished
 	if not is_instance_valid(ctrl):
 		return   # the run map was freed while waiting (scene change); the old Node coroutine stopped here
@@ -728,7 +914,8 @@ func _on_reward_reroll(title: String) -> void:
 	_show_reward_overlay(title)
 
 
-## One UI-05 CoreCard (47-core-offer): tier chip + category chip + partner / house chips, rule text, own Reroll.
+## One UI-06 CoreCard (47-core-offer): tier frame + crest, art window (family emblem, HouseTag), ComboTag, name, headline,
+## chip detail, badges, own Reroll.
 func _add_core_card(r: Dictionary) -> PanelContainer:
 	var idx := ctrl._reward_cards.size()
 	var tier := clampi(int(r.get("tier", 0)), 0, 2)
@@ -744,11 +931,13 @@ func _add_core_card(r: Dictionary) -> PanelContainer:
 	name_text = UI3.title_case(UI3.player_text(name_text))
 	var dsc := UI3.describe(body_text)
 	body_text = ("MP %d \u00b7 " % int(dsc["mp"]) if int(dsc["mp"]) >= 0 else "") + String(dsc["text"])
+	var def = RelicRegistry.get_def(key)
+	var tags: Array = Array(def.tags) if def != null else []
+	var owned := UI3Gacha.owned_ids()
+	var done := UI3Gacha.combo_completes(owned, key)
 	var card := _CoreCardUi.new()
 	card.name = "CoreCard%d" % idx
-	card.setup_core(tier, tr(ctrl._CORE_TIER_NAME[tier]), UI3.icon(String(CorePanel.AXIS_ICON.get(axis, "face_buff"))), name_text, body_text)
-	card.rarity_chip.mouse_filter = Control.MOUSE_FILTER_STOP
-	UI3Tooltip.bind(card.rarity_chip, tr(ctrl.CORE_TIER_HINT))
+	card.setup_core(tier, axis, name_text, key, body_text, tags, not done.is_empty())
 	card.gui_input.connect(func(ev: InputEvent) -> void:
 		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
 			_select_reward(idx)
@@ -762,29 +951,17 @@ func _add_core_card(r: Dictionary) -> PanelContainer:
 	ctrl._reward_cards.append(card)
 	card.mouse_entered.connect(_dm_core_hover)
 	card.focus_entered.connect(_dm_core_hover)
-	if tier >= 2:
-		# A3: Crystal cards keep their own bevelled silhouette and extra rings, and rise on hover.
-		var accent: Color = card.accent
-		card.set_meta("prism_accent", accent)
-		card.use_prism(func(sel: bool) -> StyleBoxFlat: return UI3Gacha.prism_style(accent, sel))
-		card.add_child(UI3Gacha.prism_frame(accent))
-		card.mouse_entered.connect(_prism_hover.bind(card, true))
-		card.mouse_exited.connect(_prism_hover.bind(card, false))
-	card.chip_row.add_child(CorePanel.word_chip(tr(String(CorePanel.AXIS_NAME.get(axis, "Core"))),
-		String(CorePanel.AXIS_ICON.get(axis, "face_buff")), UI3Theme.color("text_muted"), "CategoryChip"))
-	_add_combo_labels(card.column, key, card.chip_row)
-	var tag := card.column.get_node_or_null("ComboTag")
-	if tag != null:
-		card.column.remove_child(tag)
-		card.body_box.add_child(tag)
-		card.body_box.move_child(tag, card.name_label.get_index() + 1)
-	var wc := card.chip_row.get_node_or_null("WorksWith")
-	if wc != null:
-		wc.name = "ComboChip"
-	RunMapController._add_house_chip(card, card.chip_row, key)
-	var hc := card.chip_row.get_node_or_null("HouseChip")
-	if hc != null:
-		hc.name = "HouseTag"
+	card.mouse_entered.connect(_core_hover_fx.bind(card, true))
+	card.mouse_exited.connect(_core_hover_fx.bind(card, false))
+	var names: Array[String] = []
+	for id in UI3Gacha.combo_matches(owned, key):
+		var d = RelicRegistry.get_def(String(id))
+		if d != null:
+			names.append(UI3.title_case(UI3.player_text(String(d.name))))
+	if not done.is_empty():
+		card.add_combo_tag(String(done["tier"]) == "full", UI3Gacha.combo_name(String(done["id"])),
+			(tr("With: %s") % ", ".join(names)) if not names.is_empty() else "")
+	card.add_house_tag()
 	var rr := _PanelParts.button(tr("Reroll"), &"secondary", &"M")
 	rr.name = "RerollButton"
 	rr.size_flags_vertical = Control.SIZE_SHRINK_END
@@ -792,6 +969,5 @@ func _add_core_card(r: Dictionary) -> PanelContainer:
 		rr.pressed.connect(_on_core_card_reroll.bind(idx))
 	else:
 		UI3.set_disabled_reason(rr, tr("Rerolled") if RunState.core_rerolled_slots.has(idx) else tr("No rerolls left"))
-	card.reroll_button = rr
-	card.column.add_child(rr)
+	card.add_reroll(rr)
 	return card

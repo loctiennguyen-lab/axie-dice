@@ -146,27 +146,27 @@ func _frame(sc: float, with_none: bool) -> void:
 	_ok(tk.disabled and tk.text == "Pick a rule" and tk.get_node_or_null("KeyCap") == null, "%s: Take off, 'Pick a rule', no keycap (got '%s')" % [tag, tk.text])
 	var want := Vector2(UI3Theme.size_of("rule_card_w"), UI3Theme.size_of("rule_card_h"))
 	_ok(rm._reward_cards.size() == 2, "%s: 2 cards" % tag)
-	var tints: Array[Color] = []
+	var tints: Array[int] = []
 	for i in rm._reward_cards.size():
 		var c: Control = rm._reward_cards[i]
 		_ok(c.name == "RuleCard%d" % i and c.size.is_equal_approx(want), "%s card %d: RuleCard %s (got %s)" % [tag, i, want, c.size])
-		for n in ["Kind", "ArtBox", "RuleName", "RuleText"]:
+		for n in ["TierFrame", "RuleName", "Headline", "RuleText"]:
 			_ok(c.find_child(n, true, false) != null, "%s card %d: %s" % [tag, i, n])
 		var is_none: bool = String((RunState.pending_rewards[i] as Dictionary).get("key", "")) == CoreOffer.NO_RULE_ID
 		var pb := c.find_child("PriceBox", true, false)
 		_ok((pb == null) == is_none, "%s card %d: PriceBox only on a real rule (none=%s)" % [tag, i, str(is_none)])
 		_ok(pb == null or c.find_child("PriceLine", true, false) != null, "%s card %d: PriceLine" % [tag, i])
 		_ok(not bool(c.get("selected")), "%s card %d: not preselected" % [tag, i])
-		_ok(String((c.find_child("Kind", true, false) as Label).text) == "Run rule", "%s card %d: Kind" % [tag, i])
+		_ok(c.find_child("TierCrest", true, false) == null and c.find_child("ArtWindow", true, false) == null, "%s card %d: plaque, no tier crest / art window" % [tag, i])
 		var rn := (c.find_child("RuleName", true, false) as Label).text
 		var want_name := UI3.title_case(UI3.player_text(String((RunState.pending_rewards[i] as Dictionary).get("desc", ""))))
 		_ok(rn == want_name and rn != "" and rn.to_lower() != "run rule", "%s card %d: name is the rule's own (%s)" % [tag, i, rn])
-		_ok(not (c.find_child("RuleText", true, false) as Label).text.begins_with(rn), "%s card %d: text does not repeat the name" % [tag, i])
-		tints.append((c.find_child("ArtBox", true, false).get_child(0) as CanvasItem).modulate)
+		_ok(not String(c.find_child("RuleText", true, false).get_meta("plain")).begins_with(rn), "%s card %d: text does not repeat the name" % [tag, i])
+		tints.append(int(c.get_meta("tint_index", -1)))
 		var col := c.get("column") as Control
 		_ok(col.get_combined_minimum_size().y <= c.size.y - 2.0 * UI3Theme.space("20") + 0.5, "%s card %d: content fits (%.0f of %.0f)" % [tag, i,
 			col.get_combined_minimum_size().y, c.size.y - 40.0])
-	_ok(tints.size() == 2 and not tints[0].is_equal_approx(tints[1]), "%s: two cards never share a house colour" % tag)
+	_ok(tints.size() == 2 and tints[0] != tints[1], "%s: two cards never share a tint index" % tag)
 	_ok(Align.pairs(root) > 0, "%s: align check measured pairs" % tag)
 	var al: Array[String] = Align.check(root, 1.5, tag)
 	_ok(al.is_empty(), "%s: aligned %s" % [tag, str(al.slice(0, 4))])

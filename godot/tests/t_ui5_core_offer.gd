@@ -164,10 +164,9 @@ func _ready() -> void:
 		rm._show_reward_overlay("x")
 		await _frames(4)
 		var c0: Control = rm._reward_cards[0]
-		_ok(c0.find_child("AwakenChip", true, false) != null and c0.find_child("ChipRow", true, false).find_child("AwakenChip", true, false) != null,
-			"awaken: AwakenChip sits in the ChipRow of the Core that awakens")
-		_ok(c0.find_child("AwakenEdge", true, false) != null, "awaken: awaken edge on the card")
-		_ok(rm._reward_cards[1].find_child("AwakenChip", true, false) == null, "awaken: other cards have none")
+		_ok(c0.find_child("HouseTag", true, false) != null and String(c0.find_child("HouseTag", true, false).get_meta("state", "")) == "awakens",
+			"awaken: HouseTag (Awakens) sits on the Core that awakens")
+		_ok(rm._reward_cards[1].find_child("HouseTag", true, false) == null or String(rm._reward_cards[1].find_child("HouseTag", true, false).get_meta("state", "")) != "awakens", "awaken: other cards have none")
 		AnchorAdapter.test_state = null
 		RunState._core_offer_active = false
 	else:
@@ -213,15 +212,15 @@ func _core_frame(sc: float) -> void:
 	_ok(root != null, "%s: CoreOffer" % tag)
 	if root == null:
 		return
-	for n in ["Header", "Title", "TierLadder", "ShardChip", "CardRow", "Footer", "RerollCounter", "TakeButton"]:
+	for n in ["Header", "Title", "TierLadder", "ShardPill", "CardRow", "Footer", "RerollCounter", "TakeButton"]:
 		_ok(root.find_child(n, true, false) != null, "%s: node %s" % [tag, n])
-	_ok(root.find_child("TierLadder", true, false).find_children("TierChip*", "", false, false).size() == 3, "%s: TierLadder has 3 TierChips" % tag)
+	_ok(root.find_child("TierLadder", true, false).find_children("TierStep*", "", false, false).size() == 3, "%s: TierLadder has 3 TierSteps" % tag)
 	var want := Vector2(UI3Theme.size_of("core_card_w"), UI3Theme.size_of("core_card_h"))
 	_ok(rm._reward_cards.size() >= 3, "%s: >= 3 cards" % tag)
 	for i in rm._reward_cards.size():
 		var c: Control = rm._reward_cards[i]
 		_ok(c.name == "CoreCard%d" % i and c.size.is_equal_approx(want), "%s card %d: CoreCard %s (got %s)" % [tag, i, want, c.size])
-		for n in ["ArtBox", "CoreName", "ChipRow", "TierChip", "CategoryChip", "RuleText", "RerollButton"]:
+		for n in ["ArtWindow", "CoreName", "Headline", "Detail", "BadgeRow", "RerollButton"]:
 			_ok(c.find_child(n, true, false) != null, "%s card %d: %s" % [tag, i, n])
 		var col := c.get("column") as Control
 		_ok(col.get_combined_minimum_size().y <= c.size.y - 2.0 * UI3Theme.space("20") + 0.5, "%s card %d: content fits (%.0f of %.0f)" % [tag, i,
@@ -230,7 +229,7 @@ func _core_frame(sc: float) -> void:
 	var al: Array[String] = Align.check(root, 1.5, tag)
 	_ok(al.is_empty(), "%s: aligned %s" % [tag, str(al.slice(0, 4))])
 	var lad := root.find_child("TierLadder", true, false)
-	_ok(lad.get_child_count() == 7 and lad.find_children("Pip*", "TextureRect", true, false).size() == 6, "%s: TierLadder label + 3 chips with 1/2/3 pips + arrows + (strongest)" % tag)
+	_ok(lad.get_child_count() == 7 and lad.find_children("TierShards*", "TextureRect", true, false).size() == 3, "%s: TierLadder label + 3 steps (shards + word) + arrows + (strongest)" % tag)
 	for bn in root.find_children("*", "Button", true, false):
 		var bt := bn as Button
 		if bt.is_visible_in_tree():

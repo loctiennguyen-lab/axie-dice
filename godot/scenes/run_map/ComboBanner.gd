@@ -25,4 +25,4 @@ func _combo_banner(formed: Array) -> GachaFx:
 	var house := AnchorAdapter.house_of_combo(String(best["id"]))
 	var mut := {"house": house} if house != "" and not AnchorAdapter.mutation_of(house)["name"].is_empty() else {}
 	return ComboBand.build(ctrl._overlay_layer, String(best["tier"]), UI3Gacha.combo_name(String(best["id"])), house,
-		not mut.is_empty()) as GachaFx
+		not mut.is_empty(), UI3Gacha.combo_members(String(best["id"]), String(best["tier"]))) as GachaFx

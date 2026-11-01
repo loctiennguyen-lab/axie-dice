@@ -71,7 +71,7 @@ func _room(sc: float) -> void:
 	if sheet == null:
 		m.queue_free()
 		return
-	for n in ["MakeRoomSheet", "Title", "Line", "OwnedList", "SellRow", "CoreSlot", "TierChip", "SellButton", "Footer", "BackButton"]:
+	for n in ["MakeRoomSheet", "Title", "Line", "OwnedList", "SellRow", "CoreSlot", "TierShards", "Headline", "SellButton", "Footer", "BackButton"]:
 		_ok(sheet.find_child(n, true, false) != null, "%s: node %s" % [tag, n])
 	_ok(sheet.find_child("ConfirmButton", true, false) == null, tag + ": no ConfirmButton (frame has none)")
 	for b in sheet.find_children("SellButton", "Button", true, false):
