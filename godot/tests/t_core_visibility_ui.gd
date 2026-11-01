@@ -41,10 +41,10 @@ func _ready() -> void:
 	await get_tree().process_frame
 	var slot: PanelContainer = cp._slot_by_id.get("c_bastion")
 	_check(slot != null and int(slot.get_meta("pulsed", 0)) == 2, "Bastion slot pulsed twice")
-	_check(slot.get_node("FireCount").text == "x2" and slot.get_node("FireCount").visible, "Bastion count chip x2")
+	_check(slot.find_child("FireCount", true, false).text == "x2" and slot.find_child("FireCount", true, false).visible, "Bastion count chip x2")
 	_check(int((cp._slot_by_id["c_fissure"] as Node).get_meta("pulsed", 0)) == 1, "Fissure slot pulsed")
 	cp.refresh()   # a HUD repaint must not wipe the counters
-	_check((cp._slot_by_id["c_bastion"] as Node).get_node("FireCount").text == "x2", "count survives refresh")
+	_check((cp._slot_by_id["c_bastion"] as Node).find_child("FireCount", true, false).text == "x2", "count survives refresh")
 	var log: Array = v.core_float_log
 	_check(log.size() == 2, "2 notes (one per unit), got %d" % log.size())
 	var all := []

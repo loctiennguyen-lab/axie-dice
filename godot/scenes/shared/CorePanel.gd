@@ -178,7 +178,7 @@ func reset_counts() -> void:
 
 
 func _update_count(s: PanelContainer, core_id: String) -> void:
-	var l := s.get_node_or_null("FireCount") as Label
+	var l := s.find_child("FireCount", true, false) as Label
 	var n := int(_fires.get(core_id, 0))
 	if l == null or s == anchor_slot:
 		return
@@ -269,11 +269,17 @@ func _add_count_label(s: PanelContainer, core_id: String) -> void:
 	l.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	l.add_theme_color_override("font_outline_color", UI3Theme.color("panel"))
 	l.add_theme_constant_override("outline_size", 4)
-	l.size_flags_horizontal = Control.SIZE_SHRINK_END
-	l.size_flags_vertical = Control.SIZE_SHRINK_END
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	l.visible = false
-	s.add_child(l)
+	# Hangs off the bottom-right corner (6 px outside the socket) so the "xN" never covers the family emblem.
+	# A plain Control wrapper: the PanelContainer would stretch a direct child over the whole socket.
+	var box := Control.new()
+	box.name = "FireCountBox"
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(l)
+	s.add_child(box)
+	l.resized.connect(func() -> void: l.position = box.size - l.size + Vector2(6, 6))
+	box.resized.connect(func() -> void: l.position = box.size - l.size + Vector2(6, 6))
 	_update_count(s, core_id)
 
 
@@ -463,7 +469,7 @@ func _update_anchor_badge() -> void:
 		b.visible = show_counts and n > 0
 	else:
 		b.text = "%d/%d" % [AnchorAdapter.house_count(), Anchors.AWAKEN_NEED]
-		b.visible = show_counts
+		b.visible = false   # the tile's pips already read n/2; a text badge only covered the tile
 
 
 ## House Core inside the strip: a small HouseDot in the house colour (bottom-left; bottom-right is the xN count).

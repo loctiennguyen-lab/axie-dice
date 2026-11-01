@@ -35,7 +35,6 @@ var actives_row: HBoxContainer
 
 var _run_info: Ui5RunInfo           ## RunInfo (MenuButton + RunPill)
 var _top_plate: Control             ## = _run_info (left-column layout and tests read its rect)
-var _anchor_chip: PanelContainer
 var _relic_plate: PanelContainer
 var _divider: Control
 var _mana_box: HBoxContainer
@@ -95,7 +94,7 @@ func _init() -> void:
 	resized.connect(layout)
 
 
-# ── Top HUD: RunInfo, Anchor chip and the Core plate under it ───────────────────────────────
+# ── Top HUD: RunInfo, the Core plate under it ───────────────────────────────
 
 func _ignore(c: Control) -> Control:
 	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -509,7 +508,6 @@ func update_top(d: Dictionary) -> void:
 	relic_strip.visible = relics.size() > 0
 	_relic_plate.visible = has_cores or relics.size() > 0 or (d.get("actives", []) as Array).size() > 0
 	_run_info.set_info(String(d.get("title", "")), int(d.get("ascension", 0)), int(d.get("turn", 1)), int(d.get("shards", 0)))
-	_refresh_anchor_chip()
 	layout()
 
 
@@ -780,35 +778,6 @@ func tray_top() -> float:
 	return _tray_top
 
 
-## Anchor chip (under the run plate): shared HouseChip, 48 high; pips fill per House Core held, word "Awakened" at 2/2.
-func _refresh_anchor_chip() -> void:
-	var key := "%s/%s/%d" % [AnchorAdapter.current_id(), AnchorAdapter.awakened(), AnchorAdapter.house_count()]
-	if _anchor_chip != null and is_instance_valid(_anchor_chip) and String(_anchor_chip.get_meta("key", "")) == key:
-		return
-	if _anchor_chip != null and is_instance_valid(_anchor_chip):
-		_anchor_chip.get_parent().remove_child(_anchor_chip)
-		_anchor_chip.queue_free()
-	_anchor_chip = null
-	# UI-06 frame 02-combat--cores-strip: no AnchorChip in combat, the AnchorTile in the Cores strip carries the Anchor.
-	if true:
-		layout()
-		return
-	var house := AnchorAdapter.house_id(AnchorAdapter.current_id())
-	var hk := StringName(house.trim_prefix("h_"))
-	var awake := AnchorAdapter.awakened()
-	var n := AnchorAdapter.house_count()
-	var chip := UI3.house_chip(hk, AnchorAdapter.house_name(house), mini(n, 2), 2, awake, UI3Theme.size_of("anchor_chip_h"))
-	chip.name = "AnchorChip"
-	chip.set_meta("key", key)
-	var txt := chip.find_child("Text", true, false) as Label
-	txt.add_theme_color_override("font_color", UI3Theme.color("anchor_awake") if awake else AnchorAdapter.house_color(house))
-	var more := UI3.label(TranslationServer.translate("Awakened") if awake else "%s %d/2" % [TranslationServer.translate("House Cores"), mini(n, 2)], "LabelMuted")
-	more.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	more.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	txt.get_parent().add_child(more)
-	add_child(chip)
-	_anchor_chip = chip
-	layout()
 
 
 func layout() -> void:
@@ -826,17 +795,13 @@ func layout() -> void:
 		Ui5HudStyle.sync_view_chip(_hint)   # no chip while the StatusLine is empty
 	_top_plate.size = Vector2.ZERO
 	_top_plate.position = Vector2(UI3Theme.space("screen"), UI3Theme.space("screen"))
-	# Left column, top to bottom: RunInfo (run_pill_h) · 20 · BossRhythm (boss / elite) · 16 · Anchor chip (48) · Cores plate
+	# Left column, top to bottom: RunInfo (run_pill_h) · 20 · BossRhythm (boss / elite) · Cores plate
 	# · attrition (when not in the enemy column) · log.
 	var col_bottom := _top_plate.position.y + _top_plate.get_combined_minimum_size().y
 	_foe_card.size = Vector2.ZERO
 	_foe_card.position = Vector2(UI3Theme.space("screen"), col_bottom + UI3Theme.space("20"))   # CSS .boss-rhythm top
 	if _foe_card.visible:
 		col_bottom = _foe_card.position.y + _foe_card.get_combined_minimum_size().y
-	if _anchor_chip != null and is_instance_valid(_anchor_chip):
-		_anchor_chip.size = Vector2.ZERO
-		_anchor_chip.position = Vector2(EDGE, col_bottom + 16.0)
-		col_bottom = _anchor_chip.position.y + _anchor_chip.get_combined_minimum_size().y
 	_relic_plate.size = Vector2.ZERO
 	# Frame 02-combat--cores-strip: strip top = token combat_strip_top (under RunInfo); a boss/elite foe card pushes it down.
 	var strip_y := col_bottom + 8.0

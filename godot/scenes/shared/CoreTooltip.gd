@@ -78,8 +78,14 @@ static func show_now(c: Control) -> void:
 	_owner = c
 	var vs := c.get_viewport().get_visible_rect().size
 	plate.size = Vector2.ZERO
-	var sz := plate.get_combined_minimum_size()
-	plate.size = sz
+	plate.modulate.a = 0.0
+	# RichTextLabel wraps only after its first layout: wait one frame, shrink the box to the real text, then place it.
+	await c.get_tree().process_frame
+	if not is_instance_valid(plate) or _owner != c:
+		return
+	plate.reset_size()
+	plate.modulate.a = 1.0
+	var sz := plate.size
 	var r := c.get_global_rect()
 	var pos := Vector2(r.position.x, r.end.y + 8.0)
 	if pos.y + sz.y > vs.y - 8.0:
@@ -169,6 +175,7 @@ static func build_anchor(id: String) -> PanelContainer:
 	plate.name = "AnchorTooltip"
 	var col := plate.get_child(0).get_child(0) as VBoxContainer
 	for c in col.get_children():
+		col.remove_child(c)   # queue_free alone leaves it in the tree until frame end and inflates the box
 		c.queue_free()
 	var house := AnchorAdapter.house_id(id)
 	var nm := UI3.label(AnchorAdapter.name_of(id), "LabelTitle")

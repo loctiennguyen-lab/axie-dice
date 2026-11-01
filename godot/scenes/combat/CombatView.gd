@@ -3375,8 +3375,13 @@ var core_fx: CoreFireFX = null
 ## Global centre of a unit's head for CoreFireFX; (-1, -1) when it is not on screen. An unknown uid falls back to the
 ## first living party die (same rule as the float note).
 func _core_fx_unit_pos(uid: int) -> Vector2:
-	if _stage3d == null or _unit_visuals_root == null or _combat == null or _combat.by_uid(uid) == null:
+	if _stage3d == null or _unit_visuals_root == null or _combat == null:
 		return Vector2(-1, -1)
+	if _combat.by_uid(uid) == null:   # unknown uid: first living party die, same as the float note
+		var ap: Array = _combat.alive_party()
+		if ap.is_empty():
+			return Vector2(-1, -1)
+		uid = int(ap[0].uid)
 	var a := _status_head_anchor(uid, not _combat_is_enemy_uid(uid), _stage3d.position)
 	if a.x < 0.0:
 		return Vector2(-1, -1)
@@ -3385,7 +3390,7 @@ func _core_fx_unit_pos(uid: int) -> Vector2:
 
 func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> void:
 	_last_core_uid = uid
-	if core_fx != null and kind != "mutation" and (kind != "rule" or core_id.begins_with("a_")):
+	if core_fx != null and kind != "mutation" and (kind != "rule" or core_id.begins_with("a_") or amount > 0):
 		core_fx.fire(core_id, uid, amount, kind)
 	if core_id == "rule_pack_alpha" and _on_pack_alpha_fired(uid, amount, kind):
 		return

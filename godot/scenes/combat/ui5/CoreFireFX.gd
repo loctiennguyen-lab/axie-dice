@@ -12,7 +12,6 @@ extends Control
 const MAX_LIVE := 6
 const GAP_MSEC := 180
 const LIFE_SEC := 1.4
-const KIND_COLOR := {"shield": "#31c6ff", "mana": "#b98cff", "dmg": "#ffe5b4", "damage": "#ffe5b4"}
 
 var panel: CorePanel = null
 ## Callable(uid:int) -> Vector2 global point of the unit, or Vector2(-1, -1) when the unit is not on screen.
@@ -188,7 +187,7 @@ func _line(holder: Control, from: Vector2, to: Vector2, col: Color) -> void:
 
 func _number(holder: Control, at: Vector2, e: Dictionary, col: Color, anchor: bool, nomove: bool) -> void:
 	var kind := String(e["kind"])
-	var ncol: Color = col if anchor else Color(String(KIND_COLOR.get(kind, "#ffe5b4")))
+	var ncol: Color = col if anchor else UI3Theme.color(CoreFeedback.color_token(kind))
 	var row := HBoxContainer.new()
 	row.name = "FireNumber"
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE

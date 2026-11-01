@@ -60,7 +60,7 @@ func _ready() -> void:
 	cp.refresh()
 	_ok(cp.find_child("HouseChip", true, false) == null, "combat: no chip row")
 	var badge := cp.anchor_slot.find_child("AnchorBadge", true, false) as Label
-	_ok(badge.visible and badge.text == "1/2", "combat badge shows 1/2")
+	_ok(not badge.visible, "combat: no text badge before awaken (pips show n/2)")
 	# awakened
 	st["awakened"] = true
 	st["owned"] = ["c_sonic_shield", "c_mana_pool", "c_thorn_shield"]
