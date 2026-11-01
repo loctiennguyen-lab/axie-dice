@@ -229,7 +229,7 @@ func _core_frame(sc: float) -> void:
 	var al: Array[String] = Align.check(root, 1.5, tag)
 	_ok(al.is_empty(), "%s: aligned %s" % [tag, str(al.slice(0, 4))])
 	var lad := root.find_child("TierLadder", true, false)
-	_ok(lad.get_child_count() == 7 and lad.find_children("Pip*", "TextureRect", true, false).size() == 6, "%s: TierLadder label + 3 chips with 1/2/3 pips + arrows + (strongest)" % tag)
+	_ok(lad.get_child_count() == 7 and lad.find_children("TierShards*", "TextureRect", true, false).size() == 3, "%s: TierLadder label + 3 steps (shards + word) + arrows + (strongest)" % tag)
 	for bn in root.find_children("*", "Button", true, false):
 		var bt := bn as Button
 		if bt.is_visible_in_tree():

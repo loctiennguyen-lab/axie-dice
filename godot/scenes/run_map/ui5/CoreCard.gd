@@ -37,6 +37,7 @@ func setup_core(core_tier: int, axis: String, title: String, id: String, body: S
 	add_child(face)
 	custom_minimum_size = face.custom_minimum_size
 	body_box = face.body
+	column = face.body
 	var inner := UI3Theme.size_of("core_card_w") - 2 * UI3Theme.size_of("core_pad")
 
 	name_label = PanelParts.text(title, "text_screen_title", "text", true)
