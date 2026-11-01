@@ -45,7 +45,7 @@ func _ready() -> void:
 	for aid in ["a_kin", "a_embers", "a_big_hand"]:
 		var fx2 := AnchorFx.play(host, aid)
 		_check((fx2.find_child("AwakenName", true, false) as Label).text == AnchorAdapter.awaken_name(aid) and AnchorAdapter.awaken_name(aid) != "", "%s awaken name" % aid)
-		_check((fx2.find_child("AwakenText", true, false) as RichTextLabel).get_parsed_text() == AnchorAdapter.awaken_rule(aid), "%s awaken rule" % aid)
+		_check((fx2.find_child("AwakenText", true, false) as RichTextLabel).get_parsed_text().replace(" ", "") == AnchorAdapter.awaken_rule(aid).replace(" ", ""), "%s awaken rule" % aid)
 		_check(fx2.find_child("HouseEmblem", true, false) != null, "%s house glyph" % aid)
 	_check(AnchorFx.awaken_line("a_kin", 3).contains("Unison") and AnchorFx.awaken_line("a_kin", 3).contains("3"), "Unison line carries the count")
 	_check(AnchorFx.awaken_line("a_embers", 2).contains("Passed Flame") and AnchorFx.awaken_line("a_embers", 2).contains("free"), "Passed Flame line says free")

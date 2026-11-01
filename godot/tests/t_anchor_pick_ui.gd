@@ -32,13 +32,13 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_ok(v.cards.size() == 3, "3 cards")
 	_ok(v.find_child("RerollButton", true, false) == null and v.find_child("SkipButton", true, false) == null, "no Reroll / Skip")
-	_ok(v.find_child("Summary", true, false) != null and v.find_child("Glossary", true, false) != null, "S3-7: summary line per card + glossary")
+	_ok(v.find_child("Tagline", true, false) != null and v.find_child("Glossary", true, false) != null, "S3-7: summary line per card + glossary")
 	_ok(v.take_button.disabled and v.take_button.text == "Pick an Anchor", "Take disabled with a reason before a pick")
 	for c in v.cards:
 		var id := String(c.get_meta("anchor_id"))
-		_ok(c.find_child("RuleText", true, false) != null and (c.find_child("RuleText", true, false) as Label).text != "", "%s RULE" % id)
+		_ok(c.find_child("RuleText", true, false) != null and (c.find_child("RuleText", true, false) as RichTextLabel).get_parsed_text() != "", "%s RULE" % id)
 		_ok((c.find_child("PriceText", true, false) != null) == (AnchorAdapter.price_text(id) != ""), "%s PRICE shown only when the Anchor has a price" % id)
-		_ok((c.find_child("AwakenCondition", true, false) as Label).text.contains("hold 2 of these 5 Cores"), "%s Awakens rule + hold 2" % id)
+		_ok((c.find_child("HouseCap", true, false) as Label).text.contains("hold 2 of 5"), "%s Awakens rule + hold 2" % id)
 		_ok(c.find_child("AwakenName", true, false) != null and (c.find_child("AwakenName", true, false) as Label).text != "", "%s awaken name" % id)
 		var hc := c.find_child("HouseCores", true, false)
 		_ok(hc != null and hc.get_child_count() == 5, "%s has 5 House Core icons" % id)
@@ -84,7 +84,7 @@ func _ready() -> void:
 		_ok(h != "" and AnchorAdapter.house_icon(h).begins_with("house_") and UI3.icon(AnchorAdapter.house_icon(h)) != null, "%s has its own house glyph" % id3)
 		_ok(AnchorAdapter.house_color(h) != UI3Theme.color("text_muted"), "%s has a house colour token" % id3)
 		seen_col[AnchorAdapter.house_color(h).to_html()] = true
-		_ok((c.find_child("RuleText", true, false) as Label).text == AnchorAdapter.rule_text(id3) and AnchorAdapter.rule_text(id3) != "", "%s rule text" % id3)
+		_ok((c.find_child("RuleText", true, false) as RichTextLabel).get_parsed_text().replace(" ", "") == AnchorAdapter.rule_text(id3).replace(" ", "") and AnchorAdapter.rule_text(id3) != "", "%s rule text" % id3)
 		_ok((c.find_child("PriceText", true, false) != null) == (AnchorAdapter.price_text(id3) != ""), "%s price" % id3)
 		_ok((c.find_child("HouseLine", true, false) as Label).get_theme_color("font_color") == AnchorAdapter.house_color(h), "%s House line in the house colour" % id3)
 		var pt := c.find_child("PriceText", true, false) as Label

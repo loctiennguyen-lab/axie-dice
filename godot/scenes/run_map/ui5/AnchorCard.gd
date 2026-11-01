@@ -104,11 +104,14 @@ func setup(id: String) -> void:
 	var ah := HBoxContainer.new()
 	ah.name = "AwakensHead"
 	ah.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var an := PanelParts.text("%s · %s" % [tr("Awakens"), AnchorAdapter.awaken_name(id)], "text_key", "anchor_awake", true)
+	var acap := PanelParts.text(tr("Awakens") + " ·", "text_key", "anchor_awake", true)
+	acap.name = "AwakensCap"
+	ah.add_child(acap)
+	var an := PanelParts.text(AnchorAdapter.awaken_name(id), "text_key", "anchor_awake", true)
 	an.name = "AwakenName"
 	an.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	an.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	an.custom_minimum_size.x = 120
+	an.clip_text = true
+	an.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	ah.add_child(an)
 	ah.add_child(_meter(id, awc))
 	ab.add_child(ah)
