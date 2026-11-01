@@ -16,7 +16,7 @@ static var _re: RegEx = null
 
 static func _regex() -> RegEx:
 	if _re == null:
-		_re = RegEx.create_from_string("\\b(%s)\\b|([+\\-−]?\\d+(?:\\.\\d+)?%%?(?![\\w.])(?:\\s(?:%s)\\b)?)" % ["|".join(KEYWORDS), "|".join(UNITS)])
+		_re = RegEx.create_from_string("\\b(%s)\\b|((?:(?<!\\w)[+\\-−])?\\d+(?:\\.\\d+)?%%?(?![\\w]|\\.\\d)(?:\\s(?:%s)\\b)?)" % ["|".join(KEYWORDS), "|".join(UNITS)])
 	return _re
 
 

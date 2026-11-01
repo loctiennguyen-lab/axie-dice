@@ -23,7 +23,8 @@ func setup(p_tier: int, p_run_rule := false) -> TierFrame:
 	texture = UI6Assets.frame_run_rule() if run_rule else UI6Assets.frame(tier)
 	_key = "frame_run_rule" if run_rule else "frame_core_" + UI6Assets.tier_key(tier)
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	resized.connect(fit_margins)
+	if not resized.is_connected(fit_margins):
+		resized.connect(fit_margins)
 	fit_margins()
 	return self
 
@@ -31,14 +32,19 @@ func setup(p_tier: int, p_run_rule := false) -> TierFrame:
 ## Patch margins for the current size: the token values, shrunk only when left+right (or top+bottom) would eat
 ## the card (keeping at least 24 px of stretchable centre).
 func fit_margins() -> void:
-	var m := UI6Assets.ninepatch_margins(_key)
+	fit_patch(self, UI6Assets.ninepatch_margins(_key))
+
+
+## Applies margins m = [L, T, R, B] to any NinePatchRect, shrunk proportionally when the rect is too small to keep
+## 24 px of stretchable centre. Shared by TierFrame and ArtWindow.
+static func fit_patch(np: NinePatchRect, m: Vector4i) -> void:
 	var l := float(m.x)
 	var t := float(m.y)
 	var r := float(m.z)
 	var b := float(m.w)
-	var kx := minf(1.0, maxf(0.0, size.x - 24.0) / maxf(1.0, l + r)) if size.x > 0.0 else 1.0
-	var ky := minf(1.0, maxf(0.0, size.y - 24.0) / maxf(1.0, t + b)) if size.y > 0.0 else 1.0
-	patch_margin_left = int(l * kx)
-	patch_margin_right = int(r * kx)
-	patch_margin_top = int(t * ky)
-	patch_margin_bottom = int(b * ky)
+	var kx := minf(1.0, maxf(0.0, np.size.x - 24.0) / maxf(1.0, l + r)) if np.size.x > 0.0 else 1.0
+	var ky := minf(1.0, maxf(0.0, np.size.y - 24.0) / maxf(1.0, t + b)) if np.size.y > 0.0 else 1.0
+	np.patch_margin_left = int(l * kx)
+	np.patch_margin_right = int(r * kx)
+	np.patch_margin_top = int(t * ky)
+	np.patch_margin_bottom = int(b * ky)
