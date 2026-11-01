@@ -1043,42 +1043,42 @@
     {
       "text": "house_volley",
       "background": "plate",
-      "ratio": 5.59,
+      "ratio": 5.16,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "house_gambler",
       "background": "plate",
-      "ratio": 6.78,
+      "ratio": 5.01,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "house_mana_mine",
       "background": "plate",
-      "ratio": 10.19,
+      "ratio": 6.21,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "house_kin",
       "background": "plate",
-      "ratio": 7.65,
+      "ratio": 5.86,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "house_embers",
       "background": "plate",
-      "ratio": 6.28,
+      "ratio": 5.4,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "house_big_hand",
       "background": "plate",
-      "ratio": 6.14,
+      "ratio": 5.65,
       "pass": "AA body",
       "ui04": true
     },
@@ -1090,44 +1090,44 @@
       "ui04": true
     },
     {
-      "text": "tier_moss",
+      "text": "tier_moss_text",
       "background": "tier_moss_bg",
-      "ratio": 5.71,
+      "ratio": 6.24,
       "pass": "AA body",
       "ui04": true
     },
     {
-      "text": "tier_amber",
+      "text": "tier_amber_text",
       "background": "tier_amber_bg",
-      "ratio": 7.16,
+      "ratio": 8.28,
       "pass": "AA body",
       "ui04": true
     },
     {
-      "text": "tier_crystal",
+      "text": "tier_crystal_text",
       "background": "tier_crystal_bg",
-      "ratio": 6.15,
+      "ratio": 9.0,
       "pass": "AA body",
       "ui04": true
     },
     {
-      "text": "tier_moss",
+      "text": "tier_moss_text",
       "background": "plate",
-      "ratio": 6.46,
+      "ratio": 7.48,
       "pass": "AA body",
       "ui04": true
     },
     {
-      "text": "tier_amber",
+      "text": "tier_amber_text",
       "background": "plate",
-      "ratio": 8.18,
+      "ratio": 9.46,
       "pass": "AA body",
       "ui04": true
     },
     {
-      "text": "tier_crystal",
+      "text": "tier_crystal_text",
       "background": "plate",
-      "ratio": 6.54,
+      "ratio": 9.3,
       "pass": "AA body",
       "ui04": true
     },
@@ -1188,9 +1188,9 @@
       "ui04": true
     },
     {
-      "text": "tier_amber",
+      "text": "tier_amber_text",
       "background": "update_bar_bg",
-      "ratio": 7.59,
+      "ratio": 8.78,
       "pass": "AA body",
       "ui04": true
     },
