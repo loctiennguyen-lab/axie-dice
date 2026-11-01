@@ -96,7 +96,7 @@ func _run(sc: float) -> void:
 		_check((tn as Label).get_line_count() <= 2, "[%s] tile name '%s' wraps in <= 2 lines (%d)" % [tag, (tn as Label).text, (tn as Label).get_line_count()])
 	v.tile_for("a_volley").activated.emit()
 	await get_tree().process_frame
-	for n in ["AnchorCard", "HouseGlyph", "AnchorName", "HouseLine", "Summary", "RuleBox", "AwakensBox", "HouseCores", "HouseCoreChip"]:
+	for n in ["AnchorCard", "HouseEmblem", "AnchorName", "HouseLine", "Tagline", "RuleBox", "AwakensBox", "HouseCores", "HouseCoreChip"]:   # UI-06 AnchorCard names
 		_check(v.find_child(n, true, false) != null, "[%s] detail %s" % [tag, n])
 	_check(Align.pairs(v) > 0, "[%s] align pairs > 0 (house glyph + name)" % tag)
 	_frame(v, sc, tag + " detail")

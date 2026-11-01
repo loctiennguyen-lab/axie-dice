@@ -194,7 +194,7 @@ func _test_new_cores() -> void:
 		var icon_name := String(CorePanel.AXIS_ICON.get(String(def.core_axis), ""))
 		_check(icon_name != "" and UI3.icon(icon_name) != null, "%s axis icon '%s' (axis '%s')" % [id, icon_name, def.core_axis])
 		var slot := cp._slot(def, false, "")
-		var ic := slot.get_node_or_null("AxisIcon") as TextureRect
+		var ic := slot.find_child("FamilyEmblem", true, false) as TextureRect   # UI-06 slot: socket + FamilyEmblem (was AxisIcon)
 		_check(ic != null and ic.texture != null, "%s slot shows an icon" % id)
 		var tip := UI3Tooltip.text_of(slot)
 		_check(tip.contains(String(def.name)) and tip.contains(txt), "%s slot tooltip carries name + rule text" % id)
