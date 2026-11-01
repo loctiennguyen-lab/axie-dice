@@ -112,6 +112,7 @@ func _build_top() -> void:
 	# Relic plate under it: passive relics, divider, actives, Mana.
 	_relic_plate = UI3.plate(&"plate")
 	_relic_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_relic_plate.name = "CombatCorePlate"
 	add_child(_relic_plate)
 	var rrow := HBoxContainer.new()
 	rrow.mouse_filter = Control.MOUSE_FILTER_IGNORE

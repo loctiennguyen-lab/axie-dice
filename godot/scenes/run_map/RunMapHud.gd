@@ -49,7 +49,7 @@ func _rebuild_left() -> void:
 
 	# BottomLeft: relics.
 	var bottom := UI3.plate(&"plate")
-	bottom.name = "RelicPlate"
+	bottom.name = "CoresPlate"
 	bottom.custom_minimum_size.x = ctrl._PLATE_LEFT_W
 	bottom.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	bottom.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -61,7 +61,9 @@ func _rebuild_left() -> void:
 	bottom.add_child(rcol)
 	# S3-10: count only the Cores in the Core slots (Anchor and Run rule are shown beside them, not in the count).
 	var n_cores := RelicSlots.owned_cores(RunState.owned_relic_ids).size()
-	rcol.add_child(UI3.label(tr("Cores · %d") % n_cores, "LabelTitle"))
+	var ct := UI3.label(tr("Cores · %d") % n_cores, "LabelTitle")
+	ct.name = "CoresTitle"
+	rcol.add_child(ct)
 	var core_panel := CorePanel.new()
 	core_panel.slot_px = 40
 	ctrl._core_panel = core_panel
@@ -71,7 +73,7 @@ func _rebuild_left() -> void:
 		var rr = RelicRegistry.get_def(RunState.run_rule)
 		if rr != null:
 			var rl := UI3.label(tr("Run rule: %s") % String(rr.name), "LabelMuted")
-			rl.name = "RunRuleLine"
+			rl.name = "RunRuleChip"
 			rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			rcol.add_child(rl)
 	var scroll := ScrollContainer.new()
@@ -80,6 +82,7 @@ func _rebuild_left() -> void:
 	var list := VBoxContainer.new()
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	list.add_theme_constant_override("separation", 8)
+	list.name = "OwnedList"
 	scroll.add_child(list)
 	for relic_id in RunState.owned_relic_ids:
 		list.add_child(_build_relic_row(relic_id))
@@ -115,6 +118,7 @@ func _build_relic_row(relic_id: String) -> Control:
 	var rarity := int(def.rarity) if def != null else 0
 	var relic_name := String(def.name) if def != null else relic_id
 	var row := UI3.plate(&"row")
+	row.name = "OwnedCore"
 	row.custom_minimum_size.y = ctrl._RELIC_ROW_H
 	var line := HBoxContainer.new()
 	line.add_theme_constant_override("separation", 8)

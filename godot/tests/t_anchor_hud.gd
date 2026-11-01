@@ -28,18 +28,18 @@ func _ready() -> void:
 	var p := CorePanel.new()
 	host.add_child(p)
 	p.refresh()
-	_ok(p.anchor_slot == null and p.find_child("AnchorSlot", true, false) == null and p.find_child("HouseChip", true, false) == null, "no Anchor, no tile, no chip")
+	_ok(p.anchor_slot == null and p.find_child("AnchorTile", true, false) == null and p.find_child("HouseChip", true, false) == null, "no Anchor, no tile, no chip")
 	# Anchor, 0 house Cores
 	var st := {"anchor_id": "a_volley", "owned": [], "awakened": false}
 	AnchorAdapter.test_state = st
 	RunState.owned_relic_ids.clear()
 	_ok(p.refresh() and p.anchor_slot != null, "panel shows with only an Anchor")
-	var slots := p.find_child("CoreSlots", true, false)
+	var slots := p.find_child("CoreStrip", true, false)
 	_ok(slots.get_child(0) == p.anchor_slot and p.anchor_slot.custom_minimum_size == Vector2(56, 56), "Anchor tile first, 56 px")
 	_ok(slots.get_child(1) is VSeparator, "thin divider after the tile")
 	var chip := p.find_child("HouseChip", true, false)
 	_ok(chip != null and _chip_ok(chip, "0/2"), "chip out of combat: Kin 0/2 + awakens text")
-	_ok(p.find_children("CoreSlot_*", "PanelContainer", true, false).size() == 6, "the 6 Core slots keep their count")
+	_ok(p.find_children("CoreSlot*", "PanelContainer", true, false).size() == 6, "the 6 Core slots keep their count")
 	# 1 house Core -> ring + glyph on that slot only
 	RunState.owned_relic_ids.append("c_sonic_shield")
 	RunState.owned_relic_ids.append("c_mana_pool")
@@ -47,10 +47,10 @@ func _ready() -> void:
 	p.refresh()
 	_ok(_chip_ok(p.find_child("HouseChip", true, false), "1/2"), "chip counts 1/2")
 	var marked := 0
-	for s in p.find_children("CoreSlot_*", "PanelContainer", true, false):
-		if s.find_child("HouseRing", true, false) != null:
+	for s in p.find_children("CoreSlot*", "PanelContainer", true, false):
+		if s.find_child("HouseDot", true, false) != null:
 			marked += 1
-			_ok(s.find_child("HouseGlyph", true, false) != null and str(s.get_meta("ui3_tip", "")).contains("House Core of Volley"), "marked slot has glyph + tooltip line")
+			_ok(s.find_child("HouseDot", true, false) != null and str(s.get_meta("ui3_tip", "")).contains("House Core of Volley"), "marked slot has glyph + tooltip line")
 	_ok(marked == 1, "only the house Core is ringed")
 	_ok(str(p.anchor_slot.get_meta("ui3_tip", "")).contains("Awakens:") and str(p.anchor_slot.get_meta("ui3_tip", "")).contains("1/2"), "tile tooltip: awaken + count")
 	# combat HUD: no chip row, badge x/2, then xN
@@ -129,8 +129,8 @@ func _ready() -> void:
 		_ok(p2.anchor_slot.find_child("HouseGlyph", true, false) != null or p2.anchor_slot.find_children("*", "TextureRect", true, false).size() > 0, "%s tile has a glyph" % aid)
 		_ok((p2.find_child("HouseChip", true, false).find_child("Count", true, false) as Label).text == "1/2", "%s chip 1/2" % aid)
 		var ring := 0
-		for s2 in p2.find_children("CoreSlot_*", "PanelContainer", true, false):
-			if s2.find_child("HouseRing", true, false) != null:
+		for s2 in p2.find_children("CoreSlot*", "PanelContainer", true, false):
+			if s2.find_child("HouseDot", true, false) != null:
 				ring += 1
 				_ok(str(s2.get_meta("ui3_tip", "")).contains("House Core of " + AnchorAdapter.house_name(house)), "%s ring tooltip names the house" % aid)
 		_ok(ring == 1, "%s one ringed Core" % aid)
