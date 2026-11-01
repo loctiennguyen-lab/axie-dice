@@ -66,6 +66,8 @@ static func _walk(n: Node, tol: float, tag: String, out: Array[String]) -> void:
 ## The icon a box child stands for: itself (TextureRect / ActionGlyph), or the one icon drawn inside a child that
 ## draws no text (a Button holding a glyph, a holder around a TextureRect).
 static func _icon_of(c: Node) -> Control:
+	if c.has_meta("align_not_icon"):
+		return null   # a picture block (eg the Land tier preview), not an icon that text sits beside
 	if c is TextureRect and (c as TextureRect).texture != null:
 		return c
 	if c.get_class() == "Control" and c.get_script() != null and String(c.get_script().get_global_name()) == "ActionGlyph":

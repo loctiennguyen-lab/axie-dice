@@ -199,6 +199,7 @@ func _draw_detail() -> void:
 	art.custom_minimum_size.y = UI3Theme.size_of("upgrade_art_h")
 	art.add_theme_stylebox_override("panel", UI3Theme.flat(Parts.tint(tier), UI3Theme.radius("m")))
 	art.clip_contents = true
+	art.set_meta("align_not_icon", true)   # the tier render is a picture block, not an icon the text below centres on
 	var prev_path := "res://assets/land/tier_previews/tier_%d.png" % clampi(tier, 1, 6)
 	if ResourceLoader.exists(prev_path):   # Liam 1/11 (q6): a real Land render of that tier (tests/qa_land_tier_render.gd); the tint stays as fallback
 		var pic := TextureRect.new()
