@@ -61,7 +61,98 @@ func _ready() -> void:
 	_snap("49-anchor-awaken--moment")
 	host.queue_free()
 	AnchorAdapter.test_state = null
+	await _run_screens()
 	UI3Theme.set_scale_override(-1.0)
 	UI3Gacha.instant_override = -1
 	_guard.restore()
 	get_tree().quit(0)
+
+
+func _item(key: String, bought: bool) -> Dictionary:
+	var def = RelicRegistry.get_def(key)
+	return {"kind": "relic", "key": key, "title": String(def.name), "desc": RewardGenerator.relic_desc(def),
+		"rar": def.rarity, "cost": RewardGenerator.RELIC_SHOP_COST[clampi(int(def.rarity), 0, 4)], "bought": bought}
+
+
+func _new_map() -> Node:
+	var m: Node = load("res://scenes/run_map/RunMap.tscn").instantiate()
+	add_child(m)
+	for _i in 8:
+		await get_tree().process_frame
+	return m
+
+
+func _free_map(m: Node) -> void:
+	m.queue_free()
+	for _i in 3:
+		await get_tree().process_frame
+
+
+## shop, treasure, event, reward, map: one run state, frames named like Drop B data-names.
+func _run_screens() -> void:
+	ProjectSettings.set_setting("axie/epoch_source", "local")
+	RunState.start_new_run_seeded(424242, {"team_keys": ["plant1", "beast1", "aqua1", "reptile1", "bug1"],
+		"mode": "short", "ascension": 0, "ranked": false, "rules_on": false})
+	RunState.owned_relic_ids.assign(["c_bastion", "c_backline_glow", "r_ironvow"])
+	RunState.shards_this_run = 100
+	RunState.pending_rewards.assign([])   # no opening Core offer over the map
+	RunState.anchor_offer = []
+	var m := await _new_map()
+	await _wait(0.5)
+	_snap("03-run-map--node-icons")
+	# boss-next: every node before the last row visited, standing on the last pre-boss node
+	var nodes: Array = (RunState.map_graph.get("nodes", []) as Array)
+	var last := 0
+	for n in nodes:
+		last = maxi(last, int((n as Dictionary).get("row", 0)))
+	var vis: Array[String] = []
+	for n in nodes:
+		if int((n as Dictionary).get("row", 0)) < last - 1:
+			vis.append(String((n as Dictionary).get("id", "")))
+		elif int((n as Dictionary).get("row", 0)) == last - 1 and RunState.current_node_id == "":
+			RunState.current_node_id = String((n as Dictionary).get("id", ""))
+	RunState.visited_node_ids.assign(vis)
+	await _free_map(m)
+	m = await _new_map()
+	await _wait(0.5)
+	_snap("03-run-map--boss-next")
+	var a: Array[Dictionary] = [_item("c_bastion", false), _item("c_backline_glow", true),
+		{"kind": "heal", "title": "Serum", "desc": "One Axie gains 10 Max HP", "cost": RewardGenerator.HEAL_ITEM_COST, "bought": false, "rar": 0},
+		{"kind": "core", "tier": 0, "title": "Core Pick", "desc": "Choose 1 of 3 Moss Cores", "cost": 60, "bought": false, "rar": 0}]
+	RunState.shop_items.assign(a)
+	m.call("_render_shop")
+	await _wait(0.5)
+	_snap("shop--stock")
+	for k in ContentDB.events.keys():
+		RunState.event_key = String(k)
+		if RunState.event_options().size() >= 3:
+			break
+	m.call("_on_event_node", "x")
+	await _wait(0.5)
+	_snap("event--choices")
+	RunState.pending_rewards.assign([
+		{"t": "relic", "key": "x0", "rar": 0, "title": "MAX HP", "desc": "Reward one", "sub": "A stand-in reward."},
+		{"t": "relic", "key": "x1", "rar": 1, "title": "REROLL", "desc": "Reward two", "sub": "A stand-in reward."},
+		{"t": "relic", "key": "x2", "rar": 2, "title": "TIER UP", "desc": "Reward three", "sub": "A stand-in reward."}])
+	m.call("_build_treasure", false)
+	await _wait(0.5)
+	_snap("13-treasure--closed")
+	m.call("_build_treasure", true)
+	await _wait(0.5)
+	_snap("13-treasure--opened")
+	await _free_map(m)
+	var rng := Rng.new(77)
+	var none: Array[Dictionary] = []
+	var chaos := RewardGenerator._make_chaos_reward(rng, RunState.owned_relic_ids, none)
+	var curse := RewardGenerator._make_curse_reward(none)
+	var relics := ["r_bastionplate", "r_ember"].map(func(id: String) -> Dictionary:
+		var d = RelicRegistry.get_def(id)
+		return {"t": "relic", "key": id, "rar": d.rarity, "title": "RELIC", "desc": d.name, "sub": RewardGenerator.relic_desc(d)})
+	for pair in [["reward--pick", [relics[0], relics[1], relics[0]]], ["reward--chaos", [relics[0], chaos, curse]]]:
+		RunState.pending_rewards.assign((pair[1] as Array).filter(func(x): return not (x as Dictionary).is_empty()))
+		var m2 := await _new_map()
+		m2.call("_show_reward_overlay", "CHOOSE ONE REWARD")
+		await _wait(0.8)
+		_snap(String(pair[0]))
+		await _free_map(m2)
+	RunState.pending_rewards.assign([])
