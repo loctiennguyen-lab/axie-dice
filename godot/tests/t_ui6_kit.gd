@@ -18,6 +18,7 @@ func _ready() -> void:
 	_headlines()
 	_visuals()
 	_awaken()
+	_shells()
 	AnchorAdapter.test_state = null
 	_guard.restore()
 	print("=== t_ui6_kit: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
@@ -88,6 +89,11 @@ func _chipify() -> void:
 	_ok(_chips("Dice in a SET get +2", Chipify.KIND_KW) == ["SET"] and _chips("Dice in a SET get +2", Chipify.KIND_NUM) == ["+2"], "SET kw, +2 num")
 	_ok(_chips("Cheaper Wild Face and Temp Face", Chipify.KIND_KW) == ["Wild Face", "Temp Face"], "two-word keywords")
 	_ok(_chips("Heal, poison +50% and 10 Max HP", Chipify.KIND_NUM) == ["+50%", "10 Max HP"], "percent and Max HP: %s" % str(_chips("Heal, poison +50% and 10 Max HP", Chipify.KIND_NUM)))
+	_ok(_chips("Draw one more at the end of turn 4.", Chipify.KIND_NUM) == ["4"], "number at sentence end: turn 4.")
+	_ok(_chips("Thorns scale by +0.60.", Chipify.KIND_NUM) == ["+0.60"], "+0.60. keeps the whole number: %s" % str(_chips("Thorns scale by +0.60.", Chipify.KIND_NUM)))
+	_ok(_chips("Deal 3 damage, then 4.", Chipify.KIND_NUM) == ["3 damage", "4"], "3 damage, then 4.: %s" % str(_chips("Deal 3 damage, then 4.", Chipify.KIND_NUM)))
+	_ok(_chips("Roll 1-2 dice", Chipify.KIND_NUM) == ["1", "2"], "1-2 is two numbers, the hyphen is not a minus: %s" % str(_chips("Roll 1-2 dice", Chipify.KIND_NUM)))
+	_ok(_chips("Lose -3 HP", Chipify.KIND_NUM) == ["-3 HP"], "real minus stays")
 	_ok(_chips("Holder of Settings", Chipify.KIND_KW).is_empty(), "no keyword inside a word")
 	_ok(Chipify.bbcode("a [b] 3").find("[lb]") >= 0 and Chipify.bbcode("x 3 Mana").find("bgcolor") >= 0, "bbcode escapes [ and chips numbers")
 	_ok(Chipify.bbcode("plain words") == "plain words", "plain text untouched")
@@ -167,3 +173,31 @@ func _awaken() -> void:
 		chip.free()
 	AnchorAdapter.test_state = {"anchor_id": "", "owned": [], "awakened": false}
 	_ok(AwakenProgress.chip() == null, "no anchor, no chip")
+
+
+func _shells() -> void:
+	for sc in [1.0, 2.0 / 3.0]:
+		UI3Theme.set_scale_override(sc)
+		var tag := "@%.2f " % sc
+		for t in 3:
+			var card := CoreCardShell.new().setup(t, ["stat", "dice", "pos"][t])
+			add_child(card)
+			card.size = card.custom_minimum_size
+			for nm in ["TierFrame", "TierCrest", "Content", "Body", "ArtWindow", "ArtWindowFrame", "FamilyEmblem"]:
+				_ok(card.find_child(nm, true, false) != null, "%sCoreCardShell tier %d lacks %s" % [tag, t, nm])
+			_ok(card.body != null and card.art_window != null and card.crest != null and card.frame != null, tag + "shell fields set")
+			_ok(card.custom_minimum_size == Vector2(UI3Theme.size_of("core_card_w"), UI3Theme.size_of("core_card_h")), tag + "shell size is the token size")
+			var f := card.find_child("TierFrame", true, false) as NinePatchRect
+			_ok(f != null and f.texture != null and f.patch_margin_left + f.patch_margin_right < card.size.x - 24.0, tag + "frame margins leave a centre")
+			_ok(card.crest.position.y < 0.0 and absf(card.crest.position.x + card.crest.size.x * 0.5 - card.size.x * 0.5) < 1.0, tag + "crest centred on the top edge")
+			var back := CardBack.new().setup(t)
+			add_child(back)
+			for nm in ["TierFrame", "TierCrest", "Content", "BackArt", "TierWord"]:
+				_ok(back.find_child(nm, true, false) != null, "%sCardBack tier %d lacks %s" % [tag, t, nm])
+			card.queue_free()
+			back.queue_free()
+		var rule := CoreCardShell.new().setup(0, "", true)
+		_ok(rule.name == "RuleCard" and rule.crest == null and rule.art_window == null and rule.find_child("TierFrame", true, false) != null, tag + "rule shell: plaque, no crest, no art window")
+		_ok(rule.custom_minimum_size.x == float(UI3Theme.size_of("rule_card_w")), tag + "rule shell uses rule_card_w")
+		rule.free()
+	UI3Theme.set_scale_override(-1.0)

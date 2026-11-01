@@ -43,55 +43,17 @@ func _ready() -> void:
 
 
 func _card(tier: int) -> Control:
-	var card := Control.new()
-	card.name = "CoreCard"
-	card.custom_minimum_size = Vector2(UI3Theme.size_of("core_card_w"), UI3Theme.size_of("core_card_h"))
-	card.add_child(TierFrame.new().setup(tier))
-	var pad := UI3Theme.size_of("core_pad")
-	var content := MarginContainer.new()
-	content.name = "Content"
-	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right", "bottom"]:
-		content.add_theme_constant_override("margin_" + side, pad)
-	content.add_theme_constant_override("margin_top", pad + 24)
-	card.add_child(content)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
-	content.add_child(v)
-	var aw := NinePatchRect.new()
-	aw.name = "ArtWindow"
-	aw.texture = UI6Assets.artwin(tier)
-	var m := UI6Assets.ninepatch_margins("artwin_" + UI6Assets.tier_key(tier))
-	aw.patch_margin_left = m.x
-	aw.patch_margin_top = m.y
-	aw.patch_margin_right = m.z
-	aw.patch_margin_bottom = m.w
-	aw.custom_minimum_size = Vector2(0, UI3Theme.size_of("core_art_h"))
-	v.add_child(aw)
-	var emb := TextureRect.new()
-	emb.name = "FamilyEmblem"
-	emb.texture = UI6Assets.family(["stat", "mana", "dice"][tier], UI3Theme.size_of("core_emblem"))
-	emb.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	emb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	var es := float(UI3Theme.size_of("core_emblem"))
-	emb.custom_minimum_size = Vector2(es, es)
-	var cc := CenterContainer.new()
-	cc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	aw.add_child(cc)
-	cc.add_child(emb)
+	var card := CoreCardShell.new().setup(tier, ["stat", "mana", "dice"][tier])
 	var n := UI3.label(NAMES[tier], "LabelTitle")
 	n.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(n)
+	card.body.add_child(n)
 	var h := UI3.label(HEADS[tier])
 	h.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	h.add_theme_color_override("font_color", UI3Theme.color("core_headline"))
-	v.add_child(h)
+	card.body.add_child(h)
 	var d := UI3.label(DETAIL)
 	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	d.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	d.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	v.add_child(d)
-	var crest := TierCrest.new().setup(tier)
-	card.add_child(crest)
-	crest.place_on(card.custom_minimum_size)
+	card.body.add_child(d)
 	return card
