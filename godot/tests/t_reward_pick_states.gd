@@ -204,8 +204,9 @@ func _ready() -> void:
 			for i in rm._reward_cards.size():
 				var cc: Control = rm._reward_cards[i]
 				var tier := clampi(int((RunState.pending_rewards[i] as Dictionary).get("tier", 0)), 0, 2)
-				_check((cc.find_child("TierChip", true, false).find_child("Text", true, false) as Label).text == ["Moss", "Amber", "Crystal"][tier],
-					"core offer %d card %d: tier word in the RarityChip" % [seed, i])
+				# UI-06: Core cards have no RarityChip; the tier is the frame + crest
+				_check(cc.find_child("TierCrest", true, false) != null and (cc.get("tier") == null or int(cc.get("tier")) == tier),
+					"core offer %d card %d: tier crest for tier %d" % [seed, i, tier])
 				_check(cc.find_child("RerollButton", true, false) != null, "core offer %d card %d: own Reroll" % [seed, i])
 				_labels_fit(cc, "core offer %d card %d @%.2f" % [seed, i, sc])
 			_check((_f("Title") as Label).text == "Choose a Core", "core offer title")

@@ -124,6 +124,18 @@ func _states(sc: float) -> void:
 	_ok((cmb as Control).size.x <= cw + 1.0, "%s: combo card width %.0f <= %.0f" % [tag, (cmb as Control).size.x, cw])
 	var tg := cmb.find_child("ComboTag", true, false) as Control
 	_ok(tg.get_global_rect().end.x <= (cmb as Control).get_global_rect().end.x + 1.0, tag + ": ComboTag inside card")
+	# moss / amber / crystal particles: born in the art window under the text, never on the card (z 1), cleared on demand
+	if not UI3Motion.reduced():
+		UI3Motion._burst(cap, {"texture": "res://assets/ui3/icons/cur_fragment.png", "amount": 6, "lifetime_ms": 600})
+		var bs: Array = host.find_children("*", "CPUParticles2D", true, false)
+		_ok(bs.size() == 1 and bs[0].get_parent() == cap.face.art_window and bs[0].z_index == 0, tag + ": burst lives in the art window, under text")
+		UI3Motion.clear_bursts(host)
+		await get_tree().process_frame
+		_ok(host.find_children("*", "CPUParticles2D", true, false).is_empty(), tag + ": clear_bursts leaves no emitter")
+	var rule := preload("res://scenes/run_map/ui5/RuleCard.gd").new() if ResourceLoader.exists("res://scenes/run_map/ui5/RuleCard.gd") else null
+	_ok(rule == null or not rule.has_method("fx_particle_host") or rule.fx_particle_host() == null, tag + ": rule card has no particle host")
+	if rule != null:
+		rule.free()
 	host.queue_free()
 	# banner sockets
 	UI3Gacha.instant_override = 0

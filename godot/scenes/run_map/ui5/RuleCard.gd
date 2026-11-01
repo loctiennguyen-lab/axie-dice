@@ -96,3 +96,8 @@ static func tint_index(key: String, count: int, used: Array) -> int:
 			return i
 		i = (i + 1) % count
 	return i
+
+
+## UI-06: a Run rule card has no art window, so no particle burst (nothing may fall on its text).
+func fx_particle_host() -> Control:
+	return null

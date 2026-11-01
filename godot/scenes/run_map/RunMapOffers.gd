@@ -561,6 +561,7 @@ func fly_card_to_strip(card: Control) -> Control:
 
 
 func _start_core_reveal(shake_host: Control) -> void:
+	UI3Motion.clear_bursts(ctrl._overlay_root)
 	if ctrl._reveal != null and is_instance_valid(ctrl._reveal):
 		ctrl._reveal.queue_free()
 	ctrl._reveal = null
@@ -685,7 +686,9 @@ func _play_reveal_moment(tier: int, shake_host: Control) -> void:
 	# cut the sparks that are still flying.
 	rv.finished.connect(func() -> void:
 		if tl != null and tl.running() and rv.events.has("skip"):
-			tl.skip())
+			tl.skip()
+		if rv.events.has("skip"):
+			UI3Motion.clear_bursts(ctrl._overlay_root))
 
 
 ## One UI-05 RewardCard (31-reward): Category + RarityChip, RewardArt (rarity edge), RewardName, then the body:

@@ -81,6 +81,11 @@ func setup_core(core_tier: int, axis: String, title: String, id: String, body: S
 	focus_exited.connect(queue_redraw)
 
 
+## UI-06: UI3Motion bursts land in the art window (below the card text); no window (Run rule) = no burst.
+func fx_particle_host() -> Control:
+	return face.art_window if face != null else null
+
+
 ## "+1 to awaken" / "Awakens" tag over the art window (a House Core of the current Anchor). No-op otherwise.
 func add_house_tag() -> void:
 	if house_tag != null or face == null:
