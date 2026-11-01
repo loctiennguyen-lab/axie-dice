@@ -291,7 +291,7 @@ func _redraw_controls() -> void:
 	_refresh_chips()
 	_sync_tabs()
 	if is_locked():
-		_line_text = "Locked for you: win a run at A%d to unlock A%d. You can read it." % [asc - 1, asc]
+		_line_text = "Locked for you: win a run at A%d to unlock the next one. You can read it." % clampi(MetaState.asc_max, 0, ASC_MAX)
 	else:
 		_line_text = "Quit runs count as losses."
 	UI3Meta.clear(_caption_host)

@@ -119,7 +119,7 @@ func _ready() -> void:
 	_ok(s.find_child("SeasonTab", true, false) != null and s.find_child("TodayTab", true, false) != null, "Season + Today present")
 	_ok(s.status == "empty" and s.find_child("EmptyState", true, false) != null, "empty board state")
 	s.set_asc(9)
-	_ok(s.is_locked() and String(s._line_text).begins_with("Locked for you: win a run at A8"), "locked board is readable with a reason")
+	_ok(s.is_locked() and String(s._line_text).begins_with("Locked for you: win a run at A6 to unlock the next one"), "locked board is readable with a reason")
 	_ok(s.find_child("EmptyState", true, false) == null, "locked board does not also say No runs here yet")
 
 	# ---- loading
