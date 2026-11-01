@@ -3385,7 +3385,7 @@ func _core_fx_unit_pos(uid: int) -> Vector2:
 
 func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> void:
 	_last_core_uid = uid
-	if core_fx != null and kind != "mutation" and kind != "rule":
+	if core_fx != null and kind != "mutation" and (kind != "rule" or core_id.begins_with("a_")):
 		core_fx.fire(core_id, uid, amount, kind)
 	if core_id == "rule_pack_alpha" and _on_pack_alpha_fired(uid, amount, kind):
 		return
