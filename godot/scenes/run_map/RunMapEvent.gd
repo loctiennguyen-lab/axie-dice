@@ -46,7 +46,8 @@ func _build_event_screen(picked: int, outcome: String) -> void:
 	var art_c := CenterContainer.new()
 	art.add_child(art_c)
 	var art_i := TextureRect.new()
-	art_i.texture = UI3.icon("node_event")
+	art_i.name = "EventIllustration"
+	art_i.texture = UI6Assets.illustration("node_event")   # UI-06 painting (the header keeps the small node icon)
 	var glyph := UI3Theme.size_of("event_glyph")
 	art_i.custom_minimum_size = Vector2(glyph, glyph)
 	art_i.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
