@@ -32,7 +32,29 @@
   trùng ý với MissionParts/RaidParts/DailyParts → gom lúc dọn.
 - Ảnh: `production/qa/ui05-b23/s7a/`.
 
-### 3. Backlog sửa nhỏ (gom 1 làn, không chặn)
+### 3. ~~Backlog sửa nhỏ~~ — XONG 1/11 tối (2 làn `polish/ui-small-a|b`, review lead-programmer, gộp `2d9484a` + `776dc96`; suite bản gộp AXIE_RELEASE=1 331/331). CHƯA deploy web.
+Luật làn: `production/polish-0111-lane-rules.md`. Ảnh: `production/qa/polish-0111/{a,b}/`. Kết quả:
+- Đã sửa:
+  - tên quái 1280;
+  - tutorial: coach né khay và Reroll, chỉ thẻ bấm được giữ viền SET, xoá Take chết;
+  - banner offline Land rộng hơn (ở 1280 vẫn chạm mép trên đảo một chút);
+  - Pass "Claim · Season not running";
+  - keycap End turn ẩn dưới modal;
+  - dọn GachaFx;
+  - `SpaceCap` dùng chung;
+  - test mép đáy đúng đơn vị;
+  - scene chụp room / Result / anchor / codex;
+  - Leaderboard: tên dài cắt ellipsis, comment, bỏ `_fmt`.
+- Không phải lỗi (đo / đối chiếu):
+  - chữ < 14 px ở update bar / NetNotice / Raid (test đo đều ≥ 14);
+  - bảng Codex (đã gần full);
+  - viền banner guest LB (frame dùng notice-warn cho mọi tone).
+- Còn:
+  - 2 ảnh Result (loss, mission-lost) chưa chụp lại;
+  - knob chết `banner_pair_sec` / `banner_pair_mutation_sec` / `banner_full_sec` trong `gacha_timing.json` (Liam quyết xoá);
+  - coach bước 4 đè nhẹ chip "Fight 1 of 1" ở góc trên trái.
+
+(Danh sách gốc, giữ để tra:)
 Từ QA (`production/qa/ui05-b23/qa/REVIEW-*.md`) và sổ tích hợp:
 - Tên quái bị cắt ở cột quái 1280 ("Ravenl…").
 - Tutorial: coach che nút Reroll bước 7; thẻ SET viền vàng ở bước 4 dù chỉ thẻ highlight bấm được.
@@ -46,6 +68,15 @@ Từ QA (`production/qa/ui05-b23/qa/REVIEW-*.md`) và sổ tích hợp:
   `TutorialCoach.gd`; 2 test kiểm đáy lẫn đơn vị (`t_ui5_anchor_pick`, `t_ui5_core_offer`).
 - Capture QA cần sửa: `room` dựng sai state (make-room, combo banner); 3 ảnh Result trống (chụp sớm);
   `qa_ui5_anchor_capture`/`qa_ui5_codex_capture` ghi đường dẫn cứng.
+
+### 3b. Việc khác 1/11 tối
+- Desktop **b2265** (c453203) đã đăng, `/download` trỏ bản mới; lùi về b1841: xem `production/release/deploy-2026-11-01-s7a-daily.md`.
+- 25 câu hỏi UI gửi Liam: `production/liam-questions-2026-11-01.md` (chờ trả lời; câu bỏ trống = làm theo đề xuất).
+- Kiểm Pass mùa 1 lúc mở (3/11 07:00 giờ VN): hẹn giờ bị auto mode chặn → cần Liam nhắc hoặc cho phép scheduled task.
+- Verifier chạy bóng (`bash verifier/stats.sh`): từ reset 27/10 mới có 1 job, bị `rejected` lý do `not_ranked` (run thường)
+  và đếm là lệch → điều kiện "0 lệch" sẽ không bao giờ đạt nếu run thường cứ bị tính. Cần xem lại verifier có nên nhận run thường
+  hay bỏ qua chúng (hỏi Liam trước khi sửa).
+- "Nhiệm vụ bản cực khó": đã làm thành Nhiệm vụ beta (Liam duyệt 26/10, lên từ R1) — mục cũ trong active.md là ghi chú lỗi thời.
 
 ### 4. Polish của Liam
 - 1/11: Liam chơi bản live, "mọi thứ đã làm rất tốt", chỉ báo 2 điểm: nút Claim Daily còn sáng sau khi nhận (thật ra
