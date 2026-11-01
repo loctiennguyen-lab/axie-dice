@@ -64,7 +64,7 @@ var _skip_modal: Control
 var _root: Control
 
 var _target: Control = null
-var _avoid: Array = []         # Rect2s the card must not cover (it moves above them)
+var _avoid: Callable          # () -> Array of global Rect2s the card must not cover (it moves above them); re-read on every _place
 var _target_rect: Rect2 = Rect2()
 var _has_hole: bool = false
 var _dim: bool = false
@@ -299,7 +299,7 @@ func clear() -> void:
 ## `dim=false` is the free-play case: nothing is dimmed and nothing is blocked.
 ## The card's Skip is always there; the Got it button (with the Space keycap) only when `cta` is not empty.
 func show_step(step_label: String, title: String, body: String, cta: String,
-		target: Control, extra_rect: Rect2 = Rect2(), dim: bool = true, avoid: Array = []) -> void:
+		target: Control, extra_rect: Rect2 = Rect2(), dim: bool = true, avoid: Callable = Callable()) -> void:
 	_hide_all()
 	_avoid = avoid
 	_target = target
@@ -454,9 +454,10 @@ func _place() -> void:
 	var above := hole.position.y > screen.y * 0.5
 	var y := (hole.position.y - _GAP - card_size.y) if above else (hole.end.y + _GAP)
 	var x := hole.get_center().x - card_size.x * 0.5
-	if not _avoid.is_empty():
+	var avoid: Array = _avoid.call() if _avoid.is_valid() else []
+	if not avoid.is_empty():
 		var top := INF
-		for a in _avoid:
+		for a in avoid:
 			if a is Rect2 and (a as Rect2).size.x > 0.0:
 				top = minf(top, (a as Rect2).position.y)
 		if top < INF and y + card_size.y > top - _GAP:

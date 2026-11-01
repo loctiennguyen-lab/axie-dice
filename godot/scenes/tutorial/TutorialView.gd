@@ -306,7 +306,7 @@ func _render(_first: bool) -> void:
 			_coach.show_step(_label(4), "Pick this die",
 				"It rolled an attack face. Click it to pick it up. The highlighted one is the "
 				+ "only card you can press right now.",
-				"", _die_slot(_slot_of(_teaching_actor())), Rect2(), true, _card_avoid())
+				"", _die_slot(_slot_of(_teaching_actor())), Rect2(), true, _card_avoid)
 		Step.TARGET:
 			_coach.show_step(_label(5), "Now click the enemy",
 				"That spends the die and lands the hit. Every attack works this way: pick a "
@@ -315,7 +315,7 @@ func _render(_first: bool) -> void:
 		Step.ENDTURN:
 			_coach.show_step(_label(6), "Your move is done",
 				"Press END TURN and the enemy acts out exactly what its badge showed.",
-				"", _node("_end_turn_button"), Rect2(), true, _card_avoid())
+				"", _node("_end_turn_button"), Rect2(), true, _card_avoid)
 		Step.FREE:
 			_coach.show_step("", "Over to you",
 				"That's the whole loop. Finish the fight. Everything on this screen is "
