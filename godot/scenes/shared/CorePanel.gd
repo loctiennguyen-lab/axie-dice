@@ -14,6 +14,8 @@ const AXIS_NAME := CoreVisuals.AXIS_NAME
 var slot_px := 44
 ## Combat HUD sets this: each Core slot then carries a small "xN" chip counting its activations this fight.
 var show_counts := false
+## False on the map: the Anchor chip sits in the top plate (03-run-map AnchorChip), not in the Cores plate.
+var show_house_chip := true
 var _slots: HBoxContainer
 var _quests: VBoxContainer
 var _slot_by_id: Dictionary = {}     ## core id -> its slot node (rebuilt by refresh)
@@ -214,7 +216,7 @@ func refresh() -> bool:
 		sep.name = "AnchorDivider"
 		sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_slots.add_child(sep)
-		if not show_counts:
+		if not show_counts and show_house_chip:
 			var hc := house_chip(false)
 			hc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			_chip_row.add_child(hc)
@@ -439,7 +441,7 @@ func _anchor_slot() -> PanelContainer:
 	for cid in AnchorAdapter.house_cores(id):
 		var d = RelicRegistry.get_def(String(cid))
 		lines.append("%s %s" % [TranslationServer.translate("Owned") + ":" if own.has(cid) else "-", String(d.name) if d != null else String(cid)])
-	UI3Tooltip.bind(s, "\n".join(lines))
+	CoreTooltip.bind(s, id, false, "\n".join(lines))
 	s.mouse_filter = Control.MOUSE_FILTER_STOP
 	s.focus_mode = Control.FOCUS_ALL
 	return s

@@ -19,6 +19,11 @@ func _ready() -> void:
 	UI3Theme.sync_scale()
 	var tag := "1920" if UI3Theme.layout_scale() >= 0.99 else "1280"
 	RunState.start_new_run(424242, ["plant1", "beast1", "aqua1", "reptile1", "bug1"] as Array[String], "short", 0, false)
+	# no Core / Rule / Anchor offer overlay over the map: drop the opening offers start_new_run opened
+	RunState.pending_rewards.clear()
+	RunState._core_offer_active = false
+	RunState._rule_offer_active = false
+	RunState.set_phase(RunState.RunPhase.MAP)
 	AnchorAdapter.test_state = {"anchor_id": "a_volley", "owned": ["c_bastion"], "awakened": false}
 	for id in ["c_bastion", "c_fissure", "c_plague_spread"]:
 		RunState.owned_relic_ids.append(id)

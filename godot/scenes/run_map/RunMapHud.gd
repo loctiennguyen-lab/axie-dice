@@ -44,6 +44,10 @@ func _rebuild_left() -> void:
 	titles.add_child(UI3.label(tr("Floor %d of %d") % [cur_row, total_rows] if cur_row > 0 else tr("Start · %d floors") % total_rows, "LabelTitle"))
 	titles.add_child(UI3.label(tr("Ascension %d · Shards %d") % [RunState.ascension, RunState.shards_this_run]))
 
+	if AnchorAdapter.has_anchor():
+		var ac := CorePanel.house_chip(true, UI3Theme.size_of("anchor_chip_h"))
+		ac.name = "AnchorChip"
+		col.add_child(ac)
 	for entry in RunState.roster:
 		col.add_child(_build_party_row(entry))
 
@@ -66,6 +70,7 @@ func _rebuild_left() -> void:
 	rcol.add_child(ct)
 	var core_panel := CorePanel.new()
 	core_panel.slot_px = 40
+	core_panel.show_house_chip = false
 	ctrl._core_panel = core_panel
 	rcol.add_child(core_panel)
 	core_panel.visible = core_panel.refresh()
