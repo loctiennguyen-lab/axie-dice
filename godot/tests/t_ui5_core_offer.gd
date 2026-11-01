@@ -212,7 +212,7 @@ func _core_frame(sc: float) -> void:
 	_ok(root != null, "%s: CoreOffer" % tag)
 	if root == null:
 		return
-	for n in ["Header", "Title", "TierLadder", "ShardChip", "CardRow", "Footer", "RerollCounter", "TakeButton"]:
+	for n in ["Header", "Title", "TierLadder", "ShardPill", "CardRow", "Footer", "RerollCounter", "TakeButton"]:
 		_ok(root.find_child(n, true, false) != null, "%s: node %s" % [tag, n])
 	_ok(root.find_child("TierLadder", true, false).find_children("TierStep*", "", false, false).size() == 3, "%s: TierLadder has 3 TierSteps" % tag)
 	var want := Vector2(UI3Theme.size_of("core_card_w"), UI3Theme.size_of("core_card_h"))

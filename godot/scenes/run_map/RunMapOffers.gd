@@ -131,7 +131,7 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 		head.add_child(ladder)
 	# Gacha pack: the NEXT pick's tier is never shown anywhere (Liam 22/10).
 	var shard_chip := _shard_chip(RunState.shards_this_run)
-	if rule_mode:
+	if rule_mode or core_mode:
 		shard_chip.name = "ShardPill"
 	head.add_child(shard_chip)
 
