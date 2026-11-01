@@ -144,7 +144,7 @@ func _pass(sc: float, tag: String) -> void:
 	_check(s.tile_button(1).text == "Claimed" and s.tile_button(1).disabled and s.tile_button(1).icon != null, "%s: claimed = tick + Claimed" % tag)
 	_check(s.tile_button(8).text == "Claim" and not s.tile_button(8).disabled, "%s: ready tile says Claim" % tag)
 	_check(s.tile_button(8).theme_type_variation != &"ButtonPrimary", "%s: tile Claim is secondary while Claim all is live" % tag)
-	_check(s.tile_button(20).text == "Reach Level 20", "%s: locked tile text" % tag)
+	_check(s.tile_button(20).text == "Lv 20" and s.tile_button(20).tooltip_text == "Reach Level 20", "%s: locked tile text" % tag)
 	_check(s.tile_button(11).text.begins_with("Next · needs "), "%s: next tile text" % tag)
 	_audit(s, sc, tag + " live")
 	# pick a level
