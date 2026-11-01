@@ -150,7 +150,7 @@ func _pass(sc: float) -> void:
 	await _free(h)
 	h = await _hub({"guest": false, "newcomer": false, "first_launch": false, "offline": true})
 	rp = h.find_child("RunPlate", true, false) as Button
-	_ok(rp.disabled and "needs connection" in rp.text and _caps(h) == 0, tag + ": offline reason, no keycap")
+	_ok(rp.disabled and "Offline" in rp.text and _caps(h) == 0, tag + ": offline reason, no keycap")
 	await _free(h)
 	# tier plate + banner
 	h = await _hub({"guest": false, "newcomer": false, "first_launch": false}, 6)

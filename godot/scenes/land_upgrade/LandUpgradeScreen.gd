@@ -198,6 +198,17 @@ func _draw_detail() -> void:
 	art.name = "TierArt"
 	art.custom_minimum_size.y = UI3Theme.size_of("upgrade_art_h")
 	art.add_theme_stylebox_override("panel", UI3Theme.flat(Parts.tint(tier), UI3Theme.radius("m")))
+	art.clip_contents = true
+	var prev_path := "res://assets/land/tier_previews/tier_%d.png" % clampi(tier, 1, 6)
+	if ResourceLoader.exists(prev_path):   # Liam 1/11 (q6): a real Land render of that tier (tests/qa_land_tier_render.gd); the tint stays as fallback
+		var pic := TextureRect.new()
+		pic.name = "TierPreview"
+		pic.texture = load(prev_path)
+		pic.set_anchors_preset(Control.PRESET_FULL_RECT)
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		art.add_child(pic)
 	_detail.body.add_child(art)
 	var head := HBoxContainer.new()
 	head.name = "NameRow"

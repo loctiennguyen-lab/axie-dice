@@ -49,7 +49,8 @@ func build_run_button() -> Button:
 		Ui5DisabledReason.apply(plate, "Loading…")
 	elif _l._offline and not _l._has_run and not _l._guest_blocked():   # round 2: a new run needs a connection
 		state = "offline"
-		Ui5DisabledReason.apply(plate, "Start run · needs connection")
+		Ui5DisabledReason.apply(plate, "Start run · Offline")
+		plate.tooltip_text = "Needs a connection to start a new run"
 	plate.set_meta("state", state)
 	if _l._first and not _l._has_run:
 		plate.grab_focus.call_deferred()
@@ -141,7 +142,8 @@ func build_hud() -> void:
 	db.name = "DailyButton"
 	db.pressed.connect(_l._on_rail_pressed.bind(&"daily"))
 	if _l._block_reason_screen(&"daily") != "":
-		UI3.set_disabled_reason(db, "Daily run · needs connection")
+		UI3.set_disabled_reason(db, "Daily run · Offline")
+		db.tooltip_text = "Needs a connection for the daily run"
 	elif _l._tag("daily") == "CLAIM":
 		db.text = "Daily run · claim"
 	db.visible = not (_l._first and not _l._has_run) and not guest   # first visit / signed out: Daily hidden

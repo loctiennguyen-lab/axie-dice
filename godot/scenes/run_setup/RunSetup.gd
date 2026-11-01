@@ -983,7 +983,9 @@ func _build_slot(i: int) -> Control:
 		return card
 	var def: Dictionary = ContentDB.heroes.get(key, {})
 	var cls := String(def.get("cls", ""))
-	psb.bg_color = UI3Theme.color("viewport")
+	# Liam 1/11 (q10): the portrait backing follows the class colour (tokens color.class_*; Bird is pink), not one green.
+	var cls_tok := "class_" + cls.to_lower()
+	psb.bg_color = UI3Theme.color(cls_tok) if (UI3Theme.tokens().get("color", {}) as Dictionary).has(cls_tok) else UI3Theme.color("viewport")
 	var port_path := "res://assets/portraits/%s.png" % cls
 	if ResourceLoader.exists(port_path):
 		var pic := TextureRect.new()

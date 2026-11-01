@@ -1172,13 +1172,10 @@ func _refresh_signs() -> void:
 	_hud.bind_tips()   # S1a: BuildingTooltip plate (LandHud) instead of the generic UI3 tooltip
 
 
-## "Name  [key]" title, then the lock reason if locked, else the useful status and the sub-line.
+## "Name" title (Liam 1/11: no key in the tooltip; the key still works), then the lock reason if locked, else the useful status and the sub-line.
 func _tip_text(id: String) -> String:
 	var m: Dictionary = META.get(id, {"name": id, "key": "", "sub": ""})
 	var head := String(m["name"])
-	var kt := _key_text(id)
-	if kt != "":
-		head += " · " + kt
 	var why := _block_reason(id)
 	var lines: Array[String] = []
 	if why != "":
@@ -1195,16 +1192,6 @@ func _tip_text(id: String) -> String:
 	if lines.is_empty():
 		return head
 	return head + "\n" + " · ".join(lines)
-
-
-## Current key of a hub entry, read from the binding ("" when it has none).
-func _key_text(id: String) -> String:
-	var i := NUM_KEYS.find(id)
-	if i >= 0:
-		return KeyBindings.text(KeyBindings.LAND_ACTIONS[i])
-	if id == "board":
-		return KeyBindings.text(&"land_board")
-	return ""
 
 
 func _tag_words(id: String) -> String:
