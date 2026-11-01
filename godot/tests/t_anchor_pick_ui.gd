@@ -16,6 +16,11 @@ func _ok(c: bool, msg: String) -> void:
 
 func _ready() -> void:
 	print("=== t_anchor_pick_ui: start ===")
+	# watchdog: a null find_child cast aborts this coroutine without reaching quit(); never hang the suite
+	get_tree().create_timer(40.0).timeout.connect(func() -> void:
+		print("FAIL: t_anchor_pick_ui watchdog (coroutine stopped before quit)")
+		_guard.restore()
+		get_tree().quit(1))
 	_guard.capture()
 	UI3Gacha.instant_override = 1
 	var st := {"open": true, "offer": ["a_volley", "a_gambler", "a_mana_mine"], "reasons": {"a_gambler": "rule_too_few_house_cores"},
