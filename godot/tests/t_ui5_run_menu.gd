@@ -21,6 +21,7 @@ func _ready() -> void:
 	var team: Array[String] = ["plant1", "beast1", "aqua1", "reptile1", "bug1"]
 	RunState.start_new_run(790, team, "short", 0, false)
 	RunState.owned_relic_ids.assign(["c_bastion", "c_backline_glow", "r_ironvow"])
+	RunState.run_rule = "rule_pack_alpha"   # UI-06: the Run Rule row (stamp + name) is the icon/label pair the align check measures
 	MetaState.mission_escrow = {"stake": 25}
 	for sc in [1.0, 2.0 / 3.0]:
 		UI3Theme.set_scale_override(sc)
@@ -61,7 +62,7 @@ func _pass(sc: float) -> void:
 	var resume_sb := (pm.find_child("ResumeButton", true, false) as Button).get_theme_stylebox("normal")
 	_ok(resume_sb != null and int(resume_sb.content_margin_left) == UI3Theme.space("20"), "%s: Resume padding 20 like the other rows (built inside the tree)" % tag)
 	for n in ["MenuColumn", "Title", "SubLine", "ResumeButton", "KeyCap", "CoresownedRow", "RunmapRow", "SettingsRow",
-			"SaveandquitRow", "AbandonrunRow", "SidePanel", "OwnedCore", "CoreSlot", "TierChip"]:
+			"SaveandquitRow", "AbandonrunRow", "SidePanel", "OwnedCore", "CoreSlot", "TierShards", "OwnedRule", "RunRuleSlot", "Headline"]:
 		_ok(pm.find_child(n, true, false) != null, "%s: node %s" % [tag, n])
 	_ok(Ui5Keycap.all_under(pm).size() == 1, "%s: one keycap (Space on Resume)" % tag)
 	_ok(Ui5Keycap.text_of(pm.find_child("KeyCap", true, false) as PanelContainer) == "Space", "%s: Resume key is Space" % tag)

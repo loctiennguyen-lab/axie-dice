@@ -1068,6 +1068,8 @@ func _build_hud_r1() -> void:
 	_hud_frame.name = "CombatHud"
 	_hud_frame.z_index = 8
 	_shell_root.add_child(_hud_frame)
+	core_fx = CoreFireFX.new().setup(_hud_frame.core_panel, _core_fx_unit_pos)
+	_hud_frame.add_child(core_fx)
 	_relic_strip = _hud_frame.relic_strip
 	_actives_row = _hud_frame.actives_row
 	_hud_frame.adopt_right_zone(_undo_button, _reroll_button, _end_turn_button)
@@ -3366,8 +3368,25 @@ func _awaken_hit_stop() -> void:
 var hit_stops := 0
 
 
+## UI-06 L2: socket flash + line + number for every Core / Anchor that fires (previews never emit: CoreHooks.mute).
+var core_fx: CoreFireFX = null
+
+
+## Global centre of a unit's head for CoreFireFX; (-1, -1) when it is not on screen. An unknown uid falls back to the
+## first living party die (same rule as the float note).
+func _core_fx_unit_pos(uid: int) -> Vector2:
+	if _stage3d == null or _unit_visuals_root == null or _combat == null or _combat.by_uid(uid) == null:
+		return Vector2(-1, -1)
+	var a := _status_head_anchor(uid, not _combat_is_enemy_uid(uid), _stage3d.position)
+	if a.x < 0.0:
+		return Vector2(-1, -1)
+	return _unit_visuals_root.get_global_transform() * a
+
+
 func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> void:
 	_last_core_uid = uid
+	if core_fx != null and kind != "mutation" and kind != "rule":
+		core_fx.fire(core_id, uid, amount, kind)
 	if core_id == "rule_pack_alpha" and _on_pack_alpha_fired(uid, amount, kind):
 		return
 	if kind == "mutation":
