@@ -449,8 +449,7 @@ func _start_core_reveal(shake_host: Control) -> void:
 		ctrl._reward_cards[slot].set_meta("jackpot_card", jp)
 		ctrl._reveal.start([ctrl._reward_cards[slot]], rt, UI3Gacha.first_seen(str(RunState.get("_core_base_seed")), rt), jp, shake_host,
 			float(UI3Gacha.timing().get("reroll_in_sec", 0.5)))
-		for cv in ctrl._reveal._covers:
-			(cv as Node).name = "CoreCardBack"
+		_skin_covers(ctrl._reveal)
 		_reroll_note(ctrl._reward_cards[slot])
 		return
 	var tier := 0
@@ -477,9 +476,31 @@ func _start_core_reveal(shake_host: Control) -> void:
 			ctrl._reward_cards[k].set_meta("jackpot_card", hit)
 			jackpot = jackpot or hit
 	ctrl._reveal.start(ctrl._reward_cards, tier, first, jackpot, shake_host, -1.0, from_t)
-	for cv in ctrl._reveal._covers:
-		(cv as Node).name = "CoreCardBack"
+	_skin_covers(ctrl._reveal)
 	_play_reveal_moment(tier, shake_host)
+
+
+## UI-06: GachaReveal still owns timing / halo / cracks; each cover's old body (mooncard + tier word) is hidden and a
+## CardBack (tier frame, crest, back art, tier word) sits on top. A near-miss cover keeps the tier it is holding.
+func _skin_covers(rv: GachaReveal) -> void:
+	for cv in rv._covers:
+		var c := cv as Control
+		c.name = "CoreCardBack"
+		var tier := int(c.get_parent().get_meta("gacha_tier", 0)) if c.get_parent() != null else 0
+		if bool(c.get_meta("demoted", false)):
+			tier = maxi(tier, 2) if UI3Gacha.capped_from(tier) > tier else tier
+		c.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+		for ch in c.get_children():
+			if ch is VBoxContainer:
+				for x in ch.get_children():
+					if x is TextureRect or (x is Label and x.name == "TierWord"):
+						x.visible = false
+		var back := CardBack.new().setup(tier)
+		back.name = "CardBackFace"
+		back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		c.add_child(back)
+		c.move_child(back, 0)
 
 
 ## UI-05 b23 lane M2: the `core-reveal` rows GachaReveal does not draw (name punch, sparks, Crystal shake), timed from
@@ -598,7 +619,7 @@ func _add_rule_card(r: Dictionary) -> PanelContainer:
 	var card := _RuleCardUi.new()
 	card.name = "RuleCard%d" % idx
 	card.set_meta("tint_index", ti)
-	card.setup_rule(UI3Theme.color(String(ctrl._RULE_TINTS[ti])), tr("Run rule"), UI3.icon("ui_settings"), name_text, body_text, price)
+	card.setup_rule(UI3Theme.color(String(ctrl._RULE_TINTS[ti])), tr("Run rule"), null, name_text, body_text, price, key)
 	card.gui_input.connect(func(ev: InputEvent) -> void:
 		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
 			_select_reward(idx)
