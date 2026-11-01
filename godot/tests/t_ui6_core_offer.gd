@@ -21,7 +21,7 @@ func _ready() -> void:
 		await _pass(sc)
 		await _states(sc)
 	_guard.restore()
-	print("=== t_ui6_core_offer: %d checks, %d failure(s) ===" % [_n, _fails])
+	print("=== t_ui6_core_offer: %s — %d checks, %d failure(s) ===" % ["PASS" if _fails == 0 else "FAIL", _n, _fails])
 	get_tree().quit(1 if _fails > 0 else 0)
 
 

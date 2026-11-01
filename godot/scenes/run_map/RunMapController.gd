@@ -1085,9 +1085,6 @@ func _trade_parts(r: Dictionary) -> Dictionary:
 ## A1: Core offer cards arrive face-down with a tier halo, then flip left to right. Click / Space skips.
 var _reveal: GachaReveal = null
 
-## -> RunMapOffers._prism_hover
-func _prism_hover(card: Control, on: bool) -> void:
-	_offers._prism_hover(card, on)
 
 
 ## -> RunMapOffers._start_core_reveal
@@ -1209,6 +1206,10 @@ func _apply_and_finish(reward: Dictionary) -> void:
 		var pc := _reward_cards[_reward_sel] as Control
 		var is_level := String(reward.get("t", "")) == "level"
 		var mid := "core-taken" if _is_core_card(reward) else ("level-up" if is_level else "reward-taken")
+		# UI-06 take-to-strip: a Core that is really being taken flies to the Cores strip (a copy of its face). The card
+		# itself is hidden so only the copy moves; core-taken still plays its other layers (others fade, Take press).
+		if is_core and _offers.fly_card_to_strip(pc) != null:
+			pc.modulate.a = 0.0
 		pc.pivot_offset = pc.size / 2.0
 		var others: Array = []
 		for oc in _reward_cards:
