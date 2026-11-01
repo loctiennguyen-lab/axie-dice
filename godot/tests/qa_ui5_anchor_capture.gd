@@ -5,7 +5,9 @@ var _guard := SaveGuard.new()
 
 func _snap(name: String) -> void:
 	var sz := DisplayServer.window_get_size()
-	var dir := "res://../production/qa/ui05-b23/r3".replace("res://", ProjectSettings.globalize_path("res://"))
+	var dir := OS.get_environment("UI5_SHOT_DIR")   # else the old default folder
+	if dir == "":
+		dir = ProjectSettings.globalize_path("res://").path_join("../production/qa/ui05-b23/r3").simplify_path()
 	DirAccess.make_dir_recursive_absolute(dir)
 	get_viewport().get_texture().get_image().save_png("%s/%s_%dx%d.png" % [dir, name, sz.x, sz.y])
 

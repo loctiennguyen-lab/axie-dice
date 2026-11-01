@@ -5,6 +5,7 @@ extends RefCounted
 
 const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 const Plates := preload("res://scenes/land/ui5/LandPlates.gd")
+const SpaceCap := preload("res://scenes/shared/ui5/SpaceCap.gd")
 
 
 ## StartHint: 640 coach plate (Title + Body) and a 32x20 arrow whose tip is `tip_x` px from the card's left edge.
@@ -170,5 +171,5 @@ static func confirm_footer(safe: Button, danger: Button) -> Control:
 
 ## Space keycap on a secondary (safe) button.
 static func safe_cap(b: Button) -> void:
-	var cap := Plates.attach_space_cap(b, UI3Theme.space("32"))
+	var cap := SpaceCap.attach(b, UI3Theme.space("32"))
 	Ui5Keycap.set_variant(cap, &"plain")

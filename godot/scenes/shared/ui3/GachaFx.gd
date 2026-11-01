@@ -1,8 +1,9 @@
 class_name GachaFx
 extends Control
-## Gacha moments that are not the card flip: A5 bet spin (Dim Stone) and the combo banner (Pair / Full).
+## Gacha moments that are not the card flip: A5 bet spin (Dim Stone), and the base node of the combo band
+## (`ComboBand.build` makes a GachaFx named "ComboBanner"; click / Space / skip() dismiss it).
 ## UI only. The result is always decided before this runs; nothing here reads rng or changes state.
-## Click / Space / Enter skips a spin to its result. The banner is click-through (a click only dismisses it).
+## Click / Space / Enter skips a spin to its result. The banner node is dismissed by a click (consumed) and carries no spin label.
 
 signal finished
 
@@ -157,169 +158,9 @@ func _input(ev: InputEvent) -> void:
 		skip()
 
 
-## Combo banner: a BIG panel in the middle of the screen over the Core-pick overlay, with a light scrim.
-## Pair: one gold frame, "PAIR" tag, 1.6 s. Full: thicker frame + extra inner ring, "FULL" tag, 2.8 s, bigger, other sound.
-## Name at 32 px (36 is for turn banners only). A click or Space dismisses it early. Returns the node (added to `parent`).
-static func banner(parent: Node, tier: String, combo_name: String, core_ids: Array = [], mutation: Dictionary = {}) -> Control:
-	var full := tier == "full"
-	var root := GachaFx.new()
-	root.z_index = 50
-	root.name = "ComboBanner"
-	root.theme = UI3Theme.get_theme()   # its parent is a CanvasLayer: no theme to inherit
-	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.mouse_filter = Control.MOUSE_FILTER_STOP
-	var scrim := ColorRect.new()
-	scrim.name = "BannerScrim"
-	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scrim.color = Color(UI3Theme.color("bg"), 0.55)
-	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(scrim)
-	var cc := CenterContainer.new()
-	cc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(cc)
-	var gold := UI3Theme.color("accent")
-	var ink := UI3Theme.color("accent_text")
-	# Outer gold frame
-	var outer := PanelContainer.new()
-	outer.name = "BannerPlate"
-	outer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	outer.custom_minimum_size = Vector2(960 if full else 760, 0)
-	outer.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("l"),
-		12 if full else 6, gold, Vector4(12, 12, 12, 12)))
-	cc.add_child(outer)
-	var mid := PanelContainer.new()
-	mid.name = "BannerRing"
-	mid.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	mid.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("m"),
-		4, UI3Theme.color("text"), Vector4(12, 12, 12, 12)))
-	outer.add_child(mid)
-	var inner_parent: Control = mid
-	if full:   # third ring: Full reads as "more"
-		var ring3 := PanelContainer.new()
-		ring3.name = "BannerRing3"
-		ring3.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		ring3.add_theme_stylebox_override("panel", UI3Theme.flat(Color(0, 0, 0, 0), UI3Theme.radius("m"), 4, gold,
-			Vector4(8, 8, 8, 8)))
-		mid.add_child(ring3)
-		inner_parent = ring3
-	var v := VBoxContainer.new()
-	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	v.add_theme_constant_override("separation", 16)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	inner_parent.add_child(v)
-	# glyph row: 2 cards = Pair, 3 = Full (colour never alone: the word is there too)
-	var glyphs := HBoxContainer.new()
-	glyphs.name = "ComboGlyphs"
-	glyphs.alignment = BoxContainer.ALIGNMENT_CENTER
-	glyphs.add_theme_constant_override("separation", 32)
-	glyphs.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for i in (3 if full else 2):
-		var def = RelicRegistry.get_def(String(core_ids[i])) if i < core_ids.size() else null
-		var cell := VBoxContainer.new()
-		cell.name = "ComboCore%d" % i
-		cell.add_theme_constant_override("separation", 4)
-		cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var ic := TextureRect.new()
-		ic.texture = UI3.icon(String(CorePanel.AXIS_ICON.get(String(def.core_axis), "face_buff")) if def != null else "ui_mooncard")
-		ic.custom_minimum_size = Vector2(72, 72)
-		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		cell.add_child(ic)
-		if def != null:
-			var nm := UI3.label(UI3.title_case(UI3.player_text(String(def.name))), "LabelMuted")
-			nm.name = "CoreName"
-			nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			cell.add_child(nm)
-		glyphs.add_child(cell)
-	v.add_child(glyphs)
-	# gold tag with dark text
-	var tagrow := HBoxContainer.new()
-	tagrow.alignment = BoxContainer.ALIGNMENT_CENTER
-	tagrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var tag := UI3.combo_tier_tag(full, false)
-	tag.name = "BannerTag"
-	(tag.find_child("ComboWord", true, false) as Label).name = "TagText"
-	tagrow.add_child(tag)
-	v.add_child(tagrow)
-	var l := UI3.label(combo_name, "LabelScreenTitle")   # 32
-	l.name = "BannerText"
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.add_theme_color_override("font_color", gold if full else UI3Theme.color("text"))
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(l)
-	if not mutation.is_empty():
-		v.add_child(mutation_strip(String(mutation.get("house", "")), full))
-	var hint := UI3.label(TranslationServer.translate("Click to continue"), "LabelMuted")
-	hint.name = "BannerHint"
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(hint)
-	parent.add_child(root)
-	root.set_meta("tier", tier)
-	UI3Gacha.play_sfx(root, "full" if full else "pair")
-	var secs := float(UI3Gacha.timing().get("banner_full_sec" if full else "banner_pair_sec", 1.6))
-	if not mutation.is_empty() and not full:
-		secs = maxf(secs, float(UI3Gacha.timing().get("banner_pair_mutation_sec", 2.0)))
-	if UI3Gacha.is_instant():
-		return root
-	root.running = true
-	outer.pivot_offset = Vector2(outer.custom_minimum_size.x / 2.0, 120)
-	outer.scale = Vector2(0.7, 0.7)
-	var pop := root.create_tween()
-	pop.tween_property(outer, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	var tw := root.create_tween()
-	tw.tween_interval(secs)
-	tw.tween_callback(root._banner_end)
-	return root
-
-
 func _banner_end() -> void:
 	if not running:
 		return
 	running = false
 	finished.emit()
 	queue_free()
-
-
-## "[house glyph] MUTATION . <name>" + the one-line rule, in the house colour (spec 3.1). FULL says "LEVEL 2" in words.
-static func mutation_strip(house: String, full := false) -> VBoxContainer:
-	var m := AnchorAdapter.mutation_of(house)
-	var col := AnchorAdapter.house_color(house)
-	var box := VBoxContainer.new()
-	box.name = "MutationStrip"
-	box.add_theme_constant_override("separation", 4)
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 12)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var ic := TextureRect.new()
-	ic.name = "HouseGlyph"
-	ic.texture = UI3.icon(AnchorAdapter.house_icon(house))
-	ic.custom_minimum_size = Vector2(24, 24)
-	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(ic)
-	var tag := UI3.label(TranslationServer.translate("MUTATION \u00b7 LEVEL 2") if full else TranslationServer.translate("MUTATION"), "LabelMuted")
-	tag.name = "MutationTag"
-	tag.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
-	tag.add_theme_color_override("font_color", col)
-	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(tag)
-	var nm := UI3.label(String(m["name"]), "LabelTitle")
-	nm.name = "MutationName"
-	nm.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
-	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(nm)
-	box.add_child(row)
-	var rl := UI3.label(String(m["rule"]), "LabelMuted")
-	rl.name = "MutationRule"
-	rl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	rl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(rl)
-	return box

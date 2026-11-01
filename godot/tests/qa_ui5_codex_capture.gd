@@ -1,12 +1,14 @@
 extends Node
 ## UI-05 b23 lane S13: Codex frames at 1920x1080 and 1280x720. Not headless: godot/tools/shot.sh res://tests/qa_ui5_codex_capture.tscn
-## Writes production/qa/ui05-b23/s13/29-codex--<state>[--1280].png
+## Writes $UI5_SHOT_DIR (default production/qa/ui05-b23/s13)/29-codex--<state>[--1280].png
 var _guard := SaveGuard.new()
 
 
 func _ready() -> void:
 	_guard.capture()
-	var out := ProjectSettings.globalize_path("res://").path_join("../production/qa/ui05-b23/s13").simplify_path()
+	var out := OS.get_environment("UI5_SHOT_DIR")   # else the old default folder
+	if out == "":
+		out = ProjectSettings.globalize_path("res://").path_join("../production/qa/ui05-b23/s13").simplify_path()
 	DirAccess.make_dir_recursive_absolute(out)
 	await get_tree().process_frame
 	MetaState.reload_from_store()

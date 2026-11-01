@@ -5,6 +5,7 @@ extends RefCounted
 ## and LandHub keeps same-name forwarders for everything tests and tools call.
 
 const Plates := preload("res://scenes/land/ui5/LandPlates.gd")
+const SpaceCap := preload("res://scenes/shared/ui5/SpaceCap.gd")
 const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 const Over := preload("res://scenes/land/ui5/LandOverlays.gd")
 
@@ -42,7 +43,7 @@ func build_run_button() -> Button:
 	plate.custom_minimum_size.x = 320   # frame: RunPlate min-width 320 (213 at 1280 is the canvas scale)
 	plate.tooltip_text = tip
 	plate.pressed.connect(_l._on_run_pressed)
-	Plates.attach_space_cap(plate, UI3Theme.space("32"))
+	SpaceCap.attach(plate, UI3Theme.space("32"))
 	if _l._loading:
 		state = "loading"
 		Ui5DisabledReason.apply(plate, "Loading…")
@@ -207,7 +208,7 @@ func show_tier_banner() -> void:
 		col.move_child(list, 2)
 	var foot := col.get_child(col.get_child_count() - 1)
 	foot.name = "Footer"
-	Plates.attach_space_cap(ok, UI3Theme.space("32"))
+	SpaceCap.attach(ok, UI3Theme.space("32"))
 	_l._modal = m
 	_l._ui.add_child(m)
 	if not UI3Gacha.is_instant() and DisplayServer.get_name() != "headless":
@@ -450,7 +451,7 @@ func reset_notice(body: String, ok: Button) -> UI3.ModalRoot:
 	(m.get_meta("col") as VBoxContainer).add_child(Ui5ModalFooter.make(ok))
 	m.actions = [ok]
 	m.focus_index = 0
-	Plates.attach_space_cap(ok, UI3Theme.space("32"))
+	SpaceCap.attach(ok, UI3Theme.space("32"))
 	return m
 
 

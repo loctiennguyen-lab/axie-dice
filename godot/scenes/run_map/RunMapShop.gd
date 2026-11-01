@@ -6,7 +6,7 @@ extends RefCounted
 
 const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 const Parts := preload("res://scenes/run_map/ui5/RunMenuParts.gd")
-const Plates := preload("res://scenes/land/ui5/LandPlates.gd")
+const SpaceCap := preload("res://scenes/shared/ui5/SpaceCap.gd")
 const CoreCard := preload("res://scenes/run_map/ui5/ShopCoreCard.gd")
 const Supply := preload("res://scenes/run_map/ui5/SupplyItem.gd")
 
@@ -117,7 +117,7 @@ func _render_shop() -> void:
 	leave.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	leave.pressed.connect(func() -> void: ctrl._finish_node())
 	root.add_child(leave)
-	Plates.attach_space_cap(leave, UI3Theme.space("32"))
+	SpaceCap.attach(leave, UI3Theme.space("32"))
 	# First build on a cold start: the cap can be placed before the font is ready; poke a re-sync two frames later.
 	for _i in 2:
 		ctrl.get_tree().process_frame.connect(func() -> void:

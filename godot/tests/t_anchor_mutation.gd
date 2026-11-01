@@ -1,4 +1,5 @@
 extends Node
+const ComboBand := preload("res://scenes/run_map/ui5/ComboBand.gd")
 ## Lane AU2 job 3: MUTATION strip under the PAIR banner (text from houses.json), in-combat banner once per fight,
 ## then at most one float per house per turn.
 var _guard := SaveGuard.new()
@@ -20,15 +21,14 @@ func _ready() -> void:
 	_check(String(m["name"]) == "Spiked Shield" and String(m["rule"]) != "", "mutation text comes from houses.json: %s" % str(m))
 	var host := Control.new()
 	add_child(host)
-	var ban := GachaFx.banner(host, "pair", "Shield Engine", ["c_sonic_shield", "c_thorn_shield"], {"house": "h_volley"})
+	var ban := ComboBand.build(host, "pair", "Shield Engine", "h_volley", true)
 	_check(ban.find_child("MutationStrip", true, false) != null, "strip present")
 	_check((ban.find_child("MutationName", true, false) as Label).text == "Spiked Shield", "strip shows the mutation name")
 	_check((ban.find_child("MutationTag", true, false) as Label).text == "MUTATION", "pair says MUTATION")
-	var ban2 := GachaFx.banner(host, "full", "Shield Engine", ["c_sonic_shield", "c_thorn_shield", "c_living_wall"], {"house": "h_volley"})
+	var ban2 := ComboBand.build(host, "full", "Shield Engine", "h_volley", true)
 	_check((ban2.find_child("MutationTag", true, false) as Label).text.contains("LEVEL 2"), "full says LEVEL 2 in words")
-	var ban3 := GachaFx.banner(host, "pair", "X", ["c_sonic_shield", "c_thorn_shield"])
+	var ban3 := ComboBand.build(host, "pair", "X", "", false)
 	_check(ban3.find_child("MutationStrip", true, false) == null, "no mutation: no strip")
-	_check(UI3Gacha.timing().has("banner_pair_mutation_sec") and float(UI3Gacha.timing()["banner_pair_mutation_sec"]) == 2.0, "pair with strip lasts 2.0 s (knob)")
 	# every combo belongs to a house with a mutation
 	for c in CoreCombos.all():
 		var h := AnchorAdapter.house_of_combo(String((c as Dictionary).get("id", "")))

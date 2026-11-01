@@ -75,7 +75,8 @@ static func caption(title: String, line: String, updated: String) -> PanelContai
 	return p
 
 
-## .info-banner: ToneDisc + title + one body line + small buttons [{name, text, cb}].
+## .info-banner (round-3 ui05-meta1-screens): the border is notice_warn for EVERY tone, the guest info banner included
+## (frame lb--guest keeps .info-banner's border-color: notice-warn); only the ToneDisc changes with `tone`. ToneDisc + title + one body line + small buttons [{name, text, cb}].
 static func banner(tone: StringName, title: String, body: String, buttons: Array) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.name = "Banner"

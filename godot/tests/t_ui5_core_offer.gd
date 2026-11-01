@@ -243,7 +243,8 @@ func _core_frame(sc: float) -> void:
 			if rr.end.x > vp.x + 0.5 or rr.position.x < -0.5:
 				_ok(false, "%s: %s outside 1920 (%s)" % [tag, ct.name, str(rr)])
 	var tk := _take()
-	_ok(tk.get_global_rect().end.y * sc <= 1080.0 * (sc if sc < 1.0 else 1.0) - 13.0 * sc + 0.5, "%s: Take bottom %.0f inside the safe area" % [tag, tk.get_global_rect().end.y])
+	# logical canvas (1920x1080): rect and the 13 px margin are the same unit, no * sc
+	_ok(tk.get_global_rect().end.y <= 1080.0 - 13.0 + 0.5, "%s: Take bottom %.0f inside the safe area" % [tag, tk.get_global_rect().end.y])
 	for l in root.find_children("*", "Label", true, false):
 		var lab := l as Label
 		if lab.is_visible_in_tree() and lab.text != "":
