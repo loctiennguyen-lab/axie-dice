@@ -85,7 +85,7 @@ func _ready() -> void:
 			if n is CorePanel:
 				cp = n
 		_ok(cp != null and cp.anchor_slot != null, "HUD has the Anchor tile")
-		_ok(rm.find_child("HouseChip", true, false) != null or cp.find_child("HouseChip", true, false) != null, "HUD has the x/2 chip")
+		_ok(rm.find_child("AnchorChip", true, false) != null or rm.find_child("HouseChip", true, false) != null, "HUD has the x/2 chip (UI-06: AnchorChip in the RunInfo row)")
 	rm.queue_free()
 	s.queue_free()
 	await _frames(2)
