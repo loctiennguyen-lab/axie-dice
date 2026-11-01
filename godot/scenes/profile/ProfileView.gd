@@ -382,7 +382,7 @@ func _cosmetics_tab() -> void:
 	var left := _left()
 	var cat_labels: Array[String] = []
 	for c in CATS:
-		cat_labels.append("%s · %d of %d" % [CAT_NAMES[c], Cosmetics.owned_art(MetaState.cosmetics_owned, c).size() + 1, catalog(c).size() + 1])
+		cat_labels.append("%s · %d of %d" % [CAT_NAMES[c], Cosmetics.owned_art(MetaState.cosmetics_owned, c).size(), catalog(c).size()])   # Default tile is not counted
 	var bar := Ui5TabBar.new()
 	bar.setup(cat_labels, CATS.find(cat), true)
 	bar.name = "CategoryTabs"
@@ -716,7 +716,7 @@ func _titles_tab() -> void:
 	var head := VBoxContainer.new()
 	head.add_theme_constant_override("separation", 0)
 	head.add_child(Ui5Text.label("Titles", "text_title", "text", true))
-	head.add_child(Ui5Text.label("Titles from Ascension goals. One title at a time.", "text_body", "text_muted"))
+	head.add_child(Ui5Text.label("Titles from Ascension goals and Land milestones. One title at a time.", "text_body", "text_muted"))
 	left.add_child(head)
 	var grid := GridContainer.new()
 	grid.name = "TitleGrid"
