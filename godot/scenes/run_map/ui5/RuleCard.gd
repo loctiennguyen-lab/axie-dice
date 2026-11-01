@@ -34,12 +34,43 @@ func setup_rule(house_col: Color, _kind_word: String, _icon: Texture2D, title: S
 
 	name_label = PanelParts.text(title, "text_screen_title", "text", true)
 	name_label.name = "RuleName"
-	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name_label.max_lines_visible = 2
-	name_label.custom_minimum_size.x = inner
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	text_box.add_child(name_label)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	# frame 05: head = RunRuleEmblem (96) + [Kind, RuleName], then a 2 px plate_rim rule line
+	var head := HBoxContainer.new()
+	head.name = "Head"
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.add_theme_constant_override("separation", UI3Theme.space("16"))
+	var em := TextureRect.new()
+	em.name = "RunRuleEmblem"
+	var em_px := UI3Theme.size_of("rule_emblem")
+	em.texture = CoreVisuals.family_texture("run_rule", em_px)
+	em.custom_minimum_size = Vector2.ONE * em_px
+	em.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	em.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	em.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.add_child(em)
+	var txt := VBoxContainer.new()
+	txt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	txt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	txt.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	txt.add_theme_constant_override("separation", 2)
+	var kind := PanelParts.text(TranslationServer.translate("Run rule") + " \u00b7 " + TranslationServer.translate("stays all run"), "text_key", "text_muted", true)
+	kind.name = "Kind"
+	kind.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	txt.add_child(kind)
+	name_label.custom_minimum_size.x = inner - em_px - UI3Theme.space("16")
+	txt.add_child(name_label)
+	head.add_child(txt)
+	text_box.add_child(head)
+	var rl := ColorRect.new()
+	rl.name = "RuleLine"
+	rl.color = UI3Theme.color("plate_rim")
+	rl.custom_minimum_size = Vector2(inner, 2)
+	rl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	text_box.add_child(rl)
 
 	headline_label = PanelParts.text("", "text_body", "text_muted", true)
 	headline_label.name = "Headline"
