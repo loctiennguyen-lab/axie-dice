@@ -6,8 +6,12 @@ const TEAM: Array[String] = ["plant1", "beast1", "aqua1", "reptile1", "bird1"]
 
 
 func _shot(tag: String, id: String) -> void:
-	for i in 10:
+	# Result is added deferred and builds / counts up over a few frames: wait frames + 0.8 s, then a drawn frame.
+	print("qa_ui5_result_capture: shot ", id)
+	for i in 30:
 		await get_tree().process_frame
+	await get_tree().create_timer(0.8).timeout
+	await RenderingServer.frame_post_draw
 	var dir := OS.get_environment("S6_OUT") if OS.get_environment("S6_OUT") != "" else QaPaths.evidence_dir()
 	DirAccess.make_dir_recursive_absolute(dir)
 	get_viewport().get_texture().get_image().save_png("%s/%s-%s.png" % [dir, id, tag])

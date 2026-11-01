@@ -8,6 +8,7 @@ var _dir := QaPaths.evidence_dir()
 func _shot(frame: String, small: bool) -> void:
 	for _i in 10:
 		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
 	var path := "%s/%s%s.png" % [_dir, frame, "--1280" if small else ""]
 	get_viewport().get_texture().get_image().save_png(path)
 	print("qa_ui5_room_capture: saved ", path)
@@ -35,6 +36,7 @@ func _ready() -> void:
 	RunState.pending_rewards = [{"t": "relic", "key": ids[slots], "rar": 0, "title": "RELIC", "desc": "Seedling", "sub": ""}]
 	m.call("_show_reward_overlay", "CHOOSE A REWARD")
 	await get_tree().process_frame
+	m.call("_select_reward", 0)   # no preselect since R2a: pick the card, then Take (else make-room never opens)
 	m.call("_take_selected_reward")
 	await _shot("47-core-offer--make-room", small)
 	var cid := ""
