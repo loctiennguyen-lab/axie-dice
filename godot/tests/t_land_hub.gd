@@ -47,7 +47,7 @@ func _ready() -> void:
 		var hit := hub.find_child("Hit_" + id, true, false) as Control
 		var tip := UI3Tooltip.text_of(hit)
 		_check(tip.begins_with(String(LandHub.META[id]["name"])), "tooltip %s bắt đầu bằng tên: %s" % [id, tip])
-		_check(String(LandHub.META[id]["key"]) in tip.split("\n")[0], "tooltip %s có phím" % id)
+		_check(tip.split("\n")[0] == String(LandHub.META[id]["name"]), "tooltip %s chỉ có tên, không ghi phím (Liam 1/11)" % id)
 	_check(hub.find_child("NamesToggle", true, false) == null, "không còn nút Show names")
 	_check(UI3Tooltip.text_of(hub.find_child("Plot_gallery", true, false) as Control).contains("Opens at Land tier 5"),
 		"ô Gallery: tooltip ghi lý do khoá")
@@ -155,9 +155,9 @@ func _ready() -> void:
 			h2.call("_handle_key", KEY_5)
 			_check(LandNav.last_path == "", "offline: Pass không mở")
 			var db := h2.find_child("DailyButton", true, false) as Button
-			_check(db.disabled and "needs connection" in db.text, "offline: Daily tắt và ghi lý do")
+			_check(db.disabled and "Offline" in db.text, "offline: Daily tắt và ghi lý do")
 			var rp := h2.find_child("RunPlate", true, false) as Button
-			_check(rp.disabled and "needs connection" in rp.text, "offline: Start run tắt và ghi lý do (round 2)")
+			_check(rp.disabled and "Offline" in rp.text, "offline: Start run tắt và ghi lý do (round 2)")
 			_check("Needs a connection" in UI3Tooltip.text_of(h2.find_child("Hit_pass", true, false) as Control), "offline: tooltip Pass ghi lý do")
 		if bool(st.get("guest", false)):
 			_check((h2.find_child("RunPlate", true, false) as Button).text == "Sign in to play", "chưa đăng nhập: nút chính là Sign in to play")

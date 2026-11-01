@@ -70,7 +70,7 @@ func _ready() -> void:
 	_check(not hub.call("_handle_key", KEY_C), "old key does nothing after rebind")
 	_check(hub.call("_handle_key", KEY_X), "new key is used")
 	KeyBindings.set_keys(&"land_new_run", [KEY_J])
-	_check(hub.call("_tip_text", "portal").contains("1"), "portal tooltip shows its key")
+	_check(not hub.call("_tip_text", "portal").contains(" · 1"), "portal tooltip has the name only, no key (Liam 1/11)")
 	hub.queue_free()
 	await get_tree().process_frame
 	_check(KeyBindings.key_name(KEY_KP_ENTER) == "Num Enter", "key_name KP Enter is Num Enter")
