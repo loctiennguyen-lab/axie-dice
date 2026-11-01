@@ -37,3 +37,15 @@ Liam duyệt 1/11 ("Deploy ngay").
 - Desktop:
   - chép `downloads/old/AxieDice-0.1.0-L1-b1841-08cab37-{macos,windows}.zip` về gốc `downloads/`;
   - up `build/old/latest-b1841.json` (manifest b1841, ở cây chính) lên `downloads/latest.json`.
+
+## Đợt 2 cùng ngày: web lượt sửa nhỏ UI (Liam: "Deploy web")
+- `godot-port` @ **a1178ac**. Code gồm hai merge `2d9484a` (làn A) và `776dc96` (làn B). Chi tiết ở `production/ui05-next-session.md` mục 3.
+- Gate: suite đủ `AXIE_RELEASE=1` trên `776dc96` cho **331/331** (`t_rules_version` xanh). `release_gate.sh`: missions không còn `_tmp`.
+- Worker không đổi (vẫn ed4c90bb). Desktop không build lại (vẫn b2265).
+- Web:
+  - pck md5 **a8fa9a4f8d5dbfa20af87b47f514b33a** (364939760 byte, 2 part).
+  - html 05f1dcd8, js e923d4fb, wasm 8b163661, khớp local.
+  - Range 0-99 trả 206, đúng 100 byte.
+  - Bản trước (037b5087) chép ở `build/web-prev/`. Bản trước nữa (318463f0) ở `build/web-prev-318463f0/`.
+- Smoke trên pane, phiên Liam đăng nhập sẵn: Tap to start → vào Land, các API 200.
+- Rollback: chép `build/web-prev/index.*` về `web/`, chạy `deploy-r2.sh --pck-only` rồi `--rest`.

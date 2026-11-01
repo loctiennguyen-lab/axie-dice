@@ -37,3 +37,10 @@ Trả lời ngắn theo số, ví dụ "1 khoá, 2 giữ, 3 có…". Câu nào a
 23. **Settings, thanh trượt:** theo HTML không có núm kéo (vùng bấm vô hình vẫn đủ lớn). Đề xuất: **thêm núm** cho dễ thấy.
 24. **Leaderboard, tab Today:** khi chơi guest hoặc là người mới, vẫn thấy hàng ghim "Sign in to appear here" ở cuối, dù frame Today không vẽ. Đề xuất: **giữ**.
 25. **Leaderboard, bảng bị khoá:** dòng giải thích ghi "win a run at A{n−1}". Ví dụ anh mới mở tới A6 mà xem A9 thì nó ghi "win a run at A8", trong khi A7 còn chưa mở. Đề xuất: **đổi** thành "win a run at A{bậc cao nhất anh đã mở} to unlock the next one".
+
+## Liam trả lời (1/11 tối)
+1 khoá nút, ghi "Coming soon" · 2 để hai nút ngang nhau · 3 có · 4 thêm · 5 giữ · **6 làm một bản xem trước cho Liam** ·
+7 rút thành "Offline" · **8 chỉ để tên, KHÔNG ghi phím** (khác đề xuất) · 9 giữ · 10 đổi nền theo màu class · 11 giữ (UI-06) ·
+12 giữ (UI-06) · 13 giữ · 14 đổi thành "Lv N" · 15 giữ cho nhận · 16 đổi · 17 không tính · 18 giữ · 19 thêm "Working…" ·
+**20 giữ (liệt kê đủ phím)** (khác đề xuất) · 21 giữ · 22 giữ căn giữa · 23 thêm núm · 24 giữ · 25 ghi theo bậc cao nhất đã mở.
+Thêm: Liam muốn có **màn hình đăng nhập**.
