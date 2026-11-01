@@ -4,14 +4,12 @@ extends VBoxContainer
 ## unfinished quest Core with its step progress. Pure read of RunState; call refresh() whenever it changes.
 ## Slot colour = tier token, tier WORD in the tooltip. Spec: design/ux/depth-v3/core-offer.md
 
-const TIER_NAME := ["Moss", "Amber", "Crystal"]
-const TIER_TOKEN := ["tier_moss", "tier_amber", "tier_crystal"]   # UI-04 tier tokens (always with pips + the word)
+const TIER_NAME := CoreVisuals.TIER_NAME   # UI-06 L0: constants live in CoreVisuals now; these are aliases
+const TIER_TOKEN := CoreVisuals.TIER_TOKEN
 
 ## Axis -> icon (assets/ui3/icons) and word. One glyph per axis so the axis never relies on colour alone.
-const AXIS_ICON := {"stat": "face_buff", "dice": "face_dmg", "pos": "face_summon", "mana": "face_mana",
-	"quest": "node_treasure", "rule": "face_debuff", "run_rule": "ui_settings"}
-const AXIS_NAME := {"stat": "Stat", "dice": "Dice faces", "pos": "Position", "mana": "Mana",
-	"quest": "Quest", "rule": "Rule change", "run_rule": "Run rule"}
+const AXIS_ICON := CoreVisuals.AXIS_ICON
+const AXIS_NAME := CoreVisuals.AXIS_NAME
 
 var slot_px := 44
 ## Combat HUD sets this: each Core slot then carries a small "xN" chip counting its activations this fight.
@@ -279,7 +277,7 @@ func _add_count_label(s: PanelContainer, core_id: String) -> void:
 
 ## Chip with an icon + word; see UI3.icon_chip. icon "" = word only.
 static func word_chip(text: String, icon_name: String, border: Color, chip_name := "") -> PanelContainer:
-	return UI3.icon_chip(text, UI3.icon(icon_name) if icon_name != "" else null, border, chip_name)
+	return CoreVisuals.word_chip(text, icon_name, border, chip_name)
 
 
 func _slot(def, is_rule: bool, empty_name: String) -> PanelContainer:
