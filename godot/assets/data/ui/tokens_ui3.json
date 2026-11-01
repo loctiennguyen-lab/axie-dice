@@ -93,6 +93,10 @@
   ],
   "$schema_note": "Fixed schema from 00-PROMPT §4. All sizes are px at the 1920×1080 base; Godot stretch canvas_items/expand scales them. Plate alpha colours are listed as #RRGGBBAA; contrast is measured with plates over neutral-4. UI-04: changed and new keys are listed in _changed; meanings start with \"UI-04\".",
   "color": {
+    "google_chip": {
+      "value": "#ffffff",
+      "meaning": "UI-07 NEW · white disc behind the Google \"G\" inside the primary button (Google brand rule: the G sits on white). The only white in the UI."
+    },
     "bg": {
       "value": "#13161b",
       "meaning": "neutral-1 · behind meta screens"
@@ -1248,6 +1252,12 @@
     "note": "Two weights only. Both OFL with Vietnamese coverage; ship static TTF + OFL.txt in fonts/. Never mix the two in one label."
   },
   "size": {
+    "login_panel_w": 640,
+    "login_logo_w": 720,
+    "login_axie_h": 300,
+    "google_chip": 44,
+    "benefit_h": 104,
+    "modal_w": 640,
     "text_key_hint": 16,
     "text_body": 18,
     "text_title": 24,
@@ -1653,6 +1663,61 @@
     }
   },
   "motion": {
+    "login_intro": {
+      "meaning": "UI-07 NEW · intro of the sign-in screen, see motion-ui07.md",
+      "layers": [
+        {
+          "layer": "Background",
+          "start_ms": 0,
+          "duration_ms": 240,
+          "trans": "TRANS_LINEAR",
+          "ease": "EASE_IN_OUT",
+          "from": "alpha 0",
+          "to": "alpha 1",
+          "reduce_motion": "kept"
+        },
+        {
+          "layer": "Logo",
+          "start_ms": 120,
+          "duration_ms": 480,
+          "trans": "TRANS_BACK",
+          "ease": "EASE_OUT",
+          "from": "y −32, scale 1.06, alpha 0",
+          "to": "y 0, scale 1, alpha 1",
+          "reduce_motion": "alpha only, 120 ms"
+        },
+        {
+          "layer": "Tagline",
+          "start_ms": 420,
+          "duration_ms": 200,
+          "trans": "TRANS_CUBIC",
+          "ease": "EASE_OUT",
+          "from": "alpha 0",
+          "to": "alpha 1",
+          "reduce_motion": "alpha only, 120 ms"
+        },
+        {
+          "layer": "SignInPanel",
+          "start_ms": 300,
+          "duration_ms": 360,
+          "trans": "TRANS_CUBIC",
+          "ease": "EASE_OUT",
+          "from": "y +48, alpha 0",
+          "to": "y 0, alpha 1",
+          "reduce_motion": "alpha only, 120 ms"
+        },
+        {
+          "layer": "Focus ring on primary",
+          "start_ms": 680,
+          "duration_ms": 120,
+          "trans": "TRANS_LINEAR",
+          "ease": "EASE_IN_OUT",
+          "from": "alpha 0",
+          "to": "alpha 1",
+          "reduce_motion": "kept"
+        }
+      ]
+    },
     "fast": 120,
     "base": 200,
     "slow": 240,
@@ -2016,6 +2081,12 @@
     "anchor-card-h": 456,
     "offer-top": 24,
     "glossary-w": 1182,
+    "login-panel-w": 456,
+    "login-logo-w": 480,
+    "login-axie-h": 188,
+    "google-chip": 32,
+    "benefit-h": 76,
+    "modal-w": 456,
     "_b2_keys": [
       "core-card-h",
       "rule-card-w",
@@ -2081,6 +2152,7 @@
     ]
   },
   "_text_sizes": "UI-05: 16 / 18 / 24 / 32 / 36, + 28 num_die, 20 num_die_egg, + text_hero 56 (new, banners, boss name, big damage numbers; bigger moments scale 56 by 1.3 in a tween, no 72 size). At 1280 no text is below 14 px (theme override by resolution).",
+  "_changed_ui07": ["color.google_chip", "size.login_panel_w", "size.login_logo_w", "size.login_axie_h", "size.google_chip", "size.benefit_h", "size.modal_w", "motion.login_intro"],
   "_changed_b2": [
     "color.tier_moss",
     "color.tier_moss_bg",
