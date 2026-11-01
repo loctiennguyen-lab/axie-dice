@@ -1,6 +1,20 @@
 # Axie Dice — trạng thái hiện tại
 
-## ⇢ BẮT ĐẦU TỪ ĐÂY (1/11 tối) — S7a + DAILY/LAND ĐÃ DEPLOY; UI-06 PROMPT CHO CLAUDE DESIGN; ĐỌC `production/ui05-next-session.md`
+## ⇢ BẮT ĐẦU TỪ ĐÂY (2/11) — UI-06 + UI-07 ĐÃ DEPLOY (web + desktop b2355)
+- axiedice.fun chạy `godot-port` @ 72699c8:
+  - UI-06: thẻ Lõi / Anchor / Luật run mới, dải Lõi, hiệu ứng kích hoạt, art Drop B;
+  - UI-07: màn đăng nhập;
+  - 25 câu trả lời của Liam.
+- Ghi chép đợt: `production/release/deploy-2026-11-02-ui06-ui07.md`. Kế hoạch: `production/ui06-plan.md`.
+- Suite 338 (AXIE_RELEASE=1, cần `AXIE_HANG_KILL` ≥ 4500). Worker 397, không đổi.
+- Còn lại:
+  - moment `map-reward`;
+  - QA chạy luồng qua màn đăng nhập, run có Anchor và shop;
+  - hỏi Liam: icon Core ở màn thưởng, Lõi kích hoạt đang hiện 2 con số;
+  - thay `google_g.svg` bằng file trong bộ thương hiệu Google trước khi phát hành chính thức.
+- Kiểm Pass mùa 1 lúc mở (3/11 07:00 VN): hẹn giờ bị chặn, cần Liam nhắc.
+
+(cũ) ## ⇢ BẮT ĐẦU TỪ ĐÂY (1/11 tối) — S7a + DAILY/LAND ĐÃ DEPLOY; UI-06 PROMPT CHO CLAUDE DESIGN; ĐỌC `production/ui05-next-session.md`
 - axiedice.fun chạy `godot-port` @ 247f283 (S7a Leaderboard + Daily online + "Upgrade Land"), Worker ed4c90bb, pck 037b5087.
   Ghi đợt: `production/release/deploy-2026-11-01-s7a-daily.md`. Gate 331/331 (AXIE_RELEASE=1), Worker 397/397.
 - UI-06 (thẻ Lõi/Anchor/Luật run + thay art lộ AI): prompt `design/handoffs/ui-06-run-cards/PROMPT.md` (Liam duyệt),
