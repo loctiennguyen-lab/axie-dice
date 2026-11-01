@@ -124,7 +124,7 @@ func setup(id: String) -> void:
 	hc.custom_minimum_size.x = inner
 	hc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for cid in AnchorAdapter.house_cores(id):
-		hc.add_child(_core_chip(String(cid), hcol))
+		hc.add_child(_core_chip(String(cid), hcol), true)   # readable names: HouseCoreChip, HouseCoreChip2 ...
 	body.add_child(hc)
 	focus_entered.connect(queue_redraw)
 	focus_exited.connect(queue_redraw)

@@ -34,14 +34,21 @@ func setup(it: Dictionary, shop_index: int, why: String) -> void:
 	art.name = "Art"
 	art.custom_minimum_size = Vector2(0, UI3Theme.size_of("shop_art_h"))
 	art.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("chip"), UI3Theme.radius("l"), UI3Theme.stroke("selected"), tcol))
+	# UI-06: family emblem + TierShards instead of the old axis glyph (no relic_r0..r2 picture for a Core)
+	var stack := VBoxContainer.new()
+	stack.name = "ArtStack"
+	stack.set_anchors_preset(Control.PRESET_FULL_RECT)
+	stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	stack.add_theme_constant_override("separation", 2)
+	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var px := 64
-	var ic := PanelParts.icon_rect(UI3.icon(String(Parts.AXIS_ICON.get(axis, "face_buff"))), px)
-	ic.set_anchors_preset(Control.PRESET_CENTER)
-	ic.offset_left = -px / 2.0
-	ic.offset_right = px / 2.0
-	ic.offset_top = -px / 2.0
-	ic.offset_bottom = px / 2.0
-	art.add_child(ic)
+	var ic := PanelParts.icon_rect(CoreVisuals.family_texture(axis, px), px, "FamilyEmblem")
+	ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	stack.add_child(ic)
+	var sh := TierShards.new().setup(tier, 16)
+	sh.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	stack.add_child(sh)
+	art.add_child(stack)
 	column.add_child(art)
 	# CoreName / chips / RuleText live in their own Body box: CoreName is the card title (left, as the HTML), not the
 	# label of the Art icon, so the "label under an icon is centred" rule (and ui5_align_check) must not pair them.
@@ -94,8 +101,8 @@ func _category_chip(axis: String) -> PanelContainer:
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", UI3Theme.space("4"))
 	p.add_child(h)
-	h.add_child(PanelParts.icon_rect(UI3.icon(String(Parts.AXIS_ICON.get(axis, "face_buff"))), UI3Theme.size_of("icon_s")))
-	var w := PanelParts.text(TranslationServer.translate(String(CorePanel.AXIS_NAME.get(axis, "Stat"))), "text_key", "text", true)
+	h.add_child(PanelParts.icon_rect(CoreVisuals.family_texture(axis, UI3Theme.size_of("icon_s")), UI3Theme.size_of("icon_s")))
+	var w := PanelParts.text(CoreVisuals.family_name(axis), "text_key", "text", true)
 	w.name = "Word"
 	w.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	h.add_child(w)

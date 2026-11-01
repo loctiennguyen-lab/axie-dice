@@ -192,7 +192,7 @@ func _build(extra_line: String) -> void:
 	for cid in AnchorAdapter.house_cores(anchor_id):
 		if shown >= Anchors.AWAKEN_NEED or not AnchorAdapter.owned().has(cid):
 			continue
-		done.add_child(_core_done(String(cid), hcol))
+		done.add_child(_core_done(String(cid), hcol), true)
 		shown += 1
 	var meter := HBoxContainer.new()
 	meter.name = "AwakenMeter"
