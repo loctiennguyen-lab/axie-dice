@@ -93,11 +93,11 @@ func setup(id: String) -> void:
 		sm.custom_minimum_size.x = inner
 		body.add_child(sm)
 	var rb := _box("RuleBox", "Rule", inner)
-	rb.add_child(_rich("RuleText", AnchorAdapter.rule_text(id), inner - 24))
+	rb.add_child(rich("RuleText", AnchorAdapter.rule_text(id), inner - 24))
 	body.add_child(rb.get_parent())
 	if AnchorAdapter.price_text(id) != "":
 		var pb := _box("PriceBox", "Price", inner)
-		pb.add_child(_rich("PriceText", "− " + AnchorAdapter.price_text(id), inner - 24))
+		pb.add_child(rich("PriceText", "− " + AnchorAdapter.price_text(id), inner - 24))
 		body.add_child(pb.get_parent())
 	var ab := _box("AwakensBox", "", inner)
 	var awc := UI3Theme.color("anchor_awake")
@@ -112,7 +112,7 @@ func setup(id: String) -> void:
 	ah.add_child(an)
 	ah.add_child(_meter(id, awc))
 	ab.add_child(ah)
-	ab.add_child(_rich("AwakenRule", AnchorAdapter.awaken_rule(id), inner - 24))
+	ab.add_child(rich("AwakenRule", AnchorAdapter.awaken_rule(id), inner - 24))
 	body.add_child(ab.get_parent())
 	var cap := PanelParts.text(tr("House Cores · hold 2 of 5"), "text_key", "text_muted", true)
 	cap.name = "HouseCap"
@@ -148,7 +148,7 @@ static func _box(node_name: String, cap_word: String, inner: float) -> VBoxConta
 
 
 ## Body text with number / keyword chips (Chipify). RichTextLabel, text_body size, wraps at `w`.
-static func _rich(node_name: String, t: String, w: float) -> RichTextLabel:
+static func rich(node_name: String, t: String, w: float) -> RichTextLabel:
 	var r := RichTextLabel.new()
 	r.name = node_name
 	r.bbcode_enabled = true
