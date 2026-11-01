@@ -192,11 +192,30 @@ func _process(_delta: float) -> void:
 	var ph := _phase()
 	if ph != _last_phase:
 		_render(false)
+	_mute_set_rings(ph)
 	if ph == Step.WELCOME and _view != null:
 		# The combat's own "Your turn" band must not play under the Welcome curtain: finish it (runs its on_done).
 		for tb in _view.find_children("TurnBanner*", "Control", true, false):   # Combat.tscn also has a plain plate of that name
 			if tb.has_method("finish"):
 				tb.call("finish", true)
+
+
+## Step DIE: the lit card is the only one you can press, so only it keeps its SET ring (QA 29/10 #9). Any other step
+## gives every ring back. Idempotent: DieCard repaints only when the flag flips.
+func _mute_set_rings(ph: int) -> void:
+	if _view == null:
+		return
+	var slots = _view.get("_die_slot_buttons")
+	if not (slots is Array):
+		return
+	var keep := _slot_of(_teaching_actor()) if ph == Step.DIE else -1
+	for i in (slots as Array).size():
+		var b := (slots as Array)[i] as Node
+		if b == null:
+			continue
+		for c in b.get_children():
+			if c is DieCard:
+				(c as DieCard).set_ring_muted(ph == Step.DIE and i != keep)
 
 
 func _on_combat_finished(won: bool) -> void:
@@ -287,7 +306,7 @@ func _render(_first: bool) -> void:
 			_coach.show_step(_label(4), "Pick this die",
 				"It rolled an attack face. Click it to pick it up. The highlighted one is the "
 				+ "only card you can press right now.",
-				"", _die_slot(_slot_of(_teaching_actor())))
+				"", _die_slot(_slot_of(_teaching_actor())), Rect2(), true, _card_avoid())
 		Step.TARGET:
 			_coach.show_step(_label(5), "Now click the enemy",
 				"That spends the die and lands the hit. Every attack works this way: pick a "
@@ -296,7 +315,7 @@ func _render(_first: bool) -> void:
 		Step.ENDTURN:
 			_coach.show_step(_label(6), "Your move is done",
 				"Press END TURN and the enemy acts out exactly what its badge showed.",
-				"", _node("_end_turn_button"))
+				"", _node("_end_turn_button"), Rect2(), true, _card_avoid())
 		Step.FREE:
 			_coach.show_step("", "Over to you",
 				"That's the whole loop. Finish the fight. Everything on this screen is "
@@ -374,6 +393,20 @@ func _allows(key: String) -> bool:
 
 ## A private Control on the combat screen, by field name. Kept in one place so the coupling to
 ## CombatView's internals is a short, greppable list rather than scattered `.get()` calls.
+## Rects the coach card must stay clear of (QA 29/10 #9/#10: it covered Reroll, a die and the SET banner): the dice
+## tray with the SET banner above it, and the Reroll button.
+func _card_avoid() -> Array:
+	var out: Array = []
+	var tray := _dice_tray()
+	if tray != null and tray.is_visible_in_tree():
+		var r := tray.get_global_rect()
+		out.append(Rect2(r.position.x, r.position.y - 44.0, r.size.x, r.size.y + 44.0))
+	var rr := _node("_reroll_button")
+	if rr != null and rr.is_visible_in_tree():
+		out.append(rr.get_global_rect())
+	return out
+
+
 func _node(field: String) -> Control:
 	if _view == null:
 		return null
