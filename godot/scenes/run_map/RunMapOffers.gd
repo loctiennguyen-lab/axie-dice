@@ -117,7 +117,15 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 		for lt in 3:
 			if lt > 0:
 				ladder.add_child(_PanelParts.on_view(_PanelParts.text("\u2192", "text_body", "text", false)))
-			ladder.add_child(_CoreCardUi.tier_chip(lt, tr(ctrl._CORE_TIER_NAME[lt])), true)   # TierChip, TierChip2, TierChip3
+			var step := HBoxContainer.new()
+			step.name = "TierStep"
+			step.add_theme_constant_override("separation", UI3Theme.space("4"))
+			step.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			step.add_child(TierShards.new().setup(lt, UI3Theme.size_of("icon_s")))
+			var tw := _PanelParts.on_view(_PanelParts.text(tr(ctrl._CORE_TIER_NAME[lt]), "text_key", "text", true))
+			tw.add_theme_color_override("font_color", CoreVisuals.tier_text_color(lt))
+			step.add_child(tw)
+			ladder.add_child(step, true)
 		ladder.add_child(_PanelParts.on_view(_PanelParts.text(tr("(strongest)"))))
 		UI3Tooltip.bind(ladder, tr(ctrl.CORE_TIER_HINT))
 		head.add_child(ladder)
@@ -728,7 +736,8 @@ func _on_reward_reroll(title: String) -> void:
 	_show_reward_overlay(title)
 
 
-## One UI-05 CoreCard (47-core-offer): tier chip + category chip + partner / house chips, rule text, own Reroll.
+## One UI-06 CoreCard (47-core-offer): tier frame + crest, art window (family emblem, HouseTag), ComboTag, name, headline,
+## chip detail, badges, own Reroll.
 func _add_core_card(r: Dictionary) -> PanelContainer:
 	var idx := ctrl._reward_cards.size()
 	var tier := clampi(int(r.get("tier", 0)), 0, 2)
@@ -744,11 +753,13 @@ func _add_core_card(r: Dictionary) -> PanelContainer:
 	name_text = UI3.title_case(UI3.player_text(name_text))
 	var dsc := UI3.describe(body_text)
 	body_text = ("MP %d \u00b7 " % int(dsc["mp"]) if int(dsc["mp"]) >= 0 else "") + String(dsc["text"])
+	var def = RelicRegistry.get_def(key)
+	var tags: Array = Array(def.tags) if def != null else []
+	var owned := UI3Gacha.owned_ids()
+	var done := UI3Gacha.combo_completes(owned, key)
 	var card := _CoreCardUi.new()
 	card.name = "CoreCard%d" % idx
-	card.setup_core(tier, tr(ctrl._CORE_TIER_NAME[tier]), UI3.icon(String(CorePanel.AXIS_ICON.get(axis, "face_buff"))), name_text, body_text)
-	card.rarity_chip.mouse_filter = Control.MOUSE_FILTER_STOP
-	UI3Tooltip.bind(card.rarity_chip, tr(ctrl.CORE_TIER_HINT))
+	card.setup_core(tier, axis, name_text, key, body_text, tags, not done.is_empty())
 	card.gui_input.connect(func(ev: InputEvent) -> void:
 		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
 			_select_reward(idx)
@@ -762,29 +773,15 @@ func _add_core_card(r: Dictionary) -> PanelContainer:
 	ctrl._reward_cards.append(card)
 	card.mouse_entered.connect(_dm_core_hover)
 	card.focus_entered.connect(_dm_core_hover)
-	if tier >= 2:
-		# A3: Crystal cards keep their own bevelled silhouette and extra rings, and rise on hover.
-		var accent: Color = card.accent
-		card.set_meta("prism_accent", accent)
-		card.use_prism(func(sel: bool) -> StyleBoxFlat: return UI3Gacha.prism_style(accent, sel))
-		card.add_child(UI3Gacha.prism_frame(accent))
-		card.mouse_entered.connect(_prism_hover.bind(card, true))
-		card.mouse_exited.connect(_prism_hover.bind(card, false))
-	card.chip_row.add_child(CorePanel.word_chip(tr(String(CorePanel.AXIS_NAME.get(axis, "Core"))),
-		String(CorePanel.AXIS_ICON.get(axis, "face_buff")), UI3Theme.color("text_muted"), "CategoryChip"))
-	_add_combo_labels(card.column, key, card.chip_row)
-	var tag := card.column.get_node_or_null("ComboTag")
-	if tag != null:
-		card.column.remove_child(tag)
-		card.body_box.add_child(tag)
-		card.body_box.move_child(tag, card.name_label.get_index() + 1)
-	var wc := card.chip_row.get_node_or_null("WorksWith")
-	if wc != null:
-		wc.name = "ComboChip"
-	RunMapController._add_house_chip(card, card.chip_row, key)
-	var hc := card.chip_row.get_node_or_null("HouseChip")
-	if hc != null:
-		hc.name = "HouseTag"
+	var names: Array[String] = []
+	for id in UI3Gacha.combo_matches(owned, key):
+		var d = RelicRegistry.get_def(String(id))
+		if d != null:
+			names.append(UI3.title_case(UI3.player_text(String(d.name))))
+	if not done.is_empty():
+		card.add_combo_tag(String(done["tier"]) == "full", UI3Gacha.combo_name(String(done["id"])),
+			(tr("With: %s") % ", ".join(names)) if not names.is_empty() else "")
+	card.add_house_tag()
 	var rr := _PanelParts.button(tr("Reroll"), &"secondary", &"M")
 	rr.name = "RerollButton"
 	rr.size_flags_vertical = Control.SIZE_SHRINK_END
@@ -792,6 +789,5 @@ func _add_core_card(r: Dictionary) -> PanelContainer:
 		rr.pressed.connect(_on_core_card_reroll.bind(idx))
 	else:
 		UI3.set_disabled_reason(rr, tr("Rerolled") if RunState.core_rerolled_slots.has(idx) else tr("No rerolls left"))
-	card.reroll_button = rr
-	card.column.add_child(rr)
+	card.add_reroll(rr)
 	return card
