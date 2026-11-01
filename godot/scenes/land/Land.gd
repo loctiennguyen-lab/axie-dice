@@ -1380,6 +1380,8 @@ func _place_hud(f: float) -> void:
 	var hs := _start_hint.get_combined_minimum_size()
 	_start_hint.scale = sc
 	_start_hint.position = Vector2(w - 24.0 - hs.x * f, _hud_br.position.y - 4.0 * f - hs.y * f)
+	# polish 1/11 lane a: at 600 the message wrapped to 3 lines on the island at 1280; wider (never below the token) = 2.
+	_offline_banner.custom_minimum_size.x = clampf((w - 48.0) / f, float(UI3Theme.size_of("offline_banner_w")), 900.0)
 	_offline_banner.reset_size()
 	var os := _offline_banner.get_combined_minimum_size()
 	_offline_banner.scale = sc

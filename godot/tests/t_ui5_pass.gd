@@ -207,7 +207,7 @@ func _pass(sc: float, tag: String) -> void:
 	var o := await _make(sc, "2027-01-05", lvl10 + 100, [1, 2, 3])
 	_inside(o, w, tag + " over")
 	_check(o.find_child("Banner", true, false) != null and o.tile_button(30).text == "Not claimed", "%s: over: banner, Not claimed" % tag)
-	_check(o.task_button("play_runs").text == "Claim · The season is not running", "%s: over: task reason" % tag)
+	_check(o.task_button("play_runs").text == "Claim · Season not running", "%s: over: task reason" % tag)
 	_audit(o, sc, tag + " over")
 	o.get_parent().queue_free()
 	for st in ["offline", "guest"]:
@@ -221,7 +221,7 @@ func _pass(sc: float, tag: String) -> void:
 	_check(absf((b.find_child("LeftScroll", true, false) as Control).size.x - live_left) < 0.5, "%s: left column same width with and without Claimed tiles" % tag)
 	var bf := get_viewport().gui_get_focus_owner()
 	_check(bf != null and bf.name == "BackButton", "%s: before: initial focus is BackButton" % tag)
-	_check((b.task_button("play_runs") as Button).text == "Claim · The season is not running", "%s: before: task reason" % tag)
+	_check((b.task_button("play_runs") as Button).text == "Claim · Season not running", "%s: before: task reason" % tag)
 	_audit(b, sc, tag + " before")
 	b.get_parent().queue_free()
 	await get_tree().process_frame

@@ -18,6 +18,7 @@ const MARK_GLYPH := {&"temp": &"wild", &"held": &"hold", &"overcast": &"overcast
 
 var plate: PanelContainer
 var set_ring: Panel
+var ring_muted := false              ## tutorial: a die that cannot be pressed shows no SET ring (only the pressable one is accented)
 var sel_ring: Panel
 var content: VBoxContainer
 var die_holder: Control
@@ -423,7 +424,7 @@ func apply(d: Dictionary) -> void:
 
 	# Rings: SET colour 4 px outside; selected / legal ally target cream, outside the SET ring when both.
 	var w := UI3Theme.stroke("selected")
-	set_ring.visible = in_set
+	set_ring.visible = in_set and not ring_muted
 	if in_set:
 		set_ring.add_theme_stylebox_override("panel", ring_style(UI3Theme.color(SetPreview.colour_token(set_key)), w))
 	var lit := lifted or bool(d.get("legal_target", false))
@@ -443,6 +444,15 @@ func apply(d: Dictionary) -> void:
 	crack_line.visible = cracked
 	_apply_skin(String(d.get("skin", "")))
 	_place_marks()
+
+
+## Hides / restores the SET ring (tutorial step 4: only the card you can press carries an accent).
+func set_ring_muted(m: bool) -> void:
+	if ring_muted == m:
+		return
+	ring_muted = m
+	if not _last.is_empty():
+		apply(_last)
 
 
 ## Repaints only the SET look (ring, filled PartChip, preview) from SetPreview.for_die(): {key, before, after, show}.

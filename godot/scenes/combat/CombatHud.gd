@@ -683,10 +683,17 @@ func _tool_key_of(b: Button) -> Ui5ToolKey:
 	return null
 
 
+func _process(_dt: float) -> void:
+	if is_visible_in_tree():
+		_sync_end_cap()   # a modal / curtain can open or close at any frame
+
+
 ## Space stays on End turn in every state (Space also skips the enemy turn); its look follows the button.
 func _sync_end_cap() -> void:
 	if _end_cap == null:
 		return
+	# polish 1/11 lane a: a modal / tutorial curtain covers the screen, so Space is not End turn there: no keycap.
+	_end_cap.visible = not (is_inside_tree() and UI3Tooltip.modal_open(get_tree()))
 	var v: StringName = &"disabled" if end_turn_button.disabled else &"primary"
 	if _end_cap.get_meta("variant", &"") != v:
 		Ui5Keycap.set_variant(_end_cap, v)

@@ -59,12 +59,12 @@ var _reward: Control          # TutorialRewardPick
 var _reward_row: HBoxContainer
 var _reward_cards: Array = []
 var _reward_sel := -1
-var _take: Button
 var _reward_taken := false
 var _skip_modal: Control
 var _root: Control
 
 var _target: Control = null
+var _avoid: Callable          # () -> Array of global Rect2s the card must not cover (it moves above them); re-read on every _place
 var _target_rect: Rect2 = Rect2()
 var _has_hole: bool = false
 var _dim: bool = false
@@ -194,7 +194,7 @@ func _build_curtain() -> void:
 	col.add_child(_curtain_skip)
 
 
-## TutorialRewardPick: Title, Body, CardRow of three RewardCards, Footer > TakeButton (off and saying why until a pick).
+## TutorialRewardPick: Title, Body, CardRow of three RewardCards, click a card to take it.
 func _build_reward() -> void:
 	_reward = CenterContainer.new()
 	_reward.name = "TutorialRewardPick"
@@ -222,18 +222,7 @@ func _build_reward() -> void:
 	_reward_row.custom_minimum_size.y = UI3Theme.size_of("reward_card_h")
 	_reward_row.sort_children.connect(_lift_selected)
 	col.add_child(_reward_row)
-	var foot := HBoxContainer.new()
-	foot.name = "Footer"
-	foot.alignment = BoxContainer.ALIGNMENT_CENTER
-	col.add_child(foot)
-	_take = UI3.button(TranslationServer.translate("Take"), &"primary", &"L")
-	_take.name = "TakeButton"
-	_take.custom_minimum_size.x = UI3Theme.size_of("d_take_min_w")
-	_take.pressed.connect(func(): if _reward_sel >= 0: reward_chosen.emit(_reward_sel))
-	foot.add_child(_take)
-	# Liam (plan UI-05 b23): the tutorial reward is taken by clicking a card, as the game always did. The frame's Take
-	# button stays built but hidden, so the footer takes no room.
-	foot.visible = false
+	# Liam (plan UI-05 b23): the tutorial reward is taken by clicking a card, as the game always did. No Take button.
 
 
 func _lift_selected() -> void:
@@ -247,17 +236,6 @@ func _select_reward(i: int) -> void:
 	for k in _reward_cards.size():
 		(_reward_cards[k] as Control).call("set_selected", k == i)
 	_reward_row.queue_sort()
-	_refresh_take()
-
-
-func _refresh_take() -> void:
-	if _reward_sel < 0:
-		Parts.remove_space_cap(_take)
-		UI3.set_disabled_reason(_take, TranslationServer.translate("Pick a reward"))
-	else:
-		if _take.disabled:
-			UI3.clear_disabled_reason(_take)
-		Parts.add_space_cap(_take)
 
 
 ## Skip (button or Esc) asks first: UI3 modal, Keep going focused (Space); only the confirm emits `skip_pressed`.
@@ -321,8 +299,9 @@ func clear() -> void:
 ## `dim=false` is the free-play case: nothing is dimmed and nothing is blocked.
 ## The card's Skip is always there; the Got it button (with the Space keycap) only when `cta` is not empty.
 func show_step(step_label: String, title: String, body: String, cta: String,
-		target: Control, extra_rect: Rect2 = Rect2(), dim: bool = true) -> void:
+		target: Control, extra_rect: Rect2 = Rect2(), dim: bool = true, avoid: Callable = Callable()) -> void:
 	_hide_all()
+	_avoid = avoid
 	_target = target
 	_target_rect = extra_rect
 	_has_hole = target != null or extra_rect.size.x > 0.0
@@ -475,6 +454,14 @@ func _place() -> void:
 	var above := hole.position.y > screen.y * 0.5
 	var y := (hole.position.y - _GAP - card_size.y) if above else (hole.end.y + _GAP)
 	var x := hole.get_center().x - card_size.x * 0.5
+	var avoid: Array = _avoid.call() if _avoid.is_valid() else []
+	if not avoid.is_empty():
+		var top := INF
+		for a in avoid:
+			if a is Rect2 and (a as Rect2).size.x > 0.0:
+				top = minf(top, (a as Rect2).position.y)
+		if top < INF and y + card_size.y > top - _GAP:
+			y = top - _GAP - card_size.y
 	_card.position = Vector2(
 		clampf(x, _MARGIN, maxf(_MARGIN, screen.x - card_size.x - _MARGIN)),
 		clampf(y, _MARGIN, maxf(_MARGIN, screen.y - card_size.y - _MARGIN)))

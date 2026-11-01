@@ -79,7 +79,9 @@ func _build_main() -> void:
 	hp_label = _value("HPValue")
 	# `.name-row .t-label{flex:1}` holds for both labels: name and HPValue split the free width, HPValue left-aligned
 	# in its half (frames: "Ravenling" 108 | "19 / 19" 108). HPValue never clips: its text is its minimum.
-	hp_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# polish 1/11 lane a: at 1280 the 50/50 split cut "Ravenling" to "Ravenl…". The name takes ALL the free width,
+	# HPValue is its own text width (it never clips, the name is the one that may ellipsize, tooltip has it whole).
+	hp_label.size_flags_horizontal = Control.SIZE_SHRINK_END
 	name_row.add_child(hp_label)
 	tags_row = _hbox("TagsRow")
 	tags_row.visible = false
