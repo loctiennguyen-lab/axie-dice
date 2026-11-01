@@ -44,8 +44,10 @@ func _case(ids: Array, reasons: Dictionary, sc: float, tag: String) -> void:
 	_check(v.take_button.disabled and v.take_button.text == "Pick an Anchor", "%s: Take disabled, says why" % tag)
 	var cap0 := v.take_button.find_child("KeyCap", true, false) as Control
 	_check(cap0 == null or not cap0.visible, "%s: no KeyCap on the disabled button" % tag)
-	var bottom := v.take_button.get_global_rect().end.y * sc
-	_check(bottom <= 1080.0 * sc - 13.0, "%s: Take inside the frame (bottom %.1f > %.1f)" % [tag, bottom, 1080.0 * sc - 13.0])
+	# The canvas is always logical 1920x1080 (sc only changes token values), so rects and the 13 px safe margin are
+	# both logical: no * sc on either side.
+	var bottom := v.take_button.get_global_rect().end.y
+	_check(bottom <= 1080.0 - 13.0, "%s: Take inside the frame (bottom %.1f > %.1f)" % [tag, bottom, 1080.0 - 13.0])
 	for c in v.cards:
 		_check(c.size.y <= UI3Theme.size_of("anchor_card_h") + 1.0, "%s: card not taller than anchor_card_h (%f)" % [tag, c.size.y])
 		_check(absf(c.size.x - UI3Theme.size_of("anchor_card_w")) < 1.0, "%s: card width %f" % [tag, c.size.x])
@@ -61,8 +63,8 @@ func _case(ids: Array, reasons: Dictionary, sc: float, tag: String) -> void:
 	var cap1 := v.take_button.find_child("KeyCap", true, false) as Control
 	_check(cap1 != null and cap1.visible and (cap1.find_child("Key", true, false) as Label).text == "Space", "%s: KeyCap Space once picked" % tag)
 	_check(cap1 != null and cap1.position.x + cap1.size.x <= v.take_button.size.x + 1.0, "%s: KeyCap inside the button" % tag)
-	bottom = v.take_button.get_global_rect().end.y * sc
-	_check(bottom <= 1080.0 * sc - 13.0, "%s: Take inside the frame after pick (%.1f)" % [tag, bottom])
+	bottom = v.take_button.get_global_rect().end.y
+	_check(bottom <= 1080.0 - 13.0, "%s: Take inside the frame after pick (%.1f)" % [tag, bottom])
 	_check((v.cards[sel] as Object).get("selected") == true, "%s: card marked selected" % tag)
 	_check(Align.pairs(v) > 0, "%s: align check measured pairs" % tag)
 	var probs := Align.check(v, 1.5, tag + " ")
@@ -95,7 +97,7 @@ func _fx_texts(sc: float, tag: String) -> void:
 		for t in acc:
 			_check(float(t[0]) >= 13.9, "%s fx: '%s' is %.1f px" % [tag, t[1], t[0]])
 		var col := fx.find_child("AwakenColumn", true, false) as Control
-		_check(col != null and col.get_minimum_size().y * sc <= 1080.0 * sc, "%s fx: column fits (%s)" % [tag, str(col.get_minimum_size() if col != null else "null")])
+		_check(col != null and col.get_minimum_size().y <= 1080.0, "%s fx: column fits (%s)" % [tag, str(col.get_minimum_size() if col != null else "null")])
 	await get_tree().process_frame
 	h.queue_free()
 
