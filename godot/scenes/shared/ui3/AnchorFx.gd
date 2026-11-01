@@ -121,7 +121,7 @@ func _build(extra_line: String) -> void:
 	band.grow_vertical = Control.GROW_DIRECTION_BOTH
 	band.custom_minimum_size.y = UI3Theme.size_of("banner_h")
 	band.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var bsb := UI3Theme.flat(UI3Theme.color("banner_player"), 0, UI3Theme.stroke("rim"), UI3Theme.color("plate_rim"),
+	var bsb := UI3Theme.flat(UI3Theme.color("plate"), 0, UI3Theme.stroke("rim"), UI3Theme.color("plate_rim"),
 		Vector4(0, UI3Theme.space("16"), 0, UI3Theme.space("16")))
 	band.add_theme_stylebox_override("panel", bsb)
 	add_child(band)
