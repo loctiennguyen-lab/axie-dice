@@ -8,8 +8,8 @@ extends Ui5ListRow
 var pinned := false
 
 
-## cells = [{text, size, display, color, right, ratio, node?}] built by the screen from the board data.
-## extras = nodes put in the Name cell after the name (the "You" tag).
+## cells = ready-made Controls, one per column, built by the screen (LbRow.text_cell for text, a NameCell HBox for the
+## name + "You" tag). Each carries meta "ratio" = its column's stretch ratio; setup_row lays them out in the "Cells" HBox.
 func setup_row(node_name: String, cols: Array, cells: Array) -> void:
 	setup("", "", "", &"leader")
 	name = node_name

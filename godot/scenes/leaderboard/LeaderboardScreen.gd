@@ -304,13 +304,9 @@ func _aid_text(r: Dictionary) -> String:
 	return "Pure" if aid == "" else aid
 
 
-static func _fmt(n: int) -> String:
-	return UI3.fmt(n)
-
-
 func _score_text(r: Dictionary) -> String:
 	var sc = r.get("score", "")
-	return _fmt(int(sc)) if (sc is int or sc is float) else String(sc)
+	return UI3.fmt(int(sc)) if (sc is int or sc is float) else String(sc)
 
 
 ## The Name cell: name (trimmed), then the "You" tag for the own row.
@@ -322,15 +318,28 @@ func _name_cell(r: Dictionary, you: bool, ratio: float, tag := true) -> Control:
 	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var nl := LbRow.text_cell(String(r.get("name", "")), 1.0)
 	nl.name = "Name"
-	if you:
+	nm.add_child(nl)
+	var yt: Control = null
+	if you and tag:
+		yt = LbParts.tag("You", &"you", "YouTag")
+	if you and yt != null:
+		# Own row: the tag sits right after the name, so the name label is exactly its text width, capped to what is left
+		# of the cell once the tag is placed; past the cap it trims with an ellipsis. The cell keeps its ratio width, so
+		# the Score / Aid columns stay aligned with the other rows.
 		nl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		nl.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+		nm.add_child(yt)
+		var fit := func() -> void:
+			if not is_instance_valid(nl) or not is_instance_valid(yt):
+				return
+			var font := nl.get_theme_font("font")
+			var tw := ceilf(font.get_string_size(nl.text, HORIZONTAL_ALIGNMENT_LEFT, -1, nl.get_theme_font_size("font_size")).x)
+			var avail := nm.size.x - yt.get_combined_minimum_size().x - float(UI3Theme.space("8"))
+			nl.custom_minimum_size.x = clampf(tw, 0.0, maxf(avail, 0.0)) if nm.size.x > 0.0 else 0.0
+		nm.resized.connect(fit)
+		fit.call_deferred()
 	else:
 		nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		nl.custom_minimum_size.x = 0
-	nm.add_child(nl)
-	if you and tag:
-		nm.add_child(LbParts.tag("You", &"you", "YouTag"))
 	return nm
 
 
