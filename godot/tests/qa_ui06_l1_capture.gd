@@ -71,17 +71,44 @@ func _ready() -> void:
 		await get_tree().process_frame
 	_rm.call("_select_reward", 1)
 	await _shot("47-core-offer--selected")
-	# make-room: 6 owned Cores, take a 7th
+	# crystal-cap: 3 owned Crystal Cores and a Crystal pick pulled down to Amber; shoot mid-crack and after the reveal
+	RunState.owned_relic_ids.assign(["c_cascade", "c_blood_sign", "c_deep_current"])
+	RunState.core_tier_chain = [2, 2, 2, 2, 2, 2]
+	RunState._core_offer_pick = 1
+	RunState.core_pick_index = 2
+	UI3Gacha.instant_override = 0
+	_offer([1, 1, 0])
+	var rv = _rm.get("_reveal")
+	for _i in 300:
+		await get_tree().process_frame
+		if rv != null and is_instance_valid(rv) and rv.events.has("crack"):
+			break
+	await get_tree().create_timer(0.3).timeout
+	await _shot("47-core-offer--crystal-cap-crack")
+	for _i in 600:
+		await get_tree().process_frame
+		if rv == null or not is_instance_valid(rv) or not rv.running:
+			break
+	await _shot("47-core-offer--crystal-cap")
+	UI3Gacha.instant_override = 1
+	# make-room: 6 owned Cores, take a 7th from a real Core offer (the offer stays behind the sheet)
 	var ids: Array[String] = []
 	for t in 3:
 		for d in _defs_of_tier(t):
 			ids.append(String(d.key if "key" in d else d.id))
-	RunState._core_offer_active = false
-	RunState.owned_relic_ids.assign(ids.slice(0, RelicSlots.tuning().core_slots))
+	var slots: int = RelicSlots.tuning().core_slots
+	RunState.owned_relic_ids.assign(ids.slice(0, slots))
 	RunState.relic_stickers = {}
-	RunState.pending_rewards = [{"t": "relic", "key": ids[RelicSlots.tuning().core_slots], "rar": 0, "title": "RELIC", "desc": "Core", "sub": ""}]
-	_rm.call("_show_reward_overlay", "CHOOSE A REWARD")
-	await get_tree().process_frame
+	var cards: Array = []
+	for i in 3:
+		var d = RelicRegistry.get_def(ids[slots + i])
+		cards.append(CoreOffer.card_of(d, i))
+	RunState._core_offer_active = true
+	RunState.core_reroll_left = 2
+	RunState.pending_rewards.assign(cards)
+	_rm.call("_show_reward_overlay", "x")
+	for _i in 6:
+		await get_tree().process_frame
 	_rm.call("_select_reward", 0)
 	_rm.call("_take_selected_reward")
 	await _shot("47-core-offer--make-room")

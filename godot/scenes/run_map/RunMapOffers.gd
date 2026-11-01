@@ -374,8 +374,6 @@ func _take_selected_reward() -> void:
 			return
 		if ctrl._is_core_card(r):
 			ctrl._dm("dm_core_pick")
-			if ctrl._reward_sel < ctrl._reward_cards.size():
-				_fly_card_to_strip(ctrl._reward_cards[ctrl._reward_sel])
 		ctrl._on_reward_chosen(r)
 
 
@@ -424,10 +422,26 @@ func _trade_parts(r: Dictionary) -> Dictionary:
 	return {"gain": sub.trim_prefix("IN EXCHANGE: you gain ").trim_suffix("."), "cost": desc, "cost_kind": &"curse"}
 
 
-## UI-06 card-interact (motion-ui06.md, Hover): scale + tilt toward the pointer, 140 ms cubic out. Reduce motion = end state.
-## Skipped while the reveal runs. Only scale / rotation are driven (the card row owns position).
+## One interaction tween per card (meta "ix_tw"): hover, select squash and the headline pop all go through it, so a new
+## one always kills the old one and the card never ends up half scaled.
+func _ix_tween(card: Control) -> Tween:
+	if card.has_meta("ix_tw"):
+		var old = card.get_meta("ix_tw")
+		if old is Tween and (old as Tween).is_valid():
+			(old as Tween).kill()
+	var tw := card.create_tween()
+	card.set_meta("ix_tw", tw)
+	return tw
+
+
+func _reveal_running() -> bool:
+	return ctrl._reveal != null and is_instance_valid(ctrl._reveal) and ctrl._reveal.running
+
+
+## UI-06 card-interact (motion-ui06.md, Hover): scale + tilt toward the pointer, 140 ms cubic out, headline pop 1 -> 1.06 -> 1.
+## Reduce motion = end state. Skipped while the reveal runs. Only scale / rotation are driven (the card row owns position).
 func _core_hover_fx(card: Control, on: bool) -> void:
-	if not is_instance_valid(card) or (ctrl._reveal != null and is_instance_valid(ctrl._reveal) and ctrl._reveal.running):
+	if not is_instance_valid(card) or _reveal_running():
 		return
 	card.pivot_offset = card.size / 2.0
 	var to_scale := Vector2.ONE * (1.03 if on else 1.0)
@@ -435,35 +449,33 @@ func _core_hover_fx(card: Control, on: bool) -> void:
 	if on:
 		var local := card.get_local_mouse_position()
 		to_rot = deg_to_rad(clampf((local.x / maxf(1.0, card.size.x) - 0.5) * 4.0, -2.0, 2.0))
-	if card.has_meta("hover_tw"):
-		var old = card.get_meta("hover_tw")
-		if old is Tween and (old as Tween).is_valid():
-			(old as Tween).kill()
 	if UI3Motion.reduced() or UI3Gacha.is_instant():
+		_ix_tween(card).kill()
 		card.scale = to_scale
 		card.rotation = 0.0
 		return
-	var tw := card.create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	var tw := _ix_tween(card)
+	tw.set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tw.tween_property(card, "scale", to_scale, 0.14)
 	tw.tween_property(card, "rotation", to_rot, 0.14)
-	card.set_meta("hover_tw", tw)
-	if on:
-		var hl := card.find_child("Headline", true, false) as Control
-		if hl != null and hl.visible:
-			hl.pivot_offset = hl.size / 2.0
-			var pop := hl.create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-			pop.tween_property(hl, "scale", Vector2.ONE * 1.06, 0.09)
-			pop.tween_property(hl, "scale", Vector2.ONE, 0.09)
+	var hl := card.find_child("Headline", true, false) as Control
+	if on and hl != null and hl.visible:
+		hl.pivot_offset = hl.size / 2.0
+		tw.chain().tween_property(hl, "scale", Vector2.ONE * 1.06, 0.09).set_trans(Tween.TRANS_BACK)
+		tw.tween_property(hl, "scale", Vector2.ONE, 0.09)
+		tw.tween_callback(func() -> void: hl.scale = Vector2.ONE)
 
 
-## UI-06 card-interact (Select): squash 0.97 x 1.02 for 90 ms, then back. Reduce motion = nothing.
+## UI-06 card-interact (Select): squash 0.97 x 1.02 for 90 ms, then back to rest / hover scale. Reduce motion = nothing.
 func _core_select_squash(card: Control) -> void:
-	if not is_instance_valid(card) or UI3Motion.reduced() or UI3Gacha.is_instant():
+	if not is_instance_valid(card) or UI3Motion.reduced() or UI3Gacha.is_instant() or _reveal_running():
 		return
 	card.pivot_offset = card.size / 2.0
-	var tw := card.create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	var rest := Vector2.ONE * (1.03 if card.get_global_rect().has_point(card.get_global_mouse_position()) else 1.0)
+	var tw := _ix_tween(card)
+	tw.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_property(card, "scale", Vector2(0.97, 1.02), 0.09)
-	tw.tween_property(card, "scale", Vector2.ONE * (1.03 if card.get_global_rect().has_point(card.get_global_mouse_position()) else 1.0), 0.15)
+	tw.tween_property(card, "scale", rest, 0.15)
 
 
 ## UI-06 offer-reveal (motion-ui06.md): before each flip the back dips (0.96 x 1.03, 120 ms, "compression"), after it the
@@ -471,7 +483,7 @@ func _core_select_squash(card: Control) -> void:
 ## biggest. Runs beside GachaReveal (which owns the flip itself on scale:x); each dip ends before that flip starts and
 ## each settle starts after it ends. Skipping the reveal resets every card. Reduce motion: none of it.
 func _offer_reveal_springs(rv: GachaReveal, tier: int) -> void:
-	if UI3Motion.reduced():
+	if UI3Motion.reduced() or not rv.running or rv._plan.is_empty():
 		return
 	var punch: float = [1.04, 1.07, 1.10][clampi(tier, 0, 2)]
 	var flips: Array = rv._plan["flips"]
@@ -507,34 +519,28 @@ func _offer_reveal_springs(rv: GachaReveal, tier: int) -> void:
 				(c as Control).rotation = 0.0, CONNECT_ONE_SHOT)
 
 
-## UI-06 take-to-strip (motion-ui06.md, Take): the taken card shrinks to 0.11 and flies in an arc to the Core strip
-## (the node named CoresPlate or CoreStrip, else the top-left corner). A picture of the card is flown, so the overlay can
-## close at once. Reduce motion / instant / headless (no picture): nothing. Reduce flashing keeps it (no flash involved).
-func _fly_card_to_strip(card: Control) -> void:
+## UI-06 take-to-strip (motion-ui06.md, Take). PUBLIC for the integrator: call it from RunMapController._apply_and_finish
+## after apply_chosen_reward (and switch the old core-taken shrink off, or the card flies twice). A copy of the card's
+## "Face" node (no GPU read-back) shrinks to 0.11 and flies in an arc over 520 ms to the node named CoreStrip, else
+## CoresPlate, else the top-left corner, then frees itself. Only a real Core card flies (a Run rule card / anything
+## without a CoreCard Face does not). Nothing happens with Reduce motion or an instant reveal. Returns the proxy or null.
+func fly_card_to_strip(card: Control) -> Control:
 	if UI3Motion.reduced() or UI3Gacha.is_instant() or not is_instance_valid(card) or not card.is_inside_tree() \
-			or ctrl._overlay_layer == null:
-		return
-	var img := card.get_viewport().get_texture().get_image() if DisplayServer.get_name() != "headless" else null
-	if img == null or img.is_empty():
-		return
-	var vp := card.get_viewport().get_visible_rect().size
-	var r := card.get_global_rect()
-	var k := float(img.get_width()) / maxf(1.0, vp.x)
-	var crop := Rect2i(Vector2i(int(r.position.x * k), int(r.position.y * k)), Vector2i(int(r.size.x * k), int(r.size.y * k)))
-	crop = crop.intersection(Rect2i(Vector2i.ZERO, img.get_size()))
-	if crop.size.x < 4 or crop.size.y < 4:
-		return
-	var proxy := TextureRect.new()
+			or ctrl._overlay_layer == null or card.get_script() != _CoreCardUi:
+		return null
+	var face := card.get("face") as Control
+	if face == null or not is_instance_valid(face):
+		return null
+	var r := face.get_global_rect()
+	var proxy := face.duplicate() as Control
 	proxy.name = "TakeFlyCard"
-	proxy.texture = ImageTexture.create_from_image(img.get_region(crop))
-	proxy.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	proxy.stretch_mode = TextureRect.STRETCH_SCALE
 	proxy.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	proxy.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	proxy.z_index = 60
+	ctrl._overlay_layer.add_child(proxy)
 	proxy.position = r.position
 	proxy.size = r.size
 	proxy.pivot_offset = r.size / 2.0
-	proxy.z_index = 60
-	ctrl._overlay_layer.add_child(proxy)
 	var dest := Vector2(40, 40)
 	var strip := ctrl.find_child("CoreStrip", true, false)
 	if strip == null:
@@ -551,6 +557,7 @@ func _fly_card_to_strip(card: Control) -> void:
 		proxy.scale = Vector2.ONE * lerpf(1.0, 0.11, t)
 		proxy.modulate.a = 1.0 if t < 0.85 else (1.0 - t) / 0.15, 0.0, 1.0, 0.52).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_callback(proxy.queue_free)
+	return proxy
 
 
 func _start_core_reveal(shake_host: Control) -> void:
@@ -578,6 +585,7 @@ func _start_core_reveal(shake_host: Control) -> void:
 		ctrl._reveal.start([ctrl._reward_cards[slot]], rt, UI3Gacha.first_seen(str(RunState.get("_core_base_seed")), rt), jp, shake_host,
 			float(UI3Gacha.timing().get("reroll_in_sec", 0.5)))
 		_skin_covers(ctrl._reveal)
+		_offer_reveal_springs(ctrl._reveal, rt)
 		_reroll_note(ctrl._reward_cards[slot])
 		return
 	var tier := 0
@@ -614,21 +622,35 @@ func _skin_covers(rv: GachaReveal) -> void:
 	for cv in rv._covers:
 		var c := cv as Control
 		c.name = "CoreCardBack"
-		var tier := int(c.get_parent().get_meta("gacha_tier", 0)) if c.get_parent() != null else 0
-		if bool(c.get_meta("demoted", false)):
-			tier = maxi(tier, 2) if UI3Gacha.capped_from(tier) > tier else tier
+		var real := int(c.get_parent().get_meta("gacha_tier", 0)) if c.get_parent() != null else 0
+		var demoted := bool(c.get_meta("demoted", false)) and rv._from > real
+		var shown := rv._from if demoted else real   # a Crystal-capped cover holds the tier it was pulled down from
 		c.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 		for ch in c.get_children():
 			if ch is VBoxContainer:
 				for x in ch.get_children():
 					if x is TextureRect or (x is Label and x.name == "TierWord"):
-						x.visible = false
-		var back := CardBack.new().setup(tier)
-		back.name = "CardBackFace"
-		back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		back.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		c.add_child(back)
-		c.move_child(back, 0)
+						x.visible = false   # ReasonLine stays: GachaReveal fades it in on the crack
+		_put_back(c, shown)
+		if demoted and not rv._plan.is_empty():
+			# GachaReveal._crack recolours its own (now empty) panel; the CardBackFace drops to the real tier at the same moment,
+			# with the crack lines and the reason line drawn above it.
+			var tw := c.create_tween()
+			tw.tween_interval(float(rv._plan.get("crack_at", 0.0)))
+			tw.tween_callback(func() -> void: _put_back(c, real))
+
+
+func _put_back(cover: Control, tier: int) -> void:
+	var old := cover.get_node_or_null("CardBackFace")
+	if old != null:
+		cover.remove_child(old)
+		old.queue_free()
+	var back := CardBack.new().setup(tier)
+	back.name = "CardBackFace"
+	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cover.add_child(back)
+	cover.move_child(back, 0)
 
 
 ## UI-05 b23 lane M2: the `core-reveal` rows GachaReveal does not draw (name punch, sparks, Crystal shake), timed from
