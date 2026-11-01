@@ -34,6 +34,7 @@ var _primary: Button
 var _intro: Tween
 var _intro_nodes: Array = []
 var _owns_toast := false
+var _prev_toast: Callable   # the service's toast before this screen took it; given back on exit
 
 
 ## The state the service says we are in (transient flags `opening` / failed are the screen's own).
@@ -65,6 +66,7 @@ func _ready() -> void:
 		service.changed.connect(_on_changed)
 	if service == AccountService:
 		_owns_toast = true
+		_prev_toast = service.toast
 		service.toast = _on_toast
 	state = state_for(service)
 	_build()
@@ -78,7 +80,7 @@ func _exit_tree() -> void:
 	if is_instance_valid(service) and service.has_signal("changed") and service.changed.is_connected(_on_changed):
 		service.changed.disconnect(_on_changed)
 	if _owns_toast and is_instance_valid(service):
-		service.toast = Callable(service, "_toast_with_ui")
+		service.toast = _prev_toast if _prev_toast.is_valid() else Callable(service, "_toast_with_ui")
 
 
 ## Show a state by name (capture + tests). `reason` only matters for failed.

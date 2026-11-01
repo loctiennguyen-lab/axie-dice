@@ -80,7 +80,6 @@ func _go() -> void:
 
 func _wait_over() -> void:
 	if is_inside_tree() and AccountService.changed.is_connected(_on_account_changed):
-		login_passed = login_passed or false
 		AccountService.changed.disconnect(_on_account_changed)
 		var t := LOGIN_SCENE if login_needed() else route_target()
 		if t != LOGIN_SCENE:
