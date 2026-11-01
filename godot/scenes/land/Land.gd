@@ -1194,16 +1194,6 @@ func _tip_text(id: String) -> String:
 	return head + "\n" + " · ".join(lines)
 
 
-## Current key of a hub entry, read from the binding ("" when it has none).
-func _key_text(id: String) -> String:
-	var i := NUM_KEYS.find(id)
-	if i >= 0:
-		return KeyBindings.text(KeyBindings.LAND_ACTIONS[i])
-	if id == "board":
-		return KeyBindings.text(&"land_board")
-	return ""
-
-
 func _tag_words(id: String) -> String:
 	match _tag(id):
 		"FREE":
