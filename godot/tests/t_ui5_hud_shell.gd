@@ -73,6 +73,21 @@ func _ready() -> void:
 		"exactly one key cap in the combat scene, Space on End turn (found %d: %s)" % [caps.size(), ", ".join(texts)])
 	_check(caps.size() >= 1 and (caps[0] as Control).get_parent() == hud.end_turn_button, "the Space cap sits on End turn")
 
+	# 2a. polish 1/11: a visible ui3_modal covers the screen, so the End turn cap hides until it closes
+	var ec := hud.end_turn_button.get_node_or_null("EndKeyCap")
+	_check(ec != null, "EndKeyCap found")
+	if ec != null:
+		var mod := Control.new()
+		mod.add_to_group("ui3_modal")
+		view.add_child(mod)
+		hud._sync_end_cap()
+		_check(not (ec as Control).visible, "modal up: End turn keycap hidden")
+		mod.queue_free()
+		mod.remove_from_group("ui3_modal")
+		mod.visible = false
+		hud._sync_end_cap()
+		_check((ec as Control).visible, "modal gone: End turn keycap back")
+
 	# 2b. the keys that lost their cap are named in the tooltips CombatView really builds (Hold in every state)
 	var aid_btn := view.find_child("AidButton", true, false) as Control
 	_check(aid_btn.tooltip_text.contains("(%s)" % KeyBindings.text(KeyBindings.COMBAT_AID)), "AidButton tooltip names the Aid key: %s" % aid_btn.tooltip_text)
