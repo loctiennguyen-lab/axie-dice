@@ -14,7 +14,7 @@ extends Node
 ##     failure this project already shipped once in the event system.
 ##  3. **An inert unlock (`u_relic1`/`u_relic2`/`u_face1`/`u_face2`) hiding what it does.**
 ##     Buying one is a real, refundless spend of Gene Shard for an effect this port has not
-##     built; the "NO EFFECT YET" tag is the only thing telling the player that before they buy.
+##     built; the "COMING SOON" tag is the only thing telling the player that before they buy.
 ##
 ## Run: godot --headless --path godot res://tests/t_pass_unlocks.tscn
 

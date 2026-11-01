@@ -1,7 +1,7 @@
 extends Control
 ## UNLOCKS (UI-03 round-2 screen 29, Unlocks tab, on UI3Meta): the ten-item, spend-once-keep-forever Shard
 ## ladder from ContentDB.UNLOCKS, in the order the data gives. Each row: step number, name, state tag
-## (OWNED / AVAILABLE / TOO EXPENSIVE / NO EFFECT YET), description, price button. The first affordable row's
+## (OWNED / AVAILABLE / TOO EXPENSIVE / COMING SOON), description, price button. The first affordable row's
 ## price button is the screen's one primary; the rest are secondary. A disabled button says why (OWNED, or the
 ## shortfall). MetaState.buy_unlock is unchanged. Node names kept: UnlockRow_<id>, BuyButton, UnlockList,
 ## ListScroll, StatusLabel; the Shard total sits in the shared Currencies plate and in ShardLabel.

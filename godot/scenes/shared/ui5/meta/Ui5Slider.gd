@@ -39,8 +39,14 @@ func set_value(v: float) -> void:
 	queue_redraw()
 
 
+## Knob radius; the knob travels on [r, width - r] and that span maps min..max (drawing and input agree).
+func _knob_r() -> float:
+	return minf(float(track_height()) * 1.5 + 2.0, size.y * 0.5 - 1.0)   # knob stays inside the hit box
+
+
 func _set_from_x(x: float) -> void:
-	var f := clampf(x / maxf(size.x, 1.0), 0.0, 1.0)
+	var kr := _knob_r()
+	var f := clampf((x - kr) / maxf(size.x - 2.0 * kr, 1.0), 0.0, 1.0)
 	var v := clampf(snappedf(min_value + f * (max_value - min_value), step), min_value, max_value)
 	if not is_equal_approx(v, value):
 		value = v
@@ -71,8 +77,8 @@ func _draw() -> void:
 	sb.anti_aliasing = true
 	draw_style_box(sb, track)
 	var f := 0.0 if is_equal_approx(max_value, min_value) else (value - min_value) / (max_value - min_value)
-	var kr := minf(float(track_height()) * 1.5 + 2.0, size.y * 0.5 - 1.0)   # knob stays inside the hit box
-	var kx := clampf(track.size.x * f, kr, maxf(size.x - kr, kr))
+	var kr := _knob_r()
+	var kx := kr + maxf(size.x - 2.0 * kr, 0.0) * clampf(f, 0.0, 1.0)   # the knob's whole travel maps the value (0 and 5% are apart)
 	if f > 0.0:
 		var fill := UI3Theme.flat(UI3Theme.color("accent"), UI3Theme.radius("pill"))
 		fill.anti_aliasing = true
