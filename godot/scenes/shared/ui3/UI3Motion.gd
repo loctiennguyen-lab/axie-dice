@@ -376,7 +376,18 @@ static func _burst(node: CanvasItem, pt: Dictionary) -> void:
 	var tex_path := String(pt.get("texture", ""))
 	if tex_path == "" or not ResourceLoader.exists(tex_path):
 		return
+	# UI-06: a card that names a particle host (its art window) gets the burst there, under the text; a card with
+	# fx_particle_host() == null (Run rule) gets none.
+	var fx_host: Node = node
+	var over_text := true
+	if node.has_method("fx_particle_host"):
+		var h: Variant = node.call("fx_particle_host")
+		if not (h is Control) or not is_instance_valid(h):
+			return
+		fx_host = h
+		over_text = false
 	var cp := CPUParticles2D.new()
+	cp.add_to_group("ui_burst_fx")
 	cp.texture = load(tex_path)
 	cp.one_shot = true
 	cp.explosiveness = 1.0
@@ -399,11 +410,21 @@ static func _burst(node: CanvasItem, pt: Dictionary) -> void:
 		cp.color = UI3Theme.color(ct)
 	if pt.get("color") is Color:
 		cp.color = pt["color"]
-	cp.z_index = 1
+	cp.z_index = 1 if over_text else 0
 	cp.emitting = true
-	node.add_child(cp)
-	cp.position = (node as Control).size * 0.5 if node is Control else Vector2.ZERO
+	fx_host.add_child(cp)
+	cp.position = (fx_host as Control).size * 0.5 if fx_host is Control else Vector2.ZERO
 	cp.finished.connect(cp.queue_free)
+
+
+## Frees every one-shot burst still alive under `root` (reveal skipped / rerolled / screen left).
+static func clear_bursts(root: Node) -> void:
+	if root == null or not root.is_inside_tree():
+		return
+	for n in root.get_tree().get_nodes_in_group("ui_burst_fx"):
+		if root.is_ancestor_of(n):
+			n.emitting = false
+			n.queue_free()
 
 
 static func _tween_prop(pname: String, node: CanvasItem, v: Variant, base_pos: Vector2) -> Dictionary:

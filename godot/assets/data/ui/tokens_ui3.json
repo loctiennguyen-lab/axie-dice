@@ -93,6 +93,10 @@
   ],
   "$schema_note": "Fixed schema from 00-PROMPT §4. All sizes are px at the 1920×1080 base; Godot stretch canvas_items/expand scales them. Plate alpha colours are listed as #RRGGBBAA; contrast is measured with plates over neutral-4. UI-04: changed and new keys are listed in _changed; meanings start with \"UI-04\".",
   "color": {
+    "google_chip": {
+      "value": "#ffffff",
+      "meaning": "UI-07 NEW · white disc behind the Google \"G\" inside the primary button (Google brand rule: the G sits on white). The only white in the UI."
+    },
     "bg": {
       "value": "#13161b",
       "meaning": "neutral-1 · behind meta screens"
@@ -346,28 +350,28 @@
       "meaning": "UI-05 B2 · from tokens_ui3: Price line on Anchor and Run Rule cards"
     },
     "house_volley": {
-      "value": "#7f9cff",
-      "meaning": "UI-05 B2 · from tokens_ui3, unchanged"
+      "value": "#8A9CB2",
+      "meaning": "UI-06 CHANGED · slate (was #7f9cff, too close to violet / Crystal). Emblem crest #7C8FA6"
     },
     "house_gambler": {
-      "value": "#ff8cc8",
-      "meaning": "UI-05 B2 · from tokens_ui3"
+      "value": "#CB8494",
+      "meaning": "UI-06 CHANGED · plum rose (was #ff8cc8 = Bird pink). Text-safe tint; emblem crest #B5677A"
     },
     "house_mana_mine": {
-      "value": "#9be8c8",
-      "meaning": "UI-05 B2 · from tokens_ui3"
+      "value": "#6FB89A",
+      "meaning": "UI-06 CHANGED · mint (was #9be8c8)"
     },
     "house_kin": {
-      "value": "#a9c4a0",
-      "meaning": "UI-05 B2 · from tokens_ui3"
+      "value": "#8FAE7A",
+      "meaning": "UI-06 CHANGED · sage (was #a9c4a0)"
     },
     "house_embers": {
-      "value": "#ff8a6b",
-      "meaning": "UI-05 B2 · from tokens_ui3"
+      "value": "#E8835A",
+      "meaning": "UI-06 CHANGED · coral (was #ff8a6b, read as danger red)"
     },
     "house_big_hand": {
-      "value": "#c8a27a",
-      "meaning": "UI-05 B2 · from tokens_ui3"
+      "value": "#C49A6C",
+      "meaning": "UI-06 CHANGED · tan (was #c8a27a)"
     },
     "anchor_awake": {
       "value": "#ffd21f",
@@ -398,28 +402,28 @@
       "meaning": "UI-05 style A · the brief's btn_secondary_pressed lip colour"
     },
     "tier_moss": {
-      "value": "#2dc661",
-      "meaning": "UI-05 B2 CHANGED · = rarity_rare (game-data-batch2 §2 wins over UI-04 #7ade61). Card frame, chip edge, tier word"
+      "value": "#7DAA48",
+      "meaning": "UI-06 CHANGED · art bible §4 Moss (rough wood + moss, matte). Was #2dc661. Always with 1 shard + rough frame"
     },
     "tier_moss_bg": {
-      "value": "#0c3a1e",
-      "meaning": "UI-05 B2 CHANGED · Moss chip fill"
+      "value": "#2e3a1c",
+      "meaning": "UI-06 CHANGED · inset under Moss text chips"
     },
     "tier_amber": {
-      "value": "#ffb444",
-      "meaning": "UI-05 B2 CHANGED · = rarity_legendary"
+      "value": "#F2A33A",
+      "meaning": "UI-06 CHANGED · art bible §4 Amber (clear resin, bubbles). Was #ffb444. Always with 2 shards + round frame"
     },
     "tier_amber_bg": {
       "value": "#4a2c0c",
-      "meaning": "UI-05 B2 CHANGED · Amber chip fill"
+      "meaning": "UI-06 · unchanged value"
     },
     "tier_crystal": {
-      "value": "#27c0ca",
-      "meaning": "UI-05 B2 CHANGED · = rarity_epic"
+      "value": "#7FB6F0",
+      "meaning": "UI-06 CHANGED · art bible §4 Crystal (cut crystal, glossy). The only cold light in the game. Was #27c0ca. Always with 3 shards + faceted frame"
     },
     "tier_crystal_bg": {
-      "value": "#0a3337",
-      "meaning": "UI-05 B2 CHANGED · Crystal chip fill (teal, was blue-2)"
+      "value": "#1e2c44",
+      "meaning": "UI-06 CHANGED · Crystal inset (cold, Crystal only)"
     },
     "category_chip": {
       "value": "#8e97a8",
@@ -776,6 +780,82 @@
     "checkbox_on": {
       "value": "#ff8986",
       "meaning": "UI-05 B3 NEW · = danger_text. Ticked \"Yes, I want to abandon\" box (with a tick glyph)"
+    },
+    "tier_moss_text": {
+      "value": "#A3C66B",
+      "meaning": "UI-06 NEW · tier word on plate (5.9:1)"
+    },
+    "tier_amber_text": {
+      "value": "#FFC86A",
+      "meaning": "UI-06 NEW · tier word on plate (8.6:1)"
+    },
+    "tier_crystal_text": {
+      "value": "#AFD3F7",
+      "meaning": "UI-06 NEW · tier word on plate (8.9:1)"
+    },
+    "fam_stat": {
+      "value": "#D9814A",
+      "meaning": "UI-06 NEW · family Stat, terracotta. Emblem: shield + heart"
+    },
+    "fam_dice": {
+      "value": "#E6C88E",
+      "meaning": "UI-06 NEW · family Dice, bone. Emblem: tilted die + 3 pips"
+    },
+    "fam_pos": {
+      "value": "#A49A44",
+      "meaning": "UI-06 NEW · family Position, olive. Emblem: hexagon + 2 chevrons"
+    },
+    "fam_mana": {
+      "value": "#4E9A86",
+      "meaning": "UI-06 NEW · family Mana, jade (not violet: violet = paid). Emblem: drop + sparkle"
+    },
+    "fam_quest": {
+      "value": "#C47F72",
+      "meaning": "UI-06 NEW · family Quest, rose clay. Emblem: disc + key"
+    },
+    "fam_rule": {
+      "value": "#8E8676",
+      "meaning": "UI-06 NEW · family Rule, stone. Emblem: arched tablet + loop arrow"
+    },
+    "fam_run_rule": {
+      "value": "#7A4A2C",
+      "meaning": "UI-06 NEW · Run Rule card type, walnut seal. Emblem: scalloped seal + hourglass"
+    },
+    "core_headline": {
+      "value": "#FFC445",
+      "meaning": "UI-06 NEW · = art bible reward gold. Headline line on Core / Rule cards (10.3:1 on plate)"
+    },
+    "num_chip_bg": {
+      "value": "#2b1a10",
+      "meaning": "UI-06 NEW · = chip. Inline number chip in card text"
+    },
+    "num_chip_text": {
+      "value": "#FFC445",
+      "meaning": "UI-06 NEW · number chip text"
+    },
+    "kw_chip_bg": {
+      "value": "#4f3121",
+      "meaning": "UI-06 NEW · = plate_raised. Inline keyword chip (SET, Held, Cracked, Overcast, Temp Face…)"
+    },
+    "kw_chip_rim": {
+      "value": "#8f5530",
+      "meaning": "UI-06 NEW · 1 px keyword chip rim"
+    },
+    "tradeoff_text": {
+      "value": "#ff8986",
+      "meaning": "UI-06 NEW · = danger_text. Tradeoff badge label only (never the frame)"
+    },
+    "fire_ring": {
+      "value": "#FFE9C2",
+      "meaning": "UI-06 NEW · cream ring on a Core slot while it fires"
+    },
+    "fire_line": {
+      "value": "#FFE9C2",
+      "meaning": "UI-06 NEW · dotted pulse line slot → unit (over a 10 px plate_ink line)"
+    },
+    "anchor_fire": {
+      "value": "#ffd21f",
+      "meaning": "UI-06 NEW · = anchor_awake. Anchor firing ring + number, so an Anchor never reads as a Core"
     }
   },
   "contrast": [
@@ -967,42 +1047,42 @@
     {
       "text": "house_volley",
       "background": "plate",
-      "ratio": 5.59,
+      "ratio": 5.16,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "house_gambler",
       "background": "plate",
-      "ratio": 6.78,
+      "ratio": 5.01,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "house_mana_mine",
       "background": "plate",
-      "ratio": 10.19,
+      "ratio": 6.21,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "house_kin",
       "background": "plate",
-      "ratio": 7.65,
+      "ratio": 5.86,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "house_embers",
       "background": "plate",
-      "ratio": 6.28,
+      "ratio": 5.4,
       "pass": "AA body",
       "ui04": true
     },
     {
       "text": "house_big_hand",
       "background": "plate",
-      "ratio": 6.14,
+      "ratio": 5.65,
       "pass": "AA body",
       "ui04": true
     },
@@ -1014,44 +1094,44 @@
       "ui04": true
     },
     {
-      "text": "tier_moss",
+      "text": "tier_moss_text",
       "background": "tier_moss_bg",
-      "ratio": 5.71,
+      "ratio": 6.24,
       "pass": "AA body",
       "ui04": true
     },
     {
-      "text": "tier_amber",
+      "text": "tier_amber_text",
       "background": "tier_amber_bg",
-      "ratio": 7.16,
+      "ratio": 8.28,
       "pass": "AA body",
       "ui04": true
     },
     {
-      "text": "tier_crystal",
+      "text": "tier_crystal_text",
       "background": "tier_crystal_bg",
-      "ratio": 6.15,
+      "ratio": 9.0,
       "pass": "AA body",
       "ui04": true
     },
     {
-      "text": "tier_moss",
+      "text": "tier_moss_text",
       "background": "plate",
-      "ratio": 6.46,
+      "ratio": 7.48,
       "pass": "AA body",
       "ui04": true
     },
     {
-      "text": "tier_amber",
+      "text": "tier_amber_text",
       "background": "plate",
-      "ratio": 8.18,
+      "ratio": 9.46,
       "pass": "AA body",
       "ui04": true
     },
     {
-      "text": "tier_crystal",
+      "text": "tier_crystal_text",
       "background": "plate",
-      "ratio": 6.54,
+      "ratio": 9.3,
       "pass": "AA body",
       "ui04": true
     },
@@ -1112,9 +1192,9 @@
       "ui04": true
     },
     {
-      "text": "tier_amber",
+      "text": "tier_amber_text",
       "background": "update_bar_bg",
-      "ratio": 7.59,
+      "ratio": 8.78,
       "pass": "AA body",
       "ui04": true
     },
@@ -1172,6 +1252,12 @@
     "note": "Two weights only. Both OFL with Vietnamese coverage; ship static TTF + OFL.txt in fonts/. Never mix the two in one label."
   },
   "size": {
+    "login_panel_w": 640,
+    "login_logo_w": 720,
+    "login_axie_h": 300,
+    "google_chip": 44,
+    "benefit_h": 104,
+    "modal_w": 640,
     "text_key_hint": 16,
     "text_body": 18,
     "text_title": 24,
@@ -1321,14 +1407,14 @@
     "node_icon": 64,
     "offer_top": 72,
     "core_card_w": 400,
-    "core_card_h": 660,
+    "core_card_h": 600,
     "core_art_h": 160,
     "core_glyph": 96,
     "tag_h": 32,
     "rule_card_w": 520,
     "rule_card_h": 600,
     "anchor_card_w": 480,
-    "anchor_card_h": 656,
+    "anchor_card_h": 676,
     "house_disc": 72,
     "glossary_w": 1504,
     "chest": 384,
@@ -1414,7 +1500,18 @@
     "settings_col_w": 960,
     "settings_row_h": 72,
     "key_btn_w": 220,
-    "netnotice_w": 560
+    "netnotice_w": 560,
+    "core_pad": 36,
+    "core_emblem": 112,
+    "shards_h": 64,
+    "badge": 28,
+    "fam_chip_emblem": 26,
+    "slot_emblem": 30,
+    "tip_core_w": 440,
+    "combat_strip_top": 100,
+    "fire_num": 56,
+    "back_art": 200,
+    "rule_emblem": 96
   },
   "radius": {
     "s": 8,
@@ -1566,6 +1663,61 @@
     }
   },
   "motion": {
+    "login_intro": {
+      "meaning": "UI-07 NEW · intro of the sign-in screen, see motion-ui07.md",
+      "layers": [
+        {
+          "layer": "Background",
+          "start_ms": 0,
+          "duration_ms": 240,
+          "trans": "TRANS_LINEAR",
+          "ease": "EASE_IN_OUT",
+          "from": "alpha 0",
+          "to": "alpha 1",
+          "reduce_motion": "kept"
+        },
+        {
+          "layer": "Logo",
+          "start_ms": 120,
+          "duration_ms": 480,
+          "trans": "TRANS_BACK",
+          "ease": "EASE_OUT",
+          "from": "y −32, scale 1.06, alpha 0",
+          "to": "y 0, scale 1, alpha 1",
+          "reduce_motion": "alpha only, 120 ms"
+        },
+        {
+          "layer": "Tagline",
+          "start_ms": 420,
+          "duration_ms": 200,
+          "trans": "TRANS_CUBIC",
+          "ease": "EASE_OUT",
+          "from": "alpha 0",
+          "to": "alpha 1",
+          "reduce_motion": "alpha only, 120 ms"
+        },
+        {
+          "layer": "SignInPanel",
+          "start_ms": 300,
+          "duration_ms": 360,
+          "trans": "TRANS_CUBIC",
+          "ease": "EASE_OUT",
+          "from": "y +48, alpha 0",
+          "to": "y 0, alpha 1",
+          "reduce_motion": "alpha only, 120 ms"
+        },
+        {
+          "layer": "Focus ring on primary",
+          "start_ms": 680,
+          "duration_ms": 120,
+          "trans": "TRANS_LINEAR",
+          "ease": "EASE_IN_OUT",
+          "from": "alpha 0",
+          "to": "alpha 1",
+          "reduce_motion": "kept"
+        }
+      ]
+    },
     "fast": 120,
     "base": 200,
     "slow": 240,
@@ -1922,13 +2074,19 @@
     "dice-dock-w": 612,
     "aid-w": 228,
     "min_text": 14,
-    "core-card-h": 456,
+    "core-card-h": 500,
     "rule-card-w": 400,
-    "rule-card-h": 460,
+    "rule-card-h": 470,
     "anchor-card-w": 400,
-    "anchor-card-h": 468,
-    "offer-top": 28,
+    "anchor-card-h": 456,
+    "offer-top": 24,
     "glossary-w": 1182,
+    "login-panel-w": 456,
+    "login-logo-w": 480,
+    "login-axie-h": 188,
+    "google-chip": 32,
+    "benefit-h": 76,
+    "modal-w": 456,
     "_b2_keys": [
       "core-card-h",
       "rule-card-w",
@@ -1969,9 +2127,32 @@
     "preview-w": 300,
     "codex-topics-w": 320,
     "settings-index-w": 200,
-    "key-btn-w": 160
+    "key-btn-w": 160,
+    "core-card-w": 280,
+    "core-art-h": 88,
+    "core-emblem": 72,
+    "core-pad": 22,
+    "tip-core-w": 340,
+    "rule-emblem": 64,
+    "back-art": 140,
+    "_ui06_keys": [
+      "core-card-w",
+      "core-card-h",
+      "core-art-h",
+      "core-emblem",
+      "core-pad",
+      "offer-top",
+      "tip-core-w",
+      "rule-card-w",
+      "rule-card-h",
+      "rule-emblem",
+      "back-art",
+      "anchor-card-h",
+      "anchor-card-w"
+    ]
   },
   "_text_sizes": "UI-05: 16 / 18 / 24 / 32 / 36, + 28 num_die, 20 num_die_egg, + text_hero 56 (new, banners, boss name, big damage numbers; bigger moments scale 56 by 1.3 in a tween, no 72 size). At 1280 no text is below 14 px (theme override by resolution).",
+  "_changed_ui07": ["color.google_chip", "size.login_panel_w", "size.login_logo_w", "size.login_axie_h", "size.google_chip", "size.benefit_h", "size.modal_w", "motion.login_intro"],
   "_changed_b2": [
     "color.tier_moss",
     "color.tier_moss_bg",
@@ -2143,5 +2324,96 @@
     "size.key_btn_w",
     "size.netnotice_w",
     "size.update_bar_h"
-  ]
+  ],
+  "_changed_ui06": [
+    "color.tier_moss",
+    "color.tier_moss_bg",
+    "color.tier_amber",
+    "color.tier_amber_bg",
+    "color.tier_crystal",
+    "color.tier_crystal_bg",
+    "color.house_volley",
+    "color.house_gambler",
+    "color.house_mana_mine",
+    "color.house_kin",
+    "color.house_embers",
+    "color.house_big_hand",
+    "color.tier_moss_text",
+    "color.tier_amber_text",
+    "color.tier_crystal_text",
+    "color.fam_stat",
+    "color.fam_dice",
+    "color.fam_pos",
+    "color.fam_mana",
+    "color.fam_quest",
+    "color.fam_rule",
+    "color.fam_run_rule",
+    "color.core_headline",
+    "color.num_chip_bg",
+    "color.num_chip_text",
+    "color.kw_chip_bg",
+    "color.kw_chip_rim",
+    "color.tradeoff_text",
+    "color.fire_ring",
+    "color.fire_line",
+    "color.anchor_fire",
+    "size.core_card_h",
+    "size.core_pad",
+    "size.core_emblem",
+    "size.shards_h",
+    "size.badge",
+    "size.fam_chip_emblem",
+    "size.slot_emblem",
+    "size.tip_core_w",
+    "size.combat_strip_top",
+    "size.fire_num",
+    "size.back_art",
+    "size.rule_emblem",
+    "size.anchor_card_h"
+  ],
+  "ninepatch": {
+    "note": "UI-06 · NinePatchRect patch margins [left, top, right, bottom] at the 1920 PNG. Ornaments sit inside the corner patches. The crest (crest_<tier>.png, 160×84) is a separate TextureRect centred on the top edge. Canvas px: at 1280 the canvas is scaled 2/3 so margins stay in logical px (TierFrame decides, see TierFrame.gd).",
+    "frame_core_moss": [
+      100,
+      64,
+      100,
+      60
+    ],
+    "frame_core_amber": [
+      56,
+      56,
+      56,
+      60
+    ],
+    "frame_core_crystal": [
+      100,
+      64,
+      100,
+      64
+    ],
+    "frame_run_rule": [
+      48,
+      48,
+      48,
+      52
+    ],
+    "artwin_moss": [
+      28,
+      28,
+      28,
+      44
+    ],
+    "artwin_amber": [
+      28,
+      28,
+      28,
+      28
+    ],
+    "artwin_crystal": [
+      28,
+      28,
+      28,
+      40
+    ]
+  }
 }

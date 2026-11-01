@@ -55,8 +55,8 @@ func _ready() -> void:
 	_check(rev.events.has("flip:2") and not rev.running, "flips left to right then finishes")
 	_check(card.find_child("CoreCardBack", true, false) == null, "cover gone after flip")
 	var c2: Control = rm._reward_cards[0]
-	_check(c2.has_meta("prism_accent") and c2.find_child("PrismFrame", true, false) != null, "Crystal card has the prism frame")
-	_check((c2.find_child("CoreName", true, false) as Label).get_theme_font_size("font_size") == UI3Theme.size_of("text_banner"), "Crystal card name is text_banner (UI-05 .core-card.crystal .name)")
+	_check(int(c2.get("tier")) == 2 and c2.find_child("TierCrest", true, false) != null, "Crystal card has the crystal crest")
+	_check((c2.find_child("CoreName", true, false) as Label).get_theme_font_size("font_size") == UI3Theme.size_of("text_screen_title"), "Crystal card name is Rowdies 32 (UI-06)")
 	# Skip: new offer, then a click.
 	RunState.pending_rewards = []
 	rm._close_overlay()

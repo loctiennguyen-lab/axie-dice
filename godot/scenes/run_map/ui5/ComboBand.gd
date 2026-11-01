@@ -6,7 +6,49 @@ extends RefCounted
 const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 
 
-static func build(parent: Node, tier: String, combo_name: String, house: String, with_mutation: bool) -> GachaFx:
+## UI-06 L1: socket for one Core (frame CoreSlot > FamilyEmblem + TierShards): the tier-coloured slot picture, the family
+## emblem centred in it, the 1/2/3 shard strip under the emblem. Used by the combo banner and the make-room rows.
+static func core_socket(core_id: String, px: float) -> Control:
+	var def = RelicRegistry.get_def(core_id)
+	var tier := clampi(int(def.rarity) if def != null else 0, 0, 2)
+	var axis := String(def.core_axis) if def != null else "stat"
+	var p := Control.new()
+	p.name = "CoreSlot"
+	p.custom_minimum_size = Vector2(px, px)
+	p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.set_meta("relic_id", core_id)
+	p.set_meta("tier", tier)
+	var bg := TextureRect.new()
+	bg.name = "SlotArt"
+	bg.texture = UI6Assets.slot(tier, px)
+	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bg.stretch_mode = TextureRect.STRETCH_SCALE
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(bg)
+	var big := px >= UI3Theme.size_of("core_slot") * 1.5   # small sockets (make-room rows) have no shard strip: the row has its own
+	var em := TextureRect.new()
+	em.name = "FamilyEmblem"
+	em.texture = CoreVisuals.family_texture(axis, px * 0.5)
+	em.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	em.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	em.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	em.custom_minimum_size = Vector2(px * 0.5, px * 0.5)
+	em.size = em.custom_minimum_size
+	em.position = Vector2(px * 0.25, px * (0.14 if big else 0.25))
+	p.add_child(em)
+	if not big:
+		return p
+	var sh := TierShards.new().setup(tier, px * 0.2)
+	sh.position = Vector2((px - sh.custom_minimum_size.x) / 2.0, px * 0.7)
+	sh.size = sh.custom_minimum_size
+	p.add_child(sh)
+	return p
+
+
+## `members` = Core ids of the combo (UI3Gacha.combo_members); [] = no socket row (older callers / tests).
+static func build(parent: Node, tier: String, combo_name: String, house: String, with_mutation: bool, members: Array = []) -> GachaFx:
 	var full := tier == "full"
 	var root := GachaFx.new()
 	root.name = "ComboBanner"
@@ -42,6 +84,15 @@ static func build(parent: Node, tier: String, combo_name: String, house: String,
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	band.add_child(v)
 	v.add_child(_tag(full))
+	if not members.is_empty():
+		var cores := HBoxContainer.new()
+		cores.name = "ComboCores"
+		cores.alignment = BoxContainer.ALIGNMENT_CENTER
+		cores.add_theme_constant_override("separation", UI3Theme.space("16"))
+		cores.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		for m in members:
+			cores.add_child(core_socket(String(m), UI3Theme.size_of("core_slot") * 2), true)
+		v.add_child(cores)
 	var nm := PanelParts.text(combo_name, "text_hero", "text", true)
 	nm.name = "ComboName"
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

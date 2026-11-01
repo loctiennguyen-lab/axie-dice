@@ -22,6 +22,11 @@ func _frames(n: int) -> void:
 
 
 func _chip(rm: Node) -> Node:
+	# UI-06: the map's House chip sits in the RunInfo row as "AnchorChip" (frame 03-run-map--cores-strip), not in the
+	# Cores plate; an older build kept it as "HouseChip" inside CorePanel.
+	var ac := rm.find_child("AnchorChip", true, false)
+	if ac != null:
+		return ac
 	for cp in rm.find_children("*", "CorePanel", true, false):
 		var c := cp.find_child("HouseChip", true, false)
 		if c != null:

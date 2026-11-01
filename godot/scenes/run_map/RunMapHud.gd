@@ -4,6 +4,8 @@ extends RefCounted
 ## The controller keeps a same-name forwarder for every method here.
 
 
+const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
+
 var ctrl: RunMapController
 
 
@@ -15,41 +17,41 @@ func _rebuild_left() -> void:
 		ctrl._left_root.remove_child(c)
 		c.queue_free()
 
-	# TopLeft: header + party.
+	# TopLeft: RunInfo row (frame 03-run-map--cores-strip: MenuButton, RunPill, AnchorChip), then the party plate.
+	var info := Ui5RunInfo.new()
+	info.position = Vector2(ctrl._SCREEN_MARGIN, ctrl._SCREEN_MARGIN)
+	info.menu_button.tooltip_text = tr("Menu")
+	info.menu_button.pressed.connect(ctrl.open_run_menu)
+	ctrl._left_root.add_child(info)
+	var total_rows := ctrl._graph.rows.size() if ctrl._graph != null else 0
+	# S4-4: floor numbers match the side card (node.row, 1-based); before the first node it says Start, not "Floor 0".
+	var cur_row := ctrl._current_row()
+	info.set_info(tr("Floor %d of %d") % [cur_row, total_rows] if cur_row > 0 else tr("Start · %d floors") % total_rows,
+		RunState.ascension, 0, RunState.shards_this_run)
+	info.turn_chip.visible = false
+	if AnchorAdapter.has_anchor():
+		var ac := CorePanel.house_chip(true, UI3Theme.size_of("anchor_chip_h"))
+		ac.name = "AnchorChip"
+		ac.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		info.add_child(ac)
+
 	var top := UI3.plate(&"plate")
 	top.name = "PartyPlate"
 	top.custom_minimum_size.x = ctrl._PLATE_LEFT_W
 	top.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	top.offset_left = ctrl._SCREEN_MARGIN
-	top.offset_top = ctrl._SCREEN_MARGIN
+	top.offset_top = ctrl._SCREEN_MARGIN + float(UI3Theme.size_of("run_pill_h")) + float(UI3Theme.space("12"))
 	ctrl._left_root.add_child(top)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 12)
 	top.add_child(col)
-
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 12)
-	col.add_child(head)
-	var menu_btn := UI3.icon_button("ui_menu", tr("Menu"))
-	menu_btn.name = "RunMenuButton"
-	menu_btn.pressed.connect(ctrl.open_run_menu)
-	head.add_child(menu_btn)
-	var titles := VBoxContainer.new()
-	titles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	titles.add_theme_constant_override("separation", 0)
-	head.add_child(titles)
-	var total_rows := ctrl._graph.rows.size() if ctrl._graph != null else 0
-	# S4-4: floor numbers match the side card (node.row, 1-based); before the first node it says Start, not "Floor 0".
-	var cur_row := ctrl._current_row()
-	titles.add_child(UI3.label(tr("Floor %d of %d") % [cur_row, total_rows] if cur_row > 0 else tr("Start · %d floors") % total_rows, "LabelTitle"))
-	titles.add_child(UI3.label(tr("Ascension %d · Shards %d") % [RunState.ascension, RunState.shards_this_run]))
 
 	for entry in RunState.roster:
 		col.add_child(_build_party_row(entry))
 
 	# BottomLeft: relics.
 	var bottom := UI3.plate(&"plate")
-	bottom.name = "RelicPlate"
+	bottom.name = "CoresPlate"
 	bottom.custom_minimum_size.x = ctrl._PLATE_LEFT_W
 	bottom.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	bottom.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -61,9 +63,12 @@ func _rebuild_left() -> void:
 	bottom.add_child(rcol)
 	# S3-10: count only the Cores in the Core slots (Anchor and Run rule are shown beside them, not in the count).
 	var n_cores := RelicSlots.owned_cores(RunState.owned_relic_ids).size()
-	rcol.add_child(UI3.label(tr("Cores · %d") % n_cores, "LabelTitle"))
+	var ct := UI3.label(tr("Cores · %d") % n_cores, "LabelTitle")
+	ct.name = "CoresTitle"
+	rcol.add_child(ct)
 	var core_panel := CorePanel.new()
 	core_panel.slot_px = 40
+	core_panel.show_house_chip = false
 	ctrl._core_panel = core_panel
 	rcol.add_child(core_panel)
 	core_panel.visible = core_panel.refresh()
@@ -71,7 +76,7 @@ func _rebuild_left() -> void:
 		var rr = RelicRegistry.get_def(RunState.run_rule)
 		if rr != null:
 			var rl := UI3.label(tr("Run rule: %s") % String(rr.name), "LabelMuted")
-			rl.name = "RunRuleLine"
+			rl.name = "RunRuleChip"
 			rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			rcol.add_child(rl)
 	var scroll := ScrollContainer.new()
@@ -80,11 +85,12 @@ func _rebuild_left() -> void:
 	var list := VBoxContainer.new()
 	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	list.add_theme_constant_override("separation", 8)
+	list.name = "OwnedList"
 	scroll.add_child(list)
 	for relic_id in RunState.owned_relic_ids:
 		list.add_child(_build_relic_row(relic_id))
-	var list_h := float(RunState.owned_relic_ids.size()) * (ctrl._RELIC_ROW_H + 8.0)
-	scroll.custom_minimum_size.y = minf(list_h, 5.0 * (ctrl._RELIC_ROW_H + 8.0))
+	var list_h := float(RunState.owned_relic_ids.size()) * (ROW_H() + 8.0)
+	scroll.custom_minimum_size.y = minf(list_h, 4.0 * (ROW_H() + 8.0))
 	scroll.visible = not RunState.owned_relic_ids.is_empty()
 	rcol.add_child(scroll)
 
@@ -110,26 +116,68 @@ func _build_party_row(entry: Dictionary) -> Control:
 	return box
 
 
+## OwnedCore row (frame 03-run-map--cores-strip): tier socket + family emblem, name over headline, TierShards on the right.
+## Run rule: stamp + name + "Run rule". Other relics: plain name + rarity word.
 func _build_relic_row(relic_id: String) -> Control:
 	var def = RelicRegistry.get_def(relic_id)
 	var rarity := int(def.rarity) if def != null else 0
-	var relic_name := String(def.name) if def != null else relic_id
-	var row := UI3.plate(&"row")
-	row.custom_minimum_size.y = ctrl._RELIC_ROW_H
-	var line := HBoxContainer.new()
-	line.add_theme_constant_override("separation", 8)
-	row.add_child(line)
-	var name_lbl := UI3.label(relic_name)
-	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_lbl.clip_text = true
-	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	line.add_child(name_lbl)
-	var is_core: bool = RelicSlots.is_core(def)
-	var rar_lbl := UI3.label(tr(CorePanel.TIER_NAME[clampi(rarity, 0, 2)]) if is_core and String(def.core_axis) != "run_rule" \
-		else (tr("Run rule") if is_core else ctrl._rarity_name(rarity)))
-	rar_lbl.add_theme_color_override("font_color", UI3Theme.color(CorePanel.TIER_TOKEN[clampi(rarity, 0, 2)]) if is_core else ctrl._rarity_color(rarity))
-	line.add_child(rar_lbl)
+	var is_core: bool = def != null and RelicSlots.is_core(def)
+	var is_rule: bool = is_core and String(def.core_axis) == "run_rule"
+	var row := PanelParts.panel(PanelParts.cell_box(UI3Theme.space("8"), UI3Theme.space("16"), "s"), "OwnedCore")
+	row.custom_minimum_size.y = ROW_H()
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", UI3Theme.space("12"))
+	row.add_child(h)
+	if is_core:
+		var px := float(UI3Theme.size_of("slot_emblem")) + 8.0
+		var tier := clampi(rarity, 0, 2) if not is_rule else -1
+		var sk := TextureRect.new()
+		sk.name = "RunRuleSlot" if is_rule else "CoreSlot"
+		sk.texture = UI6Assets.slot(tier, px)
+		sk.custom_minimum_size = Vector2.ONE * px
+		sk.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		sk.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		sk.stretch_mode = TextureRect.STRETCH_SCALE
+		sk.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var e := TextureRect.new()
+		e.name = "RunRuleEmblem" if is_rule else "FamilyEmblem"
+		e.texture = CoreVisuals.family_texture("run_rule" if is_rule else String(def.core_axis), px * 0.6)
+		e.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, int(px * 0.2))
+		e.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		e.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		e.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		sk.add_child(e)
+		h.add_child(sk)
+	var tv := VBoxContainer.new()
+	tv.name = "Texts"
+	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	tv.add_theme_constant_override("separation", 0)
+	h.add_child(tv)
+	var nm := PanelParts.text("", "text_body", "text", true)
+	nm.name = "CoreName"
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tv.add_child(nm)
+	Ui5Ellipsis.set_text(nm, UI3.title_case(UI3.player_text(String(def.name) if def != null else relic_id)))
+	if is_core:
+		var hl := PanelParts.text("", "text_body", "core_headline")
+		hl.name = "Headline"
+		hl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tv.add_child(hl)
+		CoreHeadline.apply(hl, relic_id)
+	if is_core and not is_rule:
+		h.add_child(TierShards.new().setup(rarity, 28))
+	else:
+		var rl := UI3.label(tr("Run rule") if is_rule else ctrl._rarity_name(rarity), "LabelMuted")
+		rl.add_theme_color_override("font_color", ctrl._rarity_color(rarity))
+		rl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		h.add_child(rl)
 	return row
+
+
+## Height of an OwnedCore row: socket + padding (name + headline stack).
+static func ROW_H() -> float:
+	return float(UI3Theme.size_of("btn_s")) + 12.0
 
 
 func _node_info(node: RunMapNode) -> Dictionary:

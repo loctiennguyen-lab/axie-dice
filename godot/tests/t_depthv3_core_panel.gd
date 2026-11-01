@@ -25,8 +25,8 @@ func _ready() -> void:
 	_check(not p.refresh() or true, "refresh runs")
 	grant(["c_test_dice_moss_a", "c_test_mana_amber_a", "c_test_pos_crystal_a", "c_test_quest_amber"])
 	_check(p.refresh(), "panel has content once a Core is owned")
-	_check(p.find_children("CoreSlot_*", "PanelContainer", true, false).size() == 6, "6 Core slots")
-	_check(p.find_children("RuleSlot", "PanelContainer", true, false).size() == 1, "1 Run rule slot")
+	_check(p.find_children("CoreSlot*", "PanelContainer", true, false).size() == 6, "6 Core slots")
+	_check(p.find_children("RunRuleSlot", "PanelContainer", true, false).size() == 1, "1 Run rule slot")
 	_check(p.find_children("Quest_*", "PanelContainer", true, false).size() == 1, "quest chip with progress")
 	p.queue_free()
 	# Map rail + combat HUD both show it.

@@ -61,8 +61,8 @@ func _test_changed_keys() -> void:
 					for f in ["x", "y", "blur", "spread"]:
 						_ok(d.has(f), "%s has no %s" % [p, f])
 	# The values B2/B3 changed on purpose: a revert to the UI-04 colour must fail here, not pass as "a hex".
-	var want := {"tier_moss": "#2dc661", "tier_moss_bg": "#0c3a1e", "tier_amber": "#ffb444", "tier_amber_bg": "#4a2c0c",
-		"tier_crystal": "#27c0ca", "tier_crystal_bg": "#0a3337", "run_rule_bg": "#2b1a10", "run_rule_border": "#8e97a8"}
+	# The tier colours were B2 values until UI-06 replaced them (t_ui6_tokens pins the new ones).
+	var want := {"run_rule_bg": "#2b1a10", "run_rule_border": "#8e97a8"}
 	var colors: Dictionary = t.get("color", {})
 	for k in want:
 		_ok(String((colors.get(k, {}) as Dictionary).get("value", "")).to_lower() == want[k], "color.%s = %s, want %s" % [k, str(colors.get(k)), want[k]])
@@ -88,8 +88,8 @@ func _test_overrides() -> void:
 	for k in ov:
 		_ok(not String(k).begins_with("_"), "bookkeeping key %s leaked into the override map" % k)
 	# The values the plan fixed (production/ui05-b23-plan.md, lane 0a).
-	var want := {"core_card_h": 456, "rule_card_w": 400, "rule_card_h": 460, "anchor_card_w": 400,
-		"anchor_card_h": 468, "offer_top": 28, "glossary_w": 1182, "setup_col_w": 360,
+	var want := {"core_card_h": 500, "rule_card_w": 400, "rule_card_h": 470, "anchor_card_w": 400,
+		"anchor_card_h": 456, "offer_top": 24, "glossary_w": 1182, "setup_col_w": 360,
 		"offline_banner_top": 112, "toast_under_banner": 192, "result_plate_w": 520, "mission_detail_w": 340,
 		"lb_detail_w": 340, "echo_side_w": 340, "pass_detail_w": 340, "store_detail_w": 340, "grid_card_h": 300,
 		"profile_detail_w": 320, "preview_w": 300, "codex_topics_w": 320, "settings_index_w": 200, "key_btn_w": 160}

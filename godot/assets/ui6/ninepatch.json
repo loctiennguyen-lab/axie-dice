@@ -1,0 +1,45 @@
+{
+  "note": "UI-06 · NinePatchRect patch margins [left, top, right, bottom] at the 1920 PNG. Ornaments sit inside the corner patches. The crest (crest_<tier>.png, 160×84) is a separate TextureRect centred on the top edge.",
+  "frame_core_moss": [
+    100,
+    64,
+    100,
+    60
+  ],
+  "frame_core_amber": [
+    56,
+    56,
+    56,
+    60
+  ],
+  "frame_core_crystal": [
+    100,
+    64,
+    100,
+    64
+  ],
+  "frame_run_rule": [
+    48,
+    48,
+    48,
+    52
+  ],
+  "artwin_moss": [
+    28,
+    28,
+    28,
+    44
+  ],
+  "artwin_amber": [
+    28,
+    28,
+    28,
+    28
+  ],
+  "artwin_crystal": [
+    28,
+    28,
+    28,
+    40
+  ]
+}

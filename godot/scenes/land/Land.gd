@@ -1615,9 +1615,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func _account_entered() -> void:
 	AccountService.menu_entered()
 	AccountService.show_pending_error()
-	if AccountService.should_offer_welcome():
-		AccountService.mark_welcome_shown()
-		AccountUI.show_welcome(AccountService._ui_layer())
+	# UI-07: the a14 "Save your progress" popup is gone; MainMenu shows the sign-in screen at launch instead.
 
 
 ## Hook for lane M/E (R1 01c: second-day login, at most once a day, never on the defeat screen).

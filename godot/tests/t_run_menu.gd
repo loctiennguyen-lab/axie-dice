@@ -72,7 +72,7 @@ func _map_roundtrip() -> void:
 	add_child(m)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_assert(m.find_child("RunMenuButton", true, false) != null, "run map has no MENU button")
+	_assert(m.find_child("MenuButton", true, false) != null, "run map has no MENU button")
 	var node_before := RunState.current_node_id
 	var data_before := JSON.stringify(RunState.to_data())
 	m.prepare_run_menu()
