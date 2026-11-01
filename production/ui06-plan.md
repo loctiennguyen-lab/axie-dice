@@ -107,3 +107,34 @@ L0 khoảng 1 làn. L1, L2, L3 mỗi làn 1–2 lượt agent. R nhỏ. Cộng t
 
 ## Câu hỏi còn mở
 - Pck tăng khoảng 14 MB nếu giữ đủ PNG `_640`. Có chấp nhận không (giới hạn web +60 MB đã chốt cho quái Atia)? Mặc định: giữ, đo thật rồi báo.
+
+## L4: Màn đăng nhập UI-07 (chạy song song với L0, file riêng)
+Bản giao: `design/handoffs/ui-07-login/round-1/_zip/ui07/`. Xem khung bằng `preview_start ui07` (cổng 8771). README ở đó là luật.
+
+Quyết định của Liam (1/11), giữ nguyên ý:
+- Màn riêng toàn màn hình, hiện **mỗi lần khởi động game khi chưa đăng nhập**, đặt **trước Tutorial**.
+- Phiên hết hạn (EXPIRED) cũng phải qua màn này.
+- Vẫn cho chơi guest.
+
+Việc cần làm:
+- Màn mới `scenes/login/LoginScreen.gd` (+ `.tscn`), có 9 state:
+  - `default`;
+  - `opening` (web, rời trang để sang Google);
+  - `desktop-waiting` / `desktop-finishing`: modal `AccountUI.show_desktop_flow`, restyle theo frame;
+  - `failed`: lý do lấy từ lỗi thật của `AccountService`;
+  - `offline`: thay cổng a13, cả hai nút tắt, mỗi nút nói lý do;
+  - `expired`;
+  - `returning-guest`: "N runs on this device", N lấy từ `MetaState.runs`, có số ít.
+- Đường vào game (`scenes/main_menu/MainMenu.gd`):
+  - thứ tự: offline → màn đăng nhập (nếu chưa đăng nhập hoặc EXPIRED) → Tutorial hoặc Land;
+  - bỏ popup a14 ở Land (`Land._account_entered` không gọi `show_welcome` nữa).
+- **KHÔNG sửa `autoload/AccountService.gd`.** `autoload/` nằm trong fingerprint `t_rules_version`, sửa là phải tăng RULES_VERSION. Mọi điều kiện đọc từ trạng thái công khai của service. Nếu bắt buộc phải sửa autoload thì DỪNG và báo.
+- Asset: `bg_login_1920/1280.png`, `logo_axiedice.png`, `google_g.svg` (ghi chú: trước khi phát hành, thay bằng file trong bộ thương hiệu của Google).
+- Version đọc từ build, không viết cứng.
+- Motion intro có bản Reduce motion.
+- Esc không làm gì. Space bấm nút primary.
+- Test:
+  - đường vào game cho đủ các trường hợp: đã đăng nhập, guest, EXPIRED, offline, người mới cần Tutorial;
+  - data-name đủ, ở 1920 và 1280, chữ ≥ 14 px.
+  - Sửa các test cũ đang kiểm popup a14 hoặc cổng a13.
+- Copy mới trong README mục "New copy" và "Failed reasons" là bản nháp của Claude Design. Dùng chữ của game nếu game đã có (`AccountService` error message). Còn lại dùng bản nháp.
