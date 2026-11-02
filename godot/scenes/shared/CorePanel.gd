@@ -354,8 +354,20 @@ static func house_chip(short := false, height := 48) -> PanelContainer:
 	var hname := AnchorAdapter.house_name(house)
 	var c: PanelContainer
 	if AnchorAdapter.awakened():
-		c = UI3.house_chip(hk, "%s · %s" % [hname, TranslationServer.translate("Awakened")], Anchors.AWAKEN_NEED, Anchors.AWAKEN_NEED, true, height)
+		# 49-anchor-awaken--after: "Volley Awakened" + the ui_awaken mark in front of the text.
+		c = UI3.house_chip(hk, "%s %s" % [hname, TranslationServer.translate("Awakened")], Anchors.AWAKEN_NEED, Anchors.AWAKEN_NEED, true, height)
 		c.set_meta("state", "awakened")
+		var row0 := c.get_child(0) as HBoxContainer
+		var mark := TextureRect.new()
+		mark.name = "AwakenMark"
+		mark.texture = UI6Assets.awaken(32)
+		mark.custom_minimum_size = Vector2(20, 20)
+		mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row0.add_child(mark)
+		row0.move_child(mark, 0)
 		return c
 	c = UI3.house_chip(hk, hname, AnchorAdapter.house_count(), Anchors.AWAKEN_NEED, false, height)
 	c.set_meta("state", "count")

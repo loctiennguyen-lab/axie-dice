@@ -101,6 +101,39 @@ func _owned_ring_case(sc: float, tag: String) -> void:
 	await get_tree().process_frame
 
 
+## 49-anchor-awaken--after: AnchorChip "<House> Awakened" + ui_awaken mark; AnchorTile double frame + AwakenGlyph (the one CorePanel strip
+## feeds both the map and the combat HUD, so slot_px 40 = map and 44 = combat are both checked).
+func _after_case(sc: float, tag: String) -> void:
+	UI3Theme.set_scale_override(sc)
+	var hc: Array = AnchorAdapter.house_cores("a_volley")
+	for awake in [false, true]:
+		AnchorAdapter.test_state = {"anchor_id": "a_volley", "awakened": awake, "owned": [hc[1], hc[2]] if awake else [hc[1]]}
+		var chip := CorePanel.house_chip(true, UI3Theme.size_of("anchor_chip_h"))
+		add_child(chip)
+		var txt := ""
+		for l in chip.find_children("*", "Label", true, false):
+			txt += (l as Label).text + " "
+		_check(chip.find_child("AwakenMark", true, false) != null == awake, "%s after: chip mark only when awakened (%s)" % [tag, str(awake)])
+		if awake:
+			_check(txt.contains("Awakened") and not txt.contains("·"), "%s after: chip text '%s'" % [tag, txt])
+		for px in [40, 44]:
+			var host := Control.new()
+			host.theme = UI3Theme.get_theme()
+			add_child(host)
+			var p := CorePanel.new()
+			p.slot_px = px
+			host.add_child(p)
+			p.refresh()
+			await get_tree().process_frame
+			var tile := p.find_child("AnchorTile", true, false)
+			_check(tile != null, "%s after: AnchorTile at %d" % [tag, px])
+			if tile != null:
+				_check((tile.find_child("AwakenGlyph", true, false) != null) == awake, "%s after: AwakenGlyph %s at %d" % [tag, str(awake), px])
+				_check((tile.find_child("AwakeInnerFrame", true, false) != null) == awake, "%s after: double frame %s at %d" % [tag, str(awake), px])
+			host.queue_free()
+		chip.queue_free()
+
+
 func _awaken_case(sc: float, tag: String) -> void:
 	UI3Theme.set_scale_override(sc)
 	var hc: Array = AnchorAdapter.house_cores("a_volley")
@@ -158,6 +191,7 @@ func _ready() -> void:
 		await _pick_case(["a_volley", "a_gambler", "a_mana_mine"], {"a_mana_mine": "stage_locked"}, sc, tg + " locked")
 		await _owned_ring_case(sc, tg)
 		await _awaken_case(sc, tg)
+		await _after_case(sc, tg)
 		await _shop_case(sc, tg)
 	# art mapping: Serum = shop_heal, Core pick = shop_relic, relics by rarity r0..r4
 	_check(CardArt.SHOP_ART["heal"] == "shop_heal" and CardArt.SHOP_ART["core"] == "shop_relic", "CardArt: Serum shop_heal, Core pick shop_relic")
