@@ -89,11 +89,11 @@ func _ready() -> void:
 	await get_tree().create_timer(0.2).timeout
 	_ok(done[0] == 0, "done waits for the shake")
 	await get_tree().create_timer(0.35).timeout
-	_ok(chest.find_children("Sparkle", "TextureRect", false, false).size() == 12, "12 sparkles popped")
+	_ok(chest.find_children("Sparkle*", "TextureRect", false, false).size() == 12, "12 sparkles popped")
 	await get_tree().create_timer(0.6).timeout
 	_ok(done[0] == 1, "done fired once after the squash")
 	await get_tree().create_timer(1.0).timeout
-	_ok(chest.find_children("Sparkle", "", false, false).is_empty(), "sparkles freed")
+	_ok(chest.find_children("Sparkle*", "", false, false).is_empty(), "sparkles freed")
 
 	# Reduce motion: nothing moves, done at once, no tween left
 	MetaState.reduce_motion = true
@@ -110,7 +110,7 @@ func _ready() -> void:
 	host.add_child(chest2)
 	done[0] = 0
 	MapRewardFx.chest_open(chest2, func() -> void: done[0] += 1)
-	_ok(done[0] == 1 and chest2.rotation == 0.0 and chest2.find_children("Sparkle", "", false, false).is_empty(), "reduced: opens at once, no shake / sparkles")
+	_ok(done[0] == 1 and chest2.rotation == 0.0 and chest2.find_children("Sparkle*", "", false, false).is_empty(), "reduced: opens at once, no shake / sparkles")
 	MapRewardFx.chest_drop(chest2)
 	_ok(chest2.position.y == 0.0, "reduced: chest drop does not move")
 	var b2 := Button.new()

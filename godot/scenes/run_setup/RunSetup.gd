@@ -1,5 +1,8 @@
 class_name RunSetup
 extends Control
+
+## Share of the class colour in a party portrait backing (rest is the plate colour), Liam 2/11.
+const PORTRAIT_TINT := 0.3
 ## M1 Run Setup (Portal, key 1). Spec: design/handoffs/ui-02-round3 README §0, §2 M1.
 ## Layout: shell 1520 x (880 + extra height) at left 200 / top 116, wood header band 64, party row
 ## on top (5 slots 272 x 176), three columns (Mode + Length | Ascension | Kit/Boon), footer 84.
@@ -985,7 +988,10 @@ func _build_slot(i: int) -> Control:
 	var cls := String(def.get("cls", ""))
 	# Liam 1/11 (q10): the portrait backing follows the class colour (tokens color.class_*; Bird is pink), not one green.
 	var cls_tok := "class_" + cls.to_lower()
-	psb.bg_color = UI3Theme.color(cls_tok) if (UI3Theme.tokens().get("color", {}) as Dictionary).has(cls_tok) else UI3Theme.color("viewport")
+	# Liam 2/11: only a light tint (class colour 30% over the plate) so the Axie, which is often that very colour, stands out.
+	psb.bg_color = UI3Theme.color("viewport")
+	if (UI3Theme.tokens().get("color", {}) as Dictionary).has(cls_tok):
+		psb.bg_color = UI3Theme.color("panel").lerp(UI3Theme.color(cls_tok), PORTRAIT_TINT)
 	var port_path := "res://assets/portraits/%s.png" % cls
 	if ResourceLoader.exists(port_path):
 		var pic := TextureRect.new()
