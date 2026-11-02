@@ -6,7 +6,7 @@ extends Control
 ## shares the card, and the window itself shrinks to 60%: set `height_scale`).
 
 const EMBLEM_BOOST := 1.5   # Liam 2/11: library emblems read small in the window (art-director review), so emblem x1.5 ...
-const WINDOW_BOOST := 1.25  # ... and the window grows 25% so it still fits
+const WINDOW_BOOST := 1.1   # ... and the window grows 10% (25% pushed a long-text card's Reroll onto the frame edge)
 
 var tier := 0
 var emblem: TextureRect
