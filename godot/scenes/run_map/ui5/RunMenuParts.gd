@@ -126,7 +126,7 @@ static func tier_chip(tier: int) -> PanelContainer:
 	for i in t + 1:
 		var pip := TextureRect.new()
 		pip.name = "Pip"
-		pip.texture = UI3.icon("cur_fragment")
+		pip.texture = UI6Assets.shard(t, 32)   # Liam 2/11: the tier gem from the asset library, as everywhere else
 		pip.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		pip.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		pip.custom_minimum_size = Vector2(14, 14)
