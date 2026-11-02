@@ -235,6 +235,11 @@ func _build_panel() -> void:
 	_panel.offset_left = -_edge() - w
 	_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
 	add_child(_panel)
+	# Hotfix 2/11: wrapped labels report a huge minimum height before they know their width, the panel grows to it and a
+	# Control never shrinks back on its own (live: the panel was ~8000 px tall, its content off screen). Re-fit it to its
+	# real minimum height, centred, whenever that minimum changes.
+	_panel.minimum_size_changed.connect(_fit_panel, CONNECT_DEFERRED)
+	_fit_panel.call_deferred()
 	_col = VBoxContainer.new()
 	_col.add_theme_constant_override("separation", 24 if _small() else UI3Theme.space("20"))
 	_panel.add_child(_col)
@@ -436,6 +441,15 @@ func _guest_button(text: String) -> Button:
 	g.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	g.pressed.connect(_on_guest)
 	return g
+
+
+## The sign-in panel's height = its content's minimum height, centred on the right edge (see _build_panel).
+func _fit_panel() -> void:
+	if _panel == null or not is_instance_valid(_panel):
+		return
+	var h := _panel.get_combined_minimum_size().y
+	_panel.offset_top = -h * 0.5
+	_panel.offset_bottom = h * 0.5
 
 
 func _guest_block(button_text: String, line: String) -> VBoxContainer:

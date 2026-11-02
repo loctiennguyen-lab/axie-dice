@@ -111,6 +111,8 @@ func _state(st: String, sc: float) -> void:
 	var panel := scr.find_child("SignInPanel", true, false) as Control
 	if panel != null:
 		_check(Rect2(Vector2.ZERO, scr.size).grow(1.0).encloses(panel.get_global_rect()), "[%s] panel inside the screen" % tag)
+		# Hotfix 2/11: on a cold start the panel had grown to a transient ~8000 px minimum and never shrank back.
+		_check(panel.size.y <= panel.get_combined_minimum_size().y + 2.0, "[%s] panel height = its content (%.0f vs min %.0f)" % [tag, panel.size.y, panel.get_combined_minimum_size().y])
 	if sc < 1.0:
 		for n in scr.find_children("*", "Label", true, false):
 			var l := n as Label
