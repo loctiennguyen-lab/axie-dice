@@ -13,6 +13,14 @@ func _init(owner_ctrl: RunMapController) -> void:
 const _PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 
 
+## Open chest pressed (UI-06 map-reward): the chest shakes, pops sparkles and squashes, then the opened screen is built and its 3 cards
+## deal in. Under Reduce motion the chest step is skipped and the screen opens at once. A second press while it plays does nothing.
+func _open_pressed(col: Control, open: Button) -> void:
+	open.disabled = true
+	var chest := col.get_node_or_null("Chest") as Control
+	MapRewardFx.chest_open(chest, _build_treasure.bind(true, true))
+
+
 ## UI-05 frames 13-treasure--closed / --opened (design round-2). Closed: `Treasure` = Chest (chest, 384), Title +
 ## ShardPill, OpenButton (Space). Opened: `TreasureReward` = one column from d_reward_top (the same as the reward pick):
 ## Title + ShardPill, CardRow of RewardCards, Footer with TakeButton (off and saying "Pick a reward" until a card is
@@ -42,6 +50,7 @@ func _build_treasure(opened: bool, animate := false) -> void:
 		chest.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		chest.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		col.add_child(chest)
+		MapRewardFx.chest_drop.call_deferred(chest)   # UI-06 map-reward: drops in once the column has laid out
 	var hrow := HBoxContainer.new()
 	hrow.name = "Header"
 	hrow.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -56,7 +65,7 @@ func _build_treasure(opened: bool, animate := false) -> void:
 	if not opened:
 		var open := UI3.button(tr("Open chest"), &"primary", &"L")
 		open.name = "OpenButton"
-		open.pressed.connect(_build_treasure.bind(true, true))
+		open.pressed.connect(_open_pressed.bind(col, open))
 		var oc := HBoxContainer.new()
 		oc.name = "Footer"
 		oc.alignment = BoxContainer.ALIGNMENT_CENTER

@@ -764,6 +764,7 @@ func _add_reward_card(r: Dictionary, _wide := false) -> PanelContainer:
 				tb.grab_focus())
 	ctrl._overlay_vbox.add_child(card)
 	ctrl._reward_cards.append(card)
+	MapRewardFx.wire_card(card, card.art_icon)   # UI-06 map-reward: art pop + hover sway
 	if t in ["chaos", "curse"]:
 		var tp := _trade_parts(r)
 		col.add_child(_RewardCardUi.trade_box(&"gain", String(tp["gain"])))
