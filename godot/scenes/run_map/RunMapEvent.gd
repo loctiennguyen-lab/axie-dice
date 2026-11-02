@@ -48,7 +48,7 @@ func _build_event_screen(picked: int, outcome: String) -> void:
 	var art_i := TextureRect.new()
 	art_i.name = "EventIllustration"
 	art_i.texture = UI6Assets.illustration("node_event")   # UI-06 painting (the header keeps the small node icon)
-	var glyph := UI3Theme.size_of("event_glyph")
+	var glyph := art_px * 0.9   # original square painting fills the plate (Liam 2/11), never cropped or stretched
 	art_i.custom_minimum_size = Vector2(glyph, glyph)
 	art_i.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	art_i.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
