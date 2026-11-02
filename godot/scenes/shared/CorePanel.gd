@@ -428,6 +428,7 @@ func _anchor_slot() -> PanelContainer:
 	ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UI6Assets.light_disc(ic, ANCHOR_PX * 0.5)
 	s.add_child(ic)
 	if awake:
 		var aw := TextureRect.new()

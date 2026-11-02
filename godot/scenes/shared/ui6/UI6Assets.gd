@@ -164,3 +164,36 @@ static func ninepatch_margins(key: String) -> Vector4i:
 		push_error("UI6Assets: no ninepatch margins for '%s'" % key)
 		return Vector4i.ZERO
 	return Vector4i(int(m[0]), int(m[1]), int(m[2]), int(m[3]))
+
+
+## Original icons drawn with a thick black outline: they need the cream LightDisc on a dark plate (Liam 2/11).
+const DISC_ICONS := ["face_buff", "face_heal", "face_dmg", "face_summon", "status_vuln", "ui_reroll", "node_shop"]
+
+
+static func needs_disc(tex: Texture2D) -> bool:
+	if tex == null or not tex.resource_path.begins_with(OLD_ICON_DIR):
+		return false
+	var stem := tex.resource_path.get_file().get_basename()
+	return stem.begins_with("house_") or DISC_ICONS.has(stem)
+
+
+## Cream disc behind an icon that has a thick black outline (the original house SVGs, Level Up arrow, Serum ...), so it
+## reads on walnut (Liam 2/11, art-director review). A round Panel child drawn behind `r`'s own texture; it grows
+## `r`'s box by `grow` (fraction of its size, default 8%) on every side. Returns `r`. Safe to call once per rect.
+static func light_disc(r: Control, size_px: float = 0.0, grow := 0.08) -> Control:
+	if r == null or r.get_node_or_null("LightDisc") != null:
+		return r
+	var px := size_px if size_px > 0.0 else maxf(r.custom_minimum_size.x, r.size.x)
+	var pad := maxf(2.0, px * grow)
+	var d := Panel.new()
+	d.name = "LightDisc"
+	d.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	d.show_behind_parent = true
+	d.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("text"), 999, 0))
+	d.set_anchors_preset(Control.PRESET_FULL_RECT)
+	d.offset_left = -pad
+	d.offset_top = -pad
+	d.offset_right = pad
+	d.offset_bottom = pad
+	r.add_child(d)
+	return r

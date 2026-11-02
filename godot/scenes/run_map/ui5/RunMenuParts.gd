@@ -100,6 +100,8 @@ static func core_slot(def, is_rule: bool) -> PanelContainer:
 	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	ic.size = Vector2(14, 14)
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if UI6Assets.needs_disc(ic.texture):
+		UI6Assets.light_disc(ic, 14.0, 0.1)
 	ic.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	ic.offset_left = -16
 	ic.offset_top = -16

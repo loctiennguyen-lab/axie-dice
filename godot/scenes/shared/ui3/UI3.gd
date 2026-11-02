@@ -431,6 +431,8 @@ static func icon_chip(text: String, tex: Texture2D, border: Color, chip_name := 
 		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if UI6Assets.needs_disc(tex):
+			UI6Assets.light_disc(ic, 24.0)
 		row.add_child(ic)
 	var l := label(text, "LabelDisplay")
 	l.name = "Text"

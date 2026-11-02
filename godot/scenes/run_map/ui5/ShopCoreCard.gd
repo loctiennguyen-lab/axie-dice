@@ -32,7 +32,7 @@ func setup(it: Dictionary, shop_index: int, why: String) -> void:
 	var axis := String(def.core_axis) if def != null else "stat"
 	var art := Panel.new()
 	art.name = "Art"
-	art.custom_minimum_size = Vector2(0, UI3Theme.size_of("shop_art_h"))
+	art.custom_minimum_size = Vector2(0, maxf(UI3Theme.size_of("shop_art_h"), 96 + 16 + 8))
 	art.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("chip"), UI3Theme.radius("l"), UI3Theme.stroke("selected"), tcol))
 	# UI-06: family emblem + TierShards instead of the old axis glyph (no relic_r0..r2 picture for a Core)
 	var stack := VBoxContainer.new()
@@ -41,7 +41,7 @@ func setup(it: Dictionary, shop_index: int, why: String) -> void:
 	stack.alignment = BoxContainer.ALIGNMENT_CENTER
 	stack.add_theme_constant_override("separation", 2)
 	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var px := 64
+	var px := 96   # x1.5 (Liam 2/11, art-director review)
 	var ic := PanelParts.icon_rect(CoreVisuals.family_texture(axis, px), px, "FamilyEmblem")
 	ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	stack.add_child(ic)

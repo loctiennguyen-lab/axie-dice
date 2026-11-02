@@ -752,6 +752,8 @@ func _add_reward_card(r: Dictionary, _wide := false) -> PanelContainer:
 	card.setup(tr(kind_text), rar_word, accent, icon_tex, name_text)
 	if t == "relic":
 		_core_reward_art(card, String(r.get("key", "")), rar)
+	elif UI6Assets.needs_disc(icon_tex) and card.get("art_icon") != null:
+		UI6Assets.light_disc(card.get("art_icon") as Control, 0.0, 0.1)   # Level Up arrow etc.: black outline on dark art
 	var col: VBoxContainer = card.text_box
 	card.gui_input.connect(func(ev: InputEvent) -> void:
 		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
