@@ -89,7 +89,8 @@ func _ready() -> void:
 	await get_tree().create_timer(0.2).timeout
 	_ok(done[0] == 0, "done waits for the shake")
 	await get_tree().create_timer(0.35).timeout
-	_ok(chest.find_children("Sparkle*", "TextureRect", false, false).size() == 12, "12 sparkles popped")
+	var nsp := chest.find_children("Sparkle*", "TextureRect", false, false).size()
+	_ok(nsp == 12, "12 sparkles popped (%d, children %d)" % [nsp, chest.get_child_count()])
 	await get_tree().create_timer(0.6).timeout
 	_ok(done[0] == 1, "done fired once after the squash")
 	await get_tree().create_timer(1.0).timeout

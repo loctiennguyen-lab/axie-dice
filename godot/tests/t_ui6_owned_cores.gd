@@ -83,7 +83,7 @@ func _ready() -> void:
 	_ok(fx != null and fx.get_parent() == v._hud_frame, "CoreFireFX in the HUD")
 	var ally: int = v._combat.party[0].uid
 	var foe: int = v._combat.enemies[0].uid
-	var floats0 := v.core_float_log.size()
+	var floats0: int = v.core_float_log.size()
 	EventBus.core_fired.emit("c_bastion", ally, 3, "shield")
 	await _frames(3)
 	# one number per fire: the float note (name + amount) is the only one, the FX draws none

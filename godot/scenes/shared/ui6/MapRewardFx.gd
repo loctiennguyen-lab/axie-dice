@@ -165,7 +165,7 @@ static func sparkles(host: Control, count := 12) -> void:
 		s.size = Vector2(20, 20)
 		s.pivot_offset = Vector2(10, 10)
 		s.position = origin - Vector2(10, 10)
-		host.add_child(s)
+		host.add_child(s, true)
 		var v := Vector2(rng.randf_range(-180.0, 180.0), rng.randf_range(-520.0, -320.0))
 		var t := 0.9
 		var tw := s.create_tween()
