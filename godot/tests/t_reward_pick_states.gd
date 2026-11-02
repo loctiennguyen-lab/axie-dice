@@ -83,9 +83,14 @@ func _check_state(key: String, rewards: Array) -> void:
 			continue
 		var rar: int = rm.call("_reward_rarity", r)
 		var col: Color = rm.call("_rarity_color", rar)
+		var word: String = rm.call("_rarity_name", rar)
+		var cdef = RelicRegistry.get_def(String(r.get("key", ""))) if String(r.get("t", "")) == "relic" else null
+		if cdef != null and String(cdef.core_axis) != "":   # Liam 2/11: a Core's chip names its Core tier
+			col = CoreVisuals.tier_color(int(cdef.rarity))
+			word = CoreVisuals.tier_name(int(cdef.rarity))
 		_check((chip.get_theme_stylebox("panel") as StyleBoxFlat).bg_color.is_equal_approx(col)
 			and (art.get_theme_stylebox("panel") as StyleBoxFlat).border_color.is_equal_approx(col), "%s card %d: chip fill = art edge = rarity colour" % [key, i])
-		_check((chip.find_child("Text", true, false) as Label).text == rm.call("_rarity_name", rar), "%s card %d: rarity word" % [key, i])
+		_check((chip.find_child("Text", true, false) as Label).text == word, "%s card %d: rarity / tier word (%s)" % [key, i, word])
 		if String(r.get("t", "")) == "relic":
 			_check((c.find_child("Category", true, false) as Label).text == "Core", "%s card %d: a relic reads Core" % [key, i])
 			# Liam 2/11: a Core shows its family emblem + tier shards, not the shared moon icon.

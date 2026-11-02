@@ -724,6 +724,11 @@ func _add_reward_card(r: Dictionary, _wide := false) -> PanelContainer:
 		return _add_rule_card(r) if bool(r.get("rule", false)) else _add_core_card(r)
 	var accent := ctrl._rarity_color(rar)
 	var rar_word := ctrl._rarity_name(rar)
+	# Liam 2/11: a Core's chip (and art edge) says its Core tier, Moss / Amber / Crystal, matching the shards under it.
+	var core_def = RelicRegistry.get_def(String(r.get("key", ""))) if t == "relic" else null
+	if core_def != null and String(core_def.core_axis) != "":
+		accent = CoreVisuals.tier_color(int(core_def.rarity))
+		rar_word = CoreVisuals.tier_name(int(core_def.rarity))
 	var idx := ctrl._reward_cards.size()
 	var kind_text := String(ctrl._REWARD_KIND.get(t, "Reward"))
 	var icon_tex := UI3.icon(String(ctrl._REWARD_ICON.get(t, "ui_mooncard")))
