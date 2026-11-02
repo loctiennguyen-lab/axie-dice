@@ -31,7 +31,7 @@ func _sets() -> Dictionary:
 	var asc := RewardGenerator._make_ascend_reward(rng, rost, none)
 	var hp := RewardGenerator._make_reward("hp", [0, 1], 2, rng, [], rost, none)
 	var rr := RewardGenerator._make_reward("reroll", [0, 1], 2, rng, [], rost, none)
-	var relics := ["r_bastionplate", "r_ember"].map(func(id: String) -> Dictionary:
+	var relics := ["c_thorn_shield", "r_ember"].map(func(id: String) -> Dictionary:   # a real Core (family emblem) + an old relic (rarity art)
 		var d = RelicRegistry.get_def(id)
 		return {"t": "relic", "key": id, "rar": d.rarity, "title": "RELIC", "desc": d.name, "sub": RewardGenerator.relic_desc(d)})
 	var out := {"hp": [hp, rr, lvl], "core": [relics[0], relics[1], relics[0]], "ascend": [asc, hp, rr],
@@ -88,6 +88,12 @@ func _check_state(key: String, rewards: Array) -> void:
 		_check((chip.find_child("Text", true, false) as Label).text == rm.call("_rarity_name", rar), "%s card %d: rarity word" % [key, i])
 		if String(r.get("t", "")) == "relic":
 			_check((c.find_child("Category", true, false) as Label).text == "Core", "%s card %d: a relic reads Core" % [key, i])
+			# Liam 2/11: a Core shows its family emblem + tier shards, not the shared moon icon.
+			var d = RelicRegistry.get_def(String(r.get("key", "")))
+			var is_core: bool = d != null and String(d.core_axis) != ""
+			var em := art.find_child("FamilyEmblem", true, false) as TextureRect
+			_check((em != null and em.texture != null and art.find_child("TierShards", true, false) != null) == is_core,
+				"%s card %d: family emblem + shards only on a Core (core=%s)" % [key, i, is_core])
 		_labels_fit(c, "%s card %d" % [key, i])
 	# Selected card: cream ring flag + 12 px above the others.
 	if cards.size() >= 2:

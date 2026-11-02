@@ -691,6 +691,28 @@ func _play_reveal_moment(tier: int, shake_host: Control) -> void:
 			UI3Motion.clear_bursts(ctrl._overlay_root))
 
 
+## Liam 2/11: a Core on the reward screen shows its family emblem + tier shards (as the shop's Core card), not the
+## shared moon icon. A relic that is not a Core keeps the rarity picture (relic_r0..r4). Unknown key: the icon stays.
+func _core_reward_art(card: Control, key: String, rarity: int) -> void:
+	var def = RelicRegistry.get_def(key) if key != "" else null
+	var ic := card.get("art_icon") as TextureRect
+	var art := card.get("art") as Control
+	if def == null or ic == null or art == null:
+		return
+	var axis := String(def.core_axis)
+	if axis == "":
+		ic.texture = UI6Assets.relic_rarity(clampi(rarity, 0, 4), false)
+		return
+	ic.texture = CoreVisuals.family_texture(axis, maxf(ic.custom_minimum_size.x, 64.0))
+	ic.name = "FamilyEmblem"
+	var sh := TierShards.new().setup(clampi(int(def.rarity), 0, 2), 32.0)
+	sh.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	sh.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	sh.offset_top = -sh.custom_minimum_size.y - UI3Theme.space("8")
+	sh.offset_bottom = -UI3Theme.space("8")
+	art.add_child(sh)
+
+
 ## One UI-05 RewardCard (31-reward): Category + RarityChip, RewardArt (rarity edge), RewardName, then the body:
 ## RewardBody text, or GainBox + GambleBox / CurseBox (always in that order) for Chaos / Curse. Core cards
 ## go to _add_core_card (CoreCard) and Run rules to _add_rule_card (RuleCard).
@@ -723,6 +745,8 @@ func _add_reward_card(r: Dictionary, _wide := false) -> PanelContainer:
 	var card := _RewardCardUi.new()
 	card.name = "RewardCard%d" % idx
 	card.setup(tr(kind_text), rar_word, accent, icon_tex, name_text)
+	if t == "relic":
+		_core_reward_art(card, String(r.get("key", "")), rar)
 	var col: VBoxContainer = card.text_box
 	card.gui_input.connect(func(ev: InputEvent) -> void:
 		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:

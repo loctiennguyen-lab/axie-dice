@@ -145,7 +145,7 @@ func _run_screens() -> void:
 	var none: Array[Dictionary] = []
 	var chaos := RewardGenerator._make_chaos_reward(rng, RunState.owned_relic_ids, none)
 	var curse := RewardGenerator._make_curse_reward(none)
-	var relics := ["r_bastionplate", "r_ember"].map(func(id: String) -> Dictionary:
+	var relics := ["c_thorn_shield", "c_concord"].map(func(id: String) -> Dictionary:   # real Cores (live reward offers are Cores)
 		var d = RelicRegistry.get_def(id)
 		return {"t": "relic", "key": id, "rar": d.rarity, "title": "RELIC", "desc": d.name, "sub": RewardGenerator.relic_desc(d)})
 	for pair in [["reward--pick", [relics[0], relics[1], relics[0]]], ["reward--chaos", [relics[0], chaos, curse]]]:
