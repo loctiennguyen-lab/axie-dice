@@ -125,7 +125,7 @@ static func chest_drop(chest: Control) -> void:
 	tw.tween_property(chest, "position:y", rest, 0.32)
 
 
-## Open pressed: shake +-4 deg x 2 (360 ms), then at 960 ms pop (12 sparkles up, gravity 900) and squash, then `done`.
+## Open pressed: shake +-4 deg x 2 (360 ms), then (at ~360 ms) pop (12 sparkles up, gravity 900) and squash (220 ms), then `done` at ~0.58 s.
 ## Reduce motion: no shake / sparkles / squash, `done` fires at once. `done` always fires exactly once.
 static func chest_open(chest: Control, done: Callable) -> void:
 	if chest == null or not chest.is_inside_tree() or _reduced():

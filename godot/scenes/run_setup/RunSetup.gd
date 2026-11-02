@@ -1,8 +1,6 @@
 class_name RunSetup
 extends Control
 
-## Share of the class colour in a party portrait backing (rest is the plate colour), Liam 2/11.
-const PORTRAIT_TINT := 0.3
 ## M1 Run Setup (Portal, key 1). Spec: design/handoffs/ui-02-round3 README §0, §2 M1.
 ## Layout: shell 1520 x (880 + extra height) at left 200 / top 116, wood header band 64, party row
 ## on top (5 slots 272 x 176), three columns (Mode + Length | Ascension | Kit/Boon), footer 84.
@@ -15,6 +13,8 @@ const PORTRAIT_TINT := 0.3
 ## when dice are server-rolled. Not wired: Kit/Boon purchase,
 ## preset save/load, seed well, Leaderboard button. Those render disabled with the reason shown.
 
+## Share of the class colour in a party portrait backing (rest is the plate colour), Liam 2/11.
+const PORTRAIT_TINT := 0.3
 const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 const EconomyDBScript := preload("res://scripts/meta/economy_db.gd")
 const SCREEN_ID := "portal"
