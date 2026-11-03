@@ -69,3 +69,5 @@ Mỗi làn chạy test liên quan, chụp ảnh 1920 + 1280 và có review. Gộ
   - nhãn Lõi Name Tag: "Named foe: +1 MP if it falls";
   - mặt xúc xắc Axie Egg: "Egg die".
 - Art: brief lượt 1 (23 món thẻ Lõi) đã gửi Liam, nằm ở `design/handoffs/art-redo-0311/`.
+
+- 3/11: Liam đã gửi brief lượt 1 cho Claude Design (vẽ thử 3 món: frame_core_amber, family_stat, slot_moss, rồi dừng chờ duyệt).
