@@ -33,6 +33,7 @@ var _col: VBoxContainer
 var _primary: Button
 var _intro: Tween
 var _intro_nodes: Array = []
+var _panel_rise := 0.0   # intro slide offset added on top of the fitted position (never a stored absolute y)
 var _owns_toast := false
 var _prev_toast: Callable   # the service's toast before this screen took it; given back on exit
 
@@ -448,8 +449,14 @@ func _fit_panel() -> void:
 	if _panel == null or not is_instance_valid(_panel):
 		return
 	var h := _panel.get_combined_minimum_size().y
-	_panel.offset_top = -h * 0.5
-	_panel.offset_bottom = h * 0.5
+	_panel.offset_top = -h * 0.5 + _panel_rise
+	_panel.offset_bottom = h * 0.5 + _panel_rise
+
+
+## Intro slide: moves the rise offset, then re-fits, so a late re-fit can never be undone by the tween.
+func _set_panel_rise(v: float) -> void:
+	_panel_rise = v
+	_fit_panel()
 
 
 func _guest_block(button_text: String, line: String) -> VBoxContainer:
@@ -581,9 +588,10 @@ func _play_intro() -> void:
 				start = 0.3 * half
 				dur = 0.12 if reduced else 0.36
 				if not reduced:
-					var y0 := n.position.y
-					n.position.y = y0 + 48.0
-					_intro.tween_property(n, "position:y", y0, dur).set_delay(start).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+					# Hotfix 3/11: the old code tweened position:y back to a y read before the panel was fitted (~-3555 px on
+					# a cold start), which put the whole panel off screen once the intro ended.
+					_set_panel_rise(48.0)
+					_intro.tween_method(_set_panel_rise, 48.0, 0.0, dur).set_delay(start).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 		var tw := _intro.tween_property(n, "modulate:a", 1.0, dur).set_delay(start)
 		if e[0] == "bg":
 			tw.set_trans(Tween.TRANS_LINEAR)

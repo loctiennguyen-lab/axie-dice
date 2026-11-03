@@ -53,6 +53,7 @@ func _ready() -> void:
 		for st in LoginScreen.STATES:
 			await _state(st, sc)
 		await _runs_plural(sc)
+		await _intro_case(sc)
 	UI3Theme.set_scale_override(1.0)
 	MetaState.runs = saved_runs
 	_entry()
@@ -131,6 +132,33 @@ func _state(st: String, sc: float) -> void:
 	esc.pressed = true
 	scr._input(esc)
 	_check(is_instance_valid(scr) and not gone[0], "[%s] Esc does nothing" % tag)
+	scr.queue_free()
+	svc.free()
+	await get_tree().process_frame
+
+
+## Hotfix 3/11: with the intro ON (the real entry), the panel must end inside the screen. The intro used to tween the
+## panel back to a y read before it was fitted (~-3555 px), so a returning guest saw no buttons once the intro ended.
+func _intro_case(sc: float) -> void:
+	var tag := "intro %.2f" % sc
+	MetaState.runs = 12
+	var svc := _svc()
+	var scr := (load(SCENE) as PackedScene).instantiate() as LoginScreen
+	scr.service = svc
+	scr.no_scene_change = true
+	add_child(scr)
+	scr.show_state("returning-guest", "")
+	var t0 := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < 1500:
+		await get_tree().process_frame
+	var panel := scr.find_child("SignInPanel", true, false) as Control
+	_check(panel != null, "[%s] panel exists" % tag)
+	if panel != null:
+		_check(Rect2(Vector2.ZERO, scr.size).grow(1.0).encloses(panel.get_global_rect()),
+			"[%s] panel inside the screen after the intro (%s)" % [tag, panel.get_global_rect()])
+	var g := scr.find_child("GoogleButton", true, false) as Control
+	_check(g != null and g.is_visible_in_tree() and Rect2(Vector2.ZERO, scr.size).encloses(g.get_global_rect()),
+		"[%s] Google button on screen after the intro" % tag)
 	scr.queue_free()
 	svc.free()
 	await get_tree().process_frame
