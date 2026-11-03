@@ -94,3 +94,16 @@ Quyết định mới của Liam (3/11): cái gì kho không có thì Claude Des
 - "Được dùng" kiểm bằng grep tên, nên asset load động (ui6, cosmetics) có thể bị sót; bảng trên dựa thêm vào `UI6Assets.gd`.
 - Số liệu là xấp xỉ, chưa gộp lại bằng script cuối. `.import` không tính.
 - Chưa so md5 `cards/*`, `backgrounds/origins`, `monsters`, `vfx` với kit Origins vì kit không nằm trong repo.
+
+## Xác minh thêm (3/11, sau review art-director)
+- `cards/*` (16 tranh thẻ thưởng/shop/event/rương): commit 530abab ghi rõ là tranh vẽ sẵn trong **Axie Origins Kit** (91 tranh 320x320). Đây là art CHÍNH THỨC, không phải AI.
+- `icons/web/*.png` và `portraits/*` (6 chân dung class): đưa vào ở 042bfaf, cùng lúc với bộ art của bản game JS cũ.
+- `house_*.svg`: 10b7ae6, do agent tự vẽ bằng code. `ui3/icons/cur_*`: 7594a4a (UI-03). `icons/hl/*`: 71d3fea (theme v3).
+
+## Liam quyết (3/11)
+- 6 house SVG + ~16 icon SVG khác do agent tự vẽ: **tính là AI, làm lại**.
+- `icons/web` + 6 chân dung class: **chính thức, giữ**.
+- Cosmetics (26 skin xúc xắc + 49 khung, Claude Design): **làm lại trong đợt này**.
+- Logo chữ "AXIE DICE" và nền màn đăng nhập: **giữ như hiện tại**.
+- Đã chốt trước đó: `cards/*` là Origins Kit nên giữ. ui6 Claude Design (family dice/stat/quest/run_rule, badge, awaken, slot, khung/crest/artwin/back_art, fx) làm lại. 95 file ui6 không còn ai dùng thì XOÁ, không làm lại.
+- Phần kho không có: Claude Design vẽ lại BÁM KHO, Liam duyệt từng món.
