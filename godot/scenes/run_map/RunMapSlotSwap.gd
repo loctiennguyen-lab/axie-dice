@@ -54,6 +54,12 @@ func open_slot_swap(reward: Dictionary, chk: Dictionary) -> void:
 			kind_owned, int(cap["active"] if active else cap["passive"])]
 	var sheet := MakeRoomSheet.build(UI3.title_case(UI3.player_text(String(nd.name))), int(nd.rarity), rule, cells,
 		func(sell_id: String) -> void:
+			# A Core card is granted (and the sale logged) by RunState.apply_chosen_reward -> _apply_core_pick. Granting it here
+			# first made that call fail with already_owned: the run stuck on the offer (seed 7 + Anchor, Cascade, 3/11).
+			if bool(reward.get("core", false)):
+				ctrl._core_sell_id = sell_id
+				sheet_closed(true, reward)
+				return
 			var ok := RunState.acquire_relic(key, "reward", sell_id)
 			sheet_closed(ok, reward),
 		func() -> void: sheet_closed(false, {}, true), title_text)

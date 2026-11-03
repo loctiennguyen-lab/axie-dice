@@ -1072,6 +1072,7 @@ func _lift_selected_card() -> void:
 	_offers._lift_selected_card()
 
 
+var _core_sell_id := ""   ## Core card + full slots: the id sold in the make-room sheet; passed to apply_chosen_reward (it logs the sale itself)
 var _taking := false   ## true from Take until the node finishes (spin + banner play in between): no double take
 
 
@@ -1231,7 +1232,9 @@ func _apply_and_finish(reward: Dictionary) -> void:
 		var tl := UI3Motion.play_timeline(mid, tg, {"host": self})
 		if not is_level:
 			take_tl = tl
-	RunState.apply_chosen_reward(reward)
+	var core_sell := _core_sell_id
+	_core_sell_id = ""
+	RunState.apply_chosen_reward(reward, core_sell)
 	var granted := ""
 	if not pool_names.is_empty():
 		for id in RunState.owned_relic_ids:
