@@ -62,3 +62,10 @@ Mỗi làn chạy test liên quan, chụp ảnh 1920 + 1280 và có review. Gộ
 2. Đợt 1 chạy ngay. Song song: em lập bảng tồn kho gói A/B/C để Liam xem.
 3. Liam duyệt bảng, em gửi brief gói A trước (ảnh hưởng nhiều màn nhất), rồi B, rồi C.
 4. Bản giao về: code, review, QA, Liam duyệt, deploy.
+
+## Quyết định thêm (3/11 chiều)
+- #2: P2 phát hiện lỗi LUẬT. `relic_slots.check_add` đếm cả Lõi vào 8 ô relic cũ / pact. Liam: **sửa ngay trong đợt polish**. Làm ở nhánh `polish/0311-rules`, tăng RULES_VERSION lên `-w`, thêm bản mới vào SUPPORTED của Worker, run dở bị huỷ một lần khi deploy.
+- Chữ mới của P1 được duyệt:
+  - nhãn Lõi Name Tag: "Named foe: +1 MP if it falls";
+  - mặt xúc xắc Axie Egg: "Egg die".
+- Art: brief lượt 1 (23 món thẻ Lõi) đã gửi Liam, nằm ở `design/handoffs/art-redo-0311/`.
