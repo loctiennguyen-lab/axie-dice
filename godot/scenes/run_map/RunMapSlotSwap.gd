@@ -28,6 +28,8 @@ func open_slot_swap(reward: Dictionary, chk: Dictionary) -> void:
 		var od = RelicRegistry.get_def(id)
 		if od == null or id.begins_with("__"):
 			continue
+		if RelicSlots.is_core(od) and not RelicSlots.is_core(nd):
+			continue   # an old relic / pact never sells a Core
 		var eternal := String(RunState.relic_stickers.get(id, "")) == RelicSlots.STICKER_ETERNAL
 		var same_pool := RelicSlots.is_core(od) if RelicSlots.is_core(nd) else RelicSlots._is_active(od) == active
 		if not sell_from.has(id) and not (eternal and same_pool):
@@ -45,7 +47,7 @@ func open_slot_swap(reward: Dictionary, chk: Dictionary) -> void:
 		var kind_owned := 0
 		for oid in RunState.owned_relic_ids:
 			var kd = RelicRegistry.get_def(String(oid))
-			if kd != null and not String(oid).begins_with("__") and RelicSlots._is_active(kd) == active:
+			if kd != null and not String(oid).begins_with("__") and not RelicSlots.is_core(kd) and RelicSlots._is_active(kd) == active:
 				kind_owned += 1
 		rule = (tr("Active slots are full (%d of %d). Sell one to take the new Core.") if active
 			else tr("Passive slots are full (%d of %d). Sell one to take the new Core.")) % [
