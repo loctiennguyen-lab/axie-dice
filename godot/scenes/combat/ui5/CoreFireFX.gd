@@ -1,21 +1,24 @@
 class_name CoreFireFX
 extends Control
 ## UI-06 L2: what the player sees when `core_fired(id, uid, amount, kind)` arrives in combat (moments/moment-core-firing,
-## motion-ui06.md "Core firing"). One fire = socket ring + dotted line socket -> unit + travelling dot + a number at the
+## motion-ui06.md "Core firing"). One fire = socket ring + a few motes curving socket -> unit, then a light skill-clip burst + a number at the
 ## unit. Cores use the cream `fire_ring` and the family emblem in front of the number; an Anchor (`a_*`) uses the gold
 ## `anchor_fire` and no emblem, so it never reads as a Core. Pure view: it only listens to what CombatView forwards
 ## (CoreHooks.mute already keeps previews / forecasts from emitting, so nothing here has to know about them).
 ## Several fires queue 180 ms apart, at most MAX_LIVE are on screen at once.
-## Reduce motion: no line / dot, number only fades. Reduce flashing: ring alpha <= 0.12 (the ring still draws).
+## Reduce motion: no motes / burst, socket pulse only. Reduce flashing: ring alpha <= 0.12 (the ring still draws).
 ## Test hooks: live / max_seen / queued() / log (one {id, uid, anchor, amount, kind} per fire that STARTED).
 
 const MAX_LIVE := 6
 const GAP_MSEC := 180
 const LIFE_SEC := 1.4
+const MOTES := 4
 
 var panel: CorePanel = null
 ## Callable(uid:int) -> Vector2 global point of the unit, or Vector2(-1, -1) when the unit is not on screen.
 var unit_pos: Callable
+## Callable(uid:int, kind:String, anchor:bool): the burst when the last mote lands (CombatView plays a skill clip).
+var burst: Callable
 var live := 0
 var max_seen := 0
 var log: Array = []
@@ -99,7 +102,7 @@ func _start(e: Dictionary) -> void:
 	var has_unit := uv.x >= 0.0 and uv.y >= 0.0
 	var to := _local(uv) if has_unit else Vector2(-1, -1)
 	if has_unit and from.x >= 0.0 and not nomove:
-		_line(holder, from, to, col)
+		_motes(holder, from, to, col, int(e["uid"]), String(e["kind"]), anchor)
 	if SHOW_NUMBER and has_unit and int(e["amount"]) > 0:
 		_number(holder, to, e, col, anchor, nomove)
 
@@ -157,37 +160,33 @@ func _anchor_pulse(holder: Control, slot: Control, col: Color, noflash: bool, no
 		pt.tween_property(slot, "scale", Vector2.ONE, 0.08)
 
 
-func _line(holder: Control, from: Vector2, to: Vector2, col: Color) -> void:
-	var ink := Line2D.new()
-	ink.name = "FireLineInk"
-	ink.width = 10
-	ink.default_color = UI3Theme.color("plate_ink")
-	var l := Line2D.new()
-	l.name = "FireLine"
-	l.width = 4
-	l.default_color = UI3Theme.color("anchor_fire") if col == UI3Theme.color("anchor_fire") else UI3Theme.color("fire_line")
-	for n in [ink, l]:
-		(n as Line2D).points = PackedVector2Array([from, from])
-		(n as Line2D).modulate.a = 0.0
-		holder.add_child(n)
-	var dot := TextureRect.new()
-	dot.name = "FireDot"
-	dot.texture = UI6Assets.fx("pulse", 32)
-	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	dot.custom_minimum_size = Vector2(32, 32)
-	dot.size = Vector2(32, 32)
-	dot.position = from - dot.size * 0.5
-	holder.add_child(dot)
-	var tw := holder.create_tween().set_parallel(true)
-	tw.tween_method(func(t: float) -> void:
-		var p := from.lerp(to, t)
-		for n in [ink, l]:
-			(n as Line2D).points = PackedVector2Array([from, p])
-		dot.position = p - dot.size * 0.5, 0.0, 1.0, 0.22).set_delay(0.04).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	for n in [ink, l]:
-		tw.tween_property(n, "modulate:a", 1.0, 0.07).set_delay(0.04)
-		tw.tween_property(n, "modulate:a", 0.0, 0.2).set_delay(0.28)
-	tw.tween_property(dot, "modulate:a", 0.0, 0.05).set_delay(0.26)
+## polish 3/11 P1 #4 (Liam): no dotted line / arrow / running dot. A few small motes fly a curve from the socket to the unit;
+## the last one to land calls `burst(uid, kind, anchor)` (CombatView plays a light official skill clip there).
+func _motes(holder: Control, from: Vector2, to: Vector2, col: Color, uid: int, kind: String, anchor: bool) -> void:
+	var mid := from.lerp(to, 0.5) + Vector2(0.0, -maxf(60.0, from.distance_to(to) * 0.25))
+	var n := MOTES
+	for i in n:
+		var m := TextureRect.new()
+		m.name = "FireMote"
+		m.texture = UI6Assets.fx("pulse", 32)
+		m.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		m.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		m.size = Vector2.ONE * 20.0
+		m.modulate = Color(col.r, col.g, col.b, 0.0)
+		m.position = from - m.size * 0.5
+		holder.add_child(m)
+		var last := i == n - 1
+		var tw := holder.create_tween()
+		tw.tween_interval(0.04 + 0.05 * i)
+		tw.tween_callback(func() -> void: m.modulate.a = 1.0)
+		tw.tween_method(func(t: float) -> void:
+			var a := from.lerp(mid, t)
+			var b := mid.lerp(to, t)
+			m.position = a.lerp(b, t) - m.size * 0.5, 0.0, 1.0, 0.26 - 0.01 * i).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		tw.tween_callback(func() -> void:
+			m.visible = false
+			if last and burst.is_valid():
+				burst.call(uid, kind, anchor))
 
 
 func _number(holder: Control, at: Vector2, e: Dictionary, col: Color, anchor: bool, nomove: bool) -> void:

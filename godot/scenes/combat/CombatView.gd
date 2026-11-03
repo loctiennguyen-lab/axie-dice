@@ -1069,6 +1069,7 @@ func _build_hud_r1() -> void:
 	_hud_frame.z_index = 8
 	_shell_root.add_child(_hud_frame)
 	core_fx = CoreFireFX.new().setup(_hud_frame.core_panel, _core_fx_unit_pos)
+	core_fx.burst = _core_fx_burst
 	_hud_frame.add_child(core_fx)
 	_relic_strip = _hud_frame.relic_strip
 	_actives_row = _hud_frame.actives_row
@@ -3370,6 +3371,30 @@ var hit_stops := 0
 
 ## UI-06 L2: socket flash + line + number for every Core / Anchor that fires (previews never emit: CoreHooks.mute).
 var core_fx: CoreFireFX = null
+var core_bursts: Array = []   ## test hook: {uid, clip} per burst played
+
+## Light official clip per fire kind (assets/vfx via SkillVfxCatalog); Anchors reuse the same set.
+const _CORE_BURST_CLIP := {"dmg": "beast_slash", "thorns": "plant_gore", "poison": "bug_cast", "shield": "aquatic_cast",
+	"block": "aquatic_cast", "heal": "plant_cast", "mana": "bird_cast", "reroll": "bird_cast", "quest_step": "bird_cast"}
+
+
+func _core_fx_burst(uid: int, kind: String, _anchor: bool) -> void:
+	if motion_suppressed() or disable_juice_for_tests or _stage3d == null or _combat == null:
+		return
+	var clip := String(_CORE_BURST_CLIP.get(kind, "bird_cast"))
+	if SkillVfxCatalog.clip(clip).is_empty():
+		return
+	if _combat.by_uid(uid) == null:
+		var ap: Array = _combat.alive_party()
+		if ap.is_empty():
+			return
+		uid = int(ap[0].uid)
+	var layer := _ensure_skill_vfx()
+	var a := _stage3d.get_unit_screen_pos(uid, CombatStage3D.HEAD_HEIGHT)
+	if layer == null or a.x < 0.0:
+		return
+	if layer.play_on_unit(clip, a + _stage3d.position):
+		core_bursts.append({"uid": uid, "clip": clip})
 
 
 ## Global centre of a unit's head for CoreFireFX; (-1, -1) when it is not on screen. An unknown uid falls back to the

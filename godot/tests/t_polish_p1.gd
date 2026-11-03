@@ -62,6 +62,18 @@ func _ready() -> void:
 	hud._reason_until_ms = 0
 	hud.update_right_hint_refresh()
 	_ok(hud._hint.text != undo.reason_text(), "#5 reason clears")
+	# #4: motes land, then the burst hook fires once
+	CombatView.disable_juice_for_tests = false
+	var got: Array = []
+	var cp := CorePanel.new()
+	add_child(cp)
+	cp.refresh()
+	var fx := CoreFireFX.new().setup(cp, func(_u: int) -> Vector2: return Vector2(900, 500))
+	fx.burst = func(uid: int, kind: String, anc: bool) -> void: got.append([uid, kind, anc])
+	add_child(fx)
+	fx.fire("c_bastion", 1, 3, "shield")
+	await get_tree().create_timer(0.8).timeout
+	_ok(got.size() == 1 and got[0][1] == "shield", "#4 burst fires once after the motes land (%s)" % str(got))
 	view.queue_free()
 	_guard.restore()
 	if _fails.is_empty():
