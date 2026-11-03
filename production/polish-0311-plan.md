@@ -11,7 +11,7 @@ Luật chung:
 - mỗi làn có review độc lập và QA luồng thật;
 - hỏi Liam trước khi deploy.
 
-## Quyết định cần Liam trước khi làm
+## Quyết định của Liam (3/11, đã chốt: theo đề xuất ở cả 3 mục; kế hoạch được duyệt)
 1. **Mục 2, slot.** Game có hai loại ô khác nhau:
    - **Lõi**: 6 ô Lõi + 1 ô Luật run;
    - **relic cũ / pact**: 8 ô passive + 3 ô active, Ascension có thể giảm số ô (`scripts/core/relic_slots.gd`).
