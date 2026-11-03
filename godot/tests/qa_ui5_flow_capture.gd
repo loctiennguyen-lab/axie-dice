@@ -32,6 +32,12 @@ var _done := false
 var _t0 := 0
 var _last_progress_ms := 0
 var _ui_log_size := 0
+var _entry := false     ## QA_ENTRY=1: start from MainMenu -> LoginScreen -> Play as guest -> Land, then start the run
+var _anchor := false    ## QA_ANCHOR=1: unranked normal run with Anchor opt-in (the way RunSetup starts it)
+var _shop := false      ## QA_SHOP=1: prefer a shop node when the map offers one
+var _entry_phase := false
+var _entry_t := 0
+var _entry_shots := {}
 
 
 func _ready() -> void:
@@ -47,10 +53,39 @@ func _ready() -> void:
 	var small := get_window().size.x < 1600
 	UI3Theme.set_scale_override(2.0 / 3.0 if small else 1.0)
 	_tag = "flow-%s" % _flow
+	_entry = OS.get_environment("QA_ENTRY") == "1"
+	_anchor = OS.get_environment("QA_ANCHOR") == "1"
+	_shop = OS.get_environment("QA_SHOP") == "1"
+	if _anchor:
+		_tag += "-anchor"
 	_meta()
+	if _entry:
+		# Real game start: MainMenu routes to the sign-in screen while nobody is signed in. The run starts after it.
+		MainMenu.login_passed = false
+		_entry_phase = true
+		_entry_t = Time.get_ticks_msec()
+		_t0 = _entry_t
+		_last_progress_ms = _entry_t
+		print("QA: entry flow, start at MainMenu")
+		get_tree().change_scene_to_file("res://scenes/main_menu/MainMenu.tscn")
+		_loop()
+		return
+	_begin_run()
+	_loop()
+
+
+func _begin_run() -> void:
 	RunState.submit_hook = func(_id: String) -> void: print("QA: ranked submit hook (no network) run_id=", _id)
 	var boost := OS.get_environment("QA_BOOST") == "1"
-	RunState.start_new_run(_seed, RunBot.DEFAULT_TEAM, "short", 0, not boost)
+	if _anchor:
+		var keys: Array[String] = []
+		for k in RunBot.DEFAULT_TEAM:
+			keys.append(String(k))
+		RunState.start_run_with_epoch(LocalEpochSource.new(PackedByteArray(), _seed), {
+			"team_keys": keys, "mode": "short", "ascension": 0, "kind": "normal", "ranked": false,
+			"depth_stage": MetaState.depth_stage(), "anchor": true}, _seed)
+	else:
+		RunState.start_new_run(_seed, RunBot.DEFAULT_TEAM, "short", 0, not boost)
 	if boost:
 		# QA only, visuals only: a party that cannot lose, to reach the final boss, Victory and the won Result.
 		# The run is unranked and its state is edited, so it is NOT verified (the other flows are).
@@ -63,7 +98,6 @@ func _ready() -> void:
 	_last_progress_ms = _t0
 	print("QA: flow=%s seed=%d ranked=%s stage=%d" % [_flow, _seed, RunState.ranked, MetaState.depth_stage()])
 	get_tree().change_scene_to_file("res://scenes/run_map/RunMap.tscn")
-	_loop()
 
 
 func _meta() -> void:
@@ -89,12 +123,54 @@ func _loop() -> void:
 		var cs := get_tree().current_scene
 		if cs == null:
 			continue
+		if _entry_phase:
+			await _entry_tick(cs)
+			continue
 		if cs is CombatView:
 			await _combat_tick(cs as CombatView)
 		elif cs.has_method("_show_reward_overlay"):
 			await _map_tick(cs)
 		elif cs.scene_file_path.contains("result"):
 			await _result_tick(cs)
+
+
+## MainMenu -> LoginScreen (shot, Play as guest) -> Tutorial / Land (shot) -> start the run.
+func _entry_tick(cs: Node) -> void:
+	var f := cs.scene_file_path
+	if f.contains("LoginScreen"):
+		await _wait(1.6)   # intro
+		if not is_instance_valid(cs) or get_tree().current_scene != cs:
+			return
+		var st := String(cs.get("state"))
+		print("QA: login screen state=%s gate=%s" % [st, str(AccountService.gate_reason())])
+		_shot_once("login-%s-1p6s" % st)
+		await _wait(3.5)   # intro must be long over by now: a panel still off screen here is a bug, not timing
+		_shot_once("login-%s" % st)
+		if st == "offline":
+			_anomaly("login screen is in state offline (gate_reason=%s): Play as guest is disabled, bypassing" % str(AccountService.gate_reason()))
+			MainMenu.login_passed = true
+			get_tree().change_scene_to_file(AccountService.MAIN_MENU)
+			await _wait(0.5)
+			return
+		cs.call("_on_guest")
+		await _wait(0.8)
+	elif f.contains("MainMenu"):
+		if Time.get_ticks_msec() - _entry_t > 20000:
+			_anomaly("stuck on MainMenu for 20 s")
+			_entry_phase = false
+			_begin_run()
+	elif f.contains("Tutorial") or f.contains("Land") or f.contains("land"):
+		await _wait(2.0)
+		_shot_once("after-guest-%s" % f.get_file().get_basename())
+		print("QA: reached %s after guest, starting run" % f)
+		_entry_phase = false
+		_begin_run()
+	else:
+		await _wait(1.0)
+		_shot_once("entry-unknown-%s" % f.get_file().get_basename())
+		_anomaly("entry went to unexpected scene %s" % f)
+		_entry_phase = false
+		_begin_run()
 
 
 func _scene_name() -> String:
@@ -350,6 +426,11 @@ func _map_tick(m: Node) -> void:
 			await _finish()
 			return
 		id = String(cur.next_ids[0])
+		if _shop:
+			for nid in cur.next_ids:
+				var nn := graph.find_node(String(nid))
+				if nn != null and nn.node_type == "shop":
+					id = String(nid)
 	if not (m.call("_reachable_now_ids") as Array).has(id):
 		_anomaly("map: RunBot's next node %s is not reachable on screen (reachable %s)" % [id, str(m.call("_reachable_now_ids"))])
 	print("QA: travel -> %s (pw %d)" % [id, pw])
@@ -394,9 +475,18 @@ func _screen_tick(m: Node, ov: Control) -> void:
 		return
 	var anchor := ov.find_child("AnchorPick", true, false)
 	if anchor != null:
-		_anomaly("anchor offer in a ranked run")
+		if RunState.ranked:
+			_anomaly("anchor offer in a ranked run")
 		_shot_once("anchor")
-		anchor.call("select", 0)
+		var pick := 0
+		for i in RunState.anchor_offer.size():
+			if AnchorAdapter.disabled_reason(String(RunState.anchor_offer[i])) == "":
+				pick = i
+				break
+		await _wait(0.4)
+		anchor.call("select", pick)
+		await _wait(0.3)
+		_shot_once("anchor-selected")
 		anchor.call("_take")
 		return
 	var sheet := ov.find_child("SlotSwapSheet", true, false)
@@ -501,7 +591,7 @@ func _finish() -> void:
 	var ui_score := RunState.compute_run_xp(ui_won)
 	var ui_pw := RunState.power_level
 	var out := {
-		"flow": _flow, "seed": _seed, "window": str(get_window().size), "secs": (Time.get_ticks_msec() - _t0) / 1000.0,
+		"flow": _flow, "seed": _seed, "anchor_id": RunState.anchor_id, "anchor_awakened": RunState.anchor_awakened, "ranked": RunState.ranked, "window": str(get_window().size), "secs": (Time.get_ticks_msec() - _t0) / 1000.0,
 		"ui_won": ui_won, "ui_score": ui_score, "ui_power_level": ui_pw, "fights": _fight_n, "kinds": _kinds_seen,
 		"defeats": _defeats, "continues": _continue_results, "log_actions": _log.entries.size(),
 		"log_complete": _log.is_complete(), "anomalies": _anomalies, "clips": _clips.size(), "shots": _shots.keys(),
