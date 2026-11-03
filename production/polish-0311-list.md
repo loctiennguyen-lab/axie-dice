@@ -21,6 +21,8 @@ Log có rất nhiều dòng CLIP/OFFSCREEN, phần lớn **không phải lỗi t
 - Làm **cả 22 mục** trong file này.
 - Đợt polish này **làm lại mọi art do AI vẽ trước đây**. Không còn art AI nào sau đợt này.
 - Nguyên tắc: kho asset (design-library, Sky Mavis) dùng trước. Chỉ phần kho không có mới vẽ mới. Mọi brief art kèm bảng tồn kho, và Liam xem bảng trước khi gửi.
+- Phần kho không có: **Claude Design vẽ lại nhưng phải BÁM KHO**, tức tô hoặc ghép từ asset chính thức, theo đúng style đồ kho. Liam duyệt từng món.
+- Khung thẻ theo bậc, crest, socket, hiệu ứng hạt của UI-06 (Claude Design vẽ) cũng tính là art AI, **làm lại luôn** đợt này.
 
 ## Nhóm A. Nên sửa trước playtest
 
