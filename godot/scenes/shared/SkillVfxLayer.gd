@@ -105,7 +105,9 @@ func play(clip_key: String, attacker_pos: Vector2, target_pos: Vector2) -> bool:
 
 ## Plays `clip_key` on one unit: the clip's burst (its `anchor` point) sits on `unit_pos`, drawn at
 ## _SELF_SCALE, no rotation, so a start-of-fight mana/buff flash stays on the unit that caused it.
-func play_on_unit(clip_key: String, unit_pos: Vector2) -> bool:
+## Optional `t_start` (seconds into the clip), `max_dur` (> 0: stop that long after t_start) and `scale` (> 0) let a caller play
+## only the impact part of a clip as a short burst (CoreFireFX).
+func play_on_unit(clip_key: String, unit_pos: Vector2, t_start := 0.0, max_dur := -1.0, p_scale := -1.0) -> bool:
 	var meta := SkillVfxCatalog.clip(clip_key)
 	if meta.is_empty():
 		return false
@@ -115,8 +117,8 @@ func play_on_unit(clip_key: String, unit_pos: Vector2) -> bool:
 	_active.append({
 		"key": clip_key, "tex": tex, "meta": meta,
 		"origin": unit_pos, "attacker_pt": _pair(meta.get("anchor")),
-		"scale": _SELF_SCALE, "rot": 0.0,
-		"t": 0.0,
+		"scale": p_scale if p_scale > 0.0 else _SELF_SCALE, "rot": 0.0,
+		"t": t_start, "t_end": (t_start + max_dur) if max_dur > 0.0 else INF,
 		"fps": maxf(1.0, float(meta.get("fps", 30.0))),
 		"frames": maxi(1, int(meta.get("frames", 1))),
 	})
@@ -159,7 +161,7 @@ func _process(delta: float) -> void:
 	while i >= 0:
 		var e: Dictionary = _active[i]
 		e["t"] = float(e["t"]) + delta
-		if int(float(e["t"]) * float(e["fps"])) >= int(e["frames"]):
+		if int(float(e["t"]) * float(e["fps"])) >= int(e["frames"]) or float(e["t"]) >= float(e.get("t_end", INF)):
 			_active.remove_at(i)
 		i -= 1
 	if _active.is_empty():

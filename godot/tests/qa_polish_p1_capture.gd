@@ -55,18 +55,21 @@ func _ready() -> void:
 	await _shot("egg-die", 0.4)
 	var ally: int = v._combat.party[0].uid
 	EventBus.core_fired.emit("c_bastion", ally, 3, "shield")
-	await _shot("core-fire-010", 0.10)
-	await _shot("core-fire-030", 0.20)
-	await _shot("core-fire-045", 0.15)
-	await _shot("core-fire-055", 0.10)
+	await get_tree().process_frame
+	await _shot("core-fire-a", 0.0)
+	await _shot("core-fire-b", 0.08)
+	await _shot("core-fire-c", 0.08)
+	await _shot("core-fire-d", 0.10)
+	await _shot("core-fire-e", 0.12)
+	await _shot("core-fire-f", 0.15)
 	print("P1_BURSTS ", v.core_bursts)
 	await get_tree().create_timer(1.5).timeout
 	var foe: int = v._combat.enemies[0].uid
 	EventBus.core_fired.emit("a_volley", foe, 6, "dmg")
 	await _shot("anchor-fire-010", 0.10)
-	await _shot("anchor-fire-030", 0.20)
-	await _shot("anchor-fire-045", 0.15)
-	await _shot("anchor-fire-055", 0.10)
+	await _shot("anchor-fire-025", 0.15)
+	await _shot("anchor-fire-040", 0.15)
+	await _shot("anchor-fire-060", 0.20)
 	print("P1_BURSTS ", v.core_bursts)
 	v.queue_free()
 	await get_tree().process_frame

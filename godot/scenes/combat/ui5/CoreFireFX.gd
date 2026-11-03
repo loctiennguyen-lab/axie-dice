@@ -12,7 +12,7 @@ extends Control
 const MAX_LIVE := 6
 const GAP_MSEC := 180
 const LIFE_SEC := 1.4
-const MOTES := 4
+const MOTES := 5
 
 var panel: CorePanel = null
 ## Callable(uid:int) -> Vector2 global point of the unit, or Vector2(-1, -1) when the unit is not on screen.
@@ -77,7 +77,7 @@ func _start(e: Dictionary) -> void:
 	live += 1
 	max_seen = maxi(max_seen, live)
 	log.append({"id": id, "uid": int(e["uid"]), "anchor": anchor, "amount": int(e["amount"]), "kind": String(e["kind"])})
-	var col := UI3Theme.color("anchor_fire") if anchor else UI3Theme.color("fire_ring")
+	var col := UI3Theme.color("anchor_fire") if anchor else UI3Theme.color(CoreFeedback.color_token(String(e["kind"])))
 	var slot := _slot_of(id)
 	var holder := Control.new()
 	holder.name = "AnchorFireFX" if anchor else "CoreFire"
@@ -97,7 +97,7 @@ func _start(e: Dictionary) -> void:
 		from = _local(slot.get_global_rect().get_center())
 		_ring(holder, slot, col, noflash, nomove)
 		if anchor:
-			_anchor_pulse(holder, slot, col, noflash, nomove)
+			_anchor_pulse(holder, slot, col, noflash, nomove, anchor)
 	var uv: Vector2 = unit_pos.call(int(e["uid"])) if unit_pos.is_valid() else Vector2(-1, -1)
 	var has_unit := uv.x >= 0.0 and uv.y >= 0.0
 	var to := _local(uv) if has_unit else Vector2(-1, -1)
@@ -112,29 +112,42 @@ func _start(e: Dictionary) -> void:
 const SHOW_NUMBER := false
 
 
+## Socket flash: a soft halo + a thick ring drawn in code (a transparent StyleBoxFlat Panel did not show on screen).
+class RingFX extends Control:
+	var col := Color.WHITE
+	var ring_w := 4.0
+
+	func _draw() -> void:
+		var c := size * 0.5
+		var rad := maxf(size.x, size.y) * 0.5
+		draw_circle(c, rad * 1.45, Color(col.r, col.g, col.b, 0.14))
+		draw_circle(c, rad * 1.15, Color(col.r, col.g, col.b, 0.22))
+		draw_arc(c, rad, 0.0, TAU, 48, col, ring_w, true)
+
+
 func _ring(holder: Control, slot: Control, col: Color, noflash: bool, nomove: bool) -> void:
-	var r := Panel.new()
+	var r := RingFX.new()
 	r.name = "FireRing"
 	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var sb := UI3Theme.flat(Color(0, 0, 0, 0), UI3Theme.radius("s"), 4, col)
-	r.add_theme_stylebox_override("panel", sb)
+	r.col = col.lightened(0.1)
+	r.ring_w = 5.0 * maxf(UI3Theme.layout_scale(), 0.5) + 2.0
 	var rc := slot.get_global_rect()
 	r.position = _local(rc.position)
 	r.size = rc.size
 	r.pivot_offset = rc.size * 0.5
 	var a0 := 0.12 if noflash else 1.0
 	r.modulate.a = a0
-	r.scale = Vector2.ONE * 0.9
+	r.scale = Vector2.ONE * 0.85
 	holder.add_child(r)
 	var tw := r.create_tween().set_parallel(true)
 	if not nomove:
-		tw.tween_property(r, "scale", Vector2.ONE * 1.3, 0.36).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tw.tween_property(r, "modulate:a", 0.0, 0.36).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tw.tween_property(r, "scale", Vector2.ONE * 1.35, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(r, "modulate:a", 0.0, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 
 ## Anchor only (motion-ui06 "Anchor fires"): gold glow behind / around the AnchorTile (outside the ring) and the tile
 ## itself pops 1 -> 1.25 -> 1 in 160 ms. Reduce motion: no pop, glow only fades. Reduce flashing: glow alpha <= 0.12.
-func _anchor_pulse(holder: Control, slot: Control, col: Color, noflash: bool, nomove: bool) -> void:
+func _anchor_pulse(holder: Control, slot: Control, col: Color, noflash: bool, nomove: bool, glow := true) -> void:
 	var rc := slot.get_global_rect()
 	var g := TextureRect.new()
 	g.name = "AnchorPulse"
@@ -148,6 +161,7 @@ func _anchor_pulse(holder: Control, slot: Control, col: Color, noflash: bool, no
 	g.position = _local(rc.get_center()) - g.size * 0.5
 	g.pivot_offset = g.size * 0.5
 	g.scale = Vector2.ONE * (1.0 if nomove else 0.7)
+	g.visible = glow
 	holder.add_child(g)
 	var tw := g.create_tween().set_parallel(true)
 	if not nomove:
@@ -160,31 +174,64 @@ func _anchor_pulse(holder: Control, slot: Control, col: Color, noflash: bool, no
 		pt.tween_property(slot, "scale", Vector2.ONE, 0.08)
 
 
-## polish 3/11 P1 #4 (Liam): no dotted line / arrow / running dot. A few small motes fly a curve from the socket to the unit;
-## the last one to land calls `burst(uid, kind, anchor)` (CombatView plays a light official skill clip there).
+## polish 3/11 P1 #4 (Liam): no dotted line / arrow / running dot. 4 soft glowing motes with a short tail fly a curve from the
+## socket to the unit (~0.35 s); the last one to land calls `burst(uid, kind, anchor)` (CombatView plays a light official skill clip).
+## Drawn in code (soft circles), one layer node named "FireMote" for all motes. Size follows the layout scale (~12 px at 1280).
+class MoteLayer extends Control:
+	var col := Color.WHITE
+	var r := 8.0
+	var cap := 1.0
+	var motes: Array = []   ## {pos, hist:Array[Vector2], a}
+
+	func _draw() -> void:
+		for m in motes:
+			var a: float = float(m["a"]) * cap
+			if a <= 0.0:
+				continue
+			var hist: Array = m["hist"]
+			var n := hist.size()
+			for k in n:
+				var f := float(k + 1) / float(n + 1)
+				draw_circle(hist[k], r * (0.25 + 0.6 * f), Color(col.r, col.g, col.b, 0.45 * f * a))
+			var p: Vector2 = m["pos"]
+			draw_circle(p, r * 1.9, Color(col.r, col.g, col.b, 0.28 * a))
+			draw_circle(p, r, Color(col.r, col.g, col.b, a))
+			draw_circle(p, r * 0.4, Color(1, 1, 1, 0.8 * a))
+
+
 func _motes(holder: Control, from: Vector2, to: Vector2, col: Color, uid: int, kind: String, anchor: bool) -> void:
-	var mid := from.lerp(to, 0.5) + Vector2(0.0, -maxf(60.0, from.distance_to(to) * 0.25))
+	var ls := maxf(UI3Theme.layout_scale(), 0.5)
+	var dist := from.distance_to(to)
+	var mid := from.lerp(to, 0.5) + Vector2(0.0, -maxf(70.0 * ls, dist * 0.3))
+	var layer := MoteLayer.new()
+	layer.name = "FireMote"
+	layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.col = col
+	layer.r = 11.0 * ls   # ~6 px radius core, halo ~11 px: reads as 12-14 px dots at 1280
+	layer.cap = 0.5 if CombatView.flashes_suppressed() else 1.0
+	holder.add_child(layer)
 	var n := MOTES
 	for i in n:
-		var m := TextureRect.new()
-		m.name = "FireMote"
-		m.texture = UI6Assets.fx("pulse", 32)
-		m.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		m.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		m.size = Vector2.ONE * 20.0
-		m.modulate = Color(col.r, col.g, col.b, 0.0)
-		m.position = from - m.size * 0.5
-		holder.add_child(m)
+		var m := {"pos": from, "hist": [], "a": 0.0}
+		layer.motes.append(m)
 		var last := i == n - 1
+		var side := (float(i) - float(n - 1) * 0.5) * 22.0 * ls   # fan the motes a little
+		var mid_i := mid + Vector2(0.0, side)
 		var tw := holder.create_tween()
-		tw.tween_interval(0.04 + 0.05 * i)
-		tw.tween_callback(func() -> void: m.modulate.a = 1.0)
+		tw.tween_interval(0.03 * i)
+		tw.tween_callback(func() -> void: m["a"] = 1.0)
 		tw.tween_method(func(t: float) -> void:
-			var a := from.lerp(mid, t)
-			var b := mid.lerp(to, t)
-			m.position = a.lerp(b, t) - m.size * 0.5, 0.0, 1.0, 0.26 - 0.01 * i).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			var q := from.lerp(mid_i, t).lerp(mid_i.lerp(to, t), t)
+			var h: Array = m["hist"]
+			h.append(m["pos"])
+			if h.size() > 4:
+				h.pop_front()
+			m["pos"] = q
+			layer.queue_redraw(), 0.0, 1.0, 0.30).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		tw.tween_callback(func() -> void:
-			m.visible = false
+			m["a"] = 0.0
+			layer.queue_redraw()
 			if last and burst.is_valid():
 				burst.call(uid, kind, anchor))
 

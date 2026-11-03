@@ -3374,14 +3374,15 @@ var core_fx: CoreFireFX = null
 var core_bursts: Array = []   ## test hook: {uid, clip} per burst played
 
 ## Light official clip per fire kind (assets/vfx via SkillVfxCatalog); Anchors reuse the same set.
-const _CORE_BURST_CLIP := {"dmg": "beast_slash", "thorns": "plant_gore", "poison": "bug_cast", "shield": "aquatic_cast",
-	"block": "aquatic_cast", "heal": "plant_cast", "mana": "bird_cast", "reroll": "bird_cast", "quest_step": "bird_cast"}
+## Melee clips only: a ranged clip's `anchor` (the impact) lies outside its frame, so on a unit it would draw nothing.
+const _CORE_BURST_CLIP := {"dmg": "beast_slash", "thorns": "plant_gore", "poison": "bug_slash", "shield": "aquatic_slash",
+	"block": "aquatic_slash", "heal": "plant_slash", "mana": "bird_slash", "reroll": "bird_slash", "quest_step": "bird_slash"}
 
 
 func _core_fx_burst(uid: int, kind: String, _anchor: bool) -> void:
 	if motion_suppressed() or disable_juice_for_tests or _stage3d == null or _combat == null:
 		return
-	var clip := String(_CORE_BURST_CLIP.get(kind, "bird_cast"))
+	var clip := String(_CORE_BURST_CLIP.get(kind, "bird_slash"))
 	if SkillVfxCatalog.clip(clip).is_empty():
 		return
 	if _combat.by_uid(uid) == null:
@@ -3393,7 +3394,11 @@ func _core_fx_burst(uid: int, kind: String, _anchor: bool) -> void:
 	var a := _stage3d.get_unit_screen_pos(uid, CombatStage3D.HEAD_HEIGHT)
 	if layer == null or a.x < 0.0:
 		return
-	if layer.play_on_unit(clip, a + _stage3d.position):
+	# Only the impact of the clip: start 4 frames before its peak, run ~0.45 s, a bit bigger than a self clip.
+	var meta := SkillVfxCatalog.clip(clip)
+	var fps := maxf(1.0, float(meta.get("fps", 30.0)))
+	var t0 := maxf(float(meta.get("peak_frame", 0)) - 4.0, 0.0) / fps
+	if layer.play_on_unit(clip, a + _stage3d.position, t0, 0.45, 0.7):
 		core_bursts.append({"uid": uid, "clip": clip})
 
 
