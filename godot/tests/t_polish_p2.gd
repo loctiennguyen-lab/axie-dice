@@ -91,5 +91,20 @@ func _map_and_shop(sc: float) -> void:
 	if tb != null:
 		_ok(tb.text.begins_with("Pick") or tb.text.begins_with("Reveal"), "%s: Take says Pick/Reveal before a pick (%s)" % [tag, tb.text])
 	_ok(String(m.get("_offers").take_caption(0)) == "Take Bastion", "%s: caption names the card (%s)" % [tag, m.get("_offers").take_caption(0)])
+	# #23: an owned Core card cannot be taken, and Take says so instead of doing nothing
+	RunState.owned_relic_ids.assign(["c_bastion"])
+	_ok(String(m.get("_offers").reward_block_reason({"t": "relic", "key": "c_bastion"})) == "Already owned", "%s: owned Core is blocked" % tag)
+	_ok(String(m.get("_offers").reward_block_reason({"t": "relic", "key": "c_backline_glow"})) == "", "%s: fresh Core is not blocked" % tag)
+	# #19: Take sits on the centre of the card row once the counter shows (mirror spacer), Core offer
+	UI3Gacha.instant_override = 1
+	RunState.pending_rewards = [{"t": "relic", "key": "c_bastion", "rar": 0, "tier": 0, "axis": "stat", "title": "CORE", "desc": "Bastion", "sub": ""}]
+	m.call("_show_reward_overlay", "CHOOSE A CORE")
+	await _frames(6)
+	var tk := m.find_child("TakeButton", true, false) as Control
+	var cr := m.find_child("CardRow", true, false) as Control
+	if tk != null and cr != null and m.find_child("CounterMirror", true, false) != null:
+		var dx := absf((tk.get_global_rect().get_center().x) - cr.get_global_rect().get_center().x)
+		_ok(dx <= 2.0, "%s: Take centred on the card row (off by %.1f)" % [tag, dx])
+	UI3Gacha.instant_override = -1
 	m.queue_free()
 	await _frames(2)

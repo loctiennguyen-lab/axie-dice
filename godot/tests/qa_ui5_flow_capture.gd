@@ -547,7 +547,16 @@ func _screen_tick(m: Node, ov: Control) -> void:
 		for r in RunState.pending_rewards:
 			has_chaos = has_chaos or String((r as Dictionary).get("t", "")) in ["chaos", "curse"]
 		_shot_once("%s-%d" % [label, _count(label)])
-		m.call("_select_reward", 0)
+		# Polish 3/11 #23: seed 7 offered Cascade (already owned) as card 0: Take can never work on it. A player
+		# picks another card, so the driver does too (RunBot takes card 0 only because its offers never repeat an owned Core).
+		var pick_i := 0
+		for ci in RunState.pending_rewards.size():
+			if m.get("_offers").reward_block_reason(RunState.pending_rewards[ci]) == "":
+				pick_i = ci
+				break
+		if pick_i != 0:
+			_anomaly("Core offer card 0 cannot be taken (%s): driver took card %d" % [m.get("_offers").reward_block_reason(RunState.pending_rewards[0]), pick_i])
+		m.call("_select_reward", pick_i)
 		await _wait(0.2)
 		m.call("_take_selected_reward")
 		await _wait(0.4)
