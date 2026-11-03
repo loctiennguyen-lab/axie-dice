@@ -1,6 +1,13 @@
 # Làm lại art: lượt 1, thẻ Lõi (23 món). Prompt cho Claude Design
 
-**Cho Liam:** dán phần dưới dòng `---` vào Claude Design, đính kèm `send/AxieDice-art-batch1.zip`.
+**Cho Liam:**
+- Dán phần dưới dòng `---` vào Claude Design và đính kèm `send/AxieDice-art-batch1.zip`.
+- Nếu Claude Design có skill **game-art-reskin-design**, bảo nó dùng skill đó. Brief này đã theo đúng skill: đường R, style Homeland, hàng thử style, ngưỡng đo, tự kiểm.
+
+Cổng quyền sở hữu:
+- Axie Dice là game của Liam, làm trong Sky Mavis.
+- Kho asset là kho Homeland của Sky Mavis.
+- Đi **đường R**: các món đang dùng (bản UI-06 do AI vẽ) chỉ để hiểu slot là gì (loại, cỡ, vị trí), không chép hình hay màu.
 
 Theo các quyết định của Liam ngày 3/11:
 - mọi art AI đều phải làm lại;
@@ -17,6 +24,14 @@ We are replacing every AI-looking piece of art in Axie Dice. The owner's rule: a
 
 This batch is the Core card system: **23 pieces**. You drew the current versions in UI-06, and the owner rejected them because they look AI-made. **Do not reuse or restyle your UI-06 versions.** Start from the library pieces named below.
 
+## Step 1: style test first, then STOP
+Draw only these 3 pieces first:
+- `frame_core_amber` (UI chrome),
+- `family_stat` (icon),
+- `slot_moss` (a small prop).
+
+Show them next to their library references, with the measurements below, and **stop**. Draw the other 20 only after the owner approves the style on these 3.
+
 ## The library style (match it exactly)
 
 Look at `library/` in the zip. Every piece there is painted the same way:
@@ -28,6 +43,47 @@ Look at `library/` in the zip. Every piece there is painted the same way:
 - no gradients that look airbrushed, no photo textures, no glow halos, no noise or grain.
 
 Your pieces must sit next to the library pieces and look like the same artist made them.
+
+Measured style rules, taken from the owner's library (65 icons, 192 2D items):
+- **Gouache, hand-painted, toy-like.** Compact shapes, flat colour areas with form, saturated warm colour. No render gloss, no smooth airbrush.
+- **Shadow:**
+  - one crescent on the dark side, about 12 px on a 256 canvas (5–8 px for small details), with a softly blurred edge;
+  - shadows stay saturated and in the same colour family as the lit area: never grey, never purple;
+  - light comes from the top-left for every piece, including rotated ones (the shadow does not rotate with the object).
+- **Highlight:** small and tight, only on glossy things (metal, glass, fruit, gems). **Sparkle stars only on gems, glass and rings.** Never on wood, coins or plain metal.
+- **Outline:** no black outlines.
+- **Families:** draw each family's variants together (moss / amber / crystal), never one at a time.
+- **Coverage:**
+  - thin diagonal objects (bolt, scale arms) tend to cover too little of the canvas, so make them thicker;
+  - box-like objects (die, scroll) tend to cover too much, so round the corners and add a small detail.
+- **Palette (from the library):**
+  - amber `#f0a047` `#e7af60` `#cc8232`
+  - earth orange `#dd6e34` `#c26554` `#a1683a`
+  - cream `#f3eedb` `#e5deae` `#eae5c1`
+  - deep brown, small dark areas only, `#4b3930` `#715d5b`; for large dark areas use `#5a463a` or lighter
+  - teal `#2f605f` `#29ab92` `#44d3a6`
+  - red `#c44140` `#ca5e63`
+  - sage `#7eb280` `#93dd92` `#bbd0a8`
+  - green `#77b229` `#589d34` `#2a7b43` `#1f5c48`
+  - stone `#b4ac9f` `#68635c`
+
+  The palette has no ice blue, violet or pink. For the Crystal tier, extend it with the same rules (saturated, warm-leaning, shadow in the same family) and mark it "extrapolated, no sample".
+
+**Acceptance metrics.** Measure each icon / prop after a tight crop, longest side 256 px:
+
+| metric | icons |
+|---|---|
+| near-black pixels (V < 0.2) | ≤ 1 % |
+| min V | ≥ 0.20 |
+| solid-pixel coverage | 0.37–0.83 |
+| grain (difference from a 1 px blur, inside the shape) | 1.1–2.8 |
+| colour count (16-level RGB bins) | 16–160 |
+
+How to read the metrics:
+- Only about 70 % of the library itself passes all 5, so a miss needs a reason, not an automatic redraw.
+- Near-black and min V should be fixed when they miss. The other three are warnings: look again by eye and decide.
+- Frames and windows use these numbers only as a guide.
+- If you cannot run code to measure, write "not measured". Do not claim a pass.
 
 **Hard rules for all 23 pieces:**
 - no text;
@@ -77,6 +133,24 @@ The new family emblems (18–21) must sit as one set with the 3 we already took 
 
 ## Context
 `context/` holds screenshots of the game today, showing where each piece appears: the Core offer, the owned-Cores strip, the shop, the anchor pick, the reward screen. The current pieces are in `current/` for size and position only. **Do not copy their look.**
+
+## Status
+Every piece is `placeholder` until the owner approves it. Never mark anything final or official.
+
+## Self-check before delivery
+Report each line as pass, fail or not measured:
+- No Axie, creature, face or eyes. No text, no logo.
+- No black outlines. Shadows are in the same colour family, never grey or purple. One light direction across the set.
+- Sparkle stars only on gems, glass or rings. List every piece that has one.
+- The metrics above for each icon and prop: how many pass all 5, and the reason for each miss.
+- The usual AI-art faults:
+  - warped glyphs;
+  - a different light direction on each piece;
+  - melted shapes with no clear meaning;
+  - pieces in one family drawn at mismatched scale or style.
+
+  Check every piece at real size, not only on the shrunk sheet.
+- Every slot is delivered. List any that are missing.
 
 ## Send back
 - `art-batch1/` with all the PNGs:
