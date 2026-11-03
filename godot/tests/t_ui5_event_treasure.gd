@@ -64,6 +64,14 @@ func _event(sc: float) -> void:
 	await _frames(4)
 	var root: Node = rm._overlay_root
 	_has(root, ["EventScreen", "EventArt", "EventColumn", "EventTitle", "EventRow", "EventBody", "Choices", "ChoiceRow", "ChoiceRow2", "ChooseButton"], tag)
+	# polish 3/11 #13: Choose sits right under the choices, centred; title is sentence case; body at text_body size.
+	var _cb := root.find_child("ChooseButton", true, false) as Control
+	var _ch := root.find_child("Choices", true, false) as Control
+	_ok(_cb != null and _ch != null and _cb.get_global_rect().position.y >= _ch.get_global_rect().end.y - 1.0 and _cb.get_global_rect().position.y - _ch.get_global_rect().end.y < 60.0, tag + ": Choose button right under the choices")
+	_ok(absf(_cb.get_global_rect().get_center().x - _ch.get_global_rect().get_center().x) < 4.0, tag + ": Choose button centred under the choices")
+	var _tt := (root.find_child("EventTitle", true, false) as Label).text
+	_ok(_tt == _tt.substr(0, 1).to_upper() + _tt.substr(1).to_lower(), tag + ": event title sentence case (" + _tt + ")")
+	_ok((root.find_child("EventBody", true, false) as Label).get_theme_font_size("font_size") >= UI3Theme.size_of("text_body"), tag + ": body text size")
 	_ok(root.find_child("OutcomeText", true, false) == null, "%s: no outcome yet" % tag)
 	_ok(root.find_child("EventArt", true, false).size.is_equal_approx(Vector2(UI3Theme.size_of("event_art"), UI3Theme.size_of("event_art"))), "%s: EventArt 720" % tag)
 	var go := root.find_child("ChooseButton", true, false) as Button
