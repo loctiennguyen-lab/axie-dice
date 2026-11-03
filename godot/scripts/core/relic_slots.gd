@@ -65,6 +65,8 @@ static func check_add(owned_ids: Array, stickers: Dictionary, new_id: String,
 		var od = RelicRegistry.get_def(String(oid))
 		if od == null or String(oid).begins_with("__"):
 			continue
+		if is_core(od):
+			continue   # Cores + Run Rule have their own slots (design 2.1), never fill passive/active/G/A
 		if _is_active(od) == is_active:
 			same_kind.append(String(oid))
 		if axis != "" and _axis_class(String(od.mult_axis)) == _axis_class(axis):

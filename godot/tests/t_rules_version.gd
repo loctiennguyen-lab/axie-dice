@@ -265,7 +265,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## nobody holds perks, the old Pass that granted them is gone, and a server replay cannot see them). Local econ and tests unchanged.
 ## Run result: NO, stays -v.
 ## Pinned, 2026-10-28 (UI-04 prep): MetaState.reduce_motion (Settings -> Reduce motion). Settings/UI only, no rule or replay input. Run result: NO, stays -v.
-const FINGERPRINT := "9c24ff4a89689eeb268ce70c90a5466f8a89085148ed9412dc5e324161390c56"
+## BUMPED, 2026-11-03 (polish #2): RULES_VERSION -> `godot-2026-11-03-w`. RelicSlots.check_add no longer counts Cores / the
+## Run Rule in the old-relic/pact passive, active and G/A slots (6 Cores + 1 rule have their own), fixing "9 of 8". Run result: YES.
+const FINGERPRINT := "beee2563a89236e1f15da020b0180c0ddb31a8acd0968772d2fa20aedf5f1aa8"
 
 
 func _ready() -> void:
