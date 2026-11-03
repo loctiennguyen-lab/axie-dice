@@ -36,6 +36,8 @@ Log có rất nhiều dòng CLIP/OFFSCREEN, phần lớn **không phải lỗi t
 | 6 | Bản đồ run + Boss | Tên boss bị cắt ("NIGHTMARE AGO…") ở tiêu đề NodeDetail và caption dưới node boss (lỗi đã biết). | Cho caption xuống 2 dòng hoặc rút gọn tên boss khi quá dài; tiêu đề NodeDetail wrap. | S | code | `/Users/loc.tien.nguyen/my-game/production/next-session-2026-11-02.md` mục ui06/finish; bản chụp cũ `03-run-map--boss-next`; trong 3 run này boss là "GOOEY KING" nên không thấy lỗi (`P/s7-1280x720/flow-win-anchor--map-pw6-1280x720.png`) |
 | 7 | Shop | Cột Sell: tên bị cắt ("Lone Wolf Contract · ..."), giá cuối dòng không hiện ở dòng dài; mọi hàng đều dùng icon mũi tên/đỏ-xanh chung nên không phân biệt được Core nào. Nửa dưới màn trống ~40%. Cột Supplies chỉ 3 thẻ. | Tách giá ra một cột phải cố định, để tên xuống 2 dòng hoặc rút; dùng icon Lõi thật (như ở Make room thấy rõ có icon riêng). | M | code | `P/s7-1280x720/flow-win-anchor--shop-1280x720.png` |
 
+| 23 | Chọn Lõi (QA seed 7, 1280) | Driver QA đứng yên 90 s ở Core offer (khung core-63, thẻ combo "Golden Turtle Fortress" bị cắt tên). Chưa rõ do driver hay lỗi game (vòng reroll / không lấy được thẻ). | Điều tra: chạy lại seed 7 không QA_SHOP, đọc log quanh `no progress`; nếu là lỗi game thì sửa, nếu do driver thì sửa driver. Tên combo dài: cho xuống 2 dòng. | S–M | code | `/Users/loc.tien.nguyen/my-game/production/qa/polish-0311/login-check-1280/flow-win-anchor--STUCK-1280x720.png` |
+
 ## Nhóm B. Nên có
 
 | # | màn | thấy gì (cụ thể) | đề xuất sửa | cỡ | ai làm | ảnh bằng chứng |
