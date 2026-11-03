@@ -5,7 +5,7 @@ extends Node
 
 const Align := preload("res://tests/ui5_align_check.gd")
 const NAMES := ["AnchorPick", "Header", "Title", "ShardPill", "SubLine", "CardRow", "AnchorCard0", "HouseEmblem", "AnchorName",
-	"HouseLine", "Tagline", "RuleBox", "AwakensBox", "HouseCores", "HouseCoreChip", "Glossary", "Footer", "TakeButton"]
+	"HouseLine", "Tagline", "RuleBox", "AwakensBox", "HouseCores", "HouseCoreChip", "Footer", "TakeButton"]
 var _guard := SaveGuard.new()
 var _fails: Array[String] = []
 var _checks := 0
@@ -66,6 +66,16 @@ func _case(ids: Array, reasons: Dictionary, sc: float, tag: String) -> void:
 	bottom = v.take_button.get_global_rect().end.y
 	_check(bottom <= 1080.0 - 13.0, "%s: Take inside the frame after pick (%.1f)" % [tag, bottom])
 	_check((v.cards[sel] as Object).get("selected") == true, "%s: card marked selected" % tag)
+	# polish 3/11 #9: full Awakens + House Cores only on the selected card; the rest one line; glossary is a tooltip.
+	for k in v.cards.size():
+		var cc := v.cards[k] as Control
+		var full := (cc.find_child("AwakensBox", true, false) as Control).visible
+		_check(full == (k == sel), "%s: card %d expanded only when selected" % [tag, k])
+		_check((cc.find_child("CollapsedLine", true, false) as Control).visible == (k != sel), "%s: card %d collapsed line" % [tag, k])
+		_check((cc.find_child("HouseCores", true, false) as Control).visible == (k == sel), "%s: card %d house cores" % [tag, k])
+		_check((cc.find_child("RuleBox", true, false) as Control).visible, "%s: card %d rule always shown" % [tag, k])
+	_check(v.find_child("Glossary", true, false) == null, "%s: no glossary footnote" % tag)
+	_check(UI3Tooltip.text_of(v.find_child("SubLine", true, false)).contains("SET ="), "%s: glossary tooltip" % tag)
 	_check(Align.pairs(v) > 0, "%s: align check measured pairs" % tag)
 	var probs := Align.check(v, 1.5, tag + " ")
 	_check(probs.is_empty(), "%s: align %s" % [tag, str(probs)])
