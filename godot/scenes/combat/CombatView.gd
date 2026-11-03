@@ -3550,8 +3550,8 @@ func _spawn_core_note(uid: int, lines: Array) -> void:
 	chip.size = sz
 	var vs := get_viewport_rect().size
 	var stack := int(_core_float_live.get(target, 0))
-	# Beside the head (not above it): the unit's own damage number rises straight up from the nameplate.
-	var pos := a + Vector2(48.0, -sz.y * 0.5 - float(stack) * (sz.y + 4.0))
+	# polish 3/11 P1 (Liam): centred right above the unit's own head so it never reads as the neighbour's; extra notes stack upward.
+	var pos := a + Vector2(-sz.x * 0.5, -sz.y - 4.0 - float(stack) * (sz.y + 4.0))
 	pos.x = clampf(pos.x, 24.0, vs.x - 24.0 - sz.x)
 	pos.y = clampf(pos.y, 24.0, vs.y - 24.0 - sz.y)
 	chip.position = pos
