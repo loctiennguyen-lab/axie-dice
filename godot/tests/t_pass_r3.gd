@@ -97,7 +97,7 @@ func _ready() -> void:
 	var o := _mk("2027-01-05")
 	await get_tree().process_frame
 	_ok(o.season_phase() == "over" and o.find_child("Banner", true, false) != null, "over banner")
-	_ok(MetaState.pass_add_run_xp(1000) == 0, "no XP after season (real clock is outside season too)")
+	_ok(PassV2.add_run_xp(MetaState, 1000, "2027-01-05") == 0, "no XP after season")   # fixed day: the real clock is inside season 1 from 3/11
 	var xp1 := o.xp()
 	MetaState.pass_season["weekly"] = {PassV2.week_key("2027-01-05"): {"runs": 5, "wins": 2, "boss": 1, "claimed": []}}
 	o.refresh()

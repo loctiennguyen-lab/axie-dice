@@ -46,10 +46,12 @@ func _check_state(xp: int, tag: String) -> void:
 	MetaState.pass_season = PassV2.new_state("s1")
 	MetaState.pass_season["xp"] = xp
 	MetaState.pass_season["level"] = PassV2.level_for_xp(xp)
+	# Result first: winning the run adds this run's XP while season 1 is live (real clock), then the Pass screen reads
+	# that same state. Both must show the same numbers (3/11: the season opened and the old order compared two states).
+	var rv := await _result()
 	var pv := await _pass()
 	var info_txt := (pv.find_child("XpInfo", true, false) as Label).text
 	var lvl_txt := (pv.find_child("LevelNumber", true, false) as Label).text
-	var rv := await _result()
 	var card := rv.find_child("PassCard", true, false)
 	_ok(card != null, tag + ": Result has no PassCard")
 	if card != null:
@@ -60,7 +62,7 @@ func _check_state(xp: int, tag: String) -> void:
 		# Same "x / y XP to level N" text as the Pass screen shows.
 		_ok(line.begins_with(info_txt), tag + ": Result line '%s' vs Pass '%s'" % [line, info_txt])
 		# Next reward comes from the Pass table's next level (Lv 1 = 300 Shard, Lv 2 = 1 ticket).
-		var nxt := PassV2.level_def(PassV2.level_for_xp(xp) + 1)
+		var nxt := PassV2.level_def(PassV2.level_for_xp(int(MetaState.pass_season.get("xp", xp))) + 1)
 		if not nxt.is_empty():
 			var want := PassView.reward_text((nxt["free"] as Array)[0] as Dictionary)
 			_ok(line.contains(want), tag + ": next reward '%s' missing in '%s'" % [want, line])
