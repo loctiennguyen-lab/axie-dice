@@ -10,8 +10,18 @@ const Parts := preload("res://scenes/run_map/ui5/RunMenuParts.gd")
 const ComboBand := preload("res://scenes/run_map/ui5/ComboBand.gd")
 
 
+## The one sentence for every full-slot sheet (polish 3/11 #2): "Cores: 6 of 6. Sell one to take Fossil".
+## Old relics / pacts: `owned` < 0 gives the count-free form (the rule counts Cores into that bar, so no honest number yet).
+static func room_line(is_core: bool, owned: int, cap: int, new_name: String) -> String:
+	if is_core:
+		return TranslationServer.translate("Cores: %d of %d. Sell one to take %s") % [owned, cap, new_name]
+	if owned < 0:
+		return TranslationServer.translate("Relic slots are full. Sell one to take %s") % new_name
+	return TranslationServer.translate("Relics: %d of %d. Sell one to take %s") % [owned, cap, new_name]
+
+
 static func build(new_title: String, new_tier: int, line: String, cells: Array, on_confirm: Callable,
-		on_back: Callable, title_text := "") -> UI3.ModalRoot:
+		on_back: Callable, title_text := "", forced := false) -> UI3.ModalRoot:
 	var root := UI3.ModalRoot.new()
 	root.name = "SlotSwapSheet"
 	root.theme = UI3Theme.get_theme()
@@ -58,7 +68,8 @@ static func build(new_title: String, new_tier: int, line: String, cells: Array, 
 	var refresh_actions := func() -> void:
 		var a: Array = []
 		a.append_array(sells.filter(func(x: Button) -> bool: return not x.disabled))
-		a.append(back)
+		if not forced:
+			a.append(back)
 		root.actions = a
 		root.focus_index = sells.filter(func(x: Button) -> bool: return not x.disabled).size()   # Back, as the frame
 	for c in cells:
@@ -129,9 +140,10 @@ static func build(new_title: String, new_tier: int, line: String, cells: Array, 
 	tn.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	taking.add_child(tn)
 	foot.add_child(taking)
-	foot.add_child(back)
-	back.pressed.connect(func() -> void: on_back.call())
-	root.cancelled.connect(func() -> void: on_back.call())
+	if not forced:   # a forced pact cannot be left: no Back, Esc does nothing
+		foot.add_child(back)
+		back.pressed.connect(func() -> void: on_back.call())
+		root.cancelled.connect(func() -> void: on_back.call())
 	refresh_actions.call()
 	return root
 

@@ -35,21 +35,15 @@ func open_slot_swap(reward: Dictionary, chk: Dictionary) -> void:
 		cells.append({"id": id, "name": UI3.title_case(UI3.player_text(String(od.name))),
 			"kind": tr("Active") if RelicSlots._is_active(od) else tr("Passive"),
 			"sell": RelicSlots.sell_price(id, RunState.ascension), "eternal": eternal})
-	var rule := ""
 	var title_text := ""
+	var nm := UI3.title_case(UI3.player_text(String(nd.name)))
+	var rule := ""
 	if RelicSlots.is_core(nd):
-		# Real Core: the 6 Core slots are what is full. Frame body: title "Make room", "Passive slots are full (6 of 6)...".
-		rule = tr("Passive slots are full (%d of %d). Sell one to take the new Core.") % [
-			RelicSlots.owned_cores(RunState.owned_relic_ids).size(), RelicSlots.tuning().core_slots]
+		# Real Core: the 6 Core slots are what is full (owned_cores excludes the Run Rule slot).
+		rule = MakeRoomSheet.room_line(true, RelicSlots.owned_cores(RunState.owned_relic_ids).size(),
+			RelicSlots.tuning().core_slots, nm)
 	else:
-		var kind_owned := 0
-		for oid in RunState.owned_relic_ids:
-			var kd = RelicRegistry.get_def(String(oid))
-			if kd != null and not String(oid).begins_with("__") and RelicSlots._is_active(kd) == active:
-				kind_owned += 1
-		rule = (tr("Active slots are full (%d of %d). Sell one to take the new Core.") if active
-			else tr("Passive slots are full (%d of %d). Sell one to take the new Core.")) % [
-			kind_owned, int(cap["active"] if active else cap["passive"])]
+		rule = MakeRoomSheet.room_line(false, -1, int(cap["active"] if active else cap["passive"]), nm)
 	var sheet := MakeRoomSheet.build(UI3.title_case(UI3.player_text(String(nd.name))), int(nd.rarity), rule, cells,
 		func(sell_id: String) -> void:
 			var ok := RunState.acquire_relic(key, "reward", sell_id)

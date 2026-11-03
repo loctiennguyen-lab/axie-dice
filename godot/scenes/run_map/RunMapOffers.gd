@@ -140,7 +140,7 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	ctrl._overlay_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	ctrl._overlay_vbox.add_theme_constant_override("separation", UI3Theme.space("32"))
 	# Fixed card band (cards are reward_card_h): Take never moves between states (GU 3).
-	ctrl._overlay_vbox.custom_minimum_size.y = UI3Theme.size_of("rule_card_h" if rule_mode else ("core_card_h" if core_mode else "reward_card_h"))
+	ctrl._overlay_vbox.custom_minimum_size.y = UI3Theme.size_of("rule_card_h") if rule_mode else (UI3Theme.size_of("core_card_h") if core_mode else _RewardCardUi.card_h())
 	ctrl._overlay_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ctrl._overlay_vbox.sort_children.connect(_lift_selected_card)
 	col.add_child(ctrl._overlay_vbox)
@@ -280,6 +280,22 @@ func _select_reward(i: int) -> void:
 	_refresh_take()
 
 
+## "Take <name>" for reward `i` (name cut at 22 chars); "" when there is no usable name (the plain "Take" stays).
+func take_caption(i: int) -> String:
+	if i < 0 or i >= RunState.pending_rewards.size():
+		return ""
+	var r: Dictionary = RunState.pending_rewards[i]
+	var nm := ""
+	var def = RelicRegistry.get_def(String(r.get("key", ""))) if String(r.get("t", "")) == "relic" else null
+	if def != null:
+		nm = UI3.title_case(UI3.player_text(String(def.name)))
+	if nm == "":
+		return ""
+	if nm.length() > 22:
+		nm = nm.left(21).strip_edges(false, true) + "…"
+	return tr("Take %s") % nm
+
+
 ## Take is off until a card is picked (and, on a face-down Core offer, until the cards are revealed) and says why;
 ## the label and the Space keycap come back when it is on. Chosen cards are never logged.
 func _refresh_take() -> void:
@@ -309,6 +325,10 @@ func _refresh_take() -> void:
 		if tb.disabled and tb.has_meta("ui3_label"):
 			UI3.clear_disabled_reason(tb)
 		_set_take_cap(tb, true)
+		var cap := take_caption(ctrl._reward_sel)
+		if cap != "":
+			tb.text = cap   # polish 3/11 #22: action name once something is picked ("Take Bastion")
+
 
 
 ## Space keycap after the Take caption (only while Take is on). Placed by HudStyle once the button is in the tree.

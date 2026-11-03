@@ -450,9 +450,14 @@ func _screen_tick(m: Node, ov: Control) -> void:
 		if psheet != null:
 			# RunBot: take_pact(0) without a sell fails, then skip_pact(). Mirror it: Leave it, then Skip.
 			_shot_once("pact-make-room")
-			var lv := psheet.find_child("SwapLeave", true, false) as Button
+			var lv := psheet.find_child("BackButton", true, false) as Button
 			if lv != null:
 				lv.pressed.emit()
+			else:   # forced pact: no Back, sell the first sellable relic (polish 3/11)
+				for sb in psheet.find_children("SellButton", "Button", true, false):
+					if not (sb as Button).disabled:
+						(sb as Button).pressed.emit()
+						break
 			await _wait(0.3)
 			if RunState.pact_can_skip():
 				pact.skipped.emit()

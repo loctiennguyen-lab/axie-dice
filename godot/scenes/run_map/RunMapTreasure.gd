@@ -10,6 +10,7 @@ var ctrl: RunMapController
 func _init(owner_ctrl: RunMapController) -> void:
 	ctrl = owner_ctrl
 
+const _RewardCardUi := preload("res://scenes/shared/ui5/RewardCard.gd")
 const _PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 
 
@@ -94,7 +95,7 @@ func _build_treasure(opened: bool, animate := false) -> void:
 	ctrl._overlay_vbox.name = "CardRow"
 	ctrl._overlay_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	ctrl._overlay_vbox.add_theme_constant_override("separation", UI3Theme.space("32"))
-	ctrl._overlay_vbox.custom_minimum_size.y = UI3Theme.size_of("reward_card_h")   # fixed band: Take never moves
+	ctrl._overlay_vbox.custom_minimum_size.y = _RewardCardUi.card_h()   # fixed band: Take never moves
 	ctrl._overlay_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ctrl._overlay_vbox.sort_children.connect(ctrl._lift_selected_card)   # same UI-05 RewardCard as the reward pick
 	col.add_child(ctrl._overlay_vbox)
