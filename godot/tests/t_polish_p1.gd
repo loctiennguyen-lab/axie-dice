@@ -62,6 +62,14 @@ func _ready() -> void:
 	hud._reason_until_ms = 0
 	hud.update_right_hint_refresh()
 	_ok(hud._hint.text != undo.reason_text(), "#5 reason clears")
+	# #16: a summoned Egg (roster_index < 0) gets is_egg and no part chip
+	var eu = view._combat.party[0]
+	var saved_ri: int = eu.roster_index
+	eu.roster_index = -1
+	var ed: Dictionary = view._v4_card_data(eu)
+	eu.roster_index = saved_ri
+	_ok(bool(ed.get("is_egg", false)) and String(ed["part_text"]) == "", "#16 egg card: is_egg, no part chip")
+	_ok(not bool(view._v4_card_data(eu).get("is_egg", false)), "#16 hero card is not an egg")
 	# #4: motes land, then the burst hook fires once
 	CombatView.disable_juice_for_tests = false
 	var got: Array = []

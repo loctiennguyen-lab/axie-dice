@@ -225,11 +225,7 @@ func update_foe(d: Dictionary) -> void:
 		UI3Tooltip.bind(row, String(a.get("tip", "")))
 		_foe_rows.add_child(row)
 	if not r.is_empty():
-		var title := UI3.label("BOSS RHYTHM", "LabelDisplay")
-		title.name = "Title"
-		title.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
-		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_foe_rows.add_child(title)
+		# polish 3/11 P1 #16: the "BOSS RHYTHM" heading is gone (the chips + tooltip say it); the card is one row shorter.
 		var chips := HBoxContainer.new()
 		chips.name = "RhythmChips"
 		chips.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -267,7 +263,7 @@ func update_foe(d: Dictionary) -> void:
 			chips.add_child(p)
 		UI3Tooltip.bind(chips, "Boss rhythm: 3-turn cycle. Prep, then Strike (its strongest face), then Hollow (it takes +30% from damage faces and deals -30%). The chip tagged Next is the phase that comes next.")
 		_foe_rows.add_child(chips)
-		var tell := UI3.label(String(r.get("tell", "")), "")
+		var tell := UI3.label(String(r.get("tell", "")), "LabelMuted")
 		tell.name = "Tell"
 		tell.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		tell.mouse_filter = Control.MOUSE_FILTER_IGNORE
