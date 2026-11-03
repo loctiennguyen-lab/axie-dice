@@ -82,6 +82,22 @@ func _ready() -> void:
 	fx.fire("c_bastion", 1, 3, "shield")
 	await get_tree().create_timer(0.8).timeout
 	_ok(got.size() == 1 and got[0][1] == "shield", "#4 burst fires once after the motes land (%s)" % str(got))
+	# FX target = the unit with that uid (same unit the float note stands beside): near its own head anchor, nearest of all
+	var xf: Transform2D = view._unit_visuals_root.get_global_transform()
+	var units: Array = view._party_dice_units()
+	_ok(units.size() >= 2, "#4 target: at least 2 party units")
+	for u in units:
+		var fp: Vector2 = view._core_fx_unit_pos(int(u.uid))
+		var raw: Vector2 = view._status_head_anchor(int(u.uid), true, view._stage3d.position)
+		if raw.x < 0.0:   # headless: the 3D stage projects nothing, so both must agree on "not on screen"
+			_ok(fp.x < 0.0, "#4 headless: no head anchor -> no FX target")
+			continue
+		var hd: Vector2 = xf * raw
+		_ok(absf(fp.x - hd.x) < 40.0 and fp.y > hd.y and fp.y - hd.y < 160.0, "#4 target of uid %d sits on its own body (%s vs head %s)" % [u.uid, fp, hd])
+		for o in units:
+			if o != u:
+				var oh: Vector2 = xf * view._status_head_anchor(int(o.uid), true, view._stage3d.position)
+				_ok(fp.distance_to(hd) < fp.distance_to(oh), "#4 target of uid %d is nearer to itself than to uid %d" % [u.uid, o.uid])
 	view.queue_free()
 	_guard.restore()
 	if _fails.is_empty():

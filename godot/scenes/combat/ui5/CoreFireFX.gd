@@ -192,7 +192,7 @@ class MoteLayer extends Control:
 			var n := hist.size()
 			for k in n:
 				var f := float(k + 1) / float(n + 1)
-				draw_circle(hist[k], r * (0.25 + 0.6 * f), Color(col.r, col.g, col.b, 0.45 * f * a))
+				draw_circle(hist[k], r * (0.2 + 0.7 * f), Color(col.r, col.g, col.b, 0.5 * f * f * a))
 			var p: Vector2 = m["pos"]
 			draw_circle(p, r * 1.9, Color(col.r, col.g, col.b, 0.28 * a))
 			draw_circle(p, r, Color(col.r, col.g, col.b, a))
@@ -202,13 +202,19 @@ class MoteLayer extends Control:
 func _motes(holder: Control, from: Vector2, to: Vector2, col: Color, uid: int, kind: String, anchor: bool) -> void:
 	var ls := maxf(UI3Theme.layout_scale(), 0.5)
 	var dist := from.distance_to(to)
-	var mid := from.lerp(to, 0.5) + Vector2(0.0, -maxf(70.0 * ls, dist * 0.3))
+	var mid := from.lerp(to, 0.5)
+	# One arc bowing sideways (away from the screen centre), so the cluster reads as a streak, not a dotted column.
+	var perp := (to - from).orthogonal().normalized()
+	var centre_x := get_viewport_rect().size.x * 0.5
+	if (mid + perp * 10.0).distance_to(Vector2(centre_x, mid.y)) < mid.distance_to(Vector2(centre_x, mid.y)):
+		perp = -perp
+	var bulge := maxf(60.0 * ls, dist * 0.35)
 	var layer := MoteLayer.new()
 	layer.name = "FireMote"
 	layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	layer.col = col
-	layer.r = 11.0 * ls   # ~6 px radius core, halo ~11 px: reads as 12-14 px dots at 1280
+	layer.r = 12.0 * ls   # ~6 px radius core, halo ~11 px: reads as 12-14 px dots at 1280
 	layer.cap = 0.5 if CombatView.flashes_suppressed() else 1.0
 	holder.add_child(layer)
 	var n := MOTES
@@ -216,19 +222,19 @@ func _motes(holder: Control, from: Vector2, to: Vector2, col: Color, uid: int, k
 		var m := {"pos": from, "hist": [], "a": 0.0}
 		layer.motes.append(m)
 		var last := i == n - 1
-		var side := (float(i) - float(n - 1) * 0.5) * 22.0 * ls   # fan the motes a little
-		var mid_i := mid + Vector2(0.0, side)
+		var jitter := (float(i) - float(n - 1) * 0.5) * 5.0 * ls   # a few px across the stream
+		var mid_i := mid + perp * (bulge * (0.92 + 0.04 * float(i)) + jitter)
 		var tw := holder.create_tween()
-		tw.tween_interval(0.03 * i)
+		tw.tween_interval(0.006 * i)
 		tw.tween_callback(func() -> void: m["a"] = 1.0)
 		tw.tween_method(func(t: float) -> void:
 			var q := from.lerp(mid_i, t).lerp(mid_i.lerp(to, t), t)
 			var h: Array = m["hist"]
 			h.append(m["pos"])
-			if h.size() > 4:
+			if h.size() > 7:
 				h.pop_front()
 			m["pos"] = q
-			layer.queue_redraw(), 0.0, 1.0, 0.30).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+			layer.queue_redraw(), 0.0, 1.0, 0.32).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		tw.tween_callback(func() -> void:
 			m["a"] = 0.0
 			layer.queue_redraw()

@@ -3386,19 +3386,19 @@ func _core_fx_burst(uid: int, kind: String, _anchor: bool) -> void:
 	if SkillVfxCatalog.clip(clip).is_empty():
 		return
 	if _combat.by_uid(uid) == null:
-		var ap: Array = _combat.alive_party()
+		var ap: Array = _party_dice_units()   # same fallback as _spawn_core_note
 		if ap.is_empty():
 			return
 		uid = int(ap[0].uid)
 	var layer := _ensure_skill_vfx()
-	var a := _stage3d.get_unit_screen_pos(uid, CombatStage3D.HEAD_HEIGHT)
+	var a := _core_fx_body_anchor(uid)
 	if layer == null or a.x < 0.0:
 		return
 	# Only the impact of the clip: start 4 frames before its peak, run ~0.45 s, a bit bigger than a self clip.
 	var meta := SkillVfxCatalog.clip(clip)
 	var fps := maxf(1.0, float(meta.get("fps", 30.0)))
 	var t0 := maxf(float(meta.get("peak_frame", 0)) - 4.0, 0.0) / fps
-	if layer.play_on_unit(clip, a + _stage3d.position, t0, 0.45, 0.7):
+	if layer.play_on_unit(clip, a, t0, 0.45, 0.7):
 		core_bursts.append({"uid": uid, "clip": clip})
 
 
@@ -3408,14 +3408,25 @@ func _core_fx_unit_pos(uid: int) -> Vector2:
 	if _stage3d == null or _unit_visuals_root == null or _combat == null:
 		return Vector2(-1, -1)
 	if _combat.by_uid(uid) == null:   # unknown uid: first living party die, same as the float note
-		var ap: Array = _combat.alive_party()
+		var ap: Array = _party_dice_units()
 		if ap.is_empty():
 			return Vector2(-1, -1)
 		uid = int(ap[0].uid)
-	var a := _status_head_anchor(uid, not _combat_is_enemy_uid(uid), _stage3d.position)
+	var a := _core_fx_body_anchor(uid)
 	if a.x < 0.0:
 		return Vector2(-1, -1)
 	return _unit_visuals_root.get_global_transform() * a
+
+
+## Mid-body point of a unit (unit_visuals_root space, stage offset included): where motes land and the burst plays.
+## `uid` must already be resolved (a known unit); same unit the float note uses, which sits beside its head.
+func _core_fx_body_anchor(uid: int) -> Vector2:
+	var head_h: float = CombatStage3D.AXIE_HEAD_HEIGHT if not _combat_is_enemy_uid(uid) \
+		else _stage3d.head_height_of(uid, CombatStage3D.HEAD_HEIGHT)
+	var p := _stage3d.get_unit_screen_pos(uid, head_h * 0.55)
+	if p.x < 0.0:
+		return Vector2(-1, -1)
+	return _stage3d.position + p
 
 
 func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> void:
