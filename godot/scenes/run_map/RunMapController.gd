@@ -175,14 +175,6 @@ func _ready() -> void:
 	_detail_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_board.add_child(_detail_root)
 
-	var hint := UI3.key_hint(tr("Arrows pick · Enter or double-click travels · Esc menu"))
-	hint.name = "KeyHint"
-	hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	hint.offset_right = -_SCREEN_MARGIN
-	hint.offset_bottom = -_SCREEN_MARGIN
-	_board.add_child(hint)
 
 	_refresh(false)
 	_build_overlay_ui()
