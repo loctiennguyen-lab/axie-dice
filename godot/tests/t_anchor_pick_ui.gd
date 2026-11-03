@@ -37,7 +37,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_ok(v.cards.size() == 3, "3 cards")
 	_ok(v.find_child("RerollButton", true, false) == null and v.find_child("SkipButton", true, false) == null, "no Reroll / Skip")
-	_ok(v.find_child("Tagline", true, false) != null and v.find_child("Glossary", true, false) != null, "S3-7: summary line per card + glossary")
+	_ok(v.find_child("Tagline", true, false) != null and v.find_child("Glossary", true, false) == null, "S3-7: summary line per card, glossary is a tooltip now")
 	_ok(v.take_button.disabled and v.take_button.text == "Pick an Anchor", "Take disabled with a reason before a pick")
 	for c in v.cards:
 		var id := String(c.get_meta("anchor_id"))
