@@ -40,8 +40,12 @@ static func core_socket(core_id: String, px: float) -> Control:
 	p.add_child(em)
 	if not big:
 		return p
+	# One library gem per socket, big enough to read (Liam 2/11): the tier colour alone was a blurred dot at 88 px.
+	var gh := px * 0.38
 	var sh := TierShards.new().setup(tier, px * 0.2)
-	sh.position = Vector2((px - sh.custom_minimum_size.x) / 2.0, px * 0.7)
+	sh.texture = UI6Assets.shard(tier, gh)
+	sh.custom_minimum_size = Vector2(gh * 0.71, gh)
+	sh.position = Vector2((px - gh * 0.71) / 2.0, px * 0.6)
 	sh.size = sh.custom_minimum_size
 	p.add_child(sh)
 	return p

@@ -100,8 +100,13 @@ func _start(e: Dictionary) -> void:
 	var to := _local(uv) if has_unit else Vector2(-1, -1)
 	if has_unit and from.x >= 0.0 and not nomove:
 		_line(holder, from, to, col)
-	if has_unit and int(e["amount"]) > 0:
+	if SHOW_NUMBER and has_unit and int(e["amount"]) > 0:
 		_number(holder, to, e, col, anchor, nomove)
+
+
+## Liam 2/11: ONE number per fire. CombatView's float note ("Bastion +3 Shield", name + number, merged per unit) owns it, so the
+## FX draws ring / line / dot only. Flip this to move the number back here (then drop the float note's amount).
+const SHOW_NUMBER := false
 
 
 func _ring(holder: Control, slot: Control, col: Color, noflash: bool, nomove: bool) -> void:

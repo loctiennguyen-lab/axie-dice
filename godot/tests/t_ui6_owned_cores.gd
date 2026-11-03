@@ -83,8 +83,12 @@ func _ready() -> void:
 	_ok(fx != null and fx.get_parent() == v._hud_frame, "CoreFireFX in the HUD")
 	var ally: int = v._combat.party[0].uid
 	var foe: int = v._combat.enemies[0].uid
+	var floats0: int = v.core_float_log.size()
 	EventBus.core_fired.emit("c_bastion", ally, 3, "shield")
 	await _frames(3)
+	# one number per fire: the float note (name + amount) is the only one, the FX draws none
+	_ok(fx.find_children("FireNumber", "", true, false).is_empty(), "FX draws no second number")
+	_ok(v.core_float_log.size() == floats0 + 1 and String((v.core_float_log.back()["lines"] as Array)[0]).contains("3"), "one float note with name + number per fire")
 	_ok(fx.log.size() == 1 and not fx.log[0]["anchor"] and fx.find_child("FireRing", true, false) != null, "Core fire lights its socket")
 	_ok(cp._slot_by_id.has("c_bastion"), "socket exists for the fired Core")
 	# preview: muted, nothing starts
@@ -102,7 +106,7 @@ func _ready() -> void:
 	EventBus.core_fired.emit("a_volley", foe, 6, "dmg")
 	await _frames(3)
 	_ok(fx.log.back()["anchor"] and fx.find_child("AnchorFireFX", true, false) != null, "Anchor fire = AnchorFireFX")
-	_ok(fx.find_child("AnchorFireFX", true, false).find_child("FamilyEmblem", true, false) == null, "Anchor number has no family emblem")
+	_ok(fx.find_children("FireNumber", "", true, false).is_empty(), "Anchor fire draws no FX number either")
 	# burst of 10: never more than 6 live, all eventually start
 	for i in 10:
 		EventBus.core_fired.emit("c_fissure", foe, 1 + i, "dmg")

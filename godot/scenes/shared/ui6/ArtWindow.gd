@@ -5,6 +5,9 @@ extends Control
 ## 1280-aware through UI3Theme.size_of). `emblem_scale` < 1 shrinks the emblem (design: 0.7 when a combo/cap strip
 ## shares the card, and the window itself shrinks to 60%: set `height_scale`).
 
+const EMBLEM_BOOST := 1.5   # Liam 2/11: library emblems read small in the window (art-director review), so emblem x1.5 ...
+const WINDOW_BOOST := 1.1   # ... and the window grows 10% (25% pushed a long-text card's Reroll onto the frame edge)
+
 var tier := 0
 var emblem: TextureRect
 var frame: NinePatchRect
@@ -14,7 +17,7 @@ func setup(p_tier: int, family: String, height_scale := 1.0, emblem_scale := 1.0
 	tier = clampi(p_tier, 0, 2)
 	name = "ArtWindow"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	custom_minimum_size = Vector2(0, UI3Theme.size_of("core_art_h") * height_scale)
+	custom_minimum_size = Vector2(0, UI3Theme.size_of("core_art_h") * height_scale * WINDOW_BOOST)
 	frame = NinePatchRect.new()
 	frame.name = "ArtWindowFrame"
 	frame.texture = UI6Assets.artwin(tier)
@@ -33,7 +36,7 @@ func setup(p_tier: int, family: String, height_scale := 1.0, emblem_scale := 1.0
 	cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(cc)
-	var es := float(UI3Theme.size_of("core_emblem")) * emblem_scale
+	var es := float(UI3Theme.size_of("core_emblem")) * emblem_scale * EMBLEM_BOOST
 	emblem = TextureRect.new()
 	emblem.name = "FamilyEmblem"
 	emblem.texture = UI6Assets.family(family if UI6Assets.FAMILIES.has(family) else "stat", es)

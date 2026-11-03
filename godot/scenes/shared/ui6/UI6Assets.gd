@@ -13,6 +13,11 @@ const FAMILIES := ["stat", "dice", "pos", "mana", "quest", "rule", "run_rule"]
 const BADGE_TAGS := ["attack", "nonattack", "tradeoff", "convert_to_dmg", "front", "egg"]
 const HOUSES := ["volley", "gambler", "mana_mine", "kin", "embers", "big_hand"]
 const NODE_KINDS := ["battle", "elite", "boss", "shop", "event", "treasure"]
+## UI-06 assets restore (Liam 2/11): families the library (asset-library/design-library) covers live in lib/,
+## house / node / illustration / relic pictures are the game's original art (ui3/icons, cards/).
+const LIB_FAMILIES := ["pos", "mana", "rule"]
+const OLD_ICON_DIR := "res://assets/ui3/icons/"
+const OLD_CARD_DIR := "res://assets/cards/"
 const FX := ["bubble", "leaf", "pulse", "sparkle"]
 const ILLUSTRATIONS := ["card_level", "card_ascend", "card_hp", "card_reroll", "card_chaos", "card_curse", "card_relic",
 	"shop_heal", "shop_relic", "node_event", "node_treasure"]
@@ -36,6 +41,16 @@ static func _load(file: String) -> Texture2D:
 	return t
 
 
+static func _load_abs(p: String) -> Texture2D:
+	if _cache.has(p):
+		return _cache[p]
+	var t: Texture2D = load(p) as Texture2D if ResourceLoader.exists(p) else null
+	if t == null:
+		push_error("UI6Assets: missing %s" % p)
+	_cache[p] = t
+	return t
+
+
 static func _sized(base: String, px: float) -> Texture2D:
 	var s := 128
 	if px <= 32.5:
@@ -50,7 +65,7 @@ static func family(axis: String, px: float = 64) -> Texture2D:
 	if not FAMILIES.has(axis):
 		push_error("UI6Assets.family: unknown axis '%s'" % axis)
 		return null
-	return _sized("family_" + axis, px)
+	return _sized(("lib/family_" if LIB_FAMILIES.has(axis) else "family_") + axis, px)
 
 
 ## Tag badge icon for a tag in BADGE_TAGS (meme and anything else: null, no error, they have no badge).
@@ -64,7 +79,7 @@ static func house(house_id: String, px: float = 64) -> Texture2D:
 	if not HOUSES.has(k):
 		push_error("UI6Assets.house: unknown house '%s'" % house_id)
 		return null
-	return _sized("house_" + k, px)
+	return UI3.icon("house_" + k)   # original SVG (Liam 2/11), px unused: vector
 
 
 ## Awakened mark (AnchorTile / AnchorChip / awaken banner).
@@ -74,11 +89,11 @@ static func awaken(px: float = 64) -> Texture2D:
 
 ## Single tier shard (tier 0..2) and the 1/2/3 shard strip for the tier.
 static func shard(tier: int, px: float = 32) -> Texture2D:
-	return _sized("shard_" + tier_key(tier), px)
+	return _sized("lib/shard_" + tier_key(tier), px)
 
 
 static func shards(tier: int, px: float = 64) -> Texture2D:
-	return _sized("shards_" + tier_key(tier), px)
+	return _sized("lib/shards_" + tier_key(tier), px)
 
 
 ## Cores-strip socket by tier; tier < 0 = the empty socket.
@@ -115,7 +130,7 @@ static func node(kind: String, px: float = 64) -> Texture2D:
 	if not NODE_KINDS.has(kind):
 		push_error("UI6Assets.node: unknown kind '%s'" % kind)
 		return null
-	return _sized("node_" + kind, px)
+	return _load_abs(OLD_ICON_DIR + "node_" + kind + ".png")   # original run-map icons (Liam 2/11)
 
 
 ## Reward / shop / overlay illustration in ILLUSTRATIONS; `big` = the 640 master, else 320.
@@ -123,12 +138,12 @@ static func illustration(name: String, big := false) -> Texture2D:
 	if not ILLUSTRATIONS.has(name):
 		push_error("UI6Assets.illustration: unknown '%s'" % name)
 		return null
-	return _load("ill_%s_%d.png" % [name, 640 if big else 320])
+	return _load_abs(OLD_CARD_DIR + name + ".png")   # original square paintings (Liam 2/11), `big` unused
 
 
 ## Shop rarity picture 0 (Common) .. 4 (Legendary).
 static func relic_rarity(r: int, big := false) -> Texture2D:
-	return _load("relic_r%d_%d.png" % [clampi(r, 0, 4), 640 if big else 320])
+	return _load_abs(OLD_CARD_DIR + "relic_r%d.png" % clampi(r, 0, 4))
 
 
 ## Particle / reveal texture in FX, or "rays_crystal" (the reveal rays).
@@ -149,3 +164,36 @@ static func ninepatch_margins(key: String) -> Vector4i:
 		push_error("UI6Assets: no ninepatch margins for '%s'" % key)
 		return Vector4i.ZERO
 	return Vector4i(int(m[0]), int(m[1]), int(m[2]), int(m[3]))
+
+
+## Original icons drawn with a thick black outline: they need the cream LightDisc on a dark plate (Liam 2/11).
+const DISC_ICONS := ["face_buff", "face_heal", "face_dmg", "face_summon", "status_vuln", "ui_reroll", "node_shop"]
+
+
+static func needs_disc(tex: Texture2D) -> bool:
+	if tex == null or not tex.resource_path.begins_with(OLD_ICON_DIR):
+		return false
+	var stem := tex.resource_path.get_file().get_basename()
+	return stem.begins_with("house_") or DISC_ICONS.has(stem)
+
+
+## Cream disc behind an icon that has a thick black outline (the original house SVGs, Level Up arrow, Serum ...), so it
+## reads on walnut (Liam 2/11, art-director review). A round Panel child drawn behind `r`'s own texture; it grows
+## `r`'s box by `grow` (fraction of its size, default 8%) on every side. Returns `r`. Safe to call once per rect.
+static func light_disc(r: Control, size_px: float = 0.0, grow := 0.08) -> Control:
+	if r == null or r.get_node_or_null("LightDisc") != null:
+		return r
+	var px := size_px if size_px > 0.0 else maxf(r.custom_minimum_size.x, r.size.x)
+	var pad := maxf(2.0, px * grow)
+	var d := Panel.new()
+	d.name = "LightDisc"
+	d.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	d.show_behind_parent = true
+	d.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("text"), 999, 0))
+	d.set_anchors_preset(Control.PRESET_FULL_RECT)
+	d.offset_left = -pad
+	d.offset_top = -pad
+	d.offset_right = pad
+	d.offset_bottom = pad
+	r.add_child(d)
+	return r

@@ -163,6 +163,8 @@ static func icon_rect(tex: Texture2D, px: int, node_name := "Icon") -> TextureRe
 	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if UI6Assets.needs_disc(tex):
+		UI6Assets.light_disc(ic, px)
 	return ic
 
 

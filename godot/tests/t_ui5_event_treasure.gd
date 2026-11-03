@@ -115,6 +115,7 @@ func _treasure(sc: float) -> void:
 	var pairs := _fit(root.find_child("Treasure", true, false), sc, tag + " closed")
 	_ok(pairs > 0, "%s closed: align check measured pairs" % tag)
 	ob.pressed.emit()
+	await get_tree().create_timer(1.2).timeout   # UI-06: the chest shakes / pops / squashes (~0.96 s) before the cards open
 	await _frames(5)
 	root = rm._overlay_root
 	_has(root, ["TreasureReward", "Title", "ShardPill", "CardRow", "Footer", "TakeButton"], tag + " opened")

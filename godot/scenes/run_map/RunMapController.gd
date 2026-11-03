@@ -635,6 +635,13 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 	btn.mouse_entered.connect(_hover_token.bind(btn, true))
 	btn.mouse_exited.connect(_hover_token.bind(btn, false))
 	_nodes_layer.add_child(btn)
+	btn.set_meta("rest_pos", btn.position)
+	icon.set_meta("is_glyph", true)
+	# UI-06 map-reward: the current node's glyph bobs, the boss helm breathes while the boss is reachable.
+	if is_here:
+		MapRewardFx.bob_glyph.call_deferred(icon)
+	elif node.node_type == "boss" and is_reach:
+		MapRewardFx.breathe.call_deferred(icon)
 
 	var caption: Label = null
 	# Passed nodes carry no caption (it collided with its neighbours at 1280); clicking one shows
@@ -668,7 +675,8 @@ func _affix_name(id: String) -> String:
 func _hover_token(btn: Button, on: bool) -> void:
 	if is_instance_valid(btn):
 		var base: Vector2 = btn.get_meta("base_scale", Vector2.ONE)
-		btn.scale = base * (1.1 if on else 1.0)
+		# UI-06 map-reward: lift y -6, scale 1.06 and a cream ring (the focus ring keeps its own look).
+		MapRewardFx.hover_token(btn, on, btn.get_meta("rest_pos", btn.position), base)
 
 
 func _on_token_input(ev: InputEvent, id: String) -> void:

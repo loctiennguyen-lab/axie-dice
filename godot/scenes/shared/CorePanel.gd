@@ -326,8 +326,13 @@ func _slot(def, is_rule: bool, empty_name: String) -> PanelContainer:
 		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		s.add_child(ic)
 		if not is_rule:
+			# Library gem for the tier, big enough to read in a 44 px slot (Liam 2/11); TierShards keeps the 1/2/3 strip elsewhere.
 			var sh := TierShards.new().setup(tier, slot_px * 0.28)
-			sh.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			sh.texture = UI6Assets.shard(tier, slot_px * 0.45)
+			sh.name = "TierShards"
+			var gp := slot_px * 0.45
+			sh.custom_minimum_size = Vector2(gp * 0.71, gp)
+			sh.size_flags_horizontal = Control.SIZE_SHRINK_END
 			sh.size_flags_vertical = Control.SIZE_SHRINK_END
 			s.add_child(sh)
 	var tip := "%s: empty" % empty_name
@@ -354,8 +359,20 @@ static func house_chip(short := false, height := 48) -> PanelContainer:
 	var hname := AnchorAdapter.house_name(house)
 	var c: PanelContainer
 	if AnchorAdapter.awakened():
-		c = UI3.house_chip(hk, "%s · %s" % [hname, TranslationServer.translate("Awakened")], Anchors.AWAKEN_NEED, Anchors.AWAKEN_NEED, true, height)
+		# 49-anchor-awaken--after: "Volley Awakened" + the ui_awaken mark in front of the text.
+		c = UI3.house_chip(hk, "%s %s" % [hname, TranslationServer.translate("Awakened")], Anchors.AWAKEN_NEED, Anchors.AWAKEN_NEED, true, height)
 		c.set_meta("state", "awakened")
+		var row0 := c.get_child(0) as HBoxContainer
+		var mark := TextureRect.new()
+		mark.name = "AwakenMark"
+		mark.texture = UI6Assets.awaken(32)
+		mark.custom_minimum_size = Vector2(20, 20)
+		mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		mark.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row0.add_child(mark)
+		row0.move_child(mark, 0)
 		return c
 	c = UI3.house_chip(hk, hname, AnchorAdapter.house_count(), Anchors.AWAKEN_NEED, false, height)
 	c.set_meta("state", "count")
@@ -411,6 +428,7 @@ func _anchor_slot() -> PanelContainer:
 	ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UI6Assets.light_disc(ic, ANCHOR_PX * 0.5)
 	s.add_child(ic)
 	if awake:
 		var aw := TextureRect.new()
