@@ -71,3 +71,5 @@ Mỗi làn chạy test liên quan, chụp ảnh 1920 + 1280 và có review. Gộ
 - Art: brief lượt 1 (23 món thẻ Lõi) đã gửi Liam, nằm ở `design/handoffs/art-redo-0311/`.
 
 - 3/11: Liam đã gửi brief lượt 1 cho Claude Design (vẽ thử 3 món: frame_core_amber, family_stat, slot_moss, rồi dừng chờ duyệt).
+
+- 3/11: #4 Liam xem sheet hiệu ứng mới, chọn **bỏ hạt bay**. Lõi và Anchor kích hoạt chỉ còn ô sáng + nổ VFX kỹ năng trên đích + chữ trên đầu đích.
