@@ -46,6 +46,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	m.connect("travel_requested", func(id: String) -> void: _travelled.append(id))
 
+	_check(m.find_child("KeyHint", true, false) == null, "polish 3/11 #20: no key-hint line on the map")
 	await _click(m, "n2a")
 	_check(_travelled.is_empty() and m.get("_selected_id") == "n2a", "first press only selects")
 	await _click(m, "n2a")
