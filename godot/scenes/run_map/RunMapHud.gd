@@ -129,26 +129,26 @@ func _build_relic_row(relic_id: String) -> Control:
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", UI3Theme.space("12"))
 	row.add_child(h)
-	if true:   # polish 3/11 #14: old relics / pacts get the same socket + headline as Cores
-		var px := float(UI3Theme.size_of("slot_emblem")) + 8.0
-		var tier := clampi(rarity, 0, 2) if not is_rule else -1
-		var sk := TextureRect.new()
-		sk.name = "RunRuleSlot" if is_rule else "CoreSlot"
-		sk.texture = UI6Assets.slot(tier, px)
-		sk.custom_minimum_size = Vector2.ONE * px
-		sk.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		sk.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		sk.stretch_mode = TextureRect.STRETCH_SCALE
-		sk.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var e := TextureRect.new()
-		e.name = "RunRuleEmblem" if is_rule else "FamilyEmblem"
-		e.texture = CoreVisuals.family_texture("run_rule" if is_rule else (String(def.core_axis) if is_core else "stat"), px * 0.6)
-		e.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, int(px * 0.2))
-		e.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		e.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		e.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		sk.add_child(e)
-		h.add_child(sk)
+	# polish 3/11 #14: old relics / pacts get the same socket + headline as Cores
+	var px := float(UI3Theme.size_of("slot_emblem")) + 8.0
+	var tier := clampi(rarity, 0, 2) if not is_rule else -1
+	var sk := TextureRect.new()
+	sk.name = "RunRuleSlot" if is_rule else "CoreSlot"
+	sk.texture = UI6Assets.slot(tier, px)
+	sk.custom_minimum_size = Vector2.ONE * px
+	sk.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	sk.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	sk.stretch_mode = TextureRect.STRETCH_SCALE
+	sk.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var e := TextureRect.new()
+	e.name = "RunRuleEmblem" if is_rule else "FamilyEmblem"
+	e.texture = CoreVisuals.family_texture("run_rule" if is_rule else (String(def.core_axis) if is_core else "stat"), px * 0.6)
+	e.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, int(px * 0.2))
+	e.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	e.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	e.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sk.add_child(e)
+	h.add_child(sk)
 	var tv := VBoxContainer.new()
 	tv.name = "Texts"
 	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -160,12 +160,11 @@ func _build_relic_row(relic_id: String) -> Control:
 	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tv.add_child(nm)
 	Ui5Ellipsis.set_text(nm, UI3.title_case(UI3.player_text(String(def.name) if def != null else relic_id)))
-	if true:
-		var hl := PanelParts.text("", "text_body", "core_headline")
-		hl.name = "Headline"
-		hl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		tv.add_child(hl)
-		CoreHeadline.apply(hl, relic_id)
+	var hl := PanelParts.text("", "text_body", "core_headline")
+	hl.name = "Headline"
+	hl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tv.add_child(hl)
+	CoreHeadline.apply(hl, relic_id)
 	if is_core and not is_rule:
 		h.add_child(TierShards.new().setup(rarity, 28))
 	else:

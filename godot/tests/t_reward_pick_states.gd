@@ -53,7 +53,12 @@ func _f(n: String) -> Node:
 
 func _labels_fit(card: Control, tag: String) -> void:
 	# Content fits the fixed card: no clipped row, no label spilling out of the card.
-	_check(card.get_combined_minimum_size().y <= card.size.y + 0.5,   # the card's own fixed height (reward_card_h or core_card_h)
+	# Polish 3/11 #8: cards are SIZE_FILL now, so card.size grows with its content and could never fail. Compare with the
+	# shared reward height instead (a CoreCard keeps its own token height).
+	var is_core_card: bool = card.get_script() != null and String(card.get_script().resource_path).ends_with("/CoreCard.gd")
+	# Reward cards start compact (card_h) and may grow with a long body, but never past the old fixed height.
+	var want_h: float = card.size.y if is_core_card else float(UI3Theme.size_of("reward_card_h"))
+	_check(card.get_combined_minimum_size().y <= want_h + 0.5,
 		"%s: content fits the card (%.0f)" % [tag, card.get_combined_minimum_size().y])
 	var cr := card.get_global_rect().grow(1.0)
 	for l in card.find_children("*", "Label", true, false):

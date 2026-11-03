@@ -126,8 +126,8 @@ func _fit_height() -> void:
 	if not is_inside_tree():
 		return
 	await get_tree().process_frame
-	if not is_instance_valid(self) or face == null:
-		return
+	if not is_instance_valid(self) or face == null or not is_inside_tree() or get_parent() == null:
+		return   # the offer was rebuilt during that frame
 	var pad := UI3Theme.size_of("core_pad")
 	var need := clampf(face.body.get_combined_minimum_size().y + 2.0 * pad, 300.0, UI3Theme.size_of("rule_card_h"))
 	set_meta("need_h", need)
