@@ -117,8 +117,8 @@ func add_combo_tag(full: bool, combo_name: String, with: String) -> void:
 	top.add_child(UI3.combo_tier_tag(full, false))
 	var nm := PanelParts.text(combo_name, "text_body", "text", true)
 	nm.name = "ComboName"
-	nm.clip_text = true
-	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART   # polish 3/11 #23: a long combo name takes two lines instead of being cut
+	nm.custom_minimum_size.x = 40
 	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	top.add_child(nm)
