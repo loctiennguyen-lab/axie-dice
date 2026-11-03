@@ -384,6 +384,8 @@ func apply(d: Dictionary) -> void:
 	# FaceRow: the face word (always: colour-blind cue) and the SET preview / "Used".
 	face_word.text = UI3.face_word(_face) if show_face else ""
 	face_word.add_theme_color_override("font_color", UI3Theme.color(String(UI3.FACE_WORD_COLOR.get(_face, "text"))))
+	if bool(d.get("is_egg", false)) and alive:
+		face_word.text = TranslationServer.translate("Egg die")   # polish 3/11 P1 #16
 	delta_full = ""
 	if state == &"used":
 		set_delta.text = TranslationServer.translate("Used")

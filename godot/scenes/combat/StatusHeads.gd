@@ -53,7 +53,8 @@ func sync(entries: Array) -> void:
 		var rx := anchor.x - row.size.x * 0.5
 		if size.x > 0.0:
 			rx = clampf(rx, 24.0, maxf(24.0, size.x - 24.0 - row.size.x))   # never clip at the window edge
-		row.position = Vector2(rx, anchor.y - row.size.y)
+		# polish 3/11 P1 #17: a tall foe pushed the row above the screen edge; keep it inside the window.
+		row.position = Vector2(rx, maxf(anchor.y - row.size.y, 4.0))
 	for uid in _rows.keys():
 		if not seen.has(uid):
 			(_rows[uid]["row"] as Node).queue_free()

@@ -4573,6 +4573,9 @@ func _v4_card_data(u: Unit) -> Dictionary:
 		out["tip"] = "%s\n%s" % [_tray_tooltip(u), TranslationServer.translate("Cracked: half value, out of the Set. Ends next turn.")]
 	if u.hp <= 0 or not u.has_rolled() or _combat == null:
 		return out
+	if u.roster_index < 0:
+		out["is_egg"] = true   # polish 3/11 P1 #16: a summoned Egg has no part, so no "Ears" chip on its blank die
+		return out
 	var fi := u.roll_face_index()
 	# A Temp Face (Wild) counts as its new part: the chip shows that part (HTML set-4: Puffy's die reads "Mouth").
 	var slot := u.wild_slot if u.wild_slot >= 0 else clampi(fi, 0, 5)
