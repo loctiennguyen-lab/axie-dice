@@ -655,7 +655,9 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 		caption.custom_minimum_size = Vector2(136, 0)
 		caption.size = Vector2(136, 26)
 		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		caption.clip_text = true
+		caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART   # polish 3/11 #6: long boss names take two lines, no cut
+		if node.node_type == "boss":
+			caption.size = Vector2(136, 52)
 		caption.position = Vector2(centre.x - 68.0, centre.y + size * 0.5 * base.x + 8.0)
 		caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if passed:

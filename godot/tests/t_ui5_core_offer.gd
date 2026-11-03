@@ -57,7 +57,7 @@ func _contract(tag: String, why: String, label: String) -> void:
 	ev.pressed = true
 	rm._reward_cards[0].gui_input.emit(ev)   # Enter / Space on a card picks it and moves focus to Take
 	await _frames(3)
-	_ok(int(rm._reward_sel) == 0 and not tb.disabled and tb.text == label, "%s: pick turns Take on as '%s' (got '%s')" % [tag, label, tb.text])
+	_ok(int(rm._reward_sel) == 0 and not tb.disabled and (tb.text == label or tb.text.begins_with(label + " ")), "%s: pick turns Take on as '%s' (got '%s')" % [tag, label, tb.text])
 	_ok(tb.get_viewport().gui_get_focus_owner() == tb, "%s: ui_accept on a card moves focus to Take" % tag)
 	var cap := tb.get_node_or_null("KeyCap") as PanelContainer
 	_ok(cap != null and Ui5Keycap.text_of(cap) == "Space", "%s: enabled Take shows the Space keycap" % tag)

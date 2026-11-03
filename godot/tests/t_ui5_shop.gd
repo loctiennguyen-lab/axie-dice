@@ -95,8 +95,17 @@ func _pass(sc: float, asc: int) -> void:
 	_ok(sells.size() == 3, "%s: 3 sell rows" % tag)
 	for sb in sells:
 		var rid := String((sb as Button).get_meta("relic_id"))
-		var want := "%s · +%d" % [String(RelicRegistry.get_def(rid).name), RelicSlots.sell_price(rid, asc)]
-		_ok((sb as Button).text == want, "%s: sell text '%s' == '%s'" % [tag, (sb as Button).text, want])
+		var want_p := RelicSlots.sell_price(rid, asc)
+		var pl := sb.find_child("SellPrice", true, false) as Label
+		var nl := sb.find_child("SellName", true, false) as Label
+		_ok(pl != null and pl.text == "+%d" % want_p and pl.is_visible_in_tree(), "%s: sell price always shown (+%d)" % [tag, want_p])
+		_ok(nl != null and Ui5Ellipsis.full_text(nl) == String(RelicRegistry.get_def(rid).name), "%s: sell name kept whole in meta" % tag)
+		_ok(pl != null and nl != null and pl.get_global_rect().end.x <= sb.get_global_rect().end.x + 0.5 \
+			and nl.get_global_rect().end.x <= pl.get_global_rect().position.x + 0.5, "%s: price inside the button, name never overlaps it" % tag)
+		_ok(sb.find_child("SellIcon", true, false) != null, "%s: shard icon on sell" % tag)
+		var is_core := RelicSlots.is_core(RelicRegistry.get_def(rid))
+		var slot := sb.get_parent().find_child("CoreSlot", false, false)
+		_ok(slot != null and (not is_core or slot.find_child("FamilyEmblem", true, false) != null), "%s: Core sell row has its family emblem" % tag)
 	_small(m, tag + " stock", sc)
 	_ok(Align.pairs(m) > 0, "%s: align check measured pairs (%d)" % [tag, Align.pairs(m)])
 	_ok(Align.check(m).is_empty(), "%s: icon/label centred %s" % [tag, str(Align.check(m))])

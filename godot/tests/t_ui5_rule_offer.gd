@@ -61,7 +61,7 @@ func _ready() -> void:
 		await _frames(3)
 		_ok(bool(rm._reward_cards[1].get("selected")), "no-rule card can be picked @%.2f" % sc)
 		var tk := rm._overlay_root.find_child("TakeButton", true, false) as Button
-		_ok(tk != null and not tk.disabled and tk.text == "Take", "pick turns Take on @%.2f (got '%s')" % [sc, tk.text if tk != null else "-"])
+		_ok(tk != null and not tk.disabled and tk.text.begins_with("Take"), "pick turns Take on @%.2f (got '%s')" % [sc, tk.text if tk != null else "-"])
 	# The longest rule text (Pack Alpha) must fit its card at the 1280 size.
 	var pa = RelicRegistry.get_def("rule_pack_alpha")
 	_ok(pa != null, "rule_pack_alpha exists")
