@@ -1,4 +1,11 @@
-# Bàn giao cho session mới (2/11/2026)
+# Bàn giao cho session mới (2/11/2026, cập nhật 3/11)
+
+> **3/11 đã xong:**
+> - hotfix màn đăng nhập (web ce820681, desktop b2362);
+> - gộp và deploy `ui06/finish` + `ui06/assets` (thay icon theo Liam) + `ui06/qa2`: web pck f8f4f45e, desktop b2381;
+> - 2 test Pass sửa cho không phụ thuộc đồng hồ thật.
+>
+> Các mục 1–3 của "Việc tiếp theo" bên dưới coi như XONG. Còn lại: mục 4–6, câu hỏi chờ Liam, danh sách Liam tự làm.
 
 ## Prompt dán vào session mới
 > Đọc `production/next-session-2026-11-02.md` và làm tiếp theo thứ tự ở mục "Việc tiếp theo". Luật làm việc ở `CLAUDE.md`. Hỏi tôi trước khi deploy.
