@@ -1,21 +1,24 @@
 class_name CoreFireFX
 extends Control
 ## UI-06 L2: what the player sees when `core_fired(id, uid, amount, kind)` arrives in combat (moments/moment-core-firing,
-## motion-ui06.md "Core firing"). One fire = socket ring + dotted line socket -> unit + travelling dot + a number at the
+## motion-ui06.md "Core firing"). One fire = socket ring (+ glow for an Anchor), then 0.1 s later a light skill-clip burst on the target unit; no particles. Number at the
 ## unit. Cores use the cream `fire_ring` and the family emblem in front of the number; an Anchor (`a_*`) uses the gold
 ## `anchor_fire` and no emblem, so it never reads as a Core. Pure view: it only listens to what CombatView forwards
 ## (CoreHooks.mute already keeps previews / forecasts from emitting, so nothing here has to know about them).
 ## Several fires queue 180 ms apart, at most MAX_LIVE are on screen at once.
-## Reduce motion: no line / dot, number only fades. Reduce flashing: ring alpha <= 0.12 (the ring still draws).
+## Reduce motion: no burst, ring without scale only. Reduce flashing: ring alpha <= 0.12 (the ring still draws).
 ## Test hooks: live / max_seen / queued() / log (one {id, uid, anchor, amount, kind} per fire that STARTED).
 
 const MAX_LIVE := 6
 const GAP_MSEC := 180
 const LIFE_SEC := 1.4
+const BURST_DELAY := 0.1   ## s after the ring: the burst clip starts on the target unit
 
 var panel: CorePanel = null
 ## Callable(uid:int) -> Vector2 global point of the unit, or Vector2(-1, -1) when the unit is not on screen.
 var unit_pos: Callable
+## Callable(uid:int, kind:String, anchor:bool): the burst on the target, BURST_DELAY after the ring (CombatView plays a skill clip).
+var burst: Callable
 var live := 0
 var max_seen := 0
 var log: Array = []
@@ -74,7 +77,7 @@ func _start(e: Dictionary) -> void:
 	live += 1
 	max_seen = maxi(max_seen, live)
 	log.append({"id": id, "uid": int(e["uid"]), "anchor": anchor, "amount": int(e["amount"]), "kind": String(e["kind"])})
-	var col := UI3Theme.color("anchor_fire") if anchor else UI3Theme.color("fire_ring")
+	var col := UI3Theme.color("anchor_fire") if anchor else UI3Theme.color(CoreFeedback.color_token(String(e["kind"])))
 	var slot := _slot_of(id)
 	var holder := Control.new()
 	holder.name = "AnchorFireFX" if anchor else "CoreFire"
@@ -94,12 +97,17 @@ func _start(e: Dictionary) -> void:
 		from = _local(slot.get_global_rect().get_center())
 		_ring(holder, slot, col, noflash, nomove)
 		if anchor:
-			_anchor_pulse(holder, slot, col, noflash, nomove)
+			_anchor_pulse(holder, slot, col, noflash, nomove, anchor)
 	var uv: Vector2 = unit_pos.call(int(e["uid"])) if unit_pos.is_valid() else Vector2(-1, -1)
 	var has_unit := uv.x >= 0.0 and uv.y >= 0.0
 	var to := _local(uv) if has_unit else Vector2(-1, -1)
-	if has_unit and from.x >= 0.0 and not nomove:
-		_line(holder, from, to, col)
+	if has_unit and not nomove and burst.is_valid():
+		# polish 3/11 P1 #4 (Liam): nothing travels between socket and unit; the ring lights, then the skill clip bursts on the target.
+		var uid := int(e["uid"])
+		var kind := String(e["kind"])
+		var bt := holder.create_tween()
+		bt.tween_interval(BURST_DELAY)
+		bt.tween_callback(func() -> void: burst.call(uid, kind, anchor))
 	if SHOW_NUMBER and has_unit and int(e["amount"]) > 0:
 		_number(holder, to, e, col, anchor, nomove)
 
@@ -109,29 +117,42 @@ func _start(e: Dictionary) -> void:
 const SHOW_NUMBER := false
 
 
+## Socket flash: a soft halo + a thick ring drawn in code (a transparent StyleBoxFlat Panel did not show on screen).
+class RingFX extends Control:
+	var col := Color.WHITE
+	var ring_w := 4.0
+
+	func _draw() -> void:
+		var c := size * 0.5
+		var rad := maxf(size.x, size.y) * 0.5
+		draw_circle(c, rad * 1.45, Color(col.r, col.g, col.b, 0.14))
+		draw_circle(c, rad * 1.15, Color(col.r, col.g, col.b, 0.22))
+		draw_arc(c, rad, 0.0, TAU, 48, col, ring_w, true)
+
+
 func _ring(holder: Control, slot: Control, col: Color, noflash: bool, nomove: bool) -> void:
-	var r := Panel.new()
+	var r := RingFX.new()
 	r.name = "FireRing"
 	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var sb := UI3Theme.flat(Color(0, 0, 0, 0), UI3Theme.radius("s"), 4, col)
-	r.add_theme_stylebox_override("panel", sb)
+	r.col = col.lightened(0.1)
+	r.ring_w = 5.0 * maxf(UI3Theme.layout_scale(), 0.5) + 2.0
 	var rc := slot.get_global_rect()
 	r.position = _local(rc.position)
 	r.size = rc.size
 	r.pivot_offset = rc.size * 0.5
 	var a0 := 0.12 if noflash else 1.0
 	r.modulate.a = a0
-	r.scale = Vector2.ONE * 0.9
+	r.scale = Vector2.ONE * 0.85
 	holder.add_child(r)
 	var tw := r.create_tween().set_parallel(true)
 	if not nomove:
-		tw.tween_property(r, "scale", Vector2.ONE * 1.3, 0.36).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tw.tween_property(r, "modulate:a", 0.0, 0.36).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tw.tween_property(r, "scale", Vector2.ONE * 1.35, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(r, "modulate:a", 0.0, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 
 ## Anchor only (motion-ui06 "Anchor fires"): gold glow behind / around the AnchorTile (outside the ring) and the tile
 ## itself pops 1 -> 1.25 -> 1 in 160 ms. Reduce motion: no pop, glow only fades. Reduce flashing: glow alpha <= 0.12.
-func _anchor_pulse(holder: Control, slot: Control, col: Color, noflash: bool, nomove: bool) -> void:
+func _anchor_pulse(holder: Control, slot: Control, col: Color, noflash: bool, nomove: bool, glow := true) -> void:
 	var rc := slot.get_global_rect()
 	var g := TextureRect.new()
 	g.name = "AnchorPulse"
@@ -145,6 +166,7 @@ func _anchor_pulse(holder: Control, slot: Control, col: Color, noflash: bool, no
 	g.position = _local(rc.get_center()) - g.size * 0.5
 	g.pivot_offset = g.size * 0.5
 	g.scale = Vector2.ONE * (1.0 if nomove else 0.7)
+	g.visible = glow
 	holder.add_child(g)
 	var tw := g.create_tween().set_parallel(true)
 	if not nomove:
@@ -155,39 +177,6 @@ func _anchor_pulse(holder: Control, slot: Control, col: Color, noflash: bool, no
 		var pt := slot.create_tween()
 		pt.tween_property(slot, "scale", Vector2.ONE * 1.25, 0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		pt.tween_property(slot, "scale", Vector2.ONE, 0.08)
-
-
-func _line(holder: Control, from: Vector2, to: Vector2, col: Color) -> void:
-	var ink := Line2D.new()
-	ink.name = "FireLineInk"
-	ink.width = 10
-	ink.default_color = UI3Theme.color("plate_ink")
-	var l := Line2D.new()
-	l.name = "FireLine"
-	l.width = 4
-	l.default_color = UI3Theme.color("anchor_fire") if col == UI3Theme.color("anchor_fire") else UI3Theme.color("fire_line")
-	for n in [ink, l]:
-		(n as Line2D).points = PackedVector2Array([from, from])
-		(n as Line2D).modulate.a = 0.0
-		holder.add_child(n)
-	var dot := TextureRect.new()
-	dot.name = "FireDot"
-	dot.texture = UI6Assets.fx("pulse", 32)
-	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	dot.custom_minimum_size = Vector2(32, 32)
-	dot.size = Vector2(32, 32)
-	dot.position = from - dot.size * 0.5
-	holder.add_child(dot)
-	var tw := holder.create_tween().set_parallel(true)
-	tw.tween_method(func(t: float) -> void:
-		var p := from.lerp(to, t)
-		for n in [ink, l]:
-			(n as Line2D).points = PackedVector2Array([from, p])
-		dot.position = p - dot.size * 0.5, 0.0, 1.0, 0.22).set_delay(0.04).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	for n in [ink, l]:
-		tw.tween_property(n, "modulate:a", 1.0, 0.07).set_delay(0.04)
-		tw.tween_property(n, "modulate:a", 0.0, 0.2).set_delay(0.28)
-	tw.tween_property(dot, "modulate:a", 0.0, 0.05).set_delay(0.26)
 
 
 func _number(holder: Control, at: Vector2, e: Dictionary, col: Color, anchor: bool, nomove: bool) -> void:

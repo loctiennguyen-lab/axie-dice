@@ -662,8 +662,12 @@ func set_tab(spec: Dictionary) -> void:
 	_tab_icon.visible = _tab_icon.texture != null
 	_tab_text.text = String(spec.get("text", ""))
 	if _is_boss:
-		_tab_text.add_theme_color_override("font_color",
-			UI3Theme.color("attrition_max") if bool(spec.get("maxed", false)) else UI3Theme.color("attrition"))
+		var warn := UI3Theme.color("attrition_max") if bool(spec.get("maxed", false)) else UI3Theme.color("attrition")
+		_tab_text.add_theme_color_override("font_color", warn)
+		# polish 3/11 P1 #16: the clock is a chip, not loose text (tinted fill + 2 px edge in the warning token).
+		_tab_style.bg_color = Color(warn.r, warn.g, warn.b, 0.18)
+		_tab_style.set_border_width_all(2)
+		_tab_style.border_color = warn
 	else:
 		_tab_style.bg_color = spec.get("bg", UI3Theme.color("plate_raised"))
 		_tab_text.add_theme_color_override("font_color", spec.get("ink", UI3Theme.color("text")))

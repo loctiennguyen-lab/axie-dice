@@ -1069,6 +1069,7 @@ func _build_hud_r1() -> void:
 	_hud_frame.z_index = 8
 	_shell_root.add_child(_hud_frame)
 	core_fx = CoreFireFX.new().setup(_hud_frame.core_panel, _core_fx_unit_pos)
+	core_fx.burst = _core_fx_burst
 	_hud_frame.add_child(core_fx)
 	_relic_strip = _hud_frame.relic_strip
 	_actives_row = _hud_frame.actives_row
@@ -3370,6 +3371,35 @@ var hit_stops := 0
 
 ## UI-06 L2: socket flash + line + number for every Core / Anchor that fires (previews never emit: CoreHooks.mute).
 var core_fx: CoreFireFX = null
+var core_bursts: Array = []   ## test hook: {uid, clip} per burst played
+
+## Light official clip per fire kind (assets/vfx via SkillVfxCatalog); Anchors reuse the same set.
+## Melee clips only: a ranged clip's `anchor` (the impact) lies outside its frame, so on a unit it would draw nothing.
+const _CORE_BURST_CLIP := {"dmg": "beast_slash", "thorns": "plant_gore", "poison": "bug_slash", "shield": "aquatic_slash",
+	"block": "aquatic_slash", "heal": "plant_slash", "mana": "bird_slash", "reroll": "bird_slash", "quest_step": "bird_slash"}
+
+
+func _core_fx_burst(uid: int, kind: String, _anchor: bool) -> void:
+	if motion_suppressed() or disable_juice_for_tests or _stage3d == null or _combat == null:
+		return
+	var clip := String(_CORE_BURST_CLIP.get(kind, "bird_slash"))
+	if SkillVfxCatalog.clip(clip).is_empty():
+		return
+	if _combat.by_uid(uid) == null:
+		var ap: Array = _party_dice_units()   # same fallback as _spawn_core_note
+		if ap.is_empty():
+			return
+		uid = int(ap[0].uid)
+	var layer := _ensure_skill_vfx()
+	var a := _core_fx_body_anchor(uid)
+	if layer == null or a.x < 0.0:
+		return
+	# Only the impact of the clip: start 4 frames before its peak, run ~0.45 s, a bit bigger than a self clip.
+	var meta := SkillVfxCatalog.clip(clip)
+	var fps := maxf(1.0, float(meta.get("fps", 30.0)))
+	var t0 := maxf(float(meta.get("peak_frame", 0)) - 4.0, 0.0) / fps
+	if layer.play_on_unit(clip, a, t0, 0.45, 0.7):
+		core_bursts.append({"uid": uid, "clip": clip})
 
 
 ## Global centre of a unit's head for CoreFireFX; (-1, -1) when it is not on screen. An unknown uid falls back to the
@@ -3378,14 +3408,25 @@ func _core_fx_unit_pos(uid: int) -> Vector2:
 	if _stage3d == null or _unit_visuals_root == null or _combat == null:
 		return Vector2(-1, -1)
 	if _combat.by_uid(uid) == null:   # unknown uid: first living party die, same as the float note
-		var ap: Array = _combat.alive_party()
+		var ap: Array = _party_dice_units()
 		if ap.is_empty():
 			return Vector2(-1, -1)
 		uid = int(ap[0].uid)
-	var a := _status_head_anchor(uid, not _combat_is_enemy_uid(uid), _stage3d.position)
+	var a := _core_fx_body_anchor(uid)
 	if a.x < 0.0:
 		return Vector2(-1, -1)
 	return _unit_visuals_root.get_global_transform() * a
+
+
+## Mid-body point of a unit (unit_visuals_root space, stage offset included): where the burst plays.
+## `uid` must already be resolved (a known unit); same unit the float note uses, which sits beside its head.
+func _core_fx_body_anchor(uid: int) -> Vector2:
+	var head_h: float = CombatStage3D.AXIE_HEAD_HEIGHT if not _combat_is_enemy_uid(uid) \
+		else _stage3d.head_height_of(uid, CombatStage3D.HEAD_HEIGHT)
+	var p := _stage3d.get_unit_screen_pos(uid, head_h * 0.55)
+	if p.x < 0.0:
+		return Vector2(-1, -1)
+	return _stage3d.position + p
 
 
 func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> void:
@@ -3402,6 +3443,9 @@ func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> voi
 	var nm := UI3.title_case(UI3.player_text(String(def.name))) if def != null else core_id
 	if def == null and not Anchors.get_def(core_id).is_empty():
 		nm = AnchorFx.awaken_line(core_id, amount) if kind == "awaken" else AnchorAdapter.name_of(core_id)
+	if core_id == "c_meme_nametag" and kind == "rule":
+		# polish 3/11 P1 #15: the bare Core name floating over a foe read as a placeholder; say what it did.
+		nm = TranslationServer.translate("Named foe: +1 MP if it falls")
 	_append_log("[core] %s on %s" % [CoreFeedback.float_line(nm, amount, kind), _unit_name(uid)])
 	var armed := not _core_batch.is_empty()
 	var group: Dictionary = _core_batch.get(uid, {})
@@ -3506,8 +3550,8 @@ func _spawn_core_note(uid: int, lines: Array) -> void:
 	chip.size = sz
 	var vs := get_viewport_rect().size
 	var stack := int(_core_float_live.get(target, 0))
-	# Beside the head (not above it): the unit's own damage number rises straight up from the nameplate.
-	var pos := a + Vector2(48.0, -sz.y * 0.5 - float(stack) * (sz.y + 4.0))
+	# polish 3/11 P1 (Liam): centred right above the unit's own head so it never reads as the neighbour's; extra notes stack upward.
+	var pos := a + Vector2(-sz.x * 0.5, -sz.y - 4.0 - float(stack) * (sz.y + 4.0))
 	pos.x = clampf(pos.x, 24.0, vs.x - 24.0 - sz.x)
 	pos.y = clampf(pos.y, 24.0, vs.y - 24.0 - sz.y)
 	chip.position = pos
@@ -4569,6 +4613,9 @@ func _v4_card_data(u: Unit) -> Dictionary:
 	if bool(out["cracked"]):
 		out["tip"] = "%s\n%s" % [_tray_tooltip(u), TranslationServer.translate("Cracked: half value, out of the Set. Ends next turn.")]
 	if u.hp <= 0 or not u.has_rolled() or _combat == null:
+		return out
+	if u.roster_index < 0:
+		out["is_egg"] = true   # polish 3/11 P1 #16: a summoned Egg has no part, so no "Ears" chip on its blank die
 		return out
 	var fi := u.roll_face_index()
 	# A Temp Face (Wild) counts as its new part: the chip shows that part (HTML set-4: Puffy's die reads "Mouth").

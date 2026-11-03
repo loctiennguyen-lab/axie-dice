@@ -87,12 +87,13 @@ func _ready() -> void:
 		await get_tree().process_frame
 		var ring := fx.find_child("FireRing", true, false) as Control
 		var line := fx.find_child("FireLine", true, false)
+		_ok(line == null, "%s: no FireLine any more" % mode)
+		var mote := fx.find_child("FireMote", true, false)
+		_ok(mote == null, "%s: no travelling particles any more" % mode)
 		_ok(ring != null, "%s: ring exists" % mode)
 		if mode == "quiet":
-			_ok(line == null, "reduced: no line")
 			_ok(ring != null and ring.modulate.a <= 0.121, "reduced flashing: ring alpha <= 0.12")
 		else:
-			_ok(line != null, "full: line")
 			_ok(ring != null and ring.modulate.a > 0.5, "full: ring bright")
 		fxs.append(fx)
 	CombatView.disable_juice_for_tests = false
