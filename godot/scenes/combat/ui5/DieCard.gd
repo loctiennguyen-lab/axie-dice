@@ -418,6 +418,9 @@ func apply(d: Dictionary) -> void:
 	var hp_max := int(d.get("max_hp", 1))
 	Ui5Ellipsis.set_text(owner_name, String(d.get("name", "")))   # B9: "Pomod…", never a bare "Pomodor"
 	owner_hp.text = "%d/%d" % [maxi(hp_now, 0), hp_max]
+	# polish 3/11 P1 #15: a cut name keeps its whole self in a tooltip (PASS: the click still reaches the card).
+	owner_name.mouse_filter = Control.MOUSE_FILTER_PASS
+	UI3Tooltip.bind(owner_name, String(d.get("name", "")))
 	hp_bar.set_stats(hp_now, hp_max)
 	hp_bar.set_at_risk(mini(hp_now, maxi(0, int(d.get("incoming", 0)) - int(d.get("shield", 0)))))
 	plate.modulate.a = 1.0 if alive else 0.55

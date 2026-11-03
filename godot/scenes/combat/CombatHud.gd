@@ -394,6 +394,9 @@ func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 		var k := Ui5ToolKey.new(spec[0], spec[1], spec[2], TranslationServer.translate(spec[3]))
 		_tools.add_child(k)
 		_tool_keys.append(k)
+		k.button.mouse_entered.connect(_reason_show.bind(k, true))
+		k.button.mouse_exited.connect(_reason_clear.bind(k))
+		k.button.gui_input.connect(_reason_gui_input.bind(k))
 	# RerollButton: secondary M, Rowdies title, reroll glyph, CostChip (mana) when the next reroll is paid.
 	reroll.theme_type_variation = "ButtonSecondary"
 	reroll.text = "Reroll"
@@ -670,9 +673,66 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary, hold: D
 	else:
 		_hint.text = String(end.get("sub", ""))
 	_end_cap_label.text = KeyBindings.text(KeyBindings.COMBAT_END_TURN)
+	_reason_apply()
 	_apply_seed_wait()
 	_sync_end_cap()
 	layout()
+
+
+## polish 3/11 P1 #5: a disabled tool says WHY on the StatusLine (hover, or a click / tap on it for 3 s).
+var _reason_key: Ui5ToolKey = null
+var _reason_until_ms := 0          ## 0 = none, -1 = while hovered, else Time.get_ticks_msec() deadline
+
+
+func _reason_show(k: Ui5ToolKey, hover: bool) -> void:
+	if k.reason_text() == "":
+		return
+	_reason_key = k
+	_reason_until_ms = -1 if hover else Time.get_ticks_msec() + 3000
+	_reason_apply()
+
+
+func _reason_clear(k: Ui5ToolKey) -> void:
+	if _reason_key == k and _reason_until_ms == -1:
+		_reason_key = null
+		_reason_until_ms = 0
+		update_right_hint_refresh()
+
+
+func _reason_gui_input(ev: InputEvent, k: Ui5ToolKey) -> void:
+	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and k.button.disabled:
+		_reason_show(k, false)
+
+
+## Puts the reason over the StatusLine text while one is wanted. Returns true if it did.
+func _reason_apply() -> bool:
+	if _reason_key == null or _hint == null:
+		return false
+	var why := _reason_key.reason_text()
+	if why == "" or (_reason_until_ms > 0 and Time.get_ticks_msec() > _reason_until_ms):
+		_reason_key = null
+		_reason_until_ms = 0
+		return false
+	if _hint.text == TranslationServer.translate(ENEMY_TEXT) or _hint.text == TranslationServer.translate(WAITING_TEXT):
+		return false
+	if _hint_before_reason == "" or _hint.text != why:
+		_hint_before_reason = _hint.text   # fresh text from update_right(), not our own reason
+	_hint.text = why
+	Ui5HudStyle.sync_view_chip(_hint)
+	layout()
+	return true
+
+
+var _hint_before_reason := ""
+
+
+## Restores the normal StatusLine text once the reason goes away (the next update_right() would too).
+func update_right_hint_refresh() -> void:
+	if _hint != null and _hint_before_reason != "":
+		_hint.text = _hint_before_reason
+		Ui5HudStyle.sync_view_chip(_hint)
+		_hint_before_reason = ""
+		layout()
 
 
 func _tool_key_of(b: Button) -> Ui5ToolKey:
@@ -683,6 +743,10 @@ func _tool_key_of(b: Button) -> Ui5ToolKey:
 
 
 func _process(_dt: float) -> void:
+	if _reason_key != null and _reason_until_ms > 0 and Time.get_ticks_msec() > _reason_until_ms:
+		_reason_key = null
+		_reason_until_ms = 0
+		update_right_hint_refresh()
 	if is_visible_in_tree():
 		_sync_end_cap()   # a modal / curtain can open or close at any frame
 

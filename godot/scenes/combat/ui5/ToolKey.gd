@@ -62,6 +62,15 @@ func natural_width() -> float:
 	return maxf(float(UI3Theme.size_of("tool_key")), ceilf(ww))
 
 
+## The short reason this key is off ("" when usable or when it is a switched-on toggle). Shown on the StatusLine.
+func reason_text() -> String:
+	if not button.disabled or _on:
+		return ""
+	if name == &"UndoKey":
+		return TranslationServer.translate("Undo: nothing to undo")
+	return button.text
+
+
 ## A switched-on toggle (Hold full): selected outline instead of the rim; never reads as disabled.
 func set_on(on: bool) -> void:
 	if on == _on:

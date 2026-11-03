@@ -3402,6 +3402,9 @@ func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> voi
 	var nm := UI3.title_case(UI3.player_text(String(def.name))) if def != null else core_id
 	if def == null and not Anchors.get_def(core_id).is_empty():
 		nm = AnchorFx.awaken_line(core_id, amount) if kind == "awaken" else AnchorAdapter.name_of(core_id)
+	if core_id == "c_meme_nametag" and kind == "rule":
+		# polish 3/11 P1 #15: the bare Core name floating over a foe read as a placeholder; say what it did.
+		nm = TranslationServer.translate("Named foe: +1 MP if it falls")
 	_append_log("[core] %s on %s" % [CoreFeedback.float_line(nm, amount, kind), _unit_name(uid)])
 	var armed := not _core_batch.is_empty()
 	var group: Dictionary = _core_batch.get(uid, {})
