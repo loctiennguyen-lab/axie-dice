@@ -1,23 +1,23 @@
 class_name CoreFireFX
 extends Control
 ## UI-06 L2: what the player sees when `core_fired(id, uid, amount, kind)` arrives in combat (moments/moment-core-firing,
-## motion-ui06.md "Core firing"). One fire = socket ring + a few motes curving socket -> unit, then a light skill-clip burst + a number at the
+## motion-ui06.md "Core firing"). One fire = socket ring (+ glow for an Anchor), then 0.1 s later a light skill-clip burst on the target unit; no particles. Number at the
 ## unit. Cores use the cream `fire_ring` and the family emblem in front of the number; an Anchor (`a_*`) uses the gold
 ## `anchor_fire` and no emblem, so it never reads as a Core. Pure view: it only listens to what CombatView forwards
 ## (CoreHooks.mute already keeps previews / forecasts from emitting, so nothing here has to know about them).
 ## Several fires queue 180 ms apart, at most MAX_LIVE are on screen at once.
-## Reduce motion: no motes / burst, socket pulse only. Reduce flashing: ring alpha <= 0.12 (the ring still draws).
+## Reduce motion: no burst, ring without scale only. Reduce flashing: ring alpha <= 0.12 (the ring still draws).
 ## Test hooks: live / max_seen / queued() / log (one {id, uid, anchor, amount, kind} per fire that STARTED).
 
 const MAX_LIVE := 6
 const GAP_MSEC := 180
 const LIFE_SEC := 1.4
-const MOTES := 5
+const BURST_DELAY := 0.1   ## s after the ring: the burst clip starts on the target unit
 
 var panel: CorePanel = null
 ## Callable(uid:int) -> Vector2 global point of the unit, or Vector2(-1, -1) when the unit is not on screen.
 var unit_pos: Callable
-## Callable(uid:int, kind:String, anchor:bool): the burst when the last mote lands (CombatView plays a skill clip).
+## Callable(uid:int, kind:String, anchor:bool): the burst on the target, BURST_DELAY after the ring (CombatView plays a skill clip).
 var burst: Callable
 var live := 0
 var max_seen := 0
@@ -101,8 +101,13 @@ func _start(e: Dictionary) -> void:
 	var uv: Vector2 = unit_pos.call(int(e["uid"])) if unit_pos.is_valid() else Vector2(-1, -1)
 	var has_unit := uv.x >= 0.0 and uv.y >= 0.0
 	var to := _local(uv) if has_unit else Vector2(-1, -1)
-	if has_unit and from.x >= 0.0 and not nomove:
-		_motes(holder, from, to, col, int(e["uid"]), String(e["kind"]), anchor)
+	if has_unit and not nomove and burst.is_valid():
+		# polish 3/11 P1 #4 (Liam): nothing travels between socket and unit; the ring lights, then the skill clip bursts on the target.
+		var uid := int(e["uid"])
+		var kind := String(e["kind"])
+		var bt := holder.create_tween()
+		bt.tween_interval(BURST_DELAY)
+		bt.tween_callback(func() -> void: burst.call(uid, kind, anchor))
 	if SHOW_NUMBER and has_unit and int(e["amount"]) > 0:
 		_number(holder, to, e, col, anchor, nomove)
 
@@ -172,74 +177,6 @@ func _anchor_pulse(holder: Control, slot: Control, col: Color, noflash: bool, no
 		var pt := slot.create_tween()
 		pt.tween_property(slot, "scale", Vector2.ONE * 1.25, 0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		pt.tween_property(slot, "scale", Vector2.ONE, 0.08)
-
-
-## polish 3/11 P1 #4 (Liam): no dotted line / arrow / running dot. 4 soft glowing motes with a short tail fly a curve from the
-## socket to the unit (~0.35 s); the last one to land calls `burst(uid, kind, anchor)` (CombatView plays a light official skill clip).
-## Drawn in code (soft circles), one layer node named "FireMote" for all motes. Size follows the layout scale (~12 px at 1280).
-class MoteLayer extends Control:
-	var col := Color.WHITE
-	var r := 8.0
-	var cap := 1.0
-	var motes: Array = []   ## {pos, hist:Array[Vector2], a}
-
-	func _draw() -> void:
-		for m in motes:
-			var a: float = float(m["a"]) * cap
-			if a <= 0.0:
-				continue
-			var hist: Array = m["hist"]
-			var n := hist.size()
-			for k in n:
-				var f := float(k + 1) / float(n + 1)
-				draw_circle(hist[k], r * (0.2 + 0.7 * f), Color(col.r, col.g, col.b, 0.5 * f * f * a))
-			var p: Vector2 = m["pos"]
-			draw_circle(p, r * 1.9, Color(col.r, col.g, col.b, 0.28 * a))
-			draw_circle(p, r, Color(col.r, col.g, col.b, a))
-			draw_circle(p, r * 0.4, Color(1, 1, 1, 0.8 * a))
-
-
-func _motes(holder: Control, from: Vector2, to: Vector2, col: Color, uid: int, kind: String, anchor: bool) -> void:
-	var ls := maxf(UI3Theme.layout_scale(), 0.5)
-	var dist := from.distance_to(to)
-	var mid := from.lerp(to, 0.5)
-	# One arc bowing sideways (away from the screen centre), so the cluster reads as a streak, not a dotted column.
-	var perp := (to - from).orthogonal().normalized()
-	var centre_x := get_viewport_rect().size.x * 0.5
-	if (mid + perp * 10.0).distance_to(Vector2(centre_x, mid.y)) < mid.distance_to(Vector2(centre_x, mid.y)):
-		perp = -perp
-	var bulge := maxf(60.0 * ls, dist * 0.35)
-	var layer := MoteLayer.new()
-	layer.name = "FireMote"
-	layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	layer.col = col
-	layer.r = 12.0 * ls   # ~6 px radius core, halo ~11 px: reads as 12-14 px dots at 1280
-	layer.cap = 0.5 if CombatView.flashes_suppressed() else 1.0
-	holder.add_child(layer)
-	var n := MOTES
-	for i in n:
-		var m := {"pos": from, "hist": [], "a": 0.0}
-		layer.motes.append(m)
-		var last := i == n - 1
-		var jitter := (float(i) - float(n - 1) * 0.5) * 5.0 * ls   # a few px across the stream
-		var mid_i := mid + perp * (bulge * (0.92 + 0.04 * float(i)) + jitter)
-		var tw := holder.create_tween()
-		tw.tween_interval(0.006 * i)
-		tw.tween_callback(func() -> void: m["a"] = 1.0)
-		tw.tween_method(func(t: float) -> void:
-			var q := from.lerp(mid_i, t).lerp(mid_i.lerp(to, t), t)
-			var h: Array = m["hist"]
-			h.append(m["pos"])
-			if h.size() > 7:
-				h.pop_front()
-			m["pos"] = q
-			layer.queue_redraw(), 0.0, 1.0, 0.32).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		tw.tween_callback(func() -> void:
-			m["a"] = 0.0
-			layer.queue_redraw()
-			if last and burst.is_valid():
-				burst.call(uid, kind, anchor))
 
 
 func _number(holder: Control, at: Vector2, e: Dictionary, col: Color, anchor: bool, nomove: bool) -> void:

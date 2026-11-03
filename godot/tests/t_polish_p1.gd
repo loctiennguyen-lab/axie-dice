@@ -70,7 +70,7 @@ func _ready() -> void:
 	eu.roster_index = saved_ri
 	_ok(bool(ed.get("is_egg", false)) and String(ed["part_text"]) == "", "#16 egg card: is_egg, no part chip")
 	_ok(not bool(view._v4_card_data(eu).get("is_egg", false)), "#16 hero card is not an egg")
-	# #4: motes land, then the burst hook fires once
+	# #4: ring lights, then the burst hook fires once on the target (no particles)
 	CombatView.disable_juice_for_tests = false
 	var got: Array = []
 	var cp := CorePanel.new()
@@ -80,8 +80,18 @@ func _ready() -> void:
 	fx.burst = func(uid: int, kind: String, anc: bool) -> void: got.append([uid, kind, anc])
 	add_child(fx)
 	fx.fire("c_bastion", 1, 3, "shield")
-	await get_tree().create_timer(0.8).timeout
-	_ok(got.size() == 1 and got[0][1] == "shield", "#4 burst fires once after the motes land (%s)" % str(got))
+	await get_tree().create_timer(0.4).timeout
+	_ok(fx.find_child("FireRing", true, false) != null and fx.find_child("FireMote", true, false) == null, "#4 ring yes, particles no")
+	_ok(got.size() == 1 and got[0][1] == "shield", "#4 burst fires once after the ring (%s)" % str(got))
+	CombatView.disable_juice_for_tests = true
+	var got2: Array = []
+	var fx2 := CoreFireFX.new().setup(cp, func(_u: int) -> Vector2: return Vector2(900, 500))
+	fx2.burst = func(uid: int, kind: String, anc: bool) -> void: got2.append(uid)
+	add_child(fx2)
+	fx2.fire("c_bastion", 1, 3, "shield")
+	await get_tree().create_timer(0.4).timeout
+	_ok(got2.is_empty() and fx2.find_child("FireRing", true, false) != null, "#4 reduced motion: ring only, no burst")
+	CombatView.disable_juice_for_tests = false
 	# FX target = the unit with that uid (same unit the float note stands beside): near its own head anchor, nearest of all
 	var xf: Transform2D = view._unit_visuals_root.get_global_transform()
 	var units: Array = view._party_dice_units()

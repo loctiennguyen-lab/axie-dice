@@ -708,8 +708,10 @@ func _reason_apply() -> bool:
 	if why == "" or (_reason_until_ms > 0 and Time.get_ticks_msec() > _reason_until_ms):
 		_reason_key = null
 		_reason_until_ms = 0
+		_hint_before_reason = ""   # expired: a later hover-out must not write the old text over ENEMY / WAITING text
 		return false
 	if _hint.text == TranslationServer.translate(ENEMY_TEXT) or _hint.text == TranslationServer.translate(WAITING_TEXT):
+		_hint_before_reason = ""
 		return false
 	if _hint_before_reason == "" or _hint.text != why:
 		_hint_before_reason = _hint.text   # fresh text from update_right(), not our own reason

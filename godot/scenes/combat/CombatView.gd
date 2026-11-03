@@ -3418,7 +3418,7 @@ func _core_fx_unit_pos(uid: int) -> Vector2:
 	return _unit_visuals_root.get_global_transform() * a
 
 
-## Mid-body point of a unit (unit_visuals_root space, stage offset included): where motes land and the burst plays.
+## Mid-body point of a unit (unit_visuals_root space, stage offset included): where the burst plays.
 ## `uid` must already be resolved (a known unit); same unit the float note uses, which sits beside its head.
 func _core_fx_body_anchor(uid: int) -> Vector2:
 	var head_h: float = CombatStage3D.AXIE_HEAD_HEIGHT if not _combat_is_enemy_uid(uid) \

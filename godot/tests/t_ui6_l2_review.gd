@@ -89,12 +89,11 @@ func _ready() -> void:
 		var line := fx.find_child("FireLine", true, false)
 		_ok(line == null, "%s: no FireLine any more" % mode)
 		var mote := fx.find_child("FireMote", true, false)
+		_ok(mote == null, "%s: no travelling particles any more" % mode)
 		_ok(ring != null, "%s: ring exists" % mode)
 		if mode == "quiet":
-			_ok(mote == null, "reduced: no motes")
 			_ok(ring != null and ring.modulate.a <= 0.121, "reduced flashing: ring alpha <= 0.12")
 		else:
-			_ok(mote != null, "full: motes fly")
 			_ok(ring != null and ring.modulate.a > 0.5, "full: ring bright")
 		fxs.append(fx)
 	CombatView.disable_juice_for_tests = false
