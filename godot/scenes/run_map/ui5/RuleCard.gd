@@ -117,6 +117,45 @@ func setup_rule(house_col: Color, _kind_word: String, _icon: Texture2D, title: S
 
 	focus_entered.connect(queue_redraw)
 	focus_exited.connect(queue_redraw)
+	_fit_height.call_deferred()
+
+
+## Polish 3/11 #10: the plaque is token-tall (rule_card_h) but a rule is short, so the lower half was empty. Shrink to the
+## content (floor 300), and give every card in the row the tallest card's height so the pair still lines up.
+func _fit_height() -> void:
+	if not is_inside_tree():
+		return
+	await get_tree().process_frame
+	if not is_instance_valid(self) or face == null:
+		return
+	var pad := UI3Theme.size_of("core_pad")
+	var need := clampf(face.body.get_combined_minimum_size().y + 2.0 * pad, 300.0, UI3Theme.size_of("rule_card_h"))
+	set_meta("need_h", need)
+	var h := need
+	for sib in get_parent().get_children():
+		if sib.has_meta("need_h"):
+			h = maxf(h, float(sib.get_meta("need_h")))
+	for sib in get_parent().get_children():
+		if sib.has_meta("need_h") and sib.get("face") != null:
+			(sib.get("face") as Control).custom_minimum_size.y = h
+			(sib as Control).custom_minimum_size.y = h
+			(sib as Control).reset_size()
+
+
+## A keyboard-focused card that is not chosen yet gets a thin, dim ring; only a chosen card has the strong cream ring.
+## (Before, the bright sky ring on a focused card read as "already picked" while the Pick button was still off.)
+func _draw() -> void:
+	var rad := UI3Theme.radius("xl")
+	var r := Rect2(Vector2.ZERO, size)
+	var sel_w := UI3Theme.stroke("selected")
+	if selected and not _prism:
+		draw_style_box(PanelParts.ring_style(UI3Theme.color("selected"), sel_w, 0, rad), r)
+	if has_focus():
+		var gap := UI3Theme.stroke("focus_gap") + (sel_w if selected else 0)
+		var ring := UI3Theme.color("focus_ring")
+		if not selected:
+			ring.a = 0.55
+		draw_style_box(PanelParts.ring_style(ring, UI3Theme.stroke("focus") if selected else 2, gap, rad), r)
 
 
 ## Index into the tint list for a rule key; steps past tints already used by the other card(s) so two cards never match.
