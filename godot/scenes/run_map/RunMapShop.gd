@@ -8,6 +8,7 @@ const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 const Parts := preload("res://scenes/run_map/ui5/RunMenuParts.gd")
 const SpaceCap := preload("res://scenes/shared/ui5/SpaceCap.gd")
 const CoreCard := preload("res://scenes/run_map/ui5/ShopCoreCard.gd")
+const ComboBand := preload("res://scenes/run_map/ui5/ComboBand.gd")
 const Supply := preload("res://scenes/run_map/ui5/SupplyItem.gd")
 
 var ctrl: RunMapController
@@ -84,11 +85,12 @@ func _render_shop() -> void:
 	var body := HBoxContainer.new()
 	body.name = "ShopBody"
 	body.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL   # polish 3/11 #7: stock + Sell column sit centred, not stuck at the top
 	body.add_theme_constant_override("separation", UI3Theme.space("32"))
 	root.add_child(body)
 	var main := VBoxContainer.new()
 	main.add_theme_constant_override("separation", UI3Theme.space("12"))
-	main.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	main.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	body.add_child(main)
 	var first_buy: Button = null
 	for g in [["relic", tr("Cores"), "CoreStock"], ["", tr("Supplies"), "SupplyStock"]]:
@@ -164,7 +166,7 @@ func _card_reason(it: Dictionary) -> String:
 func _sell_column() -> PanelContainer:
 	var sp := PanelParts.panel(PanelParts.plate_box("l", UI3Theme.space("20")), "SellColumn")
 	sp.custom_minimum_size.x = UI3Theme.size_of("sell_w")
-	sp.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	sp.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var sv := VBoxContainer.new()
 	sv.add_theme_constant_override("separation", UI3Theme.space("8"))
 	sp.add_child(sv)
@@ -179,19 +181,42 @@ func _sell_column() -> PanelContainer:
 		row.name = "SellRow"
 		row.add_theme_constant_override("separation", UI3Theme.space("8"))
 		sv.add_child(row)
-		row.add_child(Parts.core_slot(def, false))
-		var sb := UI3.button("%s · +%d" % [String(def.name) if def != null else String(rid), price], &"secondary", &"S")
+		# Real Cores get their family + tier socket (polish 3/11 #7); old relics / pacts keep the old slot glyph.
+		if RelicSlots.is_core(def):
+			row.add_child(ComboBand.core_socket(String(rid), UI3Theme.size_of("core_slot")))
+		else:
+			row.add_child(Parts.core_slot(def, false))
+		var pname := String(def.name) if def != null else String(rid)
+		var sb := UI3.button("", &"secondary", &"S")
 		sb.name = "SellButton"
 		sb.set_meta("relic_id", String(rid))
+		sb.set_meta("sell_name", pname)
+		sb.set_meta("sell_price", price)
+		sb.tooltip_text = "%s · +%d" % [pname, price]
 		sb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		sb.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
-		sb.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		sb.icon = UI3.icon("cur_shard")
-		sb.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		sb.expand_icon = true
-		sb.add_theme_constant_override("icon_max_width", UI3Theme.size_of("icon_s"))
-		sb.clip_text = true
-		sb.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		sb.custom_minimum_size.y = UI3Theme.size_of("btn_m")
+		# Name (cut with an ellipsis) on the left, price always visible on the right: a long name can no longer push the price out.
+		var inner := HBoxContainer.new()
+		inner.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, UI3Theme.space("8"))
+		inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		inner.add_theme_constant_override("separation", UI3Theme.space("8"))
+		sb.add_child(inner)
+		var nl := PanelParts.text("", "text_body", "text", true)
+		nl.name = "SellName"
+		nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		nl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		nl.clip_text = true
+		nl.custom_minimum_size.x = 0
+		nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		inner.add_child(nl)
+		Ui5Ellipsis.set_text(nl, pname)
+		var pl := PanelParts.text("+%d" % price, "text_body", "text", true)
+		pl.name = "SellPrice"
+		pl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		pl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		inner.add_child(pl)
+		var gi := PanelParts.icon_rect(UI3.icon("cur_shard"), UI3Theme.size_of("icon_s"), "SellIcon")
+		inner.add_child(gi)
 		sb.pressed.connect(_on_shop_sell.bind(String(rid)))
 		row.add_child(sb)
 		sellable += 1

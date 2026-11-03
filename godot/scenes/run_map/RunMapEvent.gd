@@ -79,7 +79,7 @@ func _build_event_screen(picked: int, outcome: String) -> void:
 	hc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	hc.add_theme_constant_override("separation", UI3Theme.space("4") / 2)
 	head.add_child(hc)
-	var title := _PanelParts.on_view(UI3.label(String(ev.get("n", tr("Event"))), "LabelScreenTitle"))
+	var title := _PanelParts.on_view(UI3.label(_sentence(String(ev.get("n", tr("Event")))), "LabelScreenTitle"))
 	title.name = "EventTitle"
 	hc.add_child(title)
 	var erow := _PanelParts.on_view(UI3.label(tr("Event · Row %d") % maxi(ctrl._current_row(), 0)))
@@ -100,6 +100,7 @@ func _build_event_screen(picked: int, outcome: String) -> void:
 	else:
 		var body := _PanelParts.on_view(UI3.label(String(ev.get("desc", ""))))
 		body.name = "EventBody"
+		body.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		body.custom_minimum_size.x = _wrap_w(0)
 		col.add_child(body)
@@ -114,7 +115,7 @@ func _build_event_screen(picked: int, outcome: String) -> void:
 
 	var acts := HBoxContainer.new()
 	acts.name = "Footer"
-	acts.alignment = BoxContainer.ALIGNMENT_END
+	acts.alignment = BoxContainer.ALIGNMENT_CENTER   # polish 3/11 #13: right under the choices, not in the far corner
 	col.add_child(acts)
 	# No choice is picked for the player: ChooseButton is off and says why (no Space cap) until a row is picked.
 	var go := UI3.button(tr("Continue") if picked >= 0 else tr("Pick a choice"), &"primary", &"L")
@@ -129,6 +130,11 @@ func _build_event_screen(picked: int, outcome: String) -> void:
 		go.pressed.connect(_on_choose)
 		if not ctrl._event_cards.is_empty():
 			ctrl._event_cards[0].grab_focus.call_deferred()
+
+
+## Screen titles elsewhere are sentence case ("Choose a run rule"); the event name arrives in Title Case.
+static func _sentence(t: String) -> String:
+	return t if t.length() < 2 else t.substr(0, 1).to_upper() + t.substr(1).to_lower()
 
 
 ## Wrap width for text in the event column: event_col_w less `pad` (side padding / icon) and the card padding.

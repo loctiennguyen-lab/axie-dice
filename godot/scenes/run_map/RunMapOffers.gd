@@ -140,7 +140,7 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	ctrl._overlay_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	ctrl._overlay_vbox.add_theme_constant_override("separation", UI3Theme.space("32"))
 	# Fixed card band (cards are reward_card_h): Take never moves between states (GU 3).
-	ctrl._overlay_vbox.custom_minimum_size.y = UI3Theme.size_of("rule_card_h" if rule_mode else ("core_card_h" if core_mode else "reward_card_h"))
+	ctrl._overlay_vbox.custom_minimum_size.y = UI3Theme.size_of("rule_card_h") if rule_mode else (UI3Theme.size_of("core_card_h") if core_mode else _RewardCardUi.card_h())
 	ctrl._overlay_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ctrl._overlay_vbox.sort_children.connect(_lift_selected_card)
 	col.add_child(ctrl._overlay_vbox)
@@ -191,6 +191,21 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	take.custom_minimum_size.x = UI3Theme.size_of("d_take_min_w")
 	take.pressed.connect(_take_selected_reward)
 	actions.add_child(take)
+	# Polish 3/11 #19: the rerolls counter must not push Take off the card row's centre. A mirror spacer after Take has
+	# the counter's width (and hides with it while the cards are face-down), so Take sits on the centre line.
+	var counter_n := actions.get_node_or_null("RerollCounter") as Control
+	if counter_n != null:
+		var mirror := Control.new()
+		mirror.name = "CounterMirror"
+		mirror.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		actions.add_child(mirror)
+		var sync_mirror := func() -> void:
+			if is_instance_valid(mirror):
+				mirror.visible = counter_n.visible
+				mirror.custom_minimum_size.x = counter_n.size.x
+		counter_n.resized.connect(sync_mirror)
+		counter_n.visibility_changed.connect(sync_mirror)
+		sync_mirror.call_deferred()
 
 	# Focus chain: cards left -> right, then Reroll, then Take (design godot comment).
 	var chain: Array[Control] = []
@@ -280,6 +295,39 @@ func _select_reward(i: int) -> void:
 	_refresh_take()
 
 
+## Why reward `r` can never be taken ("" = it can): a relic / Core the run already owns, or one with nothing sellable.
+## Polish 3/11 #23: Take used to do nothing at all on such a card (QA seed 7, Cascade offered while owned).
+func reward_block_reason(r: Dictionary) -> String:
+	var key := String(r.get("key", ""))
+	if String(r.get("t", "")) != "relic" or key == "":
+		return ""
+	var chk := RelicSlots.check_add(RunState.owned_relic_ids, RunState.relic_stickers, key, RunState.ascension, false)
+	if bool(chk["ok"]):
+		return ""
+	match String(chk["reason"]):
+		"already_owned":
+			return tr("Already owned")
+		"no_sellable":
+			return tr("Nothing to sell")
+	return ""   # unknown key, rule slot, ...: leave to the normal path
+
+
+## "Take <name>" for reward `i` (name cut at 22 chars); "" when there is no usable name (the plain "Take" stays).
+func take_caption(i: int) -> String:
+	if i < 0 or i >= RunState.pending_rewards.size():
+		return ""
+	var r: Dictionary = RunState.pending_rewards[i]
+	var nm := ""
+	var def = RelicRegistry.get_def(String(r.get("key", ""))) if String(r.get("t", "")) == "relic" else null
+	if def != null:
+		nm = UI3.title_case(UI3.player_text(String(def.name)))
+	if nm == "":
+		return ""
+	if nm.length() > 22:
+		nm = nm.left(21).strip_edges(false, true) + "…"
+	return tr("Take %s") % nm
+
+
 ## Take is off until a card is picked (and, on a face-down Core offer, until the cards are revealed) and says why;
 ## the label and the Space keycap come back when it is on. Chosen cards are never logged.
 func _refresh_take() -> void:
@@ -305,10 +353,21 @@ func _refresh_take() -> void:
 			tb.text = tr(why)
 		else:
 			UI3.set_disabled_reason(tb, tr(why))
+	elif ctrl._reward_sel < RunState.pending_rewards.size() and reward_block_reason(RunState.pending_rewards[ctrl._reward_sel]) != "":
+		_set_take_cap(tb, false)
+		var why_b := reward_block_reason(RunState.pending_rewards[ctrl._reward_sel])
+		if tb.has_meta("ui3_label"):
+			tb.text = why_b
+		else:
+			UI3.set_disabled_reason(tb, why_b)
 	else:
 		if tb.disabled and tb.has_meta("ui3_label"):
 			UI3.clear_disabled_reason(tb)
 		_set_take_cap(tb, true)
+		var cap := take_caption(ctrl._reward_sel)
+		if cap != "":
+			tb.text = cap   # polish 3/11 #22: action name once something is picked ("Take Bastion")
+
 
 
 ## Space keycap after the Take caption (only while Take is on). Placed by HudStyle once the button is in the tree.
@@ -369,6 +428,8 @@ func _take_selected_reward() -> void:
 		ctrl._reveal.skip()
 	if ctrl._reward_sel < RunState.pending_rewards.size():
 		var r: Dictionary = RunState.pending_rewards[ctrl._reward_sel]
+		if reward_block_reason(r) != "":
+			return   # Take is off and says why (_refresh_take)
 		if String(r.get("t", "")) in ["chaos", "curse"]:
 			_ask_lasting_reward(r)
 			return

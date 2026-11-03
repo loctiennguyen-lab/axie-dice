@@ -166,16 +166,14 @@ func _handle_swap_sheet(sc: Node) -> void:
 		return
 	note("swap sheet shown: cells=%s" % str(RunState.owned_relic_ids))
 	var cell: Button = null
-	for b in sh.find_children("SlotCell_*", "Button", true, false):
+	for b in sh.find_children("SellButton", "Button", true, false):
 		if not (b as Button).disabled:
 			cell = b
 			break
 	if cell != null:
-		cell.pressed.emit()
-		await frames(2)
-		(sh.find_child("SwapConfirm", true, false) as Button).pressed.emit()
+		cell.pressed.emit()   # Make room: Sell is the action, no confirm step
 	else:
-		(sh.find_child("SwapLeave", true, false) as Button).pressed.emit()
+		(sh.find_child("BackButton", true, false) as Button).pressed.emit()
 	await frames(5)
 
 func map_step(sc: Node) -> void:

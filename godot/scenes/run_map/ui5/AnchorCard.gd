@@ -10,6 +10,9 @@ const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 var column: VBoxContainer
 var anchor_id := ""
 var selected := false
+## Polish 3/11 #9: only the selected card shows the full Awakens + House Cores blocks; the others show one summary line.
+var _full: Array[Control] = []
+var _short: Control
 
 
 func setup(id: String) -> void:
@@ -99,6 +102,14 @@ func setup(id: String) -> void:
 		var pb := _box("PriceBox", "Price", inner)
 		pb.add_child(rich("PriceText", "− " + AnchorAdapter.price_text(id), inner - 24))
 		body.add_child(pb.get_parent())
+	var short := PanelParts.text("%s · %s   ·   %s · %d" % [tr("Awakens"), AnchorAdapter.awaken_name(id), tr("House Cores"),
+		AnchorAdapter.house_cores(id).size()], "text_key", "anchor_awake", true)
+	short.name = "CollapsedLine"
+	short.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	short.custom_minimum_size.x = inner
+	short.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.add_child(short)
+	_short = short
 	var ab := _box("AwakensBox", "", inner)
 	var awc := UI3Theme.color("anchor_awake")
 	var ah := HBoxContainer.new()
@@ -129,6 +140,9 @@ func setup(id: String) -> void:
 	for cid in AnchorAdapter.house_cores(id):
 		hc.add_child(_core_chip(String(cid), hcol), true)   # readable names: HouseCoreChip, HouseCoreChip2 ...
 	body.add_child(hc)
+	_full = [ab.get_parent(), cap, hc]
+	_apply_expanded()
+	UI3Tooltip.bind(self, tr(AnchorPick.GLOSSARY))
 	focus_entered.connect(queue_redraw)
 	focus_exited.connect(queue_redraw)
 
@@ -226,8 +240,16 @@ static func _core_chip(core_id: String, house_col: Color) -> PanelContainer:
 	return chip
 
 
+func _apply_expanded() -> void:
+	for n in _full:
+		n.visible = selected
+	if _short != null:
+		_short.visible = not selected
+
+
 func set_selected(on: bool) -> void:
 	selected = on
+	_apply_expanded()
 	queue_redraw()
 
 

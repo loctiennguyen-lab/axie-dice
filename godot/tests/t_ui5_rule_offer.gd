@@ -61,7 +61,7 @@ func _ready() -> void:
 		await _frames(3)
 		_ok(bool(rm._reward_cards[1].get("selected")), "no-rule card can be picked @%.2f" % sc)
 		var tk := rm._overlay_root.find_child("TakeButton", true, false) as Button
-		_ok(tk != null and not tk.disabled and tk.text == "Take", "pick turns Take on @%.2f (got '%s')" % [sc, tk.text if tk != null else "-"])
+		_ok(tk != null and not tk.disabled and tk.text.begins_with("Take"), "pick turns Take on @%.2f (got '%s')" % [sc, tk.text if tk != null else "-"])
 	# The longest rule text (Pack Alpha) must fit its card at the 1280 size.
 	var pa = RelicRegistry.get_def("rule_pack_alpha")
 	_ok(pa != null, "rule_pack_alpha exists")
@@ -149,9 +149,10 @@ func _frame(sc: float, with_none: bool) -> void:
 	var tints: Array[int] = []
 	for i in rm._reward_cards.size():
 		var c: Control = rm._reward_cards[i]
-		_ok(c.name == "RuleCard%d" % i and c.size.is_equal_approx(want), "%s card %d: RuleCard %s (got %s)" % [tag, i, want, c.size])
+		_ok(c.name == "RuleCard%d" % i and c.size.x == want.x and c.size.y <= want.y + 0.5 and c.size.y >= 299.0, "%s card %d: RuleCard %s, shrunk to content (got %s)" % [tag, i, want, c.size])
 		for n in ["TierFrame", "RuleName", "Headline", "RuleText"]:
 			_ok(c.find_child(n, true, false) != null, "%s card %d: %s" % [tag, i, n])
+		_ok(absf(c.size.y - rm._reward_cards[0].size.y) < 1.0, "%s card %d: same height as card 0" % [tag, i])
 		var is_none: bool = String((RunState.pending_rewards[i] as Dictionary).get("key", "")) == CoreOffer.NO_RULE_ID
 		var pb := c.find_child("PriceBox", true, false)
 		_ok((pb == null) == is_none, "%s card %d: PriceBox only on a real rule (none=%s)" % [tag, i, str(is_none)])

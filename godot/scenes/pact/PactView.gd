@@ -15,6 +15,7 @@ signal menu_requested
 const CARD_W := 416.0
 const ART_H := 144.0
 
+const MakeRoomSheet := preload("res://scenes/run_map/ui5/MakeRoomSheet.gd")
 var cards: Array = []
 var can_skip: bool = true
 var card_panels: Array[PanelContainer] = []
@@ -240,21 +241,29 @@ func _commit(i: int) -> void:
 		var od = RelicRegistry.get_def(id)
 		if od == null or id.begins_with("__"):
 			continue
+		if RelicSlots.is_core(od):
+			continue   # a pact never sells a Core (Cores have their own slots, RULES_VERSION -w)
 		var eternal := String(RunState.relic_stickers.get(id, "")) == RelicSlots.STICKER_ETERNAL
 		if not sell_from.has(id) and not eternal:
 			continue
 		cells.append({"id": id, "name": UI3.title_case(UI3.player_text(String(od.name))),
 			"kind": tr("Active") if RelicSlots._is_active(od) else tr("Passive"),
 			"sell": RelicSlots.sell_price(id, RunState.ascension), "eternal": eternal})
-	var active: bool = nd != null and RelicSlots._is_active(nd)
 	var forced := not can_skip
-	var sheet := UI3.slot_swap_sheet(tr("Make room"), UI3.title_case(UI3.player_text(String(c.get("name", "")))),
-		tr("Forced pact: you cannot cancel.") if forced else String(split_description(String(c.get("description", "")))["gain"]),
-		tr("Slots are full. Sell one relic to take this pact."), cells, forced,
+	var pname := UI3.title_case(UI3.player_text(String(c.get("name", ""))))
+	var active: bool = nd != null and RelicSlots._is_active(nd)
+	var cap := RelicSlots.capacity(RunState.ascension, RunState.owned_relic_ids)
+	var kind_owned := 0
+	for oid in RunState.owned_relic_ids:
+		var kd = RelicRegistry.get_def(String(oid))
+		if kd != null and not String(oid).begins_with("__") and not RelicSlots.is_core(kd) and RelicSlots._is_active(kd) == active:
+			kind_owned += 1
+	var sheet := MakeRoomSheet.build(pname, int(nd.rarity) if nd != null else 0,
+		MakeRoomSheet.room_line(false, kind_owned, int(cap["active"] if active else cap["passive"]), pname), cells,
 		func(sell_id: String) -> void:
 			_close_sheet()
 			picked.emit(i, sell_id),
-		_close_sheet, 3 if active else 4)
+		_close_sheet, "", forced)
 	sheet.name = "SlotSwapSheet"
 	add_child(sheet)
 

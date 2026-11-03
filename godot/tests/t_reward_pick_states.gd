@@ -53,7 +53,12 @@ func _f(n: String) -> Node:
 
 func _labels_fit(card: Control, tag: String) -> void:
 	# Content fits the fixed card: no clipped row, no label spilling out of the card.
-	_check(card.get_combined_minimum_size().y <= card.custom_minimum_size.y + 0.5,   # the card's own fixed height (reward_card_h or core_card_h)
+	# Polish 3/11 #8: cards are SIZE_FILL now, so card.size grows with its content and could never fail. Compare with the
+	# shared reward height instead (a CoreCard keeps its own token height).
+	var is_core_card: bool = card.get_script() != null and String(card.get_script().resource_path).ends_with("/CoreCard.gd")
+	# Reward cards start compact (card_h) and may grow with a long body, but never past the old fixed height.
+	var want_h: float = card.size.y if is_core_card else float(UI3Theme.size_of("reward_card_h"))
+	_check(card.get_combined_minimum_size().y <= want_h + 0.5,
 		"%s: content fits the card (%.0f)" % [tag, card.get_combined_minimum_size().y])
 	var cr := card.get_global_rect().grow(1.0)
 	for l in card.find_children("*", "Label", true, false):
@@ -70,11 +75,11 @@ func _check_state(key: String, rewards: Array) -> void:
 	_check(String((_f("ShardChip").find_child("Value", true, false) as Label).text) == UI3.fmt(RunState.shards_this_run), "%s: shard chip" % key)
 	for n in ["RewardPick", "CardRow", "Footer", "RerollButton", "TakeButton"]:
 		_check(_f(n) != null, "%s: node %s" % [key, n])
-	var want := Vector2(UI3Theme.size_of("reward_card_w"), UI3Theme.size_of("reward_card_h"))
+	var want := Vector2(UI3Theme.size_of("reward_card_w"), load("res://scenes/shared/ui5/RewardCard.gd").card_h())
 	for i in cards.size():
 		var c: Control = cards[i]
 		var r: Dictionary = rewards[i]
-		_check(c.size.is_equal_approx(want), "%s card %d: fixed %s (got %s)" % [key, i, want, c.size])
+		_check(is_equal_approx(c.size.x, want.x) and c.size.y >= want.y - 0.5 and is_equal_approx(c.size.y, (cards[0] as Control).size.y), "%s card %d: card_w wide, at least card_h tall, same height as its row (%s vs %s)" % [key, i, want, c.size])
 		var chip: PanelContainer = c.find_child("RarityChip", true, false)
 		var art: Panel = c.find_child("RewardArt", true, false)
 		_check(chip != null and art != null and c.find_child("Category", true, false) != null and c.find_child("RewardName", true, false) != null,

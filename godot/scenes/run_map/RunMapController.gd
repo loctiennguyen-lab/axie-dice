@@ -175,14 +175,6 @@ func _ready() -> void:
 	_detail_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_board.add_child(_detail_root)
 
-	var hint := UI3.key_hint(tr("Arrows pick · Enter or double-click travels · Esc menu"))
-	hint.name = "KeyHint"
-	hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	hint.offset_right = -_SCREEN_MARGIN
-	hint.offset_bottom = -_SCREEN_MARGIN
-	_board.add_child(hint)
 
 	_refresh(false)
 	_build_overlay_ui()
@@ -655,7 +647,9 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 		caption.custom_minimum_size = Vector2(136, 0)
 		caption.size = Vector2(136, 26)
 		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		caption.clip_text = true
+		caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART   # polish 3/11 #6: long boss names take two lines, no cut
+		if node.node_type == "boss":
+			caption.size = Vector2(136, 52)
 		caption.position = Vector2(centre.x - 68.0, centre.y + size * 0.5 * base.x + 8.0)
 		caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if passed:
@@ -1072,6 +1066,7 @@ func _lift_selected_card() -> void:
 	_offers._lift_selected_card()
 
 
+var _core_sell_id := ""   ## Core card + full slots: the id sold in the make-room sheet; passed to apply_chosen_reward (it logs the sale itself)
 var _taking := false   ## true from Take until the node finishes (spin + banner play in between): no double take
 
 
@@ -1231,7 +1226,9 @@ func _apply_and_finish(reward: Dictionary) -> void:
 		var tl := UI3Motion.play_timeline(mid, tg, {"host": self})
 		if not is_level:
 			take_tl = tl
-	RunState.apply_chosen_reward(reward)
+	var core_sell := _core_sell_id
+	_core_sell_id = ""
+	RunState.apply_chosen_reward(reward, core_sell)
 	var granted := ""
 	if not pool_names.is_empty():
 		for id in RunState.owned_relic_ids:

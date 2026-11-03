@@ -63,6 +63,8 @@ func setup(ids: Array, first_time := true) -> void:
 	var sub := PanelParts.on_view(PanelParts.text(tr("Anchor = a rule that stays all run. Hold 2 of its House Cores to awaken it. Click a card to choose.")))
 	sub.name = "SubLine"
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.mouse_filter = Control.MOUSE_FILTER_PASS
+	UI3Tooltip.bind(sub, tr(GLOSSARY))   # polish 3/11 #9: the SET / M / Cracked footnote is a tooltip now
 	top.add_child(sub)
 	_row = HBoxContainer.new()
 	_row.name = "CardRow"
@@ -76,13 +78,6 @@ func setup(ids: Array, first_time := true) -> void:
 		var c := _build_card(String(ids[i]), i)
 		_row.add_child(c)
 		cards.append(c)
-	var gl := PanelParts.on_view(PanelParts.text(tr(GLOSSARY)))
-	gl.name = "Glossary"
-	gl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	gl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	gl.custom_minimum_size.x = UI3Theme.size_of("glossary_w")
-	gl.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	col.add_child(gl)
 	var foot := HBoxContainer.new()
 	foot.name = "Footer"
 	foot.alignment = BoxContainer.ALIGNMENT_CENTER

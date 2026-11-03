@@ -413,7 +413,8 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 		var got: int = runmap.call("_reward_rarity", {"t": "relic", "key": rid, "rar": wrong_rar})
 		_assert(got == int(def.rarity), "%s: reward card rarity %d differs from its definition %d" % [rid, got, int(def.rarity)])
 		var row: Control = runmap.call("_build_relic_row", rid)
-		var lbl: Label = row.get_child(0).get_child(1)
+		var hrow := row.get_child(0)
+		var lbl: Label = hrow.get_child(hrow.get_child_count() - 1)   # rarity word is the last cell (rows now have a socket + name/headline first)
 		_assert(lbl.text == want_name and lbl.get_theme_color("font_color").is_equal_approx(want_col),
 			"%s: relic plate rarity label/colour differs from the reward card's" % rid)
 		row.free()

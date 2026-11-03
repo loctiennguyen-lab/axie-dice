@@ -384,6 +384,8 @@ func apply(d: Dictionary) -> void:
 	# FaceRow: the face word (always: colour-blind cue) and the SET preview / "Used".
 	face_word.text = UI3.face_word(_face) if show_face else ""
 	face_word.add_theme_color_override("font_color", UI3Theme.color(String(UI3.FACE_WORD_COLOR.get(_face, "text"))))
+	if bool(d.get("is_egg", false)) and alive:
+		face_word.text = TranslationServer.translate("Egg die")   # polish 3/11 P1 #16
 	delta_full = ""
 	if state == &"used":
 		set_delta.text = TranslationServer.translate("Used")
@@ -418,6 +420,9 @@ func apply(d: Dictionary) -> void:
 	var hp_max := int(d.get("max_hp", 1))
 	Ui5Ellipsis.set_text(owner_name, String(d.get("name", "")))   # B9: "Pomod…", never a bare "Pomodor"
 	owner_hp.text = "%d/%d" % [maxi(hp_now, 0), hp_max]
+	# polish 3/11 P1 #15: a cut name keeps its whole self in a tooltip (PASS: the click still reaches the card).
+	owner_name.mouse_filter = Control.MOUSE_FILTER_PASS
+	UI3Tooltip.bind(owner_name, String(d.get("name", "")))
 	hp_bar.set_stats(hp_now, hp_max)
 	hp_bar.set_at_risk(mini(hp_now, maxi(0, int(d.get("incoming", 0)) - int(d.get("shield", 0)))))
 	plate.modulate.a = 1.0 if alive else 0.55

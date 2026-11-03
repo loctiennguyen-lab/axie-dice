@@ -175,7 +175,8 @@ func _core_room(sc: float) -> void:
 		var tt := (sheet.find_child("Title", true, false) as Label).text
 		var ln := (sheet.find_child("Line", true, false) as Label).text
 		_ok(tt == "Make room", tag + ": title is just Make room (%s)" % tt)
-		_ok(ln.begins_with("Passive slots are full (%d of %d)" % [m_slots, m_slots]), tag + ": line says Passive slots are full (N of M) (%s)" % ln)
+		_ok(ln.begins_with("Cores: %d of %d. Sell one to take " % [m_slots, m_slots]), tag + ": line says Cores: N of M. Sell one to take X (%s)" % ln)
+		_ok(not ln.contains("Passive") and not ln.contains("9 of"), tag + ": no Passive wording / no over-count (%s)" % ln)
 		_ok(sheet.find_children("SellRow*", "", true, false).size() == m_slots, tag + ": one row per owned Core (%d)" % sheet.find_children("SellRow*", "", true, false).size())
 	m.queue_free()
 	await _frames(2)

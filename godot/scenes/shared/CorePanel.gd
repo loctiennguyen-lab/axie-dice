@@ -328,9 +328,9 @@ func _slot(def, is_rule: bool, empty_name: String) -> PanelContainer:
 		if not is_rule:
 			# Library gem for the tier, big enough to read in a 44 px slot (Liam 2/11); TierShards keeps the 1/2/3 strip elsewhere.
 			var sh := TierShards.new().setup(tier, slot_px * 0.28)
-			sh.texture = UI6Assets.shard(tier, slot_px * 0.45)
+			sh.texture = UI6Assets.shard(tier, slot_px * 0.5)   # polish 3/11 #18: 14 px at 1280
 			sh.name = "TierShards"
-			var gp := slot_px * 0.45
+			var gp := slot_px * 0.5
 			sh.custom_minimum_size = Vector2(gp * 0.71, gp)
 			sh.size_flags_horizontal = Control.SIZE_SHRINK_END
 			sh.size_flags_vertical = Control.SIZE_SHRINK_END

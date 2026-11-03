@@ -6,7 +6,7 @@ extends Node
 const Align := preload("res://tests/ui5_align_check.gd")
 const ShopCard := preload("res://scenes/run_map/ui5/ShopCoreCard.gd")
 const CARD := ["HouseEmblem", "AnchorName", "HouseLine", "Tagline", "RuleBox", "AwakensBox", "AwakenMeter", "HouseCores", "HouseCoreChip"]
-const FRAME := ["AnchorPick", "Header", "Title", "ShardPill", "SubLine", "CardRow", "Glossary", "Footer", "TakeButton"]
+const FRAME := ["AnchorPick", "Header", "Title", "ShardPill", "SubLine", "CardRow", "Footer", "TakeButton"]
 const AWAKEN := ["AwakenBanner", "AwakenEmblem", "AwakenKicker", "AwakenName", "AwakenText", "HouseCoresDone", "AwakenMeter",
 	"ContinueHint", "CoreSlot", "FamilyEmblem", "TierShards", "HouseDot"]
 var _guard := SaveGuard.new()

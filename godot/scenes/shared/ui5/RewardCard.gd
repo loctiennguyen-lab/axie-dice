@@ -8,6 +8,11 @@ extends PanelContainer
 
 const PanelParts := preload("res://scenes/shared/ui5/PanelParts.gd")
 
+## Polish 3/11 #8: the old 620 px card was two thirds empty. Cards are 74 % of the token height (one place, used by the row band too).
+static func card_h() -> float:
+	return roundf(UI3Theme.size_of("reward_card_h") * 0.74)
+
+
 var column: VBoxContainer
 var text_box: VBoxContainer   ## "Body": name + body text (left-aligned card text, not labels under the RewardArt icon)
 var cat_row: HBoxContainer
@@ -27,8 +32,8 @@ func setup(category: String, rarity_word: String, rarity_col: Color, icon: Textu
 	accent = rarity_col
 	var pad := UI3Theme.space("20")
 	add_theme_stylebox_override("panel", PanelParts.plate_box("xl", pad))
-	custom_minimum_size = Vector2(UI3Theme.size_of("reward_card_w"), UI3Theme.size_of("reward_card_h"))
-	size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	custom_minimum_size = Vector2(UI3Theme.size_of("reward_card_w"), card_h())
+	size_flags_vertical = Control.SIZE_FILL   # polish 3/11 #8: cards in a row share the tallest height
 	focus_mode = Control.FOCUS_ALL
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	column = VBoxContainer.new()

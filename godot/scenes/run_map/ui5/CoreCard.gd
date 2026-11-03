@@ -31,7 +31,7 @@ func setup_core(core_tier: int, axis: String, title: String, id: String, body: S
 	add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	focus_mode = Control.FOCUS_ALL
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	size_flags_vertical = Control.SIZE_FILL   # polish 3/11 #8: equal height in the row, so Reroll buttons line up
 	face = CoreCardShell.new().setup(tier, axis, false, 0.6 if compact else 1.0, 0.7 if compact else 1.0)
 	face.name = "Face"
 	add_child(face)
@@ -117,8 +117,8 @@ func add_combo_tag(full: bool, combo_name: String, with: String) -> void:
 	top.add_child(UI3.combo_tier_tag(full, false))
 	var nm := PanelParts.text(combo_name, "text_body", "text", true)
 	nm.name = "ComboName"
-	nm.clip_text = true
-	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART   # polish 3/11 #23: a long combo name takes two lines instead of being cut
+	nm.custom_minimum_size.x = 40
 	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	top.add_child(nm)
