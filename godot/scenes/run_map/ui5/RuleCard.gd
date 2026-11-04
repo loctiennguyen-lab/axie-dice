@@ -30,7 +30,7 @@ func setup_rule(house_col: Color, _kind_word: String, _icon: Texture2D, title: S
 	custom_minimum_size = face.custom_minimum_size
 	text_box = face.body
 	column = face.body
-	var inner := UI3Theme.size_of("rule_card_w") - 2 * UI3Theme.size_of("core_pad")
+	var inner := UI3Theme.size_of("rule_card_w") - 2 * CoreCardShell.content_pad()
 
 	name_label = PanelParts.text(title, "text_screen_title", "text", true)
 	name_label.name = "RuleName"
@@ -128,7 +128,7 @@ func _fit_height() -> void:
 	await get_tree().process_frame
 	if not is_instance_valid(self) or face == null or not is_inside_tree() or get_parent() == null:
 		return   # the offer was rebuilt during that frame
-	var pad := UI3Theme.size_of("core_pad")
+	var pad := CoreCardShell.content_pad()
 	var need := clampf(face.body.get_combined_minimum_size().y + 2.0 * pad, 300.0, UI3Theme.size_of("rule_card_h"))
 	set_meta("need_h", need)
 	var h := need

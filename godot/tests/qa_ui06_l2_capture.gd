@@ -6,7 +6,9 @@ var _guard := SaveGuard.new()
 
 func _shot(name: String, tag: String, pre := 0.5) -> void:
 	await get_tree().create_timer(pre).timeout
-	var out := ProjectSettings.globalize_path("res://").path_join("../production/qa/ui06/l2").simplify_path()
+	var out := OS.get_environment("UI6_SHOT_DIR")
+	if out == "":
+		out = ProjectSettings.globalize_path("res://").path_join("../production/qa/ui06/l2").simplify_path()
 	DirAccess.make_dir_recursive_absolute(out)
 	get_viewport().get_texture().get_image().save_png("%s/%s_%s.png" % [out, name, tag])
 

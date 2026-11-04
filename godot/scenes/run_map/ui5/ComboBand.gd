@@ -23,29 +23,28 @@ static func core_socket(core_id: String, px: float) -> Control:
 	bg.name = "SlotArt"
 	bg.texture = UI6Assets.slot(tier, px)
 	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	bg.stretch_mode = TextureRect.STRETCH_SCALE
+	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(bg)
 	var big := px >= UI3Theme.size_of("core_slot") * 1.5   # small sockets (make-room rows) have no shard strip: the row has its own
 	var em := TextureRect.new()
 	em.name = "FamilyEmblem"
-	em.texture = CoreVisuals.family_texture(axis, px * 0.5)
+	em.texture = CoreVisuals.family_texture(axis, px * UI6Assets.SLOT_EMBLEM)
 	em.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	em.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	em.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	em.custom_minimum_size = Vector2(px * 0.5, px * 0.5)
-	em.size = em.custom_minimum_size
-	em.position = Vector2(px * 0.25, px * (0.14 if big else 0.25))
+	UI6Assets.place_in_slot(em, px)
 	p.add_child(em)
 	if not big:
 		return p
 	# One library gem per socket, big enough to read (Liam 2/11): the tier colour alone was a blurred dot at 88 px.
-	var gh := px * 0.38
+	# Art batch 1: the emblem fills the socket core now, so the gem sits on the bezel's lower right.
+	var gh := px * 0.3
 	var sh := TierShards.new().setup(tier, px * 0.2)
 	sh.texture = UI6Assets.shard(tier, gh)
 	sh.custom_minimum_size = Vector2(gh * 0.71, gh)
-	sh.position = Vector2((px - gh * 0.71) / 2.0, px * 0.6)
+	sh.position = Vector2(px * 0.86 - gh * 0.71, px - gh)
 	sh.size = sh.custom_minimum_size
 	p.add_child(sh)
 	return p

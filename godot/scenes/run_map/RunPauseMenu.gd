@@ -237,15 +237,15 @@ func _socket(def, is_rule: bool) -> Control:
 	s.name = "RunRuleSlot" if is_rule else "CoreSlot"
 	s.texture = UI6Assets.slot(tier, px)
 	s.custom_minimum_size = Vector2.ONE * px
+	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER   # round socket art: never stretch it to the row height
 	s.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	s.stretch_mode = TextureRect.STRETCH_SCALE
+	s.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	s.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var e := TextureRect.new()
 	e.name = "RunRuleEmblem" if is_rule else "FamilyEmblem"
 	var ax := "run_rule" if is_rule else (String(def.core_axis) if def != null else "stat")
-	e.texture = CoreVisuals.family_texture(ax, px * 0.6)
-	e.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, int(px * 0.2))
-	e.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	e.texture = CoreVisuals.family_texture(ax, px * UI6Assets.SLOT_EMBLEM)
+	UI6Assets.place_in_slot(e, px)
 	e.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	e.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	s.add_child(e)

@@ -8,6 +8,8 @@ extends Control
 ##   var card := CoreCardShell.new().setup(tier, "stat")
 ##   card.body.add_child(name_label) ...
 
+const FRAME_BAND_EXTRA := 12
+
 var tier := 0
 var is_rule := false
 var frame: TierFrame
@@ -32,12 +34,14 @@ func setup(p_tier: int, family: String, p_is_rule := false, art_height_scale := 
 	content.name = "Content"
 	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var pad := UI3Theme.size_of("core_pad")
+	# Art batch 1 (4/11): the frame band is ~35 px (was ~16), so the content keeps FRAME_BAND_EXTRA more off it.
+	var pad := content_pad()
 	for side in ["left", "right", "bottom"]:
 		content.add_theme_constant_override("margin_" + side, pad)
 	var top := pad
 	if not is_rule:
-		top += int(UI3Theme.size_of("shards_h") * 0.5)
+		# the crest band reserve already clears the frame's top band
+		top = UI3Theme.size_of("core_pad") + int(UI3Theme.size_of("shards_h") * 0.5)
 	content.add_theme_constant_override("margin_top", top)
 	add_child(content)
 	body = VBoxContainer.new()
@@ -54,6 +58,11 @@ func setup(p_tier: int, family: String, p_is_rule := false, art_height_scale := 
 		if not resized.is_connected(_place_crest):
 			resized.connect(_place_crest)
 	return self
+
+
+## Inset of the card content from the card edge on the left / right / bottom (core_pad + the frame band extra).
+static func content_pad() -> int:
+	return UI3Theme.size_of("core_pad") + FRAME_BAND_EXTRA
 
 
 func _place_crest() -> void:

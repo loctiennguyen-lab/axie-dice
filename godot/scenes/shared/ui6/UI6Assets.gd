@@ -101,6 +101,31 @@ static func slot(tier: int, px: float = 64) -> Texture2D:
 	return _sized("slot_empty" if tier < 0 else "slot_" + tier_key(tier), px)
 
 
+## Art batch 1 (4/11): the socket art has wings + a crown, so its dark core is a disc ~50 % of the canvas, centred at
+## (0.5, 0.516). An emblem SLOT_EMBLEM x the socket fits inside it: the family PNGs keep ~10 % empty margin, so the
+## picture itself is <= 0.92 x 0.56 = 0.52 of the socket (the core plus its bevel).
+const SLOT_EMBLEM := 0.56
+const SLOT_CORE_Y := 0.516
+
+
+## Rect (in the socket's own px) for the emblem in a `px` socket. `frac` < SLOT_EMBLEM for a smaller emblem.
+static func slot_emblem_rect(px: float, frac := SLOT_EMBLEM) -> Rect2:
+	var s := px * frac
+	return Rect2(px * 0.5 - s * 0.5, px * SLOT_CORE_Y - s * 0.5, s, s)
+
+
+## Places `c` (a child of a `px` socket) on the socket's core. Uses position/size, so the socket must not be a container.
+static func place_in_slot(c: Control, px: float, frac := SLOT_EMBLEM) -> void:
+	var r := slot_emblem_rect(px, frac)
+	if c is TextureRect:
+		# Before sizing: with the default EXPAND_KEEP_SIZE the rect would grow to the texture's own size.
+		(c as TextureRect).expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	c.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	c.custom_minimum_size = r.size
+	c.position = r.position
+	c.size = r.size
+
+
 ## Nine-patch card frame for a tier, 400x600 at 1920. Margins: ninepatch_margins("frame_core_" + tier_key).
 static func frame(tier: int) -> Texture2D:
 	return _load("frame_core_%s.png" % tier_key(tier))

@@ -294,6 +294,8 @@ func _slot(def, is_rule: bool, empty_name: String) -> PanelContainer:
 	var s := PanelContainer.new()
 	s.name = "RunRuleSlot" if is_rule else "CoreSlot"
 	s.custom_minimum_size = Vector2(slot_px, slot_px)
+	# Liam 4/11: the socket art is round; a strip row taller than slot_px stretched it into an oval. Keep the cell square.
+	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var filled := def != null
 	var tier := clampi(int(def.rarity), 0, 2) if filled else -1
 	s.set_meta("tier", tier)
@@ -310,15 +312,16 @@ func _slot(def, is_rule: bool, empty_name: String) -> PanelContainer:
 		sock.texture = UI6Assets.slot(tier, slot_px)
 		sock.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		sock.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		sock.stretch_mode = TextureRect.STRETCH_SCALE
+		sock.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		sock.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		s.add_child(sock)
 	if filled:
 		var ax := "run_rule" if is_rule else String(def.core_axis)
 		var ic := TextureRect.new()
 		ic.name = "RunRuleEmblem" if is_rule else "FamilyEmblem"
-		ic.texture = CoreVisuals.family_texture(ax, slot_px * 0.6)
-		ic.custom_minimum_size = Vector2.ONE * slot_px * 0.6
+		var ef := 0.6 if is_rule else UI6Assets.SLOT_EMBLEM   # art batch 1: the socket core is ~50 % of the slot
+		ic.texture = CoreVisuals.family_texture(ax, slot_px * ef)
+		ic.custom_minimum_size = Vector2.ONE * slot_px * ef
 		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER

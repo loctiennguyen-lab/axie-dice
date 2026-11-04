@@ -248,12 +248,8 @@ func _core_done(core_id: String, hcol: Color) -> HBoxContainer:
 	var sk := Ps.icon_rect(UI6Assets.slot(tier, px), int(px), "SlotSocket")
 	sk.set_anchors_preset(Control.PRESET_FULL_RECT)
 	slot.add_child(sk)
-	var fe := Ps.icon_rect(CoreVisuals.family_texture(axis, px * 0.6), int(px * 0.6), "FamilyEmblem")
-	fe.set_anchors_preset(Control.PRESET_CENTER)
-	fe.offset_left = -px * 0.3
-	fe.offset_right = px * 0.3
-	fe.offset_top = -px * 0.3 - 2
-	fe.offset_bottom = px * 0.3 - 2
+	var fe := Ps.icon_rect(CoreVisuals.family_texture(axis, px * UI6Assets.SLOT_EMBLEM), int(px * UI6Assets.SLOT_EMBLEM), "FamilyEmblem")
+	UI6Assets.place_in_slot(fe, px)
 	slot.add_child(fe)
 	var sh := TierShards.new().setup(tier, 14)
 	sh.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)

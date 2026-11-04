@@ -38,7 +38,7 @@ func setup_core(core_tier: int, axis: String, title: String, id: String, body: S
 	custom_minimum_size = face.custom_minimum_size
 	body_box = face.body
 	column = face.body
-	var inner := UI3Theme.size_of("core_card_w") - 2 * UI3Theme.size_of("core_pad")
+	var inner := UI3Theme.size_of("core_card_w") - 2 * CoreCardShell.content_pad()
 
 	name_label = PanelParts.text(title, "text_screen_title", "text", true)
 	name_label.name = "CoreName"
@@ -145,7 +145,7 @@ func add_cap_strip(text: String) -> void:
 	var l := PanelParts.text(text)
 	l.name = "Text"
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.custom_minimum_size.x = UI3Theme.size_of("core_card_w") - 2 * UI3Theme.size_of("core_pad") - 2 * UI3Theme.space("12")
+	l.custom_minimum_size.x = UI3Theme.size_of("core_card_w") - 2 * CoreCardShell.content_pad() - 2 * UI3Theme.space("12")
 	cap_strip.add_child(l)
 	body_box.add_child(cap_strip)
 	if reroll_button != null:

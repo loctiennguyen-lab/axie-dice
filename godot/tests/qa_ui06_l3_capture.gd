@@ -6,7 +6,9 @@ var _guard := SaveGuard.new()
 
 
 func _snap(name: String) -> void:
-	var dir := ProjectSettings.globalize_path("res://").path_join("../production/qa/ui06/l3").simplify_path()
+	var dir := OS.get_environment("UI6_SHOT_DIR")
+	if dir == "":
+		dir = ProjectSettings.globalize_path("res://").path_join("../production/qa/ui06/l3").simplify_path()
 	DirAccess.make_dir_recursive_absolute(dir)
 	get_viewport().get_texture().get_image().save_png("%s/%s--%s.png" % [dir, name, OS.get_environment("UI6_SHOT_TAG")])
 
