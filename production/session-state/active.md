@@ -1,3 +1,5 @@
+## ⇢ BẮT ĐẦU TỪ ĐÂY (4/11): đọc `production/next-session-2026-11-04.md` (bàn giao mới nhất, gồm cách nhận bản art của Claude Design)
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (2/11 chiều): đọc `production/next-session-2026-11-02.md` (bàn giao đầy đủ, việc tiếp theo theo thứ tự)
 
 # Axie Dice — trạng thái hiện tại
