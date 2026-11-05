@@ -1,4 +1,14 @@
-## ⇢ BẮT ĐẦU TỪ ĐÂY (5/11 tối): godot-port @ local, CHƯA push, CHƯA deploy
+## ⇢ BẮT ĐẦU TỪ ĐÂY (5/11 khuya): art 34D + 3b đã merge vào godot-port (50af30a), CHƯA deploy art
+- Live: fccbd25 (web pck f3d94579, desktop b2457, Worker bd77027e), ghi chú `production/release/deploy-2026-11-05-p5.md`.
+- Sau đó merge art lượt 3 + 4 + D + 3b từ `art/batch34d` (24da642, 50af30a). Gồm:
+  - 26 skin xúc xắc (normal sinh lại, DiceThumb v6), 27 khung avatar, icon HUD + tiền tệ, xoá 9 icon hl thừa;
+  - glow `e_reef_01` thu vào, lõi `m_crystal` đổi sang ruby, attrition có đĩa kem viền ấm.
+  - Liam chọn để nguyên 6 khung thu nhỏ 3–4 % (cửa sổ 155–159 px).
+  - Review: art-director và lead-programmer, không có lỗi chặn. Ghi chú: `design/handoffs/art-redo-0311/round-34D/REVIEW.md`.
+- Suite 348/348 (không cờ skip), Worker 398/398. Art chưa deploy (chờ Liam).
+- Worktree `../my-game-wt/art34d` đã merge xong, xoá được khi Liam đồng ý.
+
+## (5/11 tối) godot-port @ local, đã deploy ở fccbd25 (xem trên)
 - Đã commit: art lượt 2 + 2b (bbf163f), sửa đăng nhập web hỏi Google 2 lần (9b2643c), p5-qa / p5-rules / p5-ui (merge adbc3fe, 6855eda, 4f5c262), fingerprint -w giữ nguyên (c31370c).
 - Suite 347/347, Worker 398/398. Deploy cần: web + desktop (art, UI, login) và Worker (verifier bỏ qua run thường). RULES_VERSION vẫn -w.
 - Chờ Liam: push + deploy; thẻ Anchor chưa chọn hiện đầy đủ (đảo polish #9) hay thu gọn; trứng Kin / cột cờ Lone Wolf chỉnh nhẹ; SQL đếm lại verify cũ (`UPDATE verify_results SET verdict='skipped' WHERE reason='not_ranked' AND kind='normal'`).
