@@ -33,9 +33,14 @@ func _ready() -> void:
 	MetaState.daily_date = MetaState.today_utc()   # daily card out of the way
 
 	# 1. server answers ok after a delay: button must react at once, then show the result
+	# Only claim requests count: the screen also refreshes the wallet on open (GET /api/wallet, hotfix 5/11).
 	var pending: Array = []
-	var net := func(_m: String, _p: String, _b: String, done: Callable) -> void:
-		pending.append(done)
+	var gets: Array = []
+	var net := func(_m: String, p: String, _b: String, done: Callable) -> void:
+		if p == "/api/gem/claim":
+			pending.append(done)
+		else:
+			gets.append(done)
 	MetaState.set_gem_wallet(RemoteGemWallet.new(net))
 	var d := _screen("ok")
 	await get_tree().process_frame
@@ -51,6 +56,11 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_ok(d.last_result == "+300 Gem", "result shown after the server answers")
 	_ok(MetaState.gem_gift_day == MetaState.today_utc(), "claimed day recorded")
+	# the open-time GET left before the claim; its late answer (old balance 0) must not undo the +300
+	for g in gets:
+		(g as Callable).call(200, JSON.stringify({"gem": 0}))
+	await get_tree().process_frame
+	_ok(MetaState.gem_wallet().balance() == 300, "late pre-claim wallet answer keeps the claimed 300")
 	_ok((d.find_child("GemClaim", true, false) as Button).disabled, "button disabled after the claim, says why")
 	d.queue_free()
 

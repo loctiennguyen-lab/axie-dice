@@ -22,6 +22,7 @@ var transport: Callable
 var _balance := 0
 var _next_claim_utc := 0
 var _spend_seq := 0
+var _local_epoch := 0   # bumped by every optimistic spend; a GET sent before it may hold the pre-spend balance
 
 
 func _init(p_transport: Callable = Callable()) -> void:
@@ -37,12 +38,16 @@ func next_claim_utc() -> int:
 
 
 func refresh(done: Callable = Callable()) -> void:
+	var sent_epoch := _local_epoch
 	transport.call("GET", "/api/wallet", "", func(code: int, text: String) -> void:
 		var ok := false
 		if code == 200:
 			var j: Variant = JSON.parse_string(text)
 			if typeof(j) == TYPE_DICTIONARY and (j as Dictionary).has("gem"):
-				_set_balance(int(j["gem"]))
+				# A spend made while this GET was in flight already lowered the cache, and its own answer sets the
+				# server number; a stale pre-spend balance here would flash the old amount back (review 5/11).
+				if sent_epoch == _local_epoch:
+					_set_balance(int(j["gem"]))
 				ok = true
 		if done.is_valid():
 			done.call(ok))
@@ -53,6 +58,7 @@ func spend(n: int, reason: String, _save: bool = true) -> bool:
 		return false
 	if n == 0:
 		return true
+	_local_epoch += 1
 	_set_balance(_balance - n)
 	var body := JSON.stringify({"amount": n, "reason": _clean_reason(reason), "idem": _new_idem()})
 	transport.call("POST", "/api/wallet/spend", body, func(code: int, text: String) -> void:
@@ -82,6 +88,7 @@ func claim_daily_gift(now_unix: int) -> Dictionary:
 
 ## done(result:Dictionary) with {ok, granted, reason, next_utc}; reason "" | "already_claimed" | "at_cap" | "offline".
 func claim_daily_gift_async(done: Callable) -> void:
+	_local_epoch += 1   # a GET sent before the claim must not undo its +Gem when it answers late
 	transport.call("POST", "/api/gem/claim", "", func(code: int, text: String) -> void:
 		var out := {"ok": false, "granted": 0, "reason": "offline", "next_utc": 0}
 		var j: Variant = JSON.parse_string(text) if not text.is_empty() else null

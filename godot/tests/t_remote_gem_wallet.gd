@@ -68,5 +68,26 @@ func _ready() -> void:
 	var r2 := []
 	off.claim_daily_gift_async(func(r: Dictionary) -> void: r2.append(r))
 	_check(r2[0]["reason"] == "offline" and not r2[0]["ok"], "offline claim reports offline")
+
+	# Review 5/11: a GET that left before an optimistic spend answers with the pre-spend balance; it must not
+	# flash the old amount back. The spend's own answer sets the server number.
+	var held: Array[Array] = []   # [path, done]
+	var slow := func(_m: String, path: String, _b: String, done: Callable) -> void: held.append([path, done])
+	var ws := RemoteGemWallet.new(slow)
+	ws.refresh()
+	(held.pop_front()[1] as Callable).call(200, JSON.stringify({"gem": 900}))
+	_check(ws.balance() == 900, "slow transport: first refresh lands")
+	ws.refresh()                       # GET in flight (server still says 900)
+	_check(ws.spend(100, "pull"), "spend while a refresh is in flight")
+	_check(ws.balance() == 800, "optimistic drop to 800")
+	var get_done: Callable = held[0][1]
+	var spend_done: Callable = held[1][1]
+	get_done.call(200, JSON.stringify({"gem": 900}))   # stale answer arrives first
+	_check(ws.balance() == 800, "stale pre-spend refresh answer does not put 900 back")
+	spend_done.call(200, JSON.stringify({"ok": true, "balance": 800}))
+	_check(ws.balance() == 800, "spend answer keeps the server number")
+	ws.refresh()
+	(held[2][1] as Callable).call(200, JSON.stringify({"gem": 750}))
+	_check(ws.balance() == 750, "a refresh sent after the spend applies normally")
 	print("t_remote_gem_wallet: ", "PASS" if _fails == 0 else "FAILED (%d)" % _fails)
 	get_tree().quit(1 if _fails > 0 else 0)
