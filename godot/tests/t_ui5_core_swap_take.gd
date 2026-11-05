@@ -20,6 +20,7 @@ func _frames(n := 4) -> void:
 
 
 func _ready() -> void:
+	_guard.capture()
 	RelicRegistry.legacy_unhide_for_tests()
 	var ids: Array[String] = []
 	for f in DirAccess.get_files_at("res://resources/relics"):
@@ -108,6 +109,7 @@ func _ready() -> void:
 	m.queue_free()
 	await _frames(2)
 	_verifier_case()
+	_guard.restore()
 	print("t_ui5_core_swap_take: %d checks, %d failure(s)" % [_checks, _fails.size()])
 	if _fails.is_empty():
 		print("t_ui5_core_swap_take: PASS — %d checks OK" % _checks)
