@@ -1201,6 +1201,16 @@ func _apply_and_finish(reward: Dictionary) -> void:
 	var pick_rect := Rect2()
 	if _reward_sel >= 0 and _reward_sel < _reward_cards.size() and is_instance_valid(_reward_cards[_reward_sel]):
 		pick_rect = (_reward_cards[_reward_sel] as Control).get_global_rect()
+	var core_sell := _core_sell_id
+	_core_sell_id = ""
+	# Apply first, animate after: a refused take must leave the cards exactly as they were (no fly copy, no fade).
+	if not RunState.apply_chosen_reward(reward, core_sell):
+		# Refused (already_owned, bad sell id, reward not in the offer): nothing was taken, the cards stay open.
+		_taking = false
+		_offers._refresh_take()
+		if _reward_sel >= 0 and _reward_sel < _reward_cards.size() and is_instance_valid(_reward_cards[_reward_sel]):
+			(_reward_cards[_reward_sel] as Control).grab_focus()
+		return
 	# UI-05 b23 lane M2: core-taken / level-up / reward-taken (motion_ui3.json layers) on the picked card. Layers whose
 	# node this screen does not have (the Cores plate slot, the party row) are data only; the card shrinks in place.
 	var take_tl: UI3Motion.Timeline = null
@@ -1226,9 +1236,6 @@ func _apply_and_finish(reward: Dictionary) -> void:
 		var tl := UI3Motion.play_timeline(mid, tg, {"host": self})
 		if not is_level:
 			take_tl = tl
-	var core_sell := _core_sell_id
-	_core_sell_id = ""
-	RunState.apply_chosen_reward(reward, core_sell)
 	var granted := ""
 	if not pool_names.is_empty():
 		for id in RunState.owned_relic_ids:

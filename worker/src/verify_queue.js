@@ -82,6 +82,9 @@ export function judge(result, job) {
     if (job.client_score != null && result.score !== job.client_score) return { state: 'mismatch', verdict: 'score_mismatch' };
     return { state: 'ok', verdict: 'match' };
   }
+  // A normal (unranked) run is not replayable by the server by design (RunVerifier ERR_NOT_RANKED). That is not a
+  // mismatch: count it as 'skipped' (state stays 'error' = could not judge; no schema change) so "0 mismatches" can be reached.
+  if (result.reason === 'not_ranked' && job.kind === 'normal') return { state: 'error', verdict: 'skipped' };
   if (NOT_A_VERDICT.has(result.reason) || result.rules_version !== job.rules_version) return { state: 'error', verdict: 'error' };
   return { state: 'mismatch', verdict: 'rejected' };
 }
@@ -89,14 +92,17 @@ export function judge(result, job) {
 async function stats(env, url) {
   const n = Math.min(100, Math.max(1, Number(url.searchParams.get('n')) || 20));
   const all = async (q, ...b) => ((await env.DB.prepare(q).bind(...b).all()).results) || [];
-  const queue = await all('SELECT state, COUNT(*) AS n FROM verify_queue GROUP BY state');
+  const queueRaw = await all('SELECT state, COUNT(*) AS n FROM verify_queue GROUP BY state');
+  const skippedN = ((await env.DB.prepare("SELECT COUNT(*) AS n FROM verify_results WHERE verdict = 'skipped'").bind().first()) || {}).n || 0;
+  // Skipped jobs sit in state 'error' (no schema change); report them under `skipped` only, not as errors.
+  const queue = queueRaw.map((q) => (q.state === 'error' ? { ...q, n: q.n - skippedN } : q)).filter((q) => q.n > 0);
   const verdicts = await all('SELECT verdict, kind, COUNT(*) AS n FROM verify_results GROUP BY verdict, kind');
   const platforms = await all('SELECT platform, verdict, COUNT(*) AS n FROM verify_results GROUP BY platform, verdict');
   const hm = await env.DB.prepare('SELECT COUNT(*) AS n FROM verify_queue WHERE header_mismatch = 1').bind().first();
   const last = await all(
     `SELECT run_id, verdict, kind, platform, reason, srv_outcome, v_outcome, client_score, v_score, rules_version, ms, at
-       FROM verify_results WHERE verdict NOT IN ('match', 'error') ORDER BY at DESC LIMIT ?`, n);
-  return json({ queue, verdicts, platforms, header_mismatch_jobs: hm ? hm.n : 0, last_mismatches: last });
+       FROM verify_results WHERE verdict NOT IN ('match', 'error', 'skipped') ORDER BY at DESC LIMIT ?`, n);
+  return json({ queue, verdicts, platforms, header_mismatch_jobs: hm ? hm.n : 0, skipped: skippedN, last_mismatches: last });
 }
 
 /**

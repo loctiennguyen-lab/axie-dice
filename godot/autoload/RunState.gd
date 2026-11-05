@@ -1441,8 +1441,18 @@ func pact_cards() -> Array[Dictionary]:
 	return out
 
 
+## A forced pact (A6/A10) cannot be skipped, UNLESS no card on the table can actually be taken (every relic that
+## would have to be sold is Eternal). Offers are filtered so this should not happen; the escape stops a stale
+## save or a future rule change from locking the run on a screen with no way out (P5, 5/11).
 func pact_can_skip() -> bool:
-	return phase == RunPhase.PACT and not pending_pact_forced
+	if phase != RunPhase.PACT:
+		return false
+	if not pending_pact_forced:
+		return true
+	for id in pending_pact:
+		if bool(RelicSlots.check_add(owned_relic_ids, relic_stickers, id, ascension, true)["ok"]):
+			return false
+	return true
 
 
 ## Takes pact `index` of the offer. When the slot is full the caller names `sell_id` (one of
