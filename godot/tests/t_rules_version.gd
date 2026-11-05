@@ -267,7 +267,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Pinned, 2026-10-28 (UI-04 prep): MetaState.reduce_motion (Settings -> Reduce motion). Settings/UI only, no rule or replay input. Run result: NO, stays -v.
 ## BUMPED, 2026-11-03 (polish #2): RULES_VERSION -> `godot-2026-11-03-w`. RelicSlots.check_add no longer counts Cores / the
 ## Run Rule in the old-relic/pact passive, active and G/A slots (6 Cores + 1 rule have their own), fixing "9 of 8". Run result: YES.
-const FINGERPRINT := "beee2563a89236e1f15da020b0180c0ddb31a8acd0968772d2fa20aedf5f1aa8"
+## Pinned, 2026-11-05 (login hotfix): AccountService emits `changed` when a save fetched on the Login screen is deferred to
+## Land, so the Login screen moves on after a web sign-in. Accounts/UI only. Run result: NO, stays -w.
+const FINGERPRINT := "fe7bc5e05b118eb7639f6bd652ec1a3add0f79cfd79bd49ef03c1a29ba1eb2fb"
 
 
 func _ready() -> void:

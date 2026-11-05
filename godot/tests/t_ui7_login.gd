@@ -57,6 +57,7 @@ func _ready() -> void:
 	UI3Theme.set_scale_override(1.0)
 	MetaState.runs = saved_runs
 	_entry()
+	await _signin_lands_on_login()
 	_check(String(ProjectSettings.get_setting("application/config/version", "")) != "" or true, "version setting readable")
 	print("=== t_ui7_login: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	if _fails.is_empty():
@@ -220,3 +221,34 @@ func _entry() -> void:
 	MetaState.tutorial_seen = old_tut
 	for s in [a, g, e, c, o, n]:
 		s.free()
+
+
+## Hotfix 5/11 (Liam): after Google sends the browser back, the page boots onto the Login screen (no cached account yet),
+## /api/me says signed in and /api/save answers while Login is the current scene. That save is deferred to Land, and the
+## Login screen must still move on by itself; it used to sit on "Continue with Google" and ask for Google again.
+func _signin_lands_on_login() -> void:
+	var svc := _svc()
+	add_child(svc)
+	var scr := (load(SCENE) as PackedScene).instantiate() as LoginScreen
+	scr.service = svc
+	scr.no_scene_change = true
+	var gone := [false]
+	scr.proceeded.connect(func() -> void: gone[0] = true)
+	MainMenu.login_passed = false
+	add_child(scr)
+	await _frames(2)
+	svc.account = {"id": "acct_test", "email": "t@example.com"}
+	svc.status = AccountServiceScript.Status.CHECKING
+	svc.reconciling = true
+	svc.changed.emit()
+	await _frames(2)
+	_check(not gone[0], "signin-return: Login waits while the save is still reconciling")
+	svc._on_save_fetched(200, JSON.stringify({"rev": 0, "meta": {}, "run": null}))
+	await _frames(2)
+	_check(gone[0], "signin-return: Login moves on once /api/save answered (deferred to Land)")
+	_check(not svc._deferred_server.is_empty(), "signin-return: the server save is kept for Land to reconcile")
+	MainMenu.login_passed = false
+	if is_instance_valid(scr):
+		scr.queue_free()
+	svc.queue_free()
+	await get_tree().process_frame

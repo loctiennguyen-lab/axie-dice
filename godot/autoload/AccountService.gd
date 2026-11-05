@@ -323,6 +323,9 @@ func _on_save_fetched(code: int, text: String) -> void:
 			else:
 				reconciling = false
 				_deferred_server = server
+				# Hotfix 5/11: the Login screen waits on `changed` with reconciling == false to move on. Without this emit
+				# a web sign-in that came back to the Login screen stayed there and Google was asked a second time.
+				changed.emit()
 			return
 	if code == 401:
 		_on_me(401, "")
