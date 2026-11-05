@@ -1,5 +1,6 @@
 extends Node
 ## p5-ui lane (4/11 polish leftovers): text floor measured on the real screens, event wording, ...
+const MakeRoomSheet := preload("res://scenes/run_map/ui5/MakeRoomSheet.gd")
 const Scan := preload("res://tests/p5_text_scan.gd")
 var _guard := SaveGuard.new()
 var _checks := 0
@@ -103,6 +104,7 @@ func _ready() -> void:
 			print("NODE ", n.get_path())
 	view.queue_free()
 	AnchorAdapter.test_state = {}
+	_room_icons()
 	await _result_check()
 	UI3Theme.set_scale_override(-1.0)
 	UI3Gacha.instant_override = -1
@@ -138,3 +140,26 @@ func _result_check() -> void:
 		_ok(amt.text == "+87" and bd.modulate.a > 0.99, "result: after the count: +87 and the payout line back (%s, a=%.1f)" % [amt.text, bd.modulate.a])
 	v.queue_free()
 	await _frames(2)
+
+
+## Make room rows: a Core gets its socket + family emblem, a pact its pact art, an old relic its archetype glyph.
+func _room_icons() -> void:
+	var core := MakeRoomSheet.row_icon("c_bastion", 64)
+	var relic := MakeRoomSheet.row_icon("r_claw", 64)
+	_ok(core.find_child("FamilyEmblem", true, false) != null and core.find_child("RowIcon", true, false) == null, "room: a Core row keeps the Core socket + family emblem")
+	_ok(relic.find_child("FamilyEmblem", true, false) == null and relic.find_child("RowIcon", true, false) != null, "room: an old relic row has no family emblem")
+	var shield := MakeRoomSheet.row_icon("r_carapace", 64)
+	_ok((relic.find_child("RowIcon", true, false) as TextureRect).texture != (shield.find_child("RowIcon", true, false) as TextureRect).texture, "room: relics of different archetypes get different glyphs")
+	shield.free()
+	var pid := ""
+	for f in DirAccess.get_files_at("res://resources/relics"):
+		if f.ends_with(".tres") and RelicSlots.is_pact(f.get_basename()):
+			pid = f.get_basename()
+			break
+	_ok(pid != "", "room: found a pact id")
+	if pid != "":
+		var pc := MakeRoomSheet.row_icon(pid, 64)
+		var ri := pc.find_child("RowIcon", true, false) as TextureRect
+		_ok(ri != null and String(ri.get_meta("kind", "")) == "pact" and ri.texture == UI6Assets.pact(pid), "room: a pact row uses the pact art")
+	for n in [core, relic]:
+		n.free()

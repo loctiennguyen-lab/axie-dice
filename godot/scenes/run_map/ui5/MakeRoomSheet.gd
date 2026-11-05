@@ -83,7 +83,7 @@ static func build(new_title: String, new_tier: int, line: String, cells: Array, 
 		var h := HBoxContainer.new()
 		h.add_theme_constant_override("separation", UI3Theme.space("12"))
 		row.add_child(h)
-		h.add_child(ComboBand.core_socket(id, UI3Theme.size_of("core_slot")))
+		h.add_child(row_icon(id, UI3Theme.size_of("core_slot")))
 		var names := VBoxContainer.new()
 		names.name = "Names"
 		names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -149,6 +149,35 @@ static func build(new_title: String, new_tier: int, line: String, cells: Array, 
 
 
 ## `.room-row`: plate_raised, radius m, padding 8 8 8 16; the picked row gets the selected ring.
+## p5-ui: each row shows its own picture. A Core keeps its tier socket + family emblem; a boss pact its pact art; an
+## old relic its rarity icon. (Every row used to get the Core socket, so pacts and relics all showed one emblem.)
+static func row_icon(id: String, px: float) -> Control:
+	var def = RelicRegistry.get_def(id)
+	if def != null and RelicSlots.is_core(def):
+		return ComboBand.core_socket(id, px)
+	var p := Control.new()
+	p.name = "CoreSlot"
+	p.custom_minimum_size = Vector2(px, px)
+	p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.set_meta("relic_id", id)
+	var t := TextureRect.new()
+	t.name = "RowIcon"
+	if RelicSlots.is_pact(id):
+		t.texture = UI6Assets.pact(id)
+		t.set_meta("kind", "pact")
+	else:
+		# the same archetype glyph the combat relic chip uses (RelicDef has no icon field)
+		t.texture = CombatView._RELIC_ARCHETYPE_ICON.get(String(def.archetype) if def != null else "", UI3.icon(String(UI3.FACE_ICON[&"attack"])))
+		t.set_meta("kind", "relic")
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	t.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(t)
+	return p
+
+
 static func _row_box(_picked: bool) -> StyleBoxFlat:
 	var p8 := UI3Theme.space("8")
 	return UI3Theme.flat(UI3Theme.color("plate_raised"), UI3Theme.radius("m"), 0,
