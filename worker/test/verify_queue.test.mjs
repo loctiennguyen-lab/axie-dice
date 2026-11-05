@@ -221,6 +221,7 @@ test('a normal run the verifier refuses as not_ranked is skipped, not a mismatch
   assert.equal(out.verdict, 'skipped');
   const st = await (await signedGet(env, '/api/verify/stats')).json();
   assert.equal(st.skipped, 1);
+  assert.deepEqual(st.queue, [], 'skipped job is not counted as a queue error');
   assert.deepEqual(st.last_mismatches, [], 'skipped runs are not listed as mismatches');
   assert.ok(!st.verdicts.some((v) => v.verdict === 'rejected'));
 });

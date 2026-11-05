@@ -46,8 +46,7 @@ func _probe(asc: int, sd: int, mode: String) -> void:
 	RunState.apply_combat_result({"won": true, "kind": "boss", "pw": 5, "shards_earned": 0})
 	var tag := "A%d seed %d %s" % [asc, sd, mode]
 	if RunState.phase != RunState.RunPhase.PACT:
-		_a(true, tag)
-		return
+		return   # offer filtered out entirely: no phase, so no screen to be stuck on
 	var any_ok := false
 	for c in RunState.pact_cards():
 		if bool(c["ok"]):

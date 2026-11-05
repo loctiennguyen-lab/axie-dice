@@ -92,15 +92,17 @@ export function judge(result, job) {
 async function stats(env, url) {
   const n = Math.min(100, Math.max(1, Number(url.searchParams.get('n')) || 20));
   const all = async (q, ...b) => ((await env.DB.prepare(q).bind(...b).all()).results) || [];
-  const queue = await all('SELECT state, COUNT(*) AS n FROM verify_queue GROUP BY state');
+  const queueRaw = await all('SELECT state, COUNT(*) AS n FROM verify_queue GROUP BY state');
+  const skippedN = ((await env.DB.prepare("SELECT COUNT(*) AS n FROM verify_results WHERE verdict = 'skipped'").bind().first()) || {}).n || 0;
+  // Skipped jobs sit in state 'error' (no schema change); report them under `skipped` only, not as errors.
+  const queue = queueRaw.map((q) => (q.state === 'error' ? { ...q, n: q.n - skippedN } : q)).filter((q) => q.n > 0);
   const verdicts = await all('SELECT verdict, kind, COUNT(*) AS n FROM verify_results GROUP BY verdict, kind');
   const platforms = await all('SELECT platform, verdict, COUNT(*) AS n FROM verify_results GROUP BY platform, verdict');
   const hm = await env.DB.prepare('SELECT COUNT(*) AS n FROM verify_queue WHERE header_mismatch = 1').bind().first();
   const last = await all(
     `SELECT run_id, verdict, kind, platform, reason, srv_outcome, v_outcome, client_score, v_score, rules_version, ms, at
        FROM verify_results WHERE verdict NOT IN ('match', 'error', 'skipped') ORDER BY at DESC LIMIT ?`, n);
-  const sk = await env.DB.prepare("SELECT COUNT(*) AS n FROM verify_results WHERE verdict = 'skipped'").bind().first();
-  return json({ queue, verdicts, platforms, header_mismatch_jobs: hm ? hm.n : 0, skipped: sk ? sk.n : 0, last_mismatches: last });
+  return json({ queue, verdicts, platforms, header_mismatch_jobs: hm ? hm.n : 0, skipped: skippedN, last_mismatches: last });
 }
 
 /**

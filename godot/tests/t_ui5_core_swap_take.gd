@@ -103,7 +103,12 @@ func _ready() -> void:
 	ghost["key"] = "c_cascade_ghost"
 	var log_n := RunState.action_log.entries.size()
 	m.call("_apply_and_finish", ghost)
-	await _frames(3)
+	await _frames(40)
+	var vis := true
+	for c in m.get("_reward_cards"):
+		vis = vis and is_instance_valid(c) and (c as CanvasItem).modulate.a == 1.0
+	_ok(vis, "refused take: every card still fully visible after 40 frames")
+	_ok(m.find_child("TakeFlyCard", true, false) == null, "refused take: no fly copy")
 	_ok(not bool(m.get("_taking")), "refused take: _taking cleared")
 	_ok(RunState.pending_rewards.size() == 1 and RunState.action_log.entries.size() == log_n, "refused take: offer and log untouched")
 	m.queue_free()
