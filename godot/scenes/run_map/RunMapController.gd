@@ -1228,7 +1228,18 @@ func _apply_and_finish(reward: Dictionary) -> void:
 			take_tl = tl
 	var core_sell := _core_sell_id
 	_core_sell_id = ""
-	RunState.apply_chosen_reward(reward, core_sell)
+	if not RunState.apply_chosen_reward(reward, core_sell):
+		# Refused (already_owned, bad sell id, reward not in the offer): nothing was taken, so the cards stay open
+		# and the player can pick again. Undo what the take animation did to the cards.
+		push_warning("apply_chosen_reward refused %s" % String(reward.get("key", reward.get("t", "?"))))
+		_taking = false
+		for oc in _reward_cards:
+			if is_instance_valid(oc):
+				(oc as CanvasItem).modulate.a = 1.0
+		var fly_node := find_child("TakeFlyCard", true, false)
+		if fly_node != null:
+			fly_node.queue_free()
+		return
 	var granted := ""
 	if not pool_names.is_empty():
 		for id in RunState.owned_relic_ids:

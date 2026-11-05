@@ -17,6 +17,9 @@ func _ready() -> void:
 					"first_run": false, "pick_index": 3, "front_size": 2, "ascension": 0, "tier_chain": [0, 1, 2],
 					"depth_stage": 1, "anchor_id": "", "bonus": sd % 2 == 0, "anchor_house": []}
 				var offer := CoreOffer.build_offer(Rng.new(sd * 7919 + tier), tier, ctx, 3)
+				_checks += 1
+				if offer.is_empty():
+					_failures.append("%s t%d s%d: offer is empty" % [mode, tier, sd])
 				_check(offer, ctx, "%s t%d s%d" % [mode, tier, sd])
 				if not offer.is_empty():
 					var nc := CoreOffer.reroll_card(Rng.new(sd), offer, 0, ctx)
