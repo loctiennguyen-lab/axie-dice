@@ -31,7 +31,7 @@ func _init() -> void:
 	row.name = "Row"
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(row)
-	_icon = HudKit.tex_rect(HudKit.icon("attrition"), UI3Theme.size_of("icon_m"))
+	_icon = HudKit.tex_rect(HudKit.icon("attrition", UI3Theme.size_of("icon_m")), UI3Theme.size_of("icon_m"))
 	_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(_icon)
 	label = UI3.label("", "LabelDisplay")
