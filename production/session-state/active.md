@@ -1,4 +1,11 @@
-## ⇢ BẮT ĐẦU TỪ ĐÂY (4/11): đọc `production/next-session-2026-11-04.md` (bàn giao mới nhất, gồm cách nhận bản art của Claude Design)
+## ⇢ BẮT ĐẦU TỪ ĐÂY (5/11 tối): godot-port @ local, CHƯA push, CHƯA deploy
+- Đã commit: art lượt 2 + 2b (bbf163f), sửa đăng nhập web hỏi Google 2 lần (9b2643c), p5-qa / p5-rules / p5-ui (merge adbc3fe, 6855eda, 4f5c262), fingerprint -w giữ nguyên (c31370c).
+- Suite 347/347, Worker 398/398. Deploy cần: web + desktop (art, UI, login) và Worker (verifier bỏ qua run thường). RULES_VERSION vẫn -w.
+- Chờ Liam: push + deploy; thẻ Anchor chưa chọn hiện đầy đủ (đảo polish #9) hay thu gọn; trứng Kin / cột cờ Lone Wolf chỉnh nhẹ; SQL đếm lại verify cũ (`UPDATE verify_results SET verdict='skipped' WHERE reason='not_ranked' AND kind='normal'`).
+- Art lượt 3 + 4 + D gộp: `design/handoffs/art-redo-0311/PROMPT-batch34D.md` + `send/AxieDice-art-batch34D.zip`, Liam đang gửi Claude Design.
+- Worktree còn: `../my-game-wt/p5-ui`, `p5-rules`, `p5-qa` (đã merge, xoá khi Liam đồng ý).
+
+## (cũ) ⇢ BẮT ĐẦU TỪ ĐÂY (4/11): đọc `production/next-session-2026-11-04.md` (bàn giao mới nhất, gồm cách nhận bản art của Claude Design)
 
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (2/11 chiều): đọc `production/next-session-2026-11-02.md` (bàn giao đầy đủ, việc tiếp theo theo thứ tự)
 
