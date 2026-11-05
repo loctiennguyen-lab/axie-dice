@@ -59,6 +59,13 @@ func _ready() -> void:
 	if use_account:
 		state = derive_state()
 	set_state(state)
+	# Hotfix 5/11: the server Gem wallet can answer after this screen is built (Land showed Gem 0 next to a 900
+	# wallet). Fetch it now and redraw, so prices, "need N more" and the gift card use the real balance.
+	var gw := MetaState.gem_wallet()
+	if gw.has_method("refresh"):
+		gw.call("refresh", func(_ok: bool) -> void:
+			if is_inside_tree():
+				_refresh())
 
 
 func derive_state() -> String:
