@@ -94,6 +94,7 @@ func build_hud() -> void:
 		vals = {"shard": MetaState.shard_pool, "stone": MetaState.stone, "gem": MetaState.gem_wallet().balance()}
 	var cp := Ui5CurrencyPlate.make(vals, st)
 	_l._wallet = cp
+	_l._plate_shown = ""   # new plate: Land._sync_gem_plate re-checks the live amounts
 	_l._currencies = null
 	# frame 01-land names the cells ShardValue / StoneValue / GemValue (the components sheet says Currency*).
 	for pair in [["CurrencyShard", "ShardValue"], ["CurrencyStone", "StoneValue"], ["CurrencyGem", "GemValue"]]:
