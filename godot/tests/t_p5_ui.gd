@@ -78,6 +78,26 @@ func _ready() -> void:
 	add_child(view)
 	await _frames(10)
 	_scan(view, "combat")
+	view._combat.depth_stage = 2
+	view._combat.mana = 0
+	view._rebuild_all()
+	await _frames(2)
+	var hud: CombatHud = view._hud_frame
+	for k in ["Undo", "Hold", "Wild"]:
+		var key := hud.find_child(k + "Key", true, false) as Ui5ToolKey
+		_ok(key != null and key.button.disabled and key.reason_text().length() > k.length(), "#5 %s off and says why (%s)" % [k, key.reason_text() if key != null else "missing"])
+		hud._reason_show(key, true)
+		_ok(hud._hint.text == key.reason_text(), "#5 %s reason on the StatusLine" % k)
+		hud._reason_key = null
+		hud._reason_until_ms = 0
+	view._combat.party[1].roster_index = -1
+	view._rebuild_all()
+	await _frames(2)
+	var egg_found := false
+	for dc in view.find_children("*", "Control", true, false):
+		if dc is DieCard and (dc as DieCard).part_word != null and (dc as DieCard).part_word.text == "Egg":
+			egg_found = (dc as DieCard).part_chip.visible and (dc as DieCard).part_glyph.texture != null
+	_ok(egg_found, "egg die shows an egg icon chip")
 	for t in ["CorePanel", "AnchorTray", "AnchorChip"]:
 		for n in view.find_children("*" + t + "*", "", true, false):
 			print("NODE ", n.get_path())

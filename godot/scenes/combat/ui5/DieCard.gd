@@ -16,6 +16,8 @@ const MARK_FILL := {&"temp": "temp_face", &"held": "held", &"overcast": "overcas
 const MARK_TEXT := {&"temp": "TEMP", &"held": "HELD", &"overcast": "OVERCAST", &"crack": "1/2", &"reroll": "REROLL"}
 const MARK_GLYPH := {&"temp": &"wild", &"held": &"hold", &"overcast": &"overcast"}
 
+const EGG_ICON := preload("res://assets/ui6/badge_egg_64.png")
+
 var plate: PanelContainer
 var set_ring: Panel
 var ring_muted := false              ## tutorial: a die that cannot be pressed shows no SET ring (only the pressable one is accented)
@@ -401,10 +403,11 @@ func apply(d: Dictionary) -> void:
 
 	# PartRow: glyph + word, filled in the SET colour while the die is in a SET.
 	var ptext := String(d.get("part_text", ""))
-	part_chip.visible = ptext != ""
-	part_glyph.texture = d.get("part_tex", null)
+	var egg_chip: bool = bool(d.get("is_egg", false)) and alive and ptext == ""   # p5-ui: an egg die has no part, show the egg
+	part_chip.visible = ptext != "" or egg_chip
+	part_glyph.texture = EGG_ICON if egg_chip else d.get("part_tex", null)
 	part_glyph.visible = part_glyph.texture != null
-	part_word.text = String(d.get("part_word", ptext.capitalize()))
+	part_word.text = TranslationServer.translate("Egg") if egg_chip else String(d.get("part_word", ptext.capitalize()))
 	part_chip.set_meta("part_text", ptext)
 	var in_set := set_key != ""
 	var sp := UI3Theme.space("8")

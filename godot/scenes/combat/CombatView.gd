@@ -4756,6 +4756,7 @@ func _wild_state(executing: bool) -> Dictionary:
 	if not executing:
 		d["enabled"] = false
 		d["tip"] = TranslationServer.translate("Only on your turn.")
+		d["text"] = TranslationServer.translate("Wild: your turn only")   # the StatusLine reason reads the button text
 	d["show"] = _combat.depth_stage >= 2
 	return d
 
