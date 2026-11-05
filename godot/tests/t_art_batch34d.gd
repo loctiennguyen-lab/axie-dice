@@ -1,5 +1,6 @@
 extends Node
 ## Art batch 3 + 4 + D (5/11): dice skin textures 512, frame bases 256 (window 162), HUD + currency icons.
+## (Six frames were scaled 0.956-0.979 to keep the 4 px transparent margin, so their window is 155-159 px, not 162.)
 ## Guards: the 8 unused hl names are gone and nobody calls them, HudKit "reroll" is ui_reroll, HUD icons have
 ## 64 / 32 variants, every cur_* has its sizes, every skin has a 512 albedo and a normal map, frame bases are 256.
 
@@ -43,9 +44,9 @@ func _ready() -> void:
 			var inner := 0
 			for y in 256:
 				for x in 256:
-					if Vector2(x - 127.5, y - 127.5).length() < 80.0 and img.get_pixel(x, y).a > 0.05:
+					if Vector2(x - 127.5, y - 127.5).length() < 76.0 and img.get_pixel(x, y).a > 0.05:
 						inner += 1
-			_assert(inner < 40, "%s window (r 80 of 256) is clear, %d px not" % [fn, inner])
+			_assert(inner < 40, "%s window (r 76 of 256) is clear, %d px not" % [fn, inner])
 	_assert(bases == 27, "27 frame bases, got %d" % bases)
 	for f in ["res://scripts/ui/hud_kit.gd"]:
 		_assert(FileAccess.get_file_as_string(f).find("HL_DIR") >= 0, "hud_kit still reads hl")
