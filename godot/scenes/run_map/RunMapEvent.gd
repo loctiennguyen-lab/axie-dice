@@ -79,7 +79,7 @@ func _build_event_screen(picked: int, outcome: String) -> void:
 	hc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	hc.add_theme_constant_override("separation", UI3Theme.space("4") / 2)
 	head.add_child(hc)
-	var title := _PanelParts.on_view(UI3.label(_sentence(String(ev.get("n", tr("Event")))), "LabelScreenTitle"))
+	var title := _PanelParts.on_view(UI3.label(_sentence(core_words(String(ev.get("n", tr("Event"))))), "LabelScreenTitle"))
 	title.name = "EventTitle"
 	hc.add_child(title)
 	var erow := _PanelParts.on_view(UI3.label(event_subtitle(ctrl._current_row())))
@@ -139,9 +139,16 @@ static func event_subtitle(row: int) -> String:
 
 
 ## The player calls a relic a Core (Liam 29/10). Event data and outcomes still say "relic": swap the word, keep case.
+static var _re_upper: RegEx
+static var _re_mixed: RegEx
+
+
 static func core_words(s: String) -> String:
-	var res := RegEx.create_from_string("\\bRELIC(S?)\\b").sub(s, "CORE$1", true)
-	res = RegEx.create_from_string("\\b[Rr]elic(s?)\\b").sub(res, "Core$1", true)
+	if _re_upper == null:
+		_re_upper = RegEx.create_from_string("\\bRELIC(S?)\\b")
+		_re_mixed = RegEx.create_from_string("\\b[Rr]elic(s?)\\b")
+	var res := _re_upper.sub(s, "CORE$1", true)
+	res = _re_mixed.sub(res, "Core$1", true)
 	return res
 
 
@@ -197,7 +204,7 @@ func _add_event_option(raw: Dictionary, index: int, picked: int) -> Control:
 	tc.add_theme_constant_override("separation", UI3Theme.space("4"))
 	tc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line.add_child(tc)
-	var tl := UI3.label(String(raw.get("text", "")), "LabelTitle")
+	var tl := UI3.label(core_words(String(raw.get("text", ""))), "LabelTitle")
 	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tc.add_child(tl)
 	var d := UI3.label(core_words(String(raw.get("desc", ""))))

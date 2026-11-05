@@ -1,11 +1,13 @@
 extends Node
 ## p5-ui lane (4/11 polish leftovers): text floor measured on the real screens, event wording, ...
 const MakeRoomSheet := preload("res://scenes/run_map/ui5/MakeRoomSheet.gd")
+const ResultViewS := preload("res://scenes/result/ResultView.gd")
 const Scan := preload("res://tests/p5_text_scan.gd")
 var _guard := SaveGuard.new()
 var _checks := 0
 var _fails: Array[String] = []
 var rm: Node
+var _old_epoch: Variant = ""
 
 
 func _ok(c: bool, m: String) -> void:
@@ -40,6 +42,7 @@ func _fake_cards(core: bool) -> Array:
 func _ready() -> void:
 	print("=== t_p5_ui: start ===")
 	_guard.capture()
+	_old_epoch = ProjectSettings.get_setting("axie/epoch_source", "")
 	ProjectSettings.set_setting("axie/epoch_source", "local")
 	UI3Gacha.instant_override = 1
 	CombatView.disable_juice_for_tests = true
@@ -99,9 +102,6 @@ func _ready() -> void:
 		if dc is DieCard and (dc as DieCard).part_word != null and (dc as DieCard).part_word.text == "Egg":
 			egg_found = (dc as DieCard).part_chip.visible and (dc as DieCard).part_glyph.texture != null
 	_ok(egg_found, "egg die shows an egg icon chip")
-	for t in ["CorePanel", "AnchorTray", "AnchorChip"]:
-		for n in view.find_children("*" + t + "*", "", true, false):
-			print("NODE ", n.get_path())
 	view.queue_free()
 	AnchorAdapter.test_state = {}
 	_room_icons()
@@ -109,6 +109,7 @@ func _ready() -> void:
 	await _result_check()
 	UI3Theme.set_scale_override(-1.0)
 	UI3Gacha.instant_override = -1
+	ProjectSettings.set_setting("axie/epoch_source", _old_epoch)
 	_guard.restore()
 	print("=== t_p5_ui: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	if _fails.is_empty():
@@ -129,17 +130,22 @@ func _result_check() -> void:
 	RunState.mission = {}
 	MetaState.mission_escrow = {}
 	RunState.set_phase(RunState.RunPhase.LOST)
+	ResultViewS.force_end_moment_for_tests = true
 	var v: Node = (load("res://scenes/result/Result.tscn") as PackedScene).instantiate()
 	add_child(v)
 	await _frames(4)
 	var amt := v.find_child("ShardAmount", true, false) as Label
 	var bd := v.find_child("ShardBreakdown", true, false) as Control
-	_ok(amt != null and bd != null, "result: ShardAmount + ShardBreakdown exist")
-	if amt != null and bd != null:
-		_ok(amt.text == "+87" or bd.modulate.a < 0.5, "result: no '+0' next to a visible '87 run payout' (%s, a=%.1f)" % [amt.text, bd.modulate.a])
-		await get_tree().create_timer(6.0).timeout
-		_ok(amt.text == "+87" and bd.modulate.a > 0.99, "result: after the count: +87 and the payout line back (%s, a=%.1f)" % [amt.text, bd.modulate.a])
+	var tl: UI3Motion.Timeline = v.get("end_timeline")
+	_ok(amt != null and bd != null and tl != null, "result: ShardAmount + ShardBreakdown + end timeline exist")
+	if amt != null and bd != null and tl != null:
+		_ok(not tl.done and bd.modulate.a < 0.5, "result: while counting the payout line is hidden (done=%s, a=%.1f)" % [str(tl.done), bd.modulate.a])
+		if not tl.done:
+			await tl.finished
+		await _frames(2)
+		_ok(amt.text == "+87" and bd.modulate.a > 0.99, "result: after finished: +87 and the payout line back (%s, a=%.1f)" % [amt.text, bd.modulate.a])
 	v.queue_free()
+	ResultViewS.force_end_moment_for_tests = false
 	await _frames(2)
 
 
