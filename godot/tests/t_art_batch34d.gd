@@ -1,10 +1,10 @@
 extends Node
-## Art batch 3 + 4 + D (5/11): dice skin textures 512, frame bases 256 (window 162), HUD + currency icons.
-## (Six frames were scaled 0.956-0.979 to keep the 4 px transparent margin, so their window is 155-159 px, not 162.)
-## Guards: the 8 unused hl names are gone and nobody calls them, HudKit "reroll" is ui_reroll, HUD icons have
-## 64 / 32 variants, every cur_* has its sizes, every skin has a 512 albedo and a normal map, frame bases are 256.
+## Art batch 3 + 4 + D (5/11). Checks: the 9 removed hl icons (8 unused names + reroll) are gone from disk and no .gd /
+## .tscn / .tres / .json under res:// refers to them; HudKit picks the _32 / _64 variants and maps "reroll" to ui_reroll;
+## every cur_* has its sizes; every dice skin has a 512 albedo and a 512 normal; the 27 frame bases are 256 with a clear
+## window (r 76 of 256).
 
-const HL_GONE := ["gem", "gift", "skip", "mooncard", "undo", "lock", "drawback", "eternal"]
+const HL_GONE := ["gem", "gift", "skip", "mooncard", "undo", "lock", "drawback", "eternal", "reroll"]
 const HL_KEPT := ["aid", "attrition", "boss-clock", "lethal", "pact", "spike"]
 const CUR := {"cur_fragment": [24, 32, 64], "cur_gem": [24, 32, 64], "cur_shard": [24, 32, 64], "cur_ticket": [24, 32, 64],
 	"cur_stone": [16, 24, 32, 64]}
@@ -33,7 +33,7 @@ func _ready() -> void:
 		var a := load("res://assets/cosmetics/dice/%s/albedo.png" % f) as Texture2D
 		_assert(a != null and a.get_width() == 512 and a.get_height() == 512, "%s albedo is 512" % f)
 		var n := load("res://assets/cosmetics/dice/%s/normal.png" % f) as Texture2D
-		_assert(n != null and n.get_width() == 512, "%s normal is 512" % f)
+		_assert(n != null and n.get_width() == 512 and n.get_height() == 512, "%s normal is 512x512" % f)
 	var bases := 0
 	for fn in DirAccess.get_files_at("res://assets/cosmetics/frames"):
 		if fn.ends_with("_base.png"):
@@ -48,8 +48,7 @@ func _ready() -> void:
 						inner += 1
 			_assert(inner < 40, "%s window (r 76 of 256) is clear, %d px not" % [fn, inner])
 	_assert(bases == 27, "27 frame bases, got %d" % bases)
-	for f in ["res://scripts/ui/hud_kit.gd"]:
-		_assert(FileAccess.get_file_as_string(f).find("HL_DIR") >= 0, "hud_kit still reads hl")
+	_scan_refs("res://")
 	if _failures.is_empty():
 		print("PASS t_art_batch34d (%d checks)" % _checks)
 		get_tree().quit(0)
@@ -63,3 +62,22 @@ func _assert(ok: bool, msg: String) -> void:
 	_checks += 1
 	if not ok:
 		_failures.append(msg)
+
+
+## Nobody may still name a removed hl icon: `hl/<name>` anywhere, or `icon("<name>")` (reroll is exempt for the
+## second form: HudKit.icon("reroll") is the live mapping to ui_reroll).
+func _scan_refs(dir: String) -> void:
+	for d in DirAccess.get_directories_at(dir):
+		if d.begins_with(".") or d == "homeland":
+			continue
+		_scan_refs(dir.path_join(d))
+	for f in DirAccess.get_files_at(dir):
+		if not (f.ends_with(".gd") or f.ends_with(".tscn") or f.ends_with(".tres") or f.ends_with(".json")):
+			continue
+		if f == "t_art_batch34d.gd":
+			continue
+		var txt := FileAccess.get_file_as_string(dir.path_join(f))
+		for n in HL_GONE:
+			_assert(txt.find("hl/" + n) < 0, "%s mentions hl/%s" % [dir.path_join(f), n])
+			if n != "reroll":
+				_assert(txt.find('icon("%s")' % n) < 0, "%s calls icon(\"%s\")" % [dir.path_join(f), n])

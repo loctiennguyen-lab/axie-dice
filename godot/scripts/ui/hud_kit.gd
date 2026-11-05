@@ -10,7 +10,8 @@ const HL_DIR := "res://assets/icons/hl/"
 
 ## Icon texture by short name. The HUD icons (spike, attrition, lethal, aid, boss-clock, pact) live in
 ## `assets/icons/hl/` with `_32` / `_64` variants (art batch D, 5/11); the old set stays in `assets/icons/web/`.
-## "reroll" is the shared `ui_reroll` of the UI kit. `px` > 0 picks the variant for that box size.
+## "reroll" is the shared `ui_reroll` of the UI kit. `px` > 0 picks the variant for that box size; px > 64.5 uses the
+## master. The thresholds differ from UI3._icon_variant (no _16 / _128 here) on purpose.
 static func icon(name: String, px := 0.0) -> Texture2D:
 	if name == "reroll":
 		return UI3.icon("ui_reroll", px)
