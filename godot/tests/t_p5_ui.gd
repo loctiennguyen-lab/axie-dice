@@ -103,6 +103,7 @@ func _ready() -> void:
 			print("NODE ", n.get_path())
 	view.queue_free()
 	AnchorAdapter.test_state = {}
+	await _result_check()
 	UI3Theme.set_scale_override(-1.0)
 	UI3Gacha.instant_override = -1
 	_guard.restore()
@@ -114,3 +115,26 @@ func _ready() -> void:
 		for f in _fails:
 			print("FAIL: " + f)
 		get_tree().quit(1)
+
+
+## Defeated: "+N" counts up from +0, so the "N run payout" line stays hidden until the count has landed.
+func _result_check() -> void:
+	UI3Theme.set_scale_override(1.0)
+	RunState.start_new_run(777001, ["plant1", "beast1", "aqua1", "reptile1", "bird1"] as Array[String], "short", 5, false)
+	RunState.shards_this_run = 87
+	RunState.run_stats = {"dmg": 913, "dmg_dealt_clamped": 913, "taken": 140, "turns": 41, "kills": 23, "max_hit": 31}
+	RunState.mission = {}
+	MetaState.mission_escrow = {}
+	RunState.set_phase(RunState.RunPhase.LOST)
+	var v: Node = (load("res://scenes/result/Result.tscn") as PackedScene).instantiate()
+	add_child(v)
+	await _frames(4)
+	var amt := v.find_child("ShardAmount", true, false) as Label
+	var bd := v.find_child("ShardBreakdown", true, false) as Control
+	_ok(amt != null and bd != null, "result: ShardAmount + ShardBreakdown exist")
+	if amt != null and bd != null:
+		_ok(amt.text == "+87" or bd.modulate.a < 0.5, "result: no '+0' next to a visible '87 run payout' (%s, a=%.1f)" % [amt.text, bd.modulate.a])
+		await get_tree().create_timer(6.0).timeout
+		_ok(amt.text == "+87" and bd.modulate.a > 0.99, "result: after the count: +87 and the payout line back (%s, a=%.1f)" % [amt.text, bd.modulate.a])
+	v.queue_free()
+	await _frames(2)

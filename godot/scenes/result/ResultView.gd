@@ -843,4 +843,12 @@ func _play_end_moment() -> void:
 	if amt != null:
 		tg["shards"] = amt
 		counts["shards_count"] = [0, int(_snap.get("shards_this_run", 0))]
-	UI3Motion.play_timeline("run-end-win" if won else "run-end-lose", tg, {"host": self, "counts": counts})
+	# p5-ui: while "+N" counts up from +0 the "N run payout" line beside it read as a mismatch ("+0" vs "87"): it shows
+	# when the count has landed (and never on a Skip that has not finished).
+	var bd := find_child("ShardBreakdown", true, false) as Control
+	var tl := UI3Motion.play_timeline("run-end-win" if won else "run-end-lose", tg, {"host": self, "counts": counts})
+	if bd != null and tl != null and not tl.done:
+		bd.modulate.a = 0.0
+		tl.finished.connect(func() -> void:
+			if is_instance_valid(bd):
+				bd.modulate.a = 1.0)
