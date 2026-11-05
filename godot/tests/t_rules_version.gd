@@ -269,7 +269,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Run Rule in the old-relic/pact passive, active and G/A slots (6 Cores + 1 rule have their own), fixing "9 of 8". Run result: YES.
 ## Pinned, 2026-11-05 (login hotfix): AccountService emits `changed` when a save fetched on the Login screen is deferred to
 ## Land, so the Login screen moves on after a web sign-in. Accounts/UI only. Run result: NO, stays -w.
-const FINGERPRINT := "fe7bc5e05b118eb7639f6bd652ec1a3add0f79cfd79bd49ef03c1a29ba1eb2fb"
+## Pinned, 2026-11-05 (p5-rules): RunState.pact_can_skip lets a forced pact be skipped only when no card on offer can be
+## taken (unreachable from the offer path, a safety exit for old saves). skip_pact and RunVerifier share it. Run result: NO, stays -w.
+const FINGERPRINT := "4b2e101068c1cbde815922e4997545f41115f091c63be4eb0f74cb77747e4cc9"
 
 
 func _ready() -> void:
