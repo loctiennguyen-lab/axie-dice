@@ -130,6 +130,9 @@ test('judge: match, outcome and score mismatch, rejected, error', async () => {
   assert.equal(judge(good({ outcome: 'lost' }), job).verdict, 'outcome_mismatch');
   assert.equal(judge(good({ score: 1 }), { ...job, client_score: null }).verdict, 'match', 'no client score = not compared');
   assert.equal(judge(good({ ok: false, reason: 'header_mismatch', outcome: 'rejected', score: 0 }), job).verdict, 'rejected');
+  const unranked = good({ ok: false, reason: 'not_ranked', outcome: 'rejected', score: 0 });
+  assert.deepEqual(judge(unranked, { ...job, kind: 'normal' }), { state: 'error', verdict: 'skipped' }, 'normal run = skipped, not a mismatch');
+  assert.equal(judge(unranked, { ...job, kind: 'ranked' }).verdict, 'rejected', 'a ranked job that says not_ranked is still a real problem');
   assert.equal(judge(good({ ok: false, reason: 'bad_header', outcome: 'rejected', score: 0 }), job).state, 'error');
 });
 
@@ -209,4 +212,15 @@ test('result needs a current lease; oversized declared body is refused before ha
   const sig = await signVerify(KEY, NOW, 'POST', '/api/verify/result', '{}');
   const req = new Request('https://x/api/verify/result', { method: 'POST', body: '{}', headers: { 'x-verify-ts': String(NOW), 'x-verify-sig': sig, 'content-length': '99999' } });
   assert.equal((await handleVerify(req, env, new URL(req.url), NOW)).status, 413);
+});
+
+test('a normal run the verifier refuses as not_ranked is skipped, not a mismatch', async () => {
+  const env = await queued('won');
+  await call(env, '/api/verify/next', {});
+  const out = await (await call(env, '/api/verify/result', { run_id: RUN, result: good({ ok: false, reason: 'not_ranked', outcome: 'rejected', score: 0 }) })).json();
+  assert.equal(out.verdict, 'skipped');
+  const st = await (await signedGet(env, '/api/verify/stats')).json();
+  assert.equal(st.skipped, 1);
+  assert.deepEqual(st.last_mismatches, [], 'skipped runs are not listed as mismatches');
+  assert.ok(!st.verdicts.some((v) => v.verdict === 'rejected'));
 });
