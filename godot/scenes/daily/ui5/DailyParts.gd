@@ -83,7 +83,7 @@ static func day_chip(text: String, done: bool, node_name := "DayChip") -> PanelC
 	h.add_theme_constant_override("separation", UI3Theme.space("4"))
 	c.add_child(h)
 	if done:
-		var ic := PanelParts.icon_rect(UI3.icon("ui_check"), UI3Theme.size_of("icon_s"))
+		var ic := PanelParts.icon_rect(UI3.icon("ui_check", UI3Theme.size_of("icon_s")), UI3Theme.size_of("icon_s"))
 		ic.modulate = UI3Theme.color("text_ink")
 		h.add_child(ic)
 	h.add_child(Ui5Text.label(text, "text_key", "text_ink" if done else "text_muted", true))

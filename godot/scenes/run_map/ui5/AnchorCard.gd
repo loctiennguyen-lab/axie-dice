@@ -47,7 +47,7 @@ func setup(id: String) -> void:
 		sr.add_theme_constant_override("separation", UI3Theme.space("8"))
 		sr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		strip.add_child(sr)
-		sr.add_child(PanelParts.icon_rect(UI3.icon("ui_lock"), UI3Theme.size_of("icon_s"), "LockIcon"))
+		sr.add_child(PanelParts.icon_rect(UI3.icon("ui_lock", UI3Theme.size_of("icon_s")), UI3Theme.size_of("icon_s"), "LockIcon"))
 		var why := PanelParts.text(AnchorAdapter.reason_text(reason), "text_body", "disabled_text")
 		why.name = "Reason"
 		why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

@@ -48,13 +48,32 @@ const DIE_STATES: Array[StringName] = [&"normal", &"selected", &"used", &"disabl
 # ---------------------------------------------------------------- basics
 
 ## Texture for an icon in assets/ui3/icons (png first, then svg). Null + error when missing.
-static func icon(icon_name: String) -> Texture2D:
+## `px` (the size it is drawn at, 0 = unknown; pass the real on-screen px, i.e. x UI3Theme.layout_scale(), where a `_16`
+## variant exists) picks a hand-redrawn size variant when the icon has one: the art batch 2
+## glyphs (4/11) ship `<name>.png` at 64 plus `<name>_32.png` and `<name>_128.png`; ui_reroll also has `_16.png` (art batch
+## 2b, 5/11) for px <= 20.5 (at most 1.28x up). A variant the icon does not have falls back to the next size up, then to `<name>.png`.
+static func icon(icon_name: String, px := 0.0) -> Texture2D:
+	var p := _icon_variant(icon_name, px)
+	if p != "":
+		return load(p) as Texture2D
+	push_error("UI3: missing icon '%s'" % icon_name)
+	return null
+
+
+static func _icon_variant(icon_name: String, px: float) -> String:
+	if px > 0.0 and px <= 20.5:
+		var tiny := "%s%s_16.png" % [ICON_DIR, icon_name]
+		if ResourceLoader.exists(tiny):
+			return tiny
+	if px > 0.0:
+		var sized := "%s%s_%d.png" % [ICON_DIR, icon_name, 32 if px <= 32.5 else 128]
+		if (px <= 32.5 or px > 64.5) and ResourceLoader.exists(sized):
+			return sized
 	for ext in [".png", ".svg"]:
 		var p: String = ICON_DIR + icon_name + ext
 		if ResourceLoader.exists(p):
-			return load(p) as Texture2D
-	push_error("UI3: missing icon '%s'" % icon_name)
-	return null
+			return p
+	return ""
 
 
 ## Currency icon for a box of `px` px: the painted size variant (16 / 24 / 32 / 64, 128 master) when the
@@ -185,10 +204,21 @@ static var _cream_cache: Dictionary = {}
 
 ## `icon()` with every pixel multiplied by the cream text colour, so white glyphs (the gear) read as
 ## cream #FFE5B4 and never as white. Baked into the texture rather than left to the Button's icon colour.
-static func cream_icon(icon_name: String) -> Texture2D:
-	if _cream_cache.has(icon_name):
-		return _cream_cache[icon_name]
-	var tex := icon(icon_name)
+static func cream_icon(icon_name: String, px := 0.0) -> Texture2D:
+	return _tinted_icon(icon_name, px, false)
+
+
+## `icon()` flattened to one cream colour (alpha kept): for glyphs that sit next to the flat code-drawn ones in the
+## combat action tiles (Hold, Undo; Liam 4/11), where the two-tone art batch 2 glyph would not match.
+static func flat_cream_icon(icon_name: String, px := 0.0) -> Texture2D:
+	return _tinted_icon(icon_name, px, true)
+
+
+static func _tinted_icon(icon_name: String, px: float, flat: bool) -> Texture2D:
+	var key := "%s|%s|%s" % [_icon_variant(icon_name, px), icon_name, flat]
+	if _cream_cache.has(key):
+		return _cream_cache[key]
+	var tex := icon(icon_name, px)
 	if tex == null:
 		return null
 	var img := tex.get_image()
@@ -200,9 +230,12 @@ static func cream_icon(icon_name: String) -> Texture2D:
 	for y in img.get_height():
 		for x in img.get_width():
 			var c := img.get_pixel(x, y)
-			img.set_pixel(x, y, Color(c.r * tint.r, c.g * tint.g, c.b * tint.b, c.a))
+			if flat:
+				img.set_pixel(x, y, Color(tint.r, tint.g, tint.b, c.a))
+			else:
+				img.set_pixel(x, y, Color(c.r * tint.r, c.g * tint.g, c.b * tint.b, c.a))
 	var out := ImageTexture.create_from_image(img)
-	_cream_cache[icon_name] = out
+	_cream_cache[key] = out
 	return out
 
 

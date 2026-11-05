@@ -2292,7 +2292,7 @@
    "delay_ms": 160
   },
   "particles": {
-   "texture": "res://assets/ui3/icons/face_buff.svg",
+   "texture": "res://assets/ui3/icons/face_buff.png",
    "amount": 10,
    "lifetime_ms": 600,
    "spread_deg": 40,
@@ -4321,7 +4321,7 @@
     "target": "axie",
     "delay_ms": 120,
     "particles": {
-     "texture": "res://assets/ui3/icons/face_buff.svg",
+     "texture": "res://assets/ui3/icons/face_buff.png",
      "amount": 12,
      "lifetime_ms": 900,
      "speed": 260,

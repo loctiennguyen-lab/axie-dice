@@ -56,11 +56,11 @@ static func path(mockup_path: String) -> String:
 	match bucket:
 		"fx":
 			# The whole web icon set — face types, statuses, resources, node kinds.
-			return "res://assets/icons/web/%s" % name
+			return _png_if_redrawn("res://assets/icons/web/%s" % name)
 		"part":
 			# `blank.svg` is the one file in the mockup's part/ folder that is not a part.
 			if name == "blank.svg":
-				return "res://assets/icons/web/blank.svg"
+				return _png_if_redrawn("res://assets/icons/web/blank.svg")
 			return "res://assets/icons/web/part/%s" % name.replace("-", "_")
 		"node":
 			return "res://assets/icons/node/%s" % name
@@ -79,6 +79,16 @@ static func path(mockup_path: String) -> String:
 			return ""
 		_:
 			return ""
+
+
+## Art redo 4/11: blank / buff / debuff / mana became library PNGs and their SVGs were removed. The mockups still
+## write `.svg`, so an SVG path that is gone falls through to the PNG of the same name.
+static func _png_if_redrawn(p: String) -> String:
+	if p.ends_with(".svg") and not ResourceLoader.exists(p):
+		var png := p.get_basename() + ".png"
+		if ResourceLoader.exists(png):
+			return png
+	return p
 
 
 ## Loads the texture behind a mockup path. Returns null when the path does not map or the file

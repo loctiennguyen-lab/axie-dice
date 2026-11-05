@@ -270,7 +270,8 @@ func _anchor_row() -> Control:
 	ic.custom_minimum_size = Vector2.ONE * px
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	UI6Assets.light_disc(ic, px)
+	if UI6Assets.needs_disc(ic.texture):
+		UI6Assets.light_disc(ic, px)
 	h.add_child(ic)
 	var nm := PanelParts.text("", "text_body", "text", true)
 	nm.name = "AnchorName"

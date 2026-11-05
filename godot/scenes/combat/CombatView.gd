@@ -128,15 +128,15 @@ const _ICON_SHARD := preload("res://assets/icons/web/shard.png")
 ## real icon field.
 const _RELIC_ARCHETYPE_ICON := {
 	"burn": preload("res://assets/icons/web/burn.png"),
-	"mana": preload("res://assets/icons/web/mana.svg"),
+	"mana": preload("res://assets/icons/web/mana.png"),
 	"poison": preload("res://assets/icons/web/poison.png"),
 	"shield": preload("res://assets/icons/web/shield.png"),
 	"summon": preload("res://assets/icons/web/summon.png"),
 	"thorns": preload("res://assets/icons/web/thorns.png"),
-	"growth": preload("res://assets/icons/web/buff.svg"),
+	"growth": preload("res://assets/icons/web/buff.png"),
 }
-const _ICON_MANA := preload("res://assets/icons/web/mana.svg")
-const _ICON_REROLL := preload("res://assets/icons/web/reroll.svg")
+const _ICON_MANA := preload("res://assets/icons/web/mana.png")
+const _ICON_REROLL := preload("res://assets/icons/web/reroll.png")
 
 ## web/part/<slot>_<class>.svg filename slot for each engine `part` key.
 ##
@@ -848,8 +848,8 @@ func _build_sound_button() -> void:
 ## WHY AN ICON AND NOT THE "⚙" CHARACTER. None of this project's six fonts carries U+2699 —
 ## their cmaps were read directly, the same check that found U+2713 missing for the map's
 ## visited badge — and no fallback font is configured, so the glyph would draw as a tofu box.
-## `assets/icons/web/settings.svg` was added for this, in the same 128-box, black-outlined
-## style as the other web icons.
+## `assets/icons/web/settings.svg` was added for this; since the 4/11 art redo it is the painted
+## `ui3/icons/ui_settings` glyph.
 ##
 ## FLAGGED, same cause, NOT fixed here: the ♪ sound chip beside it has the identical problem
 ## — U+266A is missing from all six fonts too. It is pre-existing and shipping, so it is
@@ -861,12 +861,12 @@ func _build_settings_button() -> void:
 	_settings_button.tooltip_text = "Leave the fight"
 	_settings_button.focus_mode = Control.FOCUS_NONE
 	_style_utility_button(_settings_button)
-	_settings_button.icon = MockupAssets.tex("assets/fx/settings.svg")
+	# Art redo 4/11: the hand-drawn 32 px glyph (cream + wood brown), not the 64 shrunk to 19.
+	_settings_button.icon = UI3.icon("ui_settings", 19)
 	_settings_button.expand_icon = true
 	_settings_button.add_theme_constant_override("icon_max_width", 19)
-	# The icon stands in for a label, so it takes the label's colours in every state rather
-	# than drawing at full white on a chip whose text is TEXT. The svg is pure white for
-	# exactly this reason - the tint is what gives it its colour.
+	# The icon stands in for a label, so it takes the label's colours in every state. The glyph
+	# is drawn to read when multiplied by the text colour (same as UI3.cream_icon).
 	_settings_button.add_theme_color_override("icon_normal_color", UI3Theme.color("text"))
 	_settings_button.add_theme_color_override("icon_focus_color", UI3Theme.color("text"))
 	_settings_button.add_theme_color_override("icon_hover_color", UI3Theme.color("accent_text"))

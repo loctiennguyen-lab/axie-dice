@@ -79,7 +79,7 @@ static func house(house_id: String, px: float = 64) -> Texture2D:
 	if not HOUSES.has(k):
 		push_error("UI6Assets.house: unknown house '%s'" % house_id)
 		return null
-	return UI3.icon("house_" + k)   # original SVG (Liam 2/11), px unused: vector
+	return UI3.icon("house_" + k)   # painted PNG, 256 (art redo 4/11 + 5/11), px unused
 
 
 ## Awakened mark (AnchorTile / AnchorChip / awaken banner).
@@ -192,14 +192,24 @@ static func ninepatch_margins(key: String) -> Vector4i:
 
 
 ## Original icons drawn with a thick black outline: they need the cream LightDisc on a dark plate (Liam 2/11).
-const DISC_ICONS := ["face_buff", "face_heal", "face_dmg", "face_summon", "status_vuln", "ui_reroll", "node_shop"]
+## Art redo 4/11 + 5/11: face_buff, ui_reroll and all six house emblems are painted PNGs now (no black outline), so they
+## never get the disc.
+const DISC_ICONS := ["face_heal", "face_dmg", "face_summon", "status_vuln", "node_shop"]
 
 
 static func needs_disc(tex: Texture2D) -> bool:
 	if tex == null or not tex.resource_path.begins_with(OLD_ICON_DIR):
 		return false
-	var stem := tex.resource_path.get_file().get_basename()
-	return stem.begins_with("house_") or DISC_ICONS.has(stem)
+	return DISC_ICONS.has(tex.resource_path.get_file().get_basename())
+
+
+## Boss Pact icon by relic id ("r_ironvow"), from assets/ui6/pact/pact_<id without r_>.png (art batch 2, 4/11: 4 from the
+## library, 5 drawn). A pact added later with no art yet gets the shared moon card, without an error.
+static func pact(relic_id: String) -> Texture2D:
+	var p := DIR + "pact/pact_%s.png" % relic_id.trim_prefix("r_")
+	if ResourceLoader.exists(p):
+		return _load_abs(p)
+	return UI3.icon("ui_mooncard")
 
 
 ## Cream disc behind an icon that has a thick black outline (the original house SVGs, Level Up arrow, Serum ...), so it

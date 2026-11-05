@@ -64,12 +64,12 @@ const _INTENT_ICON := {
 	"dmg": preload("res://assets/icons/web/dmg.png"),
 	"shield": preload("res://assets/icons/web/shield.png"),
 	"heal": preload("res://assets/icons/web/heal.png"),
-	"mana": preload("res://assets/icons/web/mana.svg"),
+	"mana": preload("res://assets/icons/web/mana.png"),
 	"summon": preload("res://assets/icons/web/summon.png"),
-	"buff": preload("res://assets/icons/web/buff.svg"),
+	"buff": preload("res://assets/icons/web/buff.png"),
 	"poison": preload("res://assets/icons/web/poison.png"),
-	"debuff": preload("res://assets/icons/web/debuff.svg"),
-	"blank": preload("res://assets/icons/web/blank.svg"),
+	"debuff": preload("res://assets/icons/web/debuff.png"),
+	"blank": preload("res://assets/icons/web/blank.png"),
 }
 
 ## The badge FILL, per combat-v2.html: `intentBg` is the face type's own colour and the whole

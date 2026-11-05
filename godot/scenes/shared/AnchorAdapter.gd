@@ -8,7 +8,7 @@ extends RefCounted
 ## anchor_id(String), picked(Array: pick_anchor ids are appended here).
 static var test_state = null
 
-## House sigils: neutral shapes (not die-face icons) in assets/ui3/icons/house_*.svg. Always shown with the house name.
+## House sigils: neutral shapes (not die-face icons) in assets/ui3/icons/house_*.png (painted, art redo 4-5/11). Always shown with the house name.
 const HOUSE_ICON := {"h_volley": "house_volley", "h_gambler": "house_gambler", "h_mana_mine": "house_mana_mine",
 	"h_kin": "house_kin", "h_embers": "house_embers", "h_big_hand": "house_big_hand"}
 const HOUSE_TOKEN := {"h_volley": "house_volley", "h_gambler": "house_gambler", "h_mana_mine": "house_mana_mine",

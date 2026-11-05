@@ -396,8 +396,8 @@ func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 	# RerollButton: secondary M, Rowdies title, reroll glyph, CostChip (mana) when the next reroll is paid.
 	reroll.theme_type_variation = "ButtonSecondary"
 	reroll.text = "Reroll"
-	reroll.icon = UI3.cream_icon("ui_reroll")
-	reroll.expand_icon = false
+	reroll.icon = _reroll_glyph()
+	reroll.expand_icon = true   # the 16 / 32 variants both draw at icon_max_width (icon_m)
 	reroll.clip_text = true
 	reroll.tooltip_text = "Reroll unused dice (%s)" % KeyBindings.text(KeyBindings.COMBAT_REROLL)
 	_cost_chip = Ui5HudStyle.cost_chip(&"mana", 1)
@@ -443,6 +443,8 @@ func _apply_tokens() -> void:
 	reroll_button.custom_minimum_size = Vector2(dock_w, UI3Theme.size_of("btn_m"))
 	reroll_button.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
 	reroll_button.add_theme_constant_override("icon_max_width", UI3Theme.size_of("icon_m"))
+	if reroll_button.icon != null:   # null = "need MP" state; otherwise pick the 16 / 32 for the new window size
+		reroll_button.icon = _reroll_glyph()
 	reroll_button.add_theme_constant_override("h_separation", UI3Theme.space("12"))
 	end_turn_button.custom_minimum_size = Vector2(dock_w, UI3Theme.size_of("btn_l"))
 	end_turn_button.add_theme_font_size_override("font_size", UI3Theme.size_of("text_screen_title"))
@@ -633,7 +635,7 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary, hold: D
 	var stakes := int(reroll.get("stakes", 0))
 	if stakes > 0 and n <= 0 and cost <= 0 and not capped:
 		reroll_button.text = "Gamble · Crack %d%%" % stakes   # High Stakes forces every paid reroll to be a Gamble
-	reroll_button.icon = null if need_mp else UI3.cream_icon("ui_reroll")
+	reroll_button.icon = null if need_mp else _reroll_glyph()
 	_cost_chip.visible = show_cost
 	Ui5HudStyle.set_cost(_cost_chip, cost)
 	reroll_button.tooltip_text = String(reroll.get("tip", "Reroll unused dice (%s)" % KeyBindings.text(KeyBindings.COMBAT_REROLL)))
@@ -912,3 +914,9 @@ func layout() -> void:
 	_info.size = Vector2(INFO_W, ih)
 	var ib := _info_bottom if _info_bottom > 0.0 else h - EDGE - 104.0 - 12.0
 	_info.position = Vector2(EDGE, ib - ih)
+
+
+## Reroll glyph for the RerollButton. The variant is picked by the size on screen (icon_m x layout scale), so at 1280 (28 x 0.667
+## = 18.7 px) the button gets the hand-drawn 16 px glyph (art batch 2b) instead of the 32 shrunk.
+func _reroll_glyph() -> Texture2D:
+	return UI3.cream_icon("ui_reroll", UI3Theme.size_of("icon_m") * UI3Theme.layout_scale())

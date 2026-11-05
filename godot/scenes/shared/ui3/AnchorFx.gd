@@ -158,7 +158,8 @@ func _build(extra_line: String) -> void:
 	he.size = Vector2(hp, hp)
 	he.position = (emb.custom_minimum_size - he.size) * 0.5
 	he.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	UI6Assets.light_disc(he, hp)
+	if UI6Assets.needs_disc(he.texture):
+		UI6Assets.light_disc(he, hp)
 	emb.add_child(he)
 	_card.add_child(emb)
 	var tag := Ps.text(TranslationServer.translate("%s awakens") % AnchorAdapter.name_of(anchor_id), "text_title", "anchor_awake", true)

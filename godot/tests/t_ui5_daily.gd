@@ -103,7 +103,9 @@ func _pass(sc: float) -> void:
 	_ok(_btn(d, "BackButton").text == "←", "%s: back arrow" % tag)
 	_ok(Ui5Keycap.all_under(d).is_empty(), "%s: no keycap (frames draw none)" % tag)
 	var txt := _texts(d)
-	for bad in ["Liam", "2,450", "Lakebed Fishing Rod"]:
+	# Not "Lakebed Fishing Rod": the mockup's example is also a real Core combo name, so on a day whose daily reward is
+	# that combo (5/11/2026) the real data showed it and the check failed by date.
+	for bad in ["Liam", "2,450"]:
 		_ok(not txt.contains(bad), "%s: no illustrative string %s" % [tag, bad])
 	_small(d, tag + " unclaimed", sc)
 	_ok(Align.pairs(d) > 0, "%s: align pairs (%d)" % [tag, Align.pairs(d)])

@@ -27,7 +27,9 @@ const REQUIRED_PNG_ICONS := [
 	# run-map node types
 	"battle", "elite", "boss", "event", "shop",
 ]
-const REQUIRED_SVG_ICONS := ["mana", "blank", "buff", "debuff", "reroll"]
+## Were `ICON_SVG_RAW` SVGs from src/art7.js. Art redo (Liam 3/11 + 4/11): blank / buff / debuff / mana are Homeland
+## library pieces now and reroll is the art batch 2 glyph, all PNG. Same names, so every caller still finds them.
+const REDRAWN_ICONS := ["mana", "blank", "buff", "debuff", "reroll"]
 
 const PART_SLOTS := ["mouth", "horn", "back", "tail", "eyes", "ears"]
 const PART_CLASSES := ["plant", "beast", "aqua", "reptile", "bug", "bird"]
@@ -53,7 +55,7 @@ func _ready() -> void:
 	test_no_monster_or_boss_wears_a_hero_identity()
 	test_every_boss_model_is_on_disk()
 	test_every_mapped_card_illustration_loads()
-	test_raw_svg_icons_use_the_web_builds_viewbox()
+	test_redrawn_web_icons_are_not_blank()
 	test_every_hero_class_has_a_portrait()
 	test_shop_and_crypt_backdrops_exist()
 	test_event_backdrop_choice_is_deterministic()
@@ -130,9 +132,9 @@ func test_web_icons_are_all_present() -> void:
 			"web icon '%s.png' is missing — it is one of the icons the live JS build uses, "
 				% icon_name
 			+ "extracted from src/art7.js, and the Godot build is required to match it")
-	for icon_name in REQUIRED_SVG_ICONS:
-		_assert(ResourceLoader.exists(ICON_DIR + icon_name + ".svg"),
-			"web icon '%s.svg' is missing (src/art7.js ICON_SVG_RAW)" % icon_name)
+	for icon_name in REDRAWN_ICONS:
+		_assert(ResourceLoader.exists(ICON_DIR + icon_name + ".png"),
+			"web icon '%s.png' is missing (art redo replaced the art7.js SVG)" % icon_name)
 
 
 func test_every_body_part_icon_exists() -> void:
@@ -376,28 +378,22 @@ func test_every_boss_model_is_on_disk() -> void:
 			"boss '%s' has no sprite fallback" % boss_key)
 
 
-## The five `ICON_SVG_RAW` icons are FRAGMENTS in src/art7.js, not documents — src/client.html's
-## icoSvg() wraps each one with `viewBox="0 0 128 128"` (client.html:2354), and their shapes are
-## authored at coordinates like cx=64,cy=64 to suit that box.
-##
-## The first extraction of these wrapped them in `0 0 48 48`. Every shape then fell outside the
-## visible area and the icons rendered as NOTHING — which surfaced in-game as the enemy "blank"
-## intent badge being an empty black box. The icon was present, correctly named, and loading
-## fine; it was simply drawn off-canvas. Nothing about "the file exists" would ever catch that,
-## so this asserts the one property that actually matters.
-func test_raw_svg_icons_use_the_web_builds_viewbox() -> void:
-	for icon_name in REQUIRED_SVG_ICONS:
-		var path: String = ICON_DIR + String(icon_name) + ".svg"
-		var f := FileAccess.open(path, FileAccess.READ)
-		_assert(f != null, "could not open %s" % path)
-		if f == null:
+## These five once rendered as NOTHING (an SVG drawn off its viewBox: the enemy "blank" intent badge was an empty
+## black box) while "the file exists" passed. Now PNGs, the property that matters is still that they draw something.
+func test_redrawn_web_icons_are_not_blank() -> void:
+	for icon_name in REDRAWN_ICONS:
+		var tex := load(ICON_DIR + String(icon_name) + ".png") as Texture2D
+		_assert(tex != null, "could not load %s.png" % icon_name)
+		if tex == null:
 			continue
-		var text := f.get_as_text()
-		f.close()
-		_assert(text.contains("viewBox=\"0 0 128 128\""),
-			"%s.svg must use the same 128-unit viewBox src/client.html wraps these fragments "
-				% icon_name
-			+ "with; anything smaller renders the icon off-canvas as blank")
+		var img := tex.get_image()
+		img.decompress()
+		var opaque := 0
+		for y in range(0, img.get_height(), 4):
+			for x in range(0, img.get_width(), 4):
+				if img.get_pixel(x, y).a > 0.5:
+					opaque += 1
+		_assert(opaque > 20, "%s.png draws (almost) nothing: %d opaque samples" % [icon_name, opaque])
 
 
 func _subdirs(dir_path: String) -> Array:

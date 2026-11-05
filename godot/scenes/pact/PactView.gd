@@ -140,7 +140,8 @@ func _card(i: int, c: Dictionary) -> Control:
 	art.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("m"),
 		UI3Theme.stroke("selected"), accent))
 	var icon := TextureRect.new()
-	icon.texture = UI3.icon("ui_mooncard")
+	icon.name = "PactIcon"
+	icon.texture = UI6Assets.pact(String(c.get("id", "")))
 	icon.set_anchors_preset(Control.PRESET_CENTER)
 	icon.offset_left = -48
 	icon.offset_right = 48

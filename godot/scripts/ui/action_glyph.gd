@@ -35,7 +35,7 @@ func _draw() -> void:
 	var p := func(x: float, y: float) -> Vector2: return o + Vector2(x, y) * u
 	match kind:
 		&"undo", &"hold":
-			var tex := UI3.cream_icon("ui_undo" if kind == &"undo" else "ui_lock")
+			var tex := UI3.flat_cream_icon("ui_undo" if kind == &"undo" else "ui_lock", s)
 			if tex != null:
 				draw_texture_rect(tex, Rect2(o, Vector2(s, s)), false, Color(1, 1, 1, 0.55 if dim else 1.0))
 		&"wild":
