@@ -1,4 +1,14 @@
-## ⇢ BẮT ĐẦU TỪ ĐÂY (5/11 khuya): art 34D + 3b đã merge vào godot-port (50af30a), CHƯA deploy art
+## ⇢ BẮT ĐẦU TỪ ĐÂY (5/11 khuya, sau deploy)
+- Live: **08fedec**. Web pck d3a7cfbb, desktop b2472, Worker bd77027e. Ghi chú: `production/release/deploy-2026-11-05-art34d.md`.
+- Có sửa thêm lỗi Gem hiện 0 trên Land (`t_land_gem_sync`, sàn 349).
+- Việc tiếp:
+  - Store, Daily và `UI3.gd:322` đọc Gem cùng kiểu cũ, có thể hiện 0;
+  - 3 icon lệch nghĩa (spike giống búa, pact giống tài liệu, boss-clock nhạt ở 32 px);
+  - các câu chờ Liam bên dưới (Anchor thu gọn, Kin / Lone Wolf, SQL verify);
+  - xoá worktree `art34d`, `p5-*`.
+- GitHub `axiedice/main` vẫn d406c2e: Liam chưa push được.
+
+## (cũ hơn) 5/11 khuya: art 34D + 3b đã merge vào godot-port (50af30a)
 - Live: fccbd25 (web pck f3d94579, desktop b2457, Worker bd77027e), ghi chú `production/release/deploy-2026-11-05-p5.md`.
 - Sau đó merge art lượt 3 + 4 + D + 3b từ `art/batch34d` (24da642, 50af30a). Gồm:
   - 26 skin xúc xắc (normal sinh lại, DiceThumb v6), 27 khung avatar, icon HUD + tiền tệ, xoá 9 icon hl thừa;
