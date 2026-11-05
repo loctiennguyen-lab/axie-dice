@@ -89,5 +89,14 @@ func _ready() -> void:
 	ws.refresh()
 	(held[2][1] as Callable).call(200, JSON.stringify({"gem": 750}))
 	_check(ws.balance() == 750, "a refresh sent after the spend applies normally")
+	# claim that fails while a GET is in flight: the dropped GET must be replaced by a fresh one
+	held.clear()
+	ws.refresh()                        # GET #1 in flight
+	ws.claim_daily_gift_async(Callable())
+	(held[1][1] as Callable).call(0, "")   # claim never arrives
+	_check(held.size() == 3 and held[2][0] == "/api/wallet", "failed claim re-fetches the wallet")
+	(held[0][1] as Callable).call(200, JSON.stringify({"gem": 600}))   # stale GET #1: dropped
+	(held[2][1] as Callable).call(200, JSON.stringify({"gem": 640}))   # fresh GET: applies
+	_check(ws.balance() == 640, "after a failed claim the cache takes the fresh server balance")
 	print("t_remote_gem_wallet: ", "PASS" if _fails == 0 else "FAILED (%d)" % _fails)
 	get_tree().quit(1 if _fails > 0 else 0)

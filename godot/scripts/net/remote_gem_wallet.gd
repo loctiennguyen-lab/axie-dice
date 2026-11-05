@@ -92,6 +92,7 @@ func claim_daily_gift_async(done: Callable) -> void:
 	transport.call("POST", "/api/gem/claim", "", func(code: int, text: String) -> void:
 		var out := {"ok": false, "granted": 0, "reason": "offline", "next_utc": 0}
 		var j: Variant = JSON.parse_string(text) if not text.is_empty() else null
+		var got_balance := false
 		if code == 200 and typeof(j) == TYPE_DICTIONARY:
 			var d: Dictionary = j
 			out = {"ok": bool(d.get("ok", false)), "granted": int(d.get("granted", 0)),
@@ -99,6 +100,9 @@ func claim_daily_gift_async(done: Callable) -> void:
 			_next_claim_utc = int(out["next_utc"])
 			if d.has("balance"):
 				_set_balance(int(d["balance"]))
+				got_balance = true
+		if not got_balance:
+			refresh()   # the epoch bump dropped any GET in flight; without a server number here, fetch one now
 		if done.is_valid():
 			done.call(out))
 
