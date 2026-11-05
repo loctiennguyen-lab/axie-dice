@@ -8,10 +8,18 @@ const ICON_DIR := "res://assets/icons/web/"
 const HL_DIR := "res://assets/icons/hl/"
 
 
-## Icon texture by short name. R1's new icons live in `assets/icons/hl/` (spike, attrition, lethal,
-## aid, gift, mooncard, reroll, skip, undo); the old set stays in `assets/icons/web/`.
-static func icon(name: String) -> Texture2D:
+## Icon texture by short name. The HUD icons (spike, attrition, lethal, aid, boss-clock, pact) live in
+## `assets/icons/hl/` with `_32` / `_64` variants (art batch D, 5/11); the old set stays in `assets/icons/web/`.
+## "reroll" is the shared `ui_reroll` of the UI kit. `px` > 0 picks the variant for that box size; px > 64.5 uses the
+## master. The thresholds differ from UI3._icon_variant (no _16 / _128 here) on purpose.
+static func icon(name: String, px := 0.0) -> Texture2D:
+	if name == "reroll":
+		return UI3.icon("ui_reroll", px)
 	for dir in [HL_DIR, ICON_DIR]:
+		if px > 0.0 and px <= 64.5:
+			var v: String = "%s%s_%d.png" % [dir, name, 32 if px <= 32.5 else 64]
+			if ResourceLoader.exists(v):
+				return load(v)
 		for ext in [".svg", ".png"]:
 			var p: String = dir + name + ext
 			if ResourceLoader.exists(p):

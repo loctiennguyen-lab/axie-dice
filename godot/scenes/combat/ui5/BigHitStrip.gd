@@ -20,7 +20,7 @@ func _init() -> void:
 	row.name = "Row"
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(row)
-	_icon = HudKit.tex_rect(HudKit.icon("lethal"), UI3Theme.size_of("icon_m"))
+	_icon = HudKit.tex_rect(HudKit.icon("lethal", UI3Theme.size_of("icon_m")), UI3Theme.size_of("icon_m"))
 	_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(_icon)
 	text_label = UI3.label(TranslationServer.translate("Can knock out an Axie"))

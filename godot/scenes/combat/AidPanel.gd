@@ -79,7 +79,7 @@ func _build_button() -> void:
 	row.set_anchors_preset(Control.PRESET_FULL_RECT)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_button.add_child(row)
-	_aid_icon = Ui5HudStyle.icon_rect(HudKit.icon("aid"), UI3Theme.size_of("icon_l"))
+	_aid_icon = Ui5HudStyle.icon_rect(HudKit.icon("aid", UI3Theme.size_of("icon_l")), UI3Theme.size_of("icon_l"))
 	row.add_child(_aid_icon)
 	var t := UI3.label(TranslationServer.translate("Aid"), "LabelDisplay")
 	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
