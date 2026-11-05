@@ -7,7 +7,7 @@ extends RefCounted
 
 ## Bump when any skin art, the stage (light, camera, pose) or the bake changes: web packs report modified time 0,
 ## so this number (plus the skin's data entry) is what invalidates a stale cached thumbnail.
-const VERSION := 5   # 5 = art batch 3 skins (512 albedo + generated normals, 5/11); 4 = cosmetics round 4 plates
+const VERSION := 6   # 6 = art batch 3b (6 redrawn skins, 5/11); 5 = batch 3 skins; 4 = cosmetics round 4 plates
 const PX := 256
 
 static var _mem: Dictionary = {}   # id -> ImageTexture
