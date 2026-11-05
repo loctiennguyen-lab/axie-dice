@@ -39,6 +39,13 @@ func _ready() -> void:
 		MetaState.econ_remote().refresh(func(_r: Dictionary) -> void:
 			if is_inside_tree():
 				_refresh())
+	# Hotfix 5/11: "You hold" and the Gem gift state read the wallet, which the server can fill after this screen
+	# is built. Fetch it now and redraw.
+	var gw := MetaState.gem_wallet()
+	if gw.has_method("refresh"):
+		gw.call("refresh", func(_ok: bool) -> void:
+			if is_inside_tree():
+				_refresh())
 
 
 func derive_state() -> String:
