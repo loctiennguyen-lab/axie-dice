@@ -29,8 +29,9 @@ func setup(id: String) -> void:
 	pbx.set_border_width_all(3)   # html .a6: 3 px house edge
 	pbx.border_color = hcol
 	add_theme_stylebox_override("panel", pbx)
-	custom_minimum_size = Vector2(w, UI3Theme.size_of("anchor_card_h"))
-	size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	# p5-ui 5/11: height follows the content (no dead half-card); the row stretches all cards to the tallest one.
+	custom_minimum_size = Vector2(w, 0)
+	size_flags_vertical = Control.SIZE_FILL
 	focus_mode = Control.FOCUS_ALL
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	var inner := w - 2 * pad
@@ -241,10 +242,11 @@ static func _core_chip(core_id: String, house_col: Color) -> PanelContainer:
 
 
 func _apply_expanded() -> void:
+	# p5-ui 5/11: every card shows its Awakens block and House Cores (real data); selection is the ring + lift only.
 	for n in _full:
-		n.visible = selected
+		n.visible = true
 	if _short != null:
-		_short.visible = not selected
+		_short.visible = false
 
 
 func set_selected(on: bool) -> void:

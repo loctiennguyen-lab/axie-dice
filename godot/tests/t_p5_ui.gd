@@ -105,6 +105,7 @@ func _ready() -> void:
 	view.queue_free()
 	AnchorAdapter.test_state = {}
 	_room_icons()
+	await _anchor_cards()
 	await _result_check()
 	UI3Theme.set_scale_override(-1.0)
 	UI3Gacha.instant_override = -1
@@ -163,3 +164,32 @@ func _room_icons() -> void:
 		_ok(ri != null and String(ri.get_meta("kind", "")) == "pact" and ri.texture == UI6Assets.pact(pid), "room: a pact row uses the pact art")
 	for n in [core, relic]:
 		n.free()
+
+
+## Anchor pick: the cards follow their content. Dead space under the content < 15 % of the card at 1920 and 1280, nothing overflows.
+func _anchor_cards() -> void:
+	var ids := ["a_kin", "a_embers", "a_big_hand"]
+	for sc in [1.0, 2.0 / 3.0]:
+		UI3Theme.set_scale_override(sc)
+		AnchorAdapter.test_state = {"open": true, "offer": ids, "reasons": {}, "picked": []}
+		var host := Control.new()
+		host.set_anchors_preset(Control.PRESET_FULL_RECT)
+		host.theme = UI3Theme.get_theme()
+		add_child(host)
+		var v := AnchorPick.new()
+		host.add_child(v)
+		v.setup(ids, true)
+		await _frames(8)
+		var tallest := 0.0
+		for c in v.cards:
+			tallest = maxf(tallest, c.size.y)
+		for c in v.cards:
+			var need: float = (c.get_child(0) as Control).get_minimum_size().y + 2.0 * UI3Theme.space("20")
+			var gap: float = (c.size.y - need) / c.size.y
+			_ok(gap < 0.15, "anchor card %s @%.2f: dead space %.0f%% < 15%%" % [c.name, sc, gap * 100.0])
+			_ok(need <= c.size.y + 1.0, "anchor card @%.2f: content fits (%.0f of %.0f)" % [sc, need, c.size.y])
+		_ok(tallest <= UI3Theme.size_of("anchor_card_h") + 1.0, "anchor cards @%.2f: not above the token height" % sc)
+		host.queue_free()
+		await _frames(2)
+	AnchorAdapter.test_state = {}
+	UI3Theme.set_scale_override(2.0 / 3.0)

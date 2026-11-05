@@ -70,7 +70,7 @@ func setup(ids: Array, first_time := true) -> void:
 	_row.name = "CardRow"
 	_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	_row.add_theme_constant_override("separation", UI3Theme.space("32"))
-	_row.custom_minimum_size.y = UI3Theme.size_of("anchor_card_h")
+	_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN   # p5-ui: row height = tallest card content
 	_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_row.sort_children.connect(_lift_selected)
 	col.add_child(_row)

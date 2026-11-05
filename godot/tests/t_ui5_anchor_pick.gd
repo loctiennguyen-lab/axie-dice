@@ -49,9 +49,9 @@ func _case(ids: Array, reasons: Dictionary, sc: float, tag: String) -> void:
 	var bottom := v.take_button.get_global_rect().end.y
 	_check(bottom <= 1080.0 - 13.0, "%s: Take inside the frame (bottom %.1f > %.1f)" % [tag, bottom, 1080.0 - 13.0])
 	for c in v.cards:
-		_check(c.size.y <= UI3Theme.size_of("anchor_card_h") + 1.0, "%s: card not taller than anchor_card_h (%f)" % [tag, c.size.y])
+		_check(c.size.y <= UI3Theme.size_of("anchor_card_h") + 1.0, "%s: card not taller than anchor_card_h (%f)" % [tag, c.size.y])   # still the cap
 		_check(absf(c.size.x - UI3Theme.size_of("anchor_card_w")) < 1.0, "%s: card width %f" % [tag, c.size.x])
-		_check(c.size.y >= UI3Theme.size_of("anchor_card_h") - 1.0, "%s: card height %f" % [tag, c.size.y])
+		_check(c.size.y >= 200.0, "%s: card height %f (p5-ui: follows content, no fixed height)" % [tag, c.size.y])
 		var col := c.get_child(0) as Control
 		_check(col.get_minimum_size().y <= c.size.y + 1.0, "%s: card content fits (%f > %f)" % [tag, col.get_minimum_size().y, c.size.y])
 	var sel := 0
@@ -66,13 +66,12 @@ func _case(ids: Array, reasons: Dictionary, sc: float, tag: String) -> void:
 	bottom = v.take_button.get_global_rect().end.y
 	_check(bottom <= 1080.0 - 13.0, "%s: Take inside the frame after pick (%.1f)" % [tag, bottom])
 	_check((v.cards[sel] as Object).get("selected") == true, "%s: card marked selected" % tag)
-	# polish 3/11 #9: full Awakens + House Cores only on the selected card; the rest one line; glossary is a tooltip.
+	# p5-ui 5/11: every card shows Awakens + House Cores (no dead half-card); selection = ring + lift; glossary is a tooltip.
 	for k in v.cards.size():
 		var cc := v.cards[k] as Control
-		var full := (cc.find_child("AwakensBox", true, false) as Control).visible
-		_check(full == (k == sel), "%s: card %d expanded only when selected" % [tag, k])
-		_check((cc.find_child("CollapsedLine", true, false) as Control).visible == (k != sel), "%s: card %d collapsed line" % [tag, k])
-		_check((cc.find_child("HouseCores", true, false) as Control).visible == (k == sel), "%s: card %d house cores" % [tag, k])
+		_check((cc.find_child("AwakensBox", true, false) as Control).visible, "%s: card %d awakens block" % [tag, k])
+		_check(not (cc.find_child("CollapsedLine", true, false) as Control).visible, "%s: card %d no collapsed line" % [tag, k])
+		_check((cc.find_child("HouseCores", true, false) as Control).visible, "%s: card %d house cores" % [tag, k])
 		_check((cc.find_child("RuleBox", true, false) as Control).visible, "%s: card %d rule always shown" % [tag, k])
 	_check(v.find_child("Glossary", true, false) == null, "%s: no glossary footnote" % tag)
 	_check(UI3Tooltip.text_of(v.find_child("SubLine", true, false)).contains("SET ="), "%s: glossary tooltip" % tag)
