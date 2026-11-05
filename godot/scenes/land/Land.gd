@@ -145,7 +145,7 @@ var _live: Array[Dictionary] = []   # buildings built at this tier
 var _plots: Array[Dictionary] = []  # plots still empty at this tier
 var _hud_tl: VBoxContainer
 var _wallet: PanelContainer
-var _gem_shown := -1      # amount the CurrencyPlate last showed for Gem (-1 = not synced yet)
+var _plate_shown := ""    # "shard|stone|gem" the CurrencyPlate last showed ("" = not synced yet)
 var _gem_poll := 0.0
 var _hud_bl: PanelContainer
 var _hud_br: HBoxContainer
@@ -1015,22 +1015,23 @@ func _on_other_lane(a: Vector3, b: Vector3) -> bool:
 
 ## Hotfix 5/11: the server Gem wallet answers after the HUD is built (web sign-in), and nothing redrew the plate,
 ## so Land showed Gem 0 while /api/wallet said 900. Twice a second the plate follows the wallet's cached balance;
-## this also covers a wallet swapped in after the HUD (sign-in) and a spend elsewhere.
+## this also covers a wallet swapped in after the HUD (sign-in), a spend elsewhere, and Shard / Stone moving.
 func _sync_gem_plate() -> void:
 	if _wallet == null or not is_instance_valid(_wallet) or _loading or _guest:
 		return
-	var g := MetaState.gem_wallet().balance()
-	if g == _gem_shown:
+	var vals := {"ShardValue": MetaState.shard_pool, "StoneValue": MetaState.stone, "GemValue": MetaState.gem_wallet().balance()}
+	var key := "%d|%d|%d" % [vals["ShardValue"], vals["StoneValue"], vals["GemValue"]]
+	if key == _plate_shown:
 		return
-	_gem_shown = g
+	_plate_shown = key
 	# LandHud renames the cells (frame 01-land: ShardValue / StoneValue / GemValue), so Ui5CurrencyPlate.set_values,
 	# which looks for Currency*, cannot be used here.
-	var vals := {"ShardValue": MetaState.shard_pool, "StoneValue": MetaState.stone, "GemValue": g}
 	for cell_name in vals:
 		var cell := _wallet.find_child(cell_name, true, false)
 		var v := cell.get_node_or_null("Value") as Label if cell != null else null
 		if v != null:
 			v.text = UI3.fmt(int(vals[cell_name]))
+	_layout()   # the plate is right-anchored from its width: "0" -> "1,200" grows it
 
 
 func _process(delta: float) -> void:

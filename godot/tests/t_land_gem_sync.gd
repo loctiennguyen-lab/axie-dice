@@ -40,6 +40,8 @@ func _ready() -> void:
 	var real: GemWallet = MetaState.gem_wallet()
 	var w := FakeWallet.new()
 	MetaState.set_gem_wallet(w)
+	var prev_qa: Dictionary = LandHub.qa
+	var prev_tier: int = LandHub.tier_override
 	LandHub.qa = {"guest": false, "newcomer": false, "first_launch": false}
 	LandHub.tier_override = 1
 	var h := (load("res://scenes/land/Land.tscn") as PackedScene).instantiate() as LandHub
@@ -56,11 +58,19 @@ func _ready() -> void:
 	h.set("_gem_poll", 0.0)
 	await _wait()
 	_ok(_gem_text(h) == UI3.fmt(1200), "Gem follows a wallet swapped in after the HUD: %s" % _gem_text(h))
+	# The plate is right-anchored from its width; a longer number must not push it past the 24 px margin.
+	w2.b = 1234567
+	h.set("_gem_poll", 0.0)
+	await _wait()
+	var plate := h.get("_wallet") as Control
+	var ui := h.get("_ui") as Control
+	var right := plate.position.x + plate.get_combined_minimum_size().x * plate.scale.x
+	_ok(absf(right - (ui.size.x - 24.0)) <= 1.0, "CurrencyPlate stays on the right margin after the number grows (right %.1f, want %.1f)" % [right, ui.size.x - 24.0])
 	h.queue_free()
 	await _wait(1)
 	MetaState.set_gem_wallet(real)
-	LandHub.qa = {}
-	LandHub.tier_override = 0
+	LandHub.qa = prev_qa
+	LandHub.tier_override = prev_tier
 	_guard.restore()
 	if _fails.is_empty():
 		print("t_land_gem_sync: PASS — %d checks OK" % _checks)
