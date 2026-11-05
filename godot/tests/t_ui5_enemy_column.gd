@@ -289,6 +289,13 @@ func _test_scene_names() -> void:
 	var card := AttritionCard.new()
 	host.add_child(card)
 	_ok(card.name == "AttritionCard" and card.find_child("AttritionLabel", true, false) != null, "AttritionCard + AttritionLabel")
+	# Art 34D (Liam 5/11): the grey glyph sits on a cream disc with a warm ring, so it reads on the wood plate.
+	var disc := card.find_child("WarmDisc", true, false) as Panel
+	var ds := disc.get_theme_stylebox("panel") as StyleBoxFlat if disc != null else null
+	_ok(disc != null and disc.show_behind_parent and ds != null and ds.bg_color == UI3Theme.color("text")
+		and ds.border_width_left > 0, "AttritionCard icon has the cream WarmDisc with a ring")
+	card.apply({"start_turn": 6, "pct": 25}, 12, false)
+	_ok(ds != null and ds.border_color == UI3Theme.color("attrition_max"), "WarmDisc ring turns attrition_max at max")
 	host.queue_free()
 	await _frames(1)
 

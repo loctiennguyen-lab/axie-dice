@@ -15,6 +15,7 @@ var label: Label        ## AttritionLabel
 var pips: HBoxContainer
 var _icon: TextureRect
 var _style: StyleBoxFlat
+var _disc_style: StyleBoxFlat
 var _dashed := false
 var _edge := Color.TRANSPARENT
 var state := &"upcoming"   ## upcoming | active | max (tests, QA)
@@ -34,6 +35,7 @@ func _init() -> void:
 	_icon = HudKit.tex_rect(HudKit.icon("attrition", UI3Theme.size_of("icon_m")), UI3Theme.size_of("icon_m"))
 	_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(_icon)
+	_add_warm_disc()
 	label = UI3.label("", "LabelDisplay")
 	label.name = "AttritionLabel"
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -64,6 +66,24 @@ func apply_sizes() -> void:
 	label.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 
 
+## Art batch 34D (Liam 5/11): the grey stone glyph sank into the wood plate, so it sits on a cream disc with a warm
+## attrition-coloured ring (attrition_max once maxed). Drawn behind the icon, 12 % bigger on every side.
+func _add_warm_disc() -> void:
+	var d := Panel.new()
+	d.name = "WarmDisc"
+	d.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	d.show_behind_parent = true
+	_disc_style = UI3Theme.flat(UI3Theme.color("text"), 999, UI3Theme.stroke("hairline"), UI3Theme.color("attrition"))
+	d.add_theme_stylebox_override("panel", _disc_style)
+	d.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var pad := maxf(2.0, UI3Theme.size_of("icon_m") * 0.12)
+	d.offset_left = -pad
+	d.offset_top = -pad
+	d.offset_right = pad
+	d.offset_bottom = pad
+	_icon.add_child(d)
+
+
 ## state = hud_state().attrition ({start_turn, pct}); hidden for newcomers and until a few turns before it starts.
 func apply(st: Dictionary, turn: int, newcomer: bool) -> void:
 	visible = (not newcomer) and CombatLabels.attrition_visible(st, turn)
@@ -85,6 +105,7 @@ func apply(st: Dictionary, turn: int, newcomer: bool) -> void:
 	label.add_theme_color_override("font_color", ink)
 	_dashed = not running
 	_edge = UI3Theme.color("attrition_max" if maxed else "plate_rim")
+	_disc_style.border_color = ink
 	var w := UI3Theme.stroke("rim")
 	_style.set_border_width_all(0 if _dashed else w)
 	_style.border_color = _edge
