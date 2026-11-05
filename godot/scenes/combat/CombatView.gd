@@ -733,7 +733,7 @@ func _style_utility_button(btn: Button) -> void:
 	btn.focus_mode = Control.FOCUS_NONE
 	# Baloo 13/800 at the mockup's `letter-spacing:.05em` — one call sets face, size and tracking.
 	btn.add_theme_font_override("font", UI3Theme.font_display())
-	btn.add_theme_font_size_override("font_size", 13)
+	btn.add_theme_font_size_override("font_size", UI3Theme.size_of("text_key_hint"))
 	btn.add_theme_stylebox_override("normal", _utility_chip_style(UI3Theme.color("panel_raised")))
 	btn.add_theme_stylebox_override("focus", _utility_chip_style(UI3Theme.color("panel_raised")))
 	btn.add_theme_stylebox_override("hover", _utility_chip_style(UI3Theme.color("accent")))
@@ -1006,14 +1006,14 @@ func _build_quit_confirm() -> Control:
 
 	var title := Label.new()
 	title.text = "Leave this fight?"
-	title.add_theme_font_size_override("font_size", 20)
+	title.add_theme_font_size_override("font_size", UI3Theme.size_of("text_title"))
 	title.add_theme_color_override("font_color", UI3Theme.color("text"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(title)
 
 	var body := Label.new()
 	body.text = "Your run is saved. CONTINUE RUN on the main menu drops you back into this\nfight, on this turn."
-	body.add_theme_font_size_override("font_size", 14)
+	body.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 	body.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
 	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(body)
@@ -1612,7 +1612,7 @@ func _style_turn_banner() -> void:
 		plate.add_theme_stylebox_override("panel", sb)
 		plate.custom_minimum_size = Vector2(600, 0)
 	_banner_eyebrow.add_theme_font_override("font", UI3Theme.font_body())
-	_banner_eyebrow.add_theme_font_size_override("font_size", 15)
+	_banner_eyebrow.add_theme_font_size_override("font_size", UI3Theme.size_of("text_key_hint"))
 	_banner_eyebrow.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
 	_banner_phase.add_theme_font_override("font", UI3Theme.font_display())
 	_banner_phase.add_theme_font_size_override("font_size", 40)
