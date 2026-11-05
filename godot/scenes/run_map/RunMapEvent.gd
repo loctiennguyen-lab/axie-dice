@@ -79,10 +79,10 @@ func _build_event_screen(picked: int, outcome: String) -> void:
 	hc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	hc.add_theme_constant_override("separation", UI3Theme.space("4") / 2)
 	head.add_child(hc)
-	var title := _PanelParts.on_view(UI3.label(_sentence(String(ev.get("n", tr("Event")))), "LabelScreenTitle"))
+	var title := _PanelParts.on_view(UI3.label(_sentence(core_words(String(ev.get("n", tr("Event"))))), "LabelScreenTitle"))
 	title.name = "EventTitle"
 	hc.add_child(title)
-	var erow := _PanelParts.on_view(UI3.label(tr("Event · Row %d") % maxi(ctrl._current_row(), 0)))
+	var erow := _PanelParts.on_view(UI3.label(event_subtitle(ctrl._current_row())))
 	erow.name = "EventRow"
 	hc.add_child(erow)
 
@@ -92,13 +92,13 @@ func _build_event_screen(picked: int, outcome: String) -> void:
 		var oc := _PanelParts.panel(box, "OutcomeText")
 		oc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		col.add_child(oc)
-		var ol := UI3.label(outcome, "LabelTitle")
+		var ol := UI3.label(core_words(outcome), "LabelTitle")
 		ol.name = "Text"
 		ol.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		ol.custom_minimum_size.x = _wrap_w(40)
 		oc.add_child(ol)
 	else:
-		var body := _PanelParts.on_view(UI3.label(String(ev.get("desc", ""))))
+		var body := _PanelParts.on_view(UI3.label(core_words(String(ev.get("desc", "")))))
 		body.name = "EventBody"
 		body.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -133,6 +133,25 @@ func _build_event_screen(picked: int, outcome: String) -> void:
 
 
 ## Screen titles elsewhere are sentence case ("Choose a run rule"); the event name arrives in Title Case.
+## Second head line: "Event", plus the map row once the run is past the start (a row 0 / -1 reads as a bug).
+static func event_subtitle(row: int) -> String:
+	return String(TranslationServer.translate("Event · Row %d")) % row if row >= 1 else String(TranslationServer.translate("Event"))
+
+
+## The player calls a relic a Core (Liam 29/10). Event data and outcomes still say "relic": swap the word, keep case.
+static var _re_upper: RegEx
+static var _re_mixed: RegEx
+
+
+static func core_words(s: String) -> String:
+	if _re_upper == null:
+		_re_upper = RegEx.create_from_string("\\bRELIC(S?)\\b")
+		_re_mixed = RegEx.create_from_string("\\b[Rr]elic(s?)\\b")
+	var res := _re_upper.sub(s, "CORE$1", true)
+	res = _re_mixed.sub(res, "Core$1", true)
+	return res
+
+
 static func _sentence(t: String) -> String:
 	return t if t.length() < 2 else t.substr(0, 1).to_upper() + t.substr(1).to_lower()
 
@@ -185,10 +204,10 @@ func _add_event_option(raw: Dictionary, index: int, picked: int) -> Control:
 	tc.add_theme_constant_override("separation", UI3Theme.space("4"))
 	tc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line.add_child(tc)
-	var tl := UI3.label(String(raw.get("text", "")), "LabelTitle")
+	var tl := UI3.label(core_words(String(raw.get("text", ""))), "LabelTitle")
 	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tc.add_child(tl)
-	var d := UI3.label(String(raw.get("desc", "")))
+	var d := UI3.label(core_words(String(raw.get("desc", ""))))
 	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	d.custom_minimum_size.x = _wrap_w(40 + 2 * 16 + UI3Theme.size_of("choice_icon"))   # a wrap width from the first layout pass (else the min height spikes)
 	d.mouse_filter = Control.MOUSE_FILTER_IGNORE

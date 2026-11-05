@@ -811,8 +811,14 @@ func _on_menu_pressed() -> void:
 
 ## UI-05 b23 lane M3: `run-end-win` / `run-end-lose` from motion_ui3.json. Input is never locked (the Back-unlock row is data).
 ## Not in instant / headless runs. The XP fill has no node here. The scrim is MOUSE_FILTER_IGNORE and skip is not wired: Space stays "Back to Land" and input is never locked.
+## Test seam: true lets the end timeline (and the payout hide-until-counted rule) run in headless / instant runs.
+static var force_end_moment_for_tests := false
+## The end-of-run timeline of the last `_play_end_moment` (tests await its `finished`).
+var end_timeline: UI3Motion.Timeline
+
+
 func _play_end_moment() -> void:
-	if UI3Gacha.is_instant() or DisplayServer.get_name() == "headless" or _plate == null:
+	if (not force_end_moment_for_tests and (UI3Gacha.is_instant() or DisplayServer.get_name() == "headless")) or _plate == null:
 		return
 	# Hidden before the wait so the plate never shows one full frame, then the timeline fades it in.
 	var scrim0 := find_child("Scrim", false, false) as Control
@@ -843,4 +849,13 @@ func _play_end_moment() -> void:
 	if amt != null:
 		tg["shards"] = amt
 		counts["shards_count"] = [0, int(_snap.get("shards_this_run", 0))]
-	UI3Motion.play_timeline("run-end-win" if won else "run-end-lose", tg, {"host": self, "counts": counts})
+	# p5-ui: while "+N" counts up from +0 the "N run payout" line beside it read as a mismatch ("+0" vs "87"): it shows
+	# when the count has landed (and never on a Skip that has not finished).
+	var bd := find_child("ShardBreakdown", true, false) as Control
+	var tl := UI3Motion.play_timeline("run-end-win" if won else "run-end-lose", tg, {"host": self, "counts": counts})
+	end_timeline = tl
+	if bd != null and tl != null and not tl.done:
+		bd.modulate.a = 0.0
+		tl.finished.connect(func() -> void:
+			if is_instance_valid(bd):
+				bd.modulate.a = 1.0)
