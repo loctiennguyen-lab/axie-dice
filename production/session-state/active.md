@@ -1,5 +1,15 @@
-## ⇢ BẮT ĐẦU TỪ ĐÂY (6/11)
-- Live: **3f5f080**. Web pck 192333d6, desktop b2477, Worker bd77027e. Ghi chú: `production/release/deploy-2026-11-06-gem-stale.md` (Store / Daily / ví Gem). GitHub `axiedice/main` đã push.
+## ⇢ BẮT ĐẦU TỪ ĐÂY (6/11 tối) — phiên mới chỉ đọc mục này
+- Live **658afc3**: web pck 02fe988a, desktop b2484, Worker bd77027e, RULES_VERSION -w. GitHub `axiedice/main` = godot-port.
+- Ghi chú deploy gần nhất: `production/release/deploy-2026-11-06-icons.md` (trước đó: `-gem-stale`, `-05-art34d`).
+- Sàn test 350/350 (`AXIE_HANG_KILL=2400 godot/tools/run_tests.sh`), Worker 398/398.
+- Quy tắc làm việc (Liam 6/11): mỗi phiên một việc; phiên dài thì ghi bàn giao vào đây rồi mở phiên mới; file lớn xử lý bằng script; ít ảnh chụp.
+- Việc còn lại, mỗi việc một phiên:
+  1. Thẻ Anchor chưa chọn: hiện đầy đủ (hiện tại) hay thu gọn lại như polish #9. Chờ Liam quyết.
+  2. Kin (trứng hơi to), Lone Wolf (cột cờ mảnh): chỉnh nhẹ hay để nguyên. Chờ Liam.
+  3. SQL đếm lại verify cũ, cần Liam duyệt: `UPDATE verify_results SET verdict='skipped' WHERE reason='not_ranked' AND kind='normal'`.
+  4. Xoá worktree đã gộp: `../my-game-wt/art34d`, `p5-ui`, `p5-rules`, `p5-qa`.
+  5. Boss-clock vẫn kim mảnh; nếu Liam thấy khó nhìn thì gửi Claude Design vẽ lại.
+  6. QA kỹ trên bản live trước playtest.
 
 ## (5/11 khuya, sau deploy)
 - Live lúc đó: 08fedec. Web pck d3a7cfbb, desktop b2472, Worker bd77027e. Ghi chú: `production/release/deploy-2026-11-05-art34d.md`.
