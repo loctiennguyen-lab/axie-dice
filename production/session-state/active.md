@@ -1,4 +1,20 @@
-## ⇢ BẮT ĐẦU TỪ ĐÂY (6/11 tối) — phiên mới chỉ đọc mục này
+## ⇢ BẮT ĐẦU TỪ ĐÂY (6/11 khuya) — playtest nội bộ mở sáng 7/11; phiên mới chỉ đọc mục này
+- Live: game **658afc3** (web pck 02fe988a, desktop b2484), RULES_VERSION -w. **Worker dbe22412** (6/11 khuya: trang /download sang tiếng Anh, ghi chú `production/release/deploy-2026-11-06-download-en.md`; 2 file worker chưa commit). Sàn test 350/350, Worker 398/398.
+- Link cho người test: desktop https://axiedice.fun/download (tiếng Anh, zip mac + win trả 200, đúng dung lượng, có sha256 + cách mở app chưa ký), web https://axiedice.fun.
+- Tài liệu gửi người test: `production/release/playtest-0711-tester-guide.md` (song ngữ, producer review APPROVE WITH CHANGES, đã sửa theo). Link Google Sheet đã điền (Liam gửi 6/11). **Còn 2 chỗ Liam điền: người/kênh liên hệ khi kẹt, ngày kết thúc playtest.** Chưa rõ tài khoản Google Workspace công ty đăng nhập được không.
+- **ĐIỀU KIỆN GO, trước khi gửi lời mời:** Liam tự chạy một run có đăng nhập Google trên desktop b2484 (và web nếu kịp), chơi tới màn Result. Driver QA chạy bằng khách nên không đi qua Worker. Đường đăng nhập → run server → Result → cloud save chưa ai kiểm trên live.
+- QA bản live 6/11: `production/qa/playtest-0711-readiness.md` → **GO có điều kiện** (điều kiện trên), không S1.
+  - S2: web nặng (pck 374 MB, wasm 39 MB), lần đầu ~80 s tới 5 phút, không có thanh tiến độ. Tài liệu đã khuyên dùng desktop.
+  - S3: lý do tắt của 4 nút công cụ (polish #5), nhãn PSN lệch lên mép trên lượt quái (#17), ảnh Result chỉ thấy nền (#3, có thể do lúc chụp), `Rect2 size is negative` 5 lần/run.
+  - Chưa kiểm: đăng nhập Google thật + run online, desktop trên Win/mac sạch, web trên trình duyệt thật.
+- Đọc số liệu playtest: `cd worker && npx wrangler d1 execute axie-dice-db --remote --command "$(grep -v '^\s*--' sql/l1_report.sql)" --json` (dùng `--command` mới thấy từng bảng; `--file` chỉ in tổng). 6/11 mới có 11 run, đều của mình.
+- Liam quyết 6/11: báo lỗi qua Google Sheet; giữ nguyên data/leaderboard; thẻ Anchor để như hiện tại; Kin / Lone Wolf / boss-clock để nguyên.
+- Đã xoá worktree `art34d`, `p5-ui`, `p5-rules`, `p5-qa` (nhánh còn giữ; 14 file chưa track đã chép về cây chính).
+- SQL verify: ĐÃ CHẠY 6/11 (Liam OK): `UPDATE verify_results SET verdict='skipped' WHERE reason='not_ranked' AND kind='normal'`, changes 1. Giờ bảng còn 1 dòng normal/not_ranked/skipped.
+- Việc sau playtest: web nhẹ hơn hoặc thêm thanh tiến độ khi tải; sửa chữ GUEST_LINE ở `LoginScreen.gd:20` (ghi khách chơi được run thường, sai); đọc sheet + số D1 mỗi ngày; nhóm A/B polish-0311 còn mở (#3, #5, #17).
+- 2 file lạ chưa track trong `godot/`: `tests/tmp_login_probe.gd.uid`, `unreach_homeland.txt` (không rõ ai tạo, chưa xoá).
+
+## (6/11 tối)
 - Live **658afc3**: web pck 02fe988a, desktop b2484, Worker bd77027e, RULES_VERSION -w. GitHub `axiedice/main` = godot-port.
 - Ghi chú deploy gần nhất: `production/release/deploy-2026-11-06-icons.md` (trước đó: `-gem-stale`, `-05-art34d`).
 - Sàn test 350/350 (`AXIE_HANG_KILL=2400 godot/tools/run_tests.sh`), Worker 398/398.
