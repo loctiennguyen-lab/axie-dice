@@ -8,13 +8,22 @@ const ICON_DIR := "res://assets/icons/web/"
 const HL_DIR := "res://assets/icons/hl/"
 
 
-## Icon texture by short name. The HUD icons (spike, attrition, lethal, aid, boss-clock, pact) live in
+## Icon texture by short name. The HUD icons (spike, attrition, lethal, aid, boss-clock) live in
 ## `assets/icons/hl/` with `_32` / `_64` variants (art batch D, 5/11); the old set stays in `assets/icons/web/`.
-## "reroll" is the shared `ui_reroll` of the UI kit. `px` > 0 picks the variant for that box size; px > 64.5 uses the
-## master. The thresholds differ from UI3._icon_variant (no _16 / _128 here) on purpose.
+## "reroll" is the shared `ui_reroll` of the UI kit, "pact" the Boss Pact moon card `ui_mooncard` (Liam 6/11: the
+## drawn pact read as a document). `px` > 0 picks the variant for that box size; px > 64.5 uses the master. The
+## thresholds differ from UI3._icon_variant (no _16 / _128 here) on purpose.
 static func icon(name: String, px := 0.0) -> Texture2D:
 	if name == "reroll":
 		return UI3.icon("ui_reroll", px)
+	if name == "pact":
+		return UI3.icon("ui_mooncard", px)
+	if name == "boss-clock":
+		return _on_dark_disc(name, px)
+	return _hl_or_web(name, px)
+
+
+static func _hl_or_web(name: String, px: float) -> Texture2D:
 	for dir in [HL_DIR, ICON_DIR]:
 		if px > 0.0 and px <= 64.5:
 			var v: String = "%s%s_%d.png" % [dir, name, 32 if px <= 32.5 else 64]
@@ -25,6 +34,50 @@ static func icon(name: String, px := 0.0) -> Texture2D:
 			if ResourceLoader.exists(p):
 				return load(p)
 	return null
+
+
+static var _disc_cache: Dictionary = {}
+
+
+## Liam 6/11: the pale boss-clock face sank into the cream HUD text and the wood plates at 32 px. The icon is drawn
+## onto a dark plate_ink disc with a plate_rim ring (antialiased), inset 12 %, once per variant, then cached.
+static func _on_dark_disc(name: String, px: float) -> Texture2D:
+	var src := _hl_or_web(name, px)
+	if src == null:
+		return null
+	var key := src.resource_path
+	if _disc_cache.has(key):
+		return _disc_cache[key]
+	var ic := src.get_image()
+	if ic == null:
+		push_warning("HudKit: no image for %s, showing it without the dark disc" % key)
+		return src
+	if ic.is_compressed():
+		ic.decompress()
+	ic.convert(Image.FORMAT_RGBA8)
+	var n := maxi(ic.get_width(), ic.get_height())
+	var out := Image.create(n, n, false, Image.FORMAT_RGBA8)
+	var fill: Color = UI3Theme.color("plate_ink")
+	var ring: Color = UI3Theme.color("plate_rim")
+	var c := (n - 1) * 0.5
+	var r := n * 0.5 - 0.5
+	var rw := maxf(1.5, n / 32.0)   # ring width: 1 px at 32, 4 px at 128
+	for y in n:
+		for x in n:
+			var d := Vector2(x - c, y - c).length()
+			var a := clampf(r - d + 0.5, 0.0, 1.0)   # 1 px antialiased edge
+			if a <= 0.0:
+				continue
+			var col := ring if d > r - rw else fill
+			col.a = a
+			out.set_pixel(x, y, col)
+	var inner := int(round(n * 0.76))
+	ic.resize(inner, inner, Image.INTERPOLATE_LANCZOS)
+	var off := (n - inner) / 2
+	out.blend_rect(ic, Rect2i(0, 0, inner, inner), Vector2i(off, off))
+	var t := ImageTexture.create_from_image(out)
+	_disc_cache[key] = t
+	return t
 
 
 ## A glyph the display font actually has, else its ASCII fallback (U+2713 and the music note were
