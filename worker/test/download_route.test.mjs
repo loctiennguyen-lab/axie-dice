@@ -99,10 +99,11 @@ test('GET /download renders the page with both links, size and sha256', async ()
 
 test('page explains macOS 15 Open Anyway and the xattr fallback, and Windows More info', async () => {
   const html = await text(await get('/download', { GAME: fakeR2(bucket()) }));
-  assert.match(html, /Vẫn mở/);
+  assert.match(html, /Open Anyway/);
+  assert.match(html, /<html lang="en">/);
   assert.match(html, /xattr -dr com\.apple\.quarantine \/Applications\/AxieDice\.app/);
-  assert.match(html, /Thêm thông tin/);
-  assert.match(html, /Vẫn chạy/);
+  assert.match(html, /More info/);
+  assert.match(html, /Run anyway/);
 });
 
 test('non-ASCII file name -> 404 (not a 500 from Headers)', async () => {

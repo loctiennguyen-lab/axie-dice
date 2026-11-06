@@ -1,5 +1,5 @@
 // Desktop download page and file stream. Testers land on https://axiedice.fun/download (a fixed
-// link that the game's "có bản mới" screen also points at), read the newest build from the manifest
+// link that the game's "new version" screen also points at), read the newest build from the manifest
 // in R2, and download through the Worker so the bucket key never has to be public.
 //
 //   GET /download               HTML page built from downloads/latest.json
@@ -73,16 +73,16 @@ function pageHtml(m) {
     const e = m.platforms[p];
     return `<section class="card">
   <h2>${LABEL[p]}</h2>
-  <p><a class="btn" href="/download/${encodeURIComponent(e.file)}" download>Tải ${LABEL[p]} (${mb(e.size)})</a></p>
+  <p><a class="btn" href="/download/${encodeURIComponent(e.file)}" download>Download for ${LABEL[p]} (${mb(e.size)})</a></p>
   <p class="small">File: <code>${esc(e.file)}</code><br>SHA-256: <code>${esc(e.sha256)}</code></p>
 </section>`;
   }).join('\n');
   return `<!doctype html>
-<html lang="vi">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tải Axie Dice (desktop)</title>
+<title>Download Axie Dice (desktop)</title>
 <style>
 :root { color-scheme: dark; }
 body { margin: 0; background: #16220f; color: #FFEBD2; font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', sans-serif; }
@@ -99,16 +99,16 @@ ul { padding-left: 20px; }
 </head>
 <body>
 <main>
-<h1>Axie Dice, bản desktop</h1>
-<p class="meta">Phiên bản ${esc(m.version)} · build ${esc(m.build ?? '?')} · luật ${esc(m.rules_version)}${m.published_at ? ` · ${esc(m.published_at)}` : ''}</p>
+<h1>Axie Dice for desktop</h1>
+<p class="meta">Version ${esc(m.version)} · build ${esc(m.build ?? '?')} · rules ${esc(m.rules_version)}${m.published_at ? ` · ${esc(m.published_at)}` : ''}</p>
 ${cards}
-<h2>Trước khi mở</h2>
+<h2>Before you open it</h2>
 <ul>
-  <li>Bản này chưa ký số. macOS 15 trở lên: chuột phải chọn Mở không còn đủ. Vào Cài đặt hệ thống > Quyền riêng tư và bảo mật, kéo xuống mục về AxieDice và bấm "Vẫn mở" (Open Anyway), nhập mật khẩu máy.</li>
-  <li>macOS máy cũ (14 trở xuống): chuột phải vào app, chọn Mở. Nếu app báo "bị hỏng" thì chạy trong Terminal: <code>xattr -dr com.apple.quarantine /Applications/AxieDice.app</code></li>
-  <li>Windows: SmartScreen hiện "Windows đã bảo vệ máy tính PC", bấm "Thêm thông tin" (More info), rồi "Vẫn chạy" (Run anyway).</li>
-  <li>Nên so sha256 của file vừa tải với dòng SHA-256 trên trang này.</li>
-  <li>Bản cũ sẽ báo "có bản mới" khi vào trận. Tải lại từ trang này là đủ.</li>
+  <li>This build is not signed. On macOS 15 or later, right-click → Open is no longer enough. Open System Settings → Privacy &amp; Security, scroll down to the message about AxieDice, click "Open Anyway" and enter your password.</li>
+  <li>macOS 14 or older: right-click the app and choose Open. If macOS says the app "is damaged", run this in Terminal: <code>xattr -dr com.apple.quarantine /Applications/AxieDice.app</code></li>
+  <li>Windows: when SmartScreen shows "Windows protected your PC", click "More info", then "Run anyway".</li>
+  <li>Check the file's SHA-256 against the one on this page.</li>
+  <li>Older builds show an update notice when you start a run. Just download again from this page.</li>
 </ul>
 </main>
 </body>
@@ -127,9 +127,9 @@ export async function handleDownload(request, env, url) {
   const isPage = url.pathname === '/download' || url.pathname === '/download/';
   if (isPage) {
     const r = await loadDownloadManifest(env);
-    if (r.missing) return TEXT(503, 'Chưa có bản desktop nào được đăng.');
+    if (r.missing) return TEXT(503, 'No desktop build has been published yet.');
     // The reason stays in the log; the public answer is the same for any manifest fault.
-    if (r.error) { console.error('downloads manifest invalid:', r.error); return TEXT(503, 'Trang tải tạm thời chưa sẵn sàng. Thử lại sau.'); }
+    if (r.error) { console.error('downloads manifest invalid:', r.error); return TEXT(503, 'The download page is not available right now. Please try again later.'); }
     return new Response(request.method === 'HEAD' ? null : pageHtml(r.manifest), { status: 200, headers: HTML_HEADERS });
   }
 
