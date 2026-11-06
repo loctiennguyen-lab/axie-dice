@@ -50,6 +50,7 @@ static func _on_dark_disc(name: String, px: float) -> Texture2D:
 		return _disc_cache[key]
 	var ic := src.get_image()
 	if ic == null:
+		push_warning("HudKit: no image for %s, showing it without the dark disc" % key)
 		return src
 	if ic.is_compressed():
 		ic.decompress()

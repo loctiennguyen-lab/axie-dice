@@ -38,8 +38,11 @@ func _ready() -> void:
 			_assert(im.get_pixel(0, 0).a < 0.05, "boss-clock @%d corner stays transparent" % int(px))
 			var top := im.get_pixel(w / 2, int(w * 0.06))
 			_assert(top.a > 0.9 and top.get_luminance() < 0.5, "boss-clock @%d has a dark disc at the top edge (%s)" % [int(px), top])
+			var face := im.get_pixel(int(w * 0.3), int(w * 0.5))   # clock face, left of centre (the hand sits right of it)
+			_assert(face.get_luminance() > top.get_luminance() + 0.25, "boss-clock @%d: the clock is drawn on the disc (%s)" % [int(px), face])
 			_assert(HudKit.icon("boss-clock", px) == bc, "boss-clock @%d is cached" % int(px))
 	_assert(HudKit.icon("boss-clock", 28.0).get_width() == 32, "boss-clock at 28 px builds from the _32 file")
+	_assert(HudKit.icon("boss-clock", 64.0).get_width() == 64, "boss-clock at 64 px builds from the _64 file")
 	for c in CUR:
 		_assert(UI3.icon(c) != null, "%s master loads" % c)
 		for s in CUR[c]:
