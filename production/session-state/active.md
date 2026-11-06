@@ -1,12 +1,13 @@
-## ⇢ BẮT ĐẦU TỪ ĐÂY (5/11 khuya, sau deploy)
-- Live: **08fedec**. Web pck d3a7cfbb, desktop b2472, Worker bd77027e. Ghi chú: `production/release/deploy-2026-11-05-art34d.md`.
+## ⇢ BẮT ĐẦU TỪ ĐÂY (6/11)
+- Live: **3f5f080**. Web pck 192333d6, desktop b2477, Worker bd77027e. Ghi chú: `production/release/deploy-2026-11-06-gem-stale.md` (Store / Daily / ví Gem). GitHub `axiedice/main` đã push.
+
+## (5/11 khuya, sau deploy)
+- Live lúc đó: 08fedec. Web pck d3a7cfbb, desktop b2472, Worker bd77027e. Ghi chú: `production/release/deploy-2026-11-05-art34d.md`.
 - Có sửa thêm lỗi Gem hiện 0 trên Land (`t_land_gem_sync`, sàn 349).
 - Việc tiếp:
-  - Store, Daily và `UI3.gd:322` đọc Gem cùng kiểu cũ, có thể hiện 0;
   - 3 icon lệch nghĩa (spike giống búa, pact giống tài liệu, boss-clock nhạt ở 32 px);
   - các câu chờ Liam bên dưới (Anchor thu gọn, Kin / Lone Wolf, SQL verify);
   - xoá worktree `art34d`, `p5-*`.
-- GitHub `axiedice/main` vẫn d406c2e: Liam chưa push được.
 
 ## (cũ hơn) 5/11 khuya: art 34D + 3b đã merge vào godot-port (50af30a)
 - Live: fccbd25 (web pck f3d94579, desktop b2457, Worker bd77027e), ghi chú `production/release/deploy-2026-11-05-p5.md`.
