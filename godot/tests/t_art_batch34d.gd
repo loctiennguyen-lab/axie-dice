@@ -1,11 +1,14 @@
 extends Node
-## Art batch 3 + 4 + D (5/11). Checks: the 9 removed hl icons (8 unused names + reroll) are gone from disk and no .gd /
-## .tscn / .tres / .json under res:// refers to them; HudKit picks the _32 / _64 variants and maps "reroll" to ui_reroll;
+## Art batch 3 + 4 + D (5/11). Checks: the 10 removed hl icons (8 unused names + reroll + pact) are gone from disk and
+## no .gd / .tscn / .tres / .json under res:// refers to them; HudKit picks the _32 / _64 variants, maps "reroll" to
+## ui_reroll and "pact" to ui_mooncard, and draws boss-clock on a dark disc (6/11);
 ## every cur_* has its sizes; every dice skin has a 512 albedo and a 512 normal; the 27 frame bases are 256 with a clear
 ## window (r 76 of 256).
 
-const HL_GONE := ["gem", "gift", "skip", "mooncard", "undo", "lock", "drawback", "eternal", "reroll"]
-const HL_KEPT := ["aid", "attrition", "boss-clock", "lethal", "pact", "spike"]
+const HL_GONE := ["gem", "gift", "skip", "mooncard", "undo", "lock", "drawback", "eternal", "reroll", "pact"]
+## Removed from hl/ but still asked for by name: HudKit maps them (reroll -> ui_reroll, pact -> ui_mooncard, Liam 6/11).
+const HL_MAPPED := ["reroll", "pact"]
+const HL_KEPT := ["aid", "attrition", "lethal", "spike"]
 const CUR := {"cur_fragment": [24, 32, 64], "cur_gem": [24, 32, 64], "cur_shard": [24, 32, 64], "cur_ticket": [24, 32, 64],
 	"cur_stone": [16, 24, 32, 64]}
 
@@ -23,6 +26,20 @@ func _ready() -> void:
 		_assert(HudKit.icon(n, 64.0).resource_path.ends_with(n + "_64.png"), "%s at 64 px uses _64" % n)
 	var rr := HudKit.icon("reroll")
 	_assert(rr != null and rr.resource_path.contains("ui_reroll"), "HudKit reroll is ui_reroll, got %s" % (rr.resource_path if rr else "null"))
+	var pc := HudKit.icon("pact", 28.0)
+	_assert(pc != null and pc.resource_path.contains("ui_mooncard"), "HudKit pact is the moon card, got %s" % (pc.resource_path if pc else "null"))
+	# boss-clock (Liam 6/11): drawn on a dark plate_ink disc with a plate_rim ring, per variant, cached
+	for px in [0.0, 28.0, 64.0]:
+		var bc := HudKit.icon("boss-clock", px)
+		_assert(bc is ImageTexture, "boss-clock @%d is the composed disc texture" % int(px))
+		if bc is ImageTexture:
+			var im := bc.get_image()
+			var w := im.get_width()
+			_assert(im.get_pixel(0, 0).a < 0.05, "boss-clock @%d corner stays transparent" % int(px))
+			var top := im.get_pixel(w / 2, int(w * 0.06))
+			_assert(top.a > 0.9 and top.get_luminance() < 0.5, "boss-clock @%d has a dark disc at the top edge (%s)" % [int(px), top])
+			_assert(HudKit.icon("boss-clock", px) == bc, "boss-clock @%d is cached" % int(px))
+	_assert(HudKit.icon("boss-clock", 28.0).get_width() == 32, "boss-clock at 28 px builds from the _32 file")
 	for c in CUR:
 		_assert(UI3.icon(c) != null, "%s master loads" % c)
 		for s in CUR[c]:
@@ -64,8 +81,8 @@ func _assert(ok: bool, msg: String) -> void:
 		_failures.append(msg)
 
 
-## Nobody may still name a removed hl icon: `hl/<name>` anywhere, or `icon("<name>")` (reroll is exempt for the
-## second form: HudKit.icon("reroll") is the live mapping to ui_reroll).
+## Nobody may still name a removed hl icon: `hl/<name>` anywhere, or `icon("<name>")` (HL_MAPPED names are exempt
+## from the second form: HudKit maps them to UI kit icons).
 func _scan_refs(dir: String) -> void:
 	for d in DirAccess.get_directories_at(dir):
 		if d.begins_with(".") or d == "homeland":
@@ -79,5 +96,5 @@ func _scan_refs(dir: String) -> void:
 		var txt := FileAccess.get_file_as_string(dir.path_join(f))
 		for n in HL_GONE:
 			_assert(txt.find("hl/" + n) < 0, "%s mentions hl/%s" % [dir.path_join(f), n])
-			if n != "reroll":
+			if not HL_MAPPED.has(n):
 				_assert(txt.find('icon("%s")' % n) < 0, "%s calls icon(\"%s\")" % [dir.path_join(f), n])
