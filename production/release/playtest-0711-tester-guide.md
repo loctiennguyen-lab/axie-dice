@@ -54,8 +54,6 @@ Gem trong bản này là Gem tặng (300 Gem mỗi ngày, bấm nhận), **khôn
 
 Ghi vào Google Sheet / Use the Google Sheet: https://docs.google.com/spreadsheets/d/1-ArjPLvRbCgo1gjFsdXqqC77xCq4DJawOzqzupse49o/edit?usp=sharing
 
-Kẹt không vào được game (ví dụ đăng nhập lỗi): nhắn **[tên / kênh Slack — Liam điền]**. / Can't get into the game at all (e.g. sign-in fails): message **[name / Slack channel — Liam fills in]**.
-
 Mỗi dòng một chuyện. Nên có / One issue per row, ideally with:
 - Máy: Mac / Windows / Web (trình duyệt nào). / Device: Mac / Windows / Web (which browser).
 - Bản build (ghi trên trang download, hiện tại **b2484**). / Build number (shown on the download page, currently **b2484**).
@@ -67,7 +65,7 @@ Góp ý kiểu "chỗ này chán", "không hiểu cái này để làm gì" cũn
 
 ## 6. Lưu ý / Good to know
 
-- **Dữ liệu playtest sẽ bị xoá hết** khi kết thúc giai đoạn thử, dự kiến **[ngày — Liam điền]** (tiến độ, Gem, lịch sử run). / **All playtest progress will be wiped** when the test ends, around **[date — Liam fills in]** (progress, Gems, run history).
+- **Dữ liệu playtest sẽ bị xoá hết** khi kết thúc giai đoạn thử (tiến độ, Gem, lịch sử run). / **All playtest progress will be wiped** when the test ends (progress, Gems, run history).
 - Game cần mạng khi đang trong run. Mất mạng giữa trận thì game sẽ báo. Nếu kẹt, ghi lại vào sheet. / Runs need an internet connection. If it drops mid-fight the game tells you. If you get stuck, please log it.
 - Ngôn ngữ trong game: tiếng Anh. / In-game language: English.
 
